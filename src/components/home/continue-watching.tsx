@@ -472,7 +472,31 @@ const ContinueWatching = ({ loading = false }: Props) => {
     );
   }
 
-  if (!items.length) return null;
+  if (!items.length) {
+    return (
+      <Container>
+        <div className="site-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
+          <div className="flex items-start gap-3 min-w-0">
+            <History className="w-5 h-5 text-muted-foreground/80 dark:text-white/25 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-muted-foreground dark:text-white/70">
+                {t("home.continueEmptyTitle")}
+              </p>
+              <p className="text-[11px] text-muted-foreground dark:text-white/30 font-mono mt-0.5 leading-relaxed">
+                {t("home.continueEmptyDesc")}
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`${ROUTES.HOME}#trending`}
+            className="shrink-0 inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-white/90 transition-colors site-focus"
+          >
+            {t("home.continueEmptyCta")}
+          </Link>
+        </div>
+      </Container>
+    );
+  }
 
   const visibleKeys = items.map(itemKey);
 

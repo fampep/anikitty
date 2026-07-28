@@ -181,7 +181,7 @@ const NavBar = () => {
         <div className="flex h-[var(--nav-height)] items-center gap-3">
           <Link
             href={ROUTES.HOME}
-            className="group relative z-20 flex shrink-0 items-center py-0.5 transition-opacity hover:opacity-90"
+            className="group relative z-20 flex shrink-0 items-center rounded-md py-0.5 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             <SiteBrandWordmark size="nav" />
           </Link>

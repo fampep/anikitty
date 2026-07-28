@@ -1,6 +1,6 @@
 "use client";
 
-import { Captions, Globe2, Mic, Server } from "lucide-react";
+import { Captions, Flame, Globe2, Mic, Server } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
 import { resolveServerCodename } from "@/lib/kitty/server-display";
@@ -11,6 +11,8 @@ import { useT } from "@/providers/i18n-provider";
 type Props = {
   providerLabel: string;
   streamAudio: "sub" | "dub";
+  /** Burned-in hard-sub playback (still Japanese audio / sub track). */
+  watchingHardSub?: boolean;
   serverName?: string | null;
   provider: KittyProvider;
   qualityLabel?: string | null;
@@ -45,6 +47,7 @@ function MetaChip({
 export default function WatchStreamInfoBar({
   providerLabel,
   streamAudio,
+  watchingHardSub = false,
   serverName,
   provider,
   qualityLabel,
@@ -55,7 +58,12 @@ export default function WatchStreamInfoBar({
   const t = useT();
   const accent = getProviderAccent(provider);
   const server = resolveServerCodename(provider, serverName);
-  const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
+  const audioLabel =
+    streamAudio === "dub"
+      ? t("card.dub")
+      : watchingHardSub
+        ? t("watch.hardSubsSection")
+        : t("watch.softSubBadge");
   const quality = qualityLabel ? formatStreamQualityLabel(qualityLabel) : null;
   const proxyTitle =
     raceMs != null && Number.isFinite(raceMs)
@@ -75,8 +83,18 @@ export default function WatchStreamInfoBar({
         {providerLabel}
       </span>
 
-      <span className={audioChipClass(streamAudio)}>
-        {streamAudio === "dub" ? <Mic className="w-2.5 h-2.5 shrink-0" /> : <Captions className="w-2.5 h-2.5 shrink-0" />}
+      <span
+        className={audioChipClass(
+          watchingHardSub && streamAudio === "sub" ? "sub" : streamAudio,
+        )}
+      >
+        {streamAudio === "dub" ? (
+          <Mic className="w-2.5 h-2.5 shrink-0" />
+        ) : watchingHardSub ? (
+          <Flame className="w-2.5 h-2.5 shrink-0 text-amber-300" />
+        ) : (
+          <Captions className="w-2.5 h-2.5 shrink-0" />
+        )}
         {audioLabel}
       </span>
 

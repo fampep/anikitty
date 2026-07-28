@@ -26,8 +26,18 @@ import {
   Wifi,
 } from "lucide-react";
 import { DiscordIcon } from "@/components/auth/discord-connect";
+import { ANNOUNCEMENT_STYLES } from "@/lib/announcements/announcement-styles";
 
 type OverallStatus = "operational" | "degraded" | "outage" | "checking";
+
+type StatusAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+  severity: string;
+  linkUrl: string | null;
+  linkLabel: string | null;
+};
 
 function resolveOverallStatus(
   loading: boolean,
@@ -107,6 +117,26 @@ export default function StatusPageContent() {
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
     useKittyNodePing({ lightweight: true });
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [notices, setNotices] = useState<StatusAnnouncement[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/announcements")
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        const rows = Array.isArray(data.announcements) ? data.announcements : [];
+        setNotices(
+          rows.filter(
+            (a: StatusAnnouncement) => a.severity === "warn" || a.severity === "critical",
+          ),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (ready && !loading) setLastRefresh(new Date());
@@ -281,7 +311,84 @@ export default function StatusPageContent() {
               </div>
             </div>
           )}
+
+          {(overall === "degraded" || overall === "outage") && (
+            <div
+              className={cn(
+                "rounded-xl border px-3.5 py-3 text-[12px] leading-relaxed",
+                overall === "outage"
+                  ? "border-rose-400/25 bg-rose-500/10 text-rose-100/90"
+                  : "border-amber-400/25 bg-amber-500/10 text-amber-100/90",
+              )}
+            >
+              <p>
+                {overall === "outage" ? t("status.incidentOutage") : t("status.incidentDegraded")}
+              </p>
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <a
+                  href={DISCORD_INVITE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/20 px-2.5 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-black/35 transition-colors"
+                >
+                  <DiscordIcon className="h-3.5 w-3.5" />
+                  {t("discordPrompt.joinDiscord")}
+                </a>
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/20 px-2.5 py-1.5 text-[11px] font-semibold text-white/85 hover:bg-black/35 transition-colors"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {t("status.refresh")}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
+        {notices.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/35">
+              {t("status.activeNotices")}
+            </p>
+            {notices.map((n) => {
+              const style = ANNOUNCEMENT_STYLES[n.severity] ?? ANNOUNCEMENT_STYLES.warn;
+              const Icon = style.icon;
+              return (
+                <div
+                  key={n.id}
+                  className={cn(
+                    "site-panel flex items-start gap-3 border px-4 py-3",
+                    style.bg,
+                    style.border,
+                  )}
+                >
+                  <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", style.iconColor)} />
+                  <div className="min-w-0 flex-1">
+                    <p className={cn("text-sm font-semibold", style.text)}>{n.title}</p>
+                    {n.body ? (
+                      <p className="mt-1 text-[12px] text-muted-foreground dark:text-white/55 leading-relaxed whitespace-pre-wrap">
+                        {n.body}
+                      </p>
+                    ) : null}
+                    {n.linkUrl ? (
+                      <a
+                        href={n.linkUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-300 hover:text-sky-200"
+                      >
+                        {n.linkLabel || n.linkUrl}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div className="site-panel p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 border-sky-400/20 bg-sky-500/[0.06]">
           <div className="flex items-start gap-3 flex-1 min-w-0">

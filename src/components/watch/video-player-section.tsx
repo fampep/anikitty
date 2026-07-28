@@ -74,6 +74,8 @@ import { useW2g } from "@/hooks/use-w2g";
 import W2gPanel from "@/components/watch-together/w2g-panel";
 import { useT } from "@/providers/i18n-provider";
 import { useEffectiveLiteMode } from "@/hooks/use-effective-lite-mode";
+import { shouldPrefetchNextStream } from "@/lib/core/connection-budget";
+import { trackEvent } from "@/lib/analytics";
 import LoadingGirl from "@/components/common/loading-girl";
 import WatchErrorPanel from "@/components/watch/watch-error-panel";
 import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
@@ -659,7 +661,19 @@ const VideoPlayerSection = () => {
             const saved = r?.currentTime ?? 0;
             const dur = r?.duration ?? 0;
             if (isResumableProgress(saved, dur)) {
-              setSavedResumeTime((prev) => Math.max(prev, saved));
+              setSavedResumeTime((prev) => {
+                const next = Math.max(prev, saved);
+                if (saved > (cached?.current ?? 0)) {
+                  useProgressStore.getState().setProgress(
+                    animeSlug,
+                    episodeId,
+                    saved,
+                    dur || localDuration || 0,
+                  );
+                  useProgressStore.getState().flush();
+                }
+                return next;
+              });
             }
           })
           .catch(() => {});
@@ -696,6 +710,8 @@ const VideoPlayerSection = () => {
         const dur = r?.duration ?? 0;
         if (isResumableProgress(saved, dur)) {
           setSavedResumeTime(saved);
+          useProgressStore.getState().setProgress(animeSlug, episodeId, saved, dur);
+          useProgressStore.getState().flush();
         }
       })
       .catch(() => {})
@@ -911,6 +927,7 @@ const VideoPlayerSection = () => {
       playerController.play();
     });
     usePlayerSeekStore.getState().setGetCurrentTime(() => playerController.currentTime ?? 0);
+    usePlayerSeekStore.getState().setGetDuration(() => playerController.duration ?? 0);
     return () => usePlayerSeekStore.getState().clearSeek();
   }, [playerController]);
 
@@ -1074,10 +1091,10 @@ const VideoPlayerSection = () => {
   }, [episodeId, streamReady]);
 
   // Prefetch the next episode stream after playback has settled (avoids competing with HLS).
-  // Skip on lite mode / low-memory devices — holds a full stream payload in React Query.
+  // Skip on lite / Save-Data / slow networks — holds a full stream payload in React Query.
   useEffect(() => {
     if (!streamReady || !nextEpisode || !anilistId) return;
-    if (effectiveLiteMode) return;
+    if (effectiveLiteMode || !shouldPrefetchNextStream()) return;
 
     const nextEpNo = String(nextEpisode.number);
     if (parseInt(nextEpNo, 10) <= 0) return;
@@ -1107,7 +1124,7 @@ const VideoPlayerSection = () => {
       staleTime: KITTY_STREAM_STALE_MS,
       gcTime: 5 * 60 * 1000,
     });
-    }, 45_000);
+    }, 12_000);
 
     return () => window.clearTimeout(timer);
   }, [
@@ -1367,7 +1384,7 @@ const VideoPlayerSection = () => {
 
   // Switch to the next fallback provider (shared by fetch-failure and playback
   // failure). Returns true if it kicked off a switch, false if none is left.
-  const attemptProviderFallback = useCallback((): boolean => {
+  const attemptProviderFallback = useCallback((reason?: string): boolean => {
     if (!providerAutoFallback || fallbackBusyRef.current) return false;
 
     const tried = triedProvidersRef.current;
@@ -1380,12 +1397,27 @@ const VideoPlayerSection = () => {
 
     tried.add(next);
     fallbackBusyRef.current = true;
-    toast.info(
-      t("watch.providerFallback", {
-        from: getKittyProviderLabel(provider),
-        to: getKittyProviderLabel(next),
-      }),
-    );
+    trackEvent("source_switch", {
+      from: provider,
+      to: next,
+      reason: reason ?? "auto_fallback",
+    });
+    if (reason) {
+      toast.info(
+        t("watch.providerFallbackReason", {
+          reason,
+          from: getKittyProviderLabel(provider),
+          to: getKittyProviderLabel(next),
+        }),
+      );
+    } else {
+      toast.info(
+        t("watch.providerFallback", {
+          from: getKittyProviderLabel(provider),
+          to: getKittyProviderLabel(next),
+        }),
+      );
+    }
 
     const mode = normalizeProviderAudioMode(audioMode, "sub");
     handleProviderGridSelect(next, mode, true);
@@ -1451,8 +1483,27 @@ const VideoPlayerSection = () => {
     if (!streamFailed) return;
     if (streamError && isKittyStreamAbortError(streamError)) return;
     if (isKittyNodeFailoverError(streamError) && attemptNodeFailover()) return;
-    if (!providerAutoFallback) return;
-    attemptProviderFallback();
+    if (!providerAutoFallback) {
+      const detail =
+        streamData?.error ||
+        (streamError instanceof Error ? streamError.message : null);
+      trackEvent("stream_fetch_failed", {
+        provider,
+        detail: detail?.slice(0, 80) ?? "unknown",
+      });
+      toast.error(
+        detail
+          ? t("watch.streamFetchFailedDetail", {
+              provider: getKittyProviderLabel(provider),
+              detail: detail.slice(0, 120),
+            })
+          : t("watch.streamFetchFailed", {
+              provider: getKittyProviderLabel(provider),
+            }),
+      );
+      return;
+    }
+    attemptProviderFallback(t("watch.streamFetchFailed", { provider: getKittyProviderLabel(provider) }));
   }, [
     providerAutoFallback,
     streamQueryEnabled,
@@ -1460,6 +1511,9 @@ const VideoPlayerSection = () => {
     streamReady,
     streamFailed,
     streamError,
+    streamData?.error,
+    provider,
+    t,
     attemptNodeFailover,
     attemptProviderFallback,
   ]);
@@ -1545,12 +1599,28 @@ const VideoPlayerSection = () => {
       if (gatewayStatus && attemptNodeFailover()) return;
 
       if (!providerAutoFallback) {
-        toast.error(t("watch.playbackFailed"));
+        trackEvent("playback_failed", {
+          provider,
+          type: info?.type ?? "unknown",
+          status: info?.status ?? 0,
+        });
+        toast.error(t("watch.playbackFailed"), {
+          description: t("watch.playbackFailedHint"),
+        });
         return;
       }
       // attemptProviderFallback already toasts "Switching from X to Y…".
-      const switched = attemptProviderFallback();
-      if (!switched) toast.error(t("watch.playbackFailed"));
+      const switched = attemptProviderFallback(t("watch.playbackFailed"));
+      if (!switched) {
+        trackEvent("playback_failed", {
+          provider,
+          type: info?.type ?? "unknown",
+          status: info?.status ?? 0,
+        });
+        toast.error(t("watch.playbackFailed"), {
+          description: t("watch.playbackFailedHint"),
+        });
+      }
     },
     [
       providerAutoFallback,
@@ -1631,6 +1701,7 @@ const VideoPlayerSection = () => {
     <WatchSimpleProviderRow
       provider={provider}
       streamAudio={streamAudio}
+      audioMode={audioMode}
       onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
       onProviderChange={handleSimpleProviderChange}
       streamCaps={streamCaps}
@@ -2000,6 +2071,7 @@ const VideoPlayerSection = () => {
       <WatchStreamInfoBar
         providerLabel={getKittyProviderLabel(provider)}
         streamAudio={streamAudio}
+        watchingHardSub={watchingHardSub && streamAudio === "sub"}
         serverName={streamData?.server}
         provider={provider}
         qualityLabel={activeQualityLabel}

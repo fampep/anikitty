@@ -480,10 +480,11 @@ const SearchResults = () => {
       ) : isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
           {Array.from({ length: 14 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl h-[15rem] md:h-[18rem] animate-pulse bg-muted/60 dark:bg-muted/60 dark:bg-white/6"
-            />
+            <div key={idx} className="flex flex-col gap-2 w-full">
+              <div className="rounded-xl aspect-[2/3] w-full animate-pulse bg-muted/60 dark:bg-white/[0.06]" />
+              <div className="h-3 w-[80%] rounded animate-pulse bg-muted/50 dark:bg-white/[0.05]" />
+              <div className="h-2.5 w-1/2 rounded animate-pulse bg-muted/40 dark:bg-white/[0.04]" />
+            </div>
           ))}
         </div>
       ) : (

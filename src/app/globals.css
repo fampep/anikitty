@@ -1363,21 +1363,25 @@ body > .anikitty-fs-host--active {
   background: #000 !important;
 }
 
-/* Custom HTML overlay paints subs — hide flaky native WebKit track UI. */
+/*
+ * Custom HTML overlay paints subs. Hide every native cue surface:
+ * WebKit pseudo-elements + ::cue (Firefox/others ignore the webkit ones).
+ */
 .anikitty-player .anikitty-player-video::-webkit-media-text-track-container,
 .anikitty-player .anikitty-player-video::-webkit-media-text-track-display {
   display: none !important;
   opacity: 0 !important;
+  visibility: hidden !important;
   pointer-events: none !important;
 }
 
 .anikitty-player .anikitty-player-video::cue {
-  font-size: var(--ak-cue-size);
-  color: #fafafa;
-  background-color: rgba(9, 9, 11, 0.78);
-  padding: 0.12em 0.35em;
-  line-height: 1.35;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  color: transparent !important;
+  background: transparent !important;
+  text-shadow: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  font-size: 0 !important;
 }
 
 .anikitty-player.anikitty-player--reduce-motion,

@@ -32,6 +32,10 @@ export function createHlsConfig(opts?: {
     testBandwidth: true,
     progressive: false,
     enableWebVTT: opts?.enableWebVTT ?? true,
+    // KittyPlayer paints cues in HTML (PlayerSubtitleOverlay). Native TextTrack
+    // rendering + hls.js subtitleDisplay:"showing" fights our CC toggle and
+    // leaves captions stuck on (especially with external <track> softsubs).
+    renderTextTracksNatively: false,
     enableCEA708Captions: false,
     abrEwmaDefaultEstimate: 800_000,
     abrEwmaFastLive: 3,

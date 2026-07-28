@@ -1,20 +1,18 @@
 import { memo } from "react";
-import { Captions, Flame, Mic } from "lucide-react";
+import { Captions, Mic } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 
-type AudioPillType = "sub" | "dub" | "hardsub";
+type AudioPillType = "sub" | "dub";
 
 const ICON = {
   sub: Captions,
   dub: Mic,
-  hardsub: Flame,
 } as const;
 
 /** Soft icon colors — same language as the watch episode list. */
 const TONE: Record<AudioPillType, string> = {
   sub: "text-sky-400",
   dub: "text-violet-400",
-  hardsub: "text-amber-400",
 };
 
 /**
@@ -47,23 +45,19 @@ export const AudioPill = memo(function AudioPill({
   );
 });
 
-/** Poster / catalog cluster: Sub · Hardsub · Dub with light shadow for contrast on art. */
+/** Poster / catalog cluster: Sub · Dub with light shadow for contrast on art. */
 export const PosterAudioBadges = memo(function PosterAudioBadges({
   sub,
   dub,
-  hardsub,
   className,
 }: {
   sub?: number | null;
   dub?: number | null;
-  /** Defaults to `sub` when omitted (same catalog episode total). */
-  hardsub?: number | null;
   className?: string;
 }) {
   const subCount = sub ?? 0;
   const dubCount = dub ?? 0;
-  const hardCount = hardsub ?? (subCount > 0 ? subCount : 0);
-  if (subCount <= 0 && dubCount <= 0 && hardCount <= 0) return null;
+  if (subCount <= 0 && dubCount <= 0) return null;
 
   return (
     <div
@@ -73,7 +67,6 @@ export const PosterAudioBadges = memo(function PosterAudioBadges({
       )}
     >
       {subCount > 0 ? <AudioPill type="sub" count={subCount} /> : null}
-      {hardCount > 0 ? <AudioPill type="hardsub" count={hardCount} /> : null}
       {dubCount > 0 ? <AudioPill type="dub" count={dubCount} /> : null}
     </div>
   );
@@ -83,23 +76,19 @@ export const PosterAudioBadges = memo(function PosterAudioBadges({
 export const AudioCountBadge = memo(function AudioCountBadge({
   sub,
   dub,
-  hardsub,
   className,
 }: {
   sub?: number | null;
   dub?: number | null;
-  hardsub?: number | null;
   className?: string;
 }) {
   const subCount = sub ?? 0;
   const dubCount = dub ?? 0;
-  const hardCount = hardsub ?? (subCount > 0 ? subCount : 0);
-  if (subCount <= 0 && dubCount <= 0 && hardCount <= 0) return null;
+  if (subCount <= 0 && dubCount <= 0) return null;
 
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
       {subCount > 0 ? <AudioPill type="sub" count={subCount} size="sm" /> : null}
-      {hardCount > 0 ? <AudioPill type="hardsub" count={hardCount} size="sm" /> : null}
       {dubCount > 0 ? <AudioPill type="dub" count={dubCount} size="sm" /> : null}
     </div>
   );
@@ -123,15 +112,10 @@ export const EpisodeAudioMarks = memo(function EpisodeAudioMarks({
   return (
     <span
       className={cn("inline-flex items-center gap-1", className)}
-      aria-label={[hasSub ? "Sub" : null, hasSub ? "Hardsub" : null, hasDub ? "Dub" : null]
-        .filter(Boolean)
-        .join(", ")}
+      aria-label={[hasSub ? "Sub" : null, hasDub ? "Dub" : null].filter(Boolean).join(", ")}
     >
       {hasSub ? (
-        <>
-          <Captions className="h-3 w-3 text-sky-400" strokeWidth={2.25} aria-hidden />
-          <Flame className="h-3 w-3 text-amber-400" strokeWidth={2.25} aria-hidden />
-        </>
+        <Captions className="h-3 w-3 text-sky-400" strokeWidth={2.25} aria-hidden />
       ) : null}
       {hasDub ? (
         <Mic className="h-3 w-3 text-violet-400" strokeWidth={2.25} aria-hidden />

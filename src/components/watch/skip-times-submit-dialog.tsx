@@ -44,6 +44,11 @@ function livePlayerTime(): number {
   return usePlayerSeekStore.getState().getCurrentTime?.() ?? 0;
 }
 
+function livePlayerDuration(): number {
+  const d = usePlayerSeekStore.getState().getDuration?.() ?? 0;
+  return Number.isFinite(d) && d > 0 ? d : 0;
+}
+
 function TimeField({
   label,
   value,
@@ -121,7 +126,8 @@ export default function SkipTimesSubmitDialog({
     setEpisodesInput(String(episode));
     setStart("");
     setEnd("");
-    setDuration("");
+    const dur = livePlayerDuration();
+    setDuration(dur > 0 ? formatSkipSeconds(dur) : "");
     setTimingOpen(false);
   }, [open, episode, initialType]);
 
@@ -328,6 +334,41 @@ export default function SkipTimesSubmitDialog({
                 </div>
               </div>
 
+              <div className="rounded-lg border border-teal-400/20 bg-teal-500/[0.06] p-3 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[11px] text-white/50">{t("skipSubmit.hintMark")}</p>
+                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-teal-200/90">
+                    {t("skipSubmit.liveClock", { time: clock })}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => useNow(setStart)}
+                    className="rounded-md border border-teal-400/30 bg-teal-500/15 px-3 py-2.5 text-[12px] font-semibold text-teal-100 hover:bg-teal-500/25 transition-colors"
+                  >
+                    {t("skipSubmit.markStart")}
+                    {start ? (
+                      <span className="mt-0.5 block font-mono text-[10px] font-normal text-teal-200/70">
+                        {start}
+                      </span>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => useNow(setEnd)}
+                    className="rounded-md border border-teal-400/30 bg-teal-500/15 px-3 py-2.5 text-[12px] font-semibold text-teal-100 hover:bg-teal-500/25 transition-colors"
+                  >
+                    {t("skipSubmit.markEnd")}
+                    {end ? (
+                      <span className="mt-0.5 block font-mono text-[10px] font-normal text-teal-200/70">
+                        {end}
+                      </span>
+                    ) : null}
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <TimeField
                   label={t("skipSubmit.start")}
@@ -414,7 +455,7 @@ export default function SkipTimesSubmitDialog({
                     {t("common.loading")}
                   </span>
                 ) : (
-                  t("skipSubmit.submit")
+                  t("skipSubmit.submitForReview")
                 )}
               </button>
             </div>

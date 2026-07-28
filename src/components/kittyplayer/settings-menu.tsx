@@ -56,22 +56,32 @@ function NavRow({
   label,
   value,
   onClick,
+  compact = false,
 }: {
   icon: ReactNode;
   label: string;
   value?: string;
   onClick: () => void;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-11 w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-white/[0.06] active:bg-white/[0.09]"
+      className={cn(
+        "flex w-full items-center text-left transition-colors hover:bg-white/[0.06] active:bg-white/[0.09]",
+        compact ? "min-h-9 gap-2.5 px-3 py-1.5" : "min-h-11 gap-3 px-3.5 py-2.5",
+      )}
     >
       <span className="flex h-5 w-5 shrink-0 items-center justify-center text-white/90" aria-hidden>
         {icon}
       </span>
-      <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-white/95">
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate font-medium text-white/95",
+          compact ? "text-[12px]" : "text-[13px]",
+        )}
+      >
         {label}
       </span>
       {value ? (
@@ -116,32 +126,45 @@ function ToggleRow({
   description,
   value,
   onChange,
+  compact = false,
 }: {
   icon: ReactNode;
   label: string;
   description?: string;
   value: boolean;
   onChange: (v: boolean) => void;
+  compact?: boolean;
 }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={value}
-      className="flex min-h-11 w-full items-center justify-between gap-2.5 px-3.5 py-2.5 text-left transition-colors hover:bg-white/[0.06]"
+      className={cn(
+        "flex w-full items-center justify-between text-left transition-colors hover:bg-white/[0.06]",
+        compact ? "min-h-9 gap-2 px-3 py-1.5" : "min-h-11 gap-2.5 px-3.5 py-2.5",
+      )}
       onClick={() => onChange(!value)}
     >
-      <div className="flex min-w-0 items-center gap-2.5">
+      <div className={cn("flex min-w-0 items-center", compact ? "gap-2" : "gap-2.5")}>
         <span
           className={cn(
-            "flex h-7 w-7 shrink-0 items-center justify-center rounded-lg",
+            "flex shrink-0 items-center justify-center rounded-lg",
+            compact ? "h-6 w-6" : "h-7 w-7",
             value ? "bg-teal-500/20 text-teal-200" : "bg-white/[0.05] text-white/40",
           )}
         >
           {icon}
         </span>
         <div className="min-w-0">
-          <p className="text-[13px] font-medium leading-tight text-white/90">{label}</p>
+          <p
+            className={cn(
+              "font-medium leading-tight text-white/90",
+              compact ? "text-[12px]" : "text-[13px]",
+            )}
+          >
+            {label}
+          </p>
           {description ? (
             <p className="mt-0.5 text-[10px] leading-snug text-white/35">{description}</p>
           ) : null}
@@ -274,6 +297,7 @@ export default function PlayerSettingsMenu({
           <div className="divide-y divide-white/[0.06] py-0.5">
             {!volumeBoostDisabled ? (
               <NavRow
+                compact={compact}
                 icon={<Music2 className="h-[18px] w-[18px]" strokeWidth={1.75} />}
                 label={t("watch.playerSettings.volumeBoost")}
                 value={formatBoostOffset(volumeBoost)}
@@ -281,17 +305,20 @@ export default function PlayerSettingsMenu({
               />
             ) : null}
             <NavRow
+              compact={compact}
               icon={<Accessibility className="h-[18px] w-[18px]" strokeWidth={1.75} />}
               label={t("watch.playerSettings.tabPlayback")}
               onClick={() => setPanel("playback")}
             />
             <NavRow
+              compact={compact}
               icon={<Captions className="h-[18px] w-[18px]" strokeWidth={1.75} />}
               label={t("watch.playerSettings.tabCaptions")}
               value={captionsRootValue}
               onClick={() => setPanel("captions")}
             />
             <NavRow
+              compact={compact}
               icon={<Gauge className="h-[18px] w-[18px]" strokeWidth={1.75} />}
               label={t("watch.playerSettings.tabSpeed")}
               value={speedLabel}
@@ -299,6 +326,7 @@ export default function PlayerSettingsMenu({
             />
             {showQualityTab ? (
               <NavRow
+                compact={compact}
                 icon={<Clapperboard className="h-[18px] w-[18px]" strokeWidth={1.75} />}
                 label={t("watch.playerSettings.tabQuality")}
                 value={qualityLabel}
@@ -306,6 +334,7 @@ export default function PlayerSettingsMenu({
               />
             ) : null}
             <NavRow
+              compact={compact}
               icon={<Monitor className="h-[18px] w-[18px]" strokeWidth={1.75} />}
               label={t("watch.playerSettings.tabDisplay")}
               onClick={() => setPanel("display")}
@@ -352,6 +381,7 @@ export default function PlayerSettingsMenu({
         {panel === "playback" ? (
           <div className="divide-y divide-white/[0.06] py-0.5">
             <ToggleRow
+              compact={compact}
               icon={<ListVideo className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.autoNext")}
               description={compact ? undefined : t("settings.autoPlayDesc")}
@@ -359,6 +389,7 @@ export default function PlayerSettingsMenu({
               onChange={setAutoPlay}
             />
             <ToggleRow
+              compact={compact}
               icon={<ChevronsRight className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.autoSkip")}
               description={compact ? undefined : t("settings.autoSkipIntroDesc")}
@@ -366,6 +397,7 @@ export default function PlayerSettingsMenu({
               onChange={setAutoSkipIntro}
             />
             <ToggleRow
+              compact={compact}
               icon={<AudioLines className="h-3.5 w-3.5" />}
               label={t("settings.preferDub")}
               description={compact ? undefined : t("settings.preferDubDesc")}
@@ -373,6 +405,7 @@ export default function PlayerSettingsMenu({
               onChange={setPreferDub}
             />
             <ToggleRow
+              compact={compact}
               icon={<Shuffle className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.autoFallback")}
               description={compact ? undefined : t("watch.playerSettings.autoFallbackDesc")}
@@ -380,6 +413,7 @@ export default function PlayerSettingsMenu({
               onChange={setProviderAutoFallback}
             />
             <ToggleRow
+              compact={compact}
               icon={<LayoutList className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.simplePicker")}
               description={compact ? undefined : t("watch.playerSettings.simplePickerDesc")}
@@ -395,6 +429,7 @@ export default function PlayerSettingsMenu({
               />
             </div>
             <ToggleRow
+              compact={compact}
               icon={<MoveHorizontal className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.touchSeek")}
               description={compact ? undefined : t("watch.playerSettings.touchSeekDesc")}
@@ -404,6 +439,7 @@ export default function PlayerSettingsMenu({
             {webGpuReady ? (
               <>
                 <ToggleRow
+                  compact={compact}
                   icon={<Sparkles className="h-3.5 w-3.5" />}
                   label={t("watch.anime4k")}
                   description={compact ? undefined : t("watch.anime4kHint")}
@@ -447,6 +483,7 @@ export default function PlayerSettingsMenu({
           ) : (
             <div className="space-y-0.5 py-0.5">
               <ToggleRow
+                compact={compact}
                 icon={<Captions className="h-3.5 w-3.5" />}
                 label={t("watch.playerSettings.autoEnableSubtitles")}
                 description={
@@ -457,6 +494,7 @@ export default function PlayerSettingsMenu({
               />
               {watchingHardSub ? (
                 <ToggleRow
+                  compact={compact}
                   icon={<Subtitles className="h-3.5 w-3.5" />}
                   label={t("watch.playerSettings.hardSubSoftSubs")}
                   description={
@@ -489,6 +527,7 @@ export default function PlayerSettingsMenu({
         {panel === "display" ? (
           <div className="divide-y divide-white/[0.06] py-0.5">
             <ToggleRow
+              compact={compact}
               icon={<Moon className="h-3.5 w-3.5" />}
               label={t("watch.toolbar.lightsOff")}
               description={compact ? undefined : t("watch.playerSettings.theatre")}
@@ -496,6 +535,7 @@ export default function PlayerSettingsMenu({
               onChange={() => toggleTheatreMode()}
             />
             <ToggleRow
+              compact={compact}
               icon={<ImageIcon className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.posterTheme")}
               description={compact ? undefined : t("watch.playerSettings.posterThemeDesc")}
@@ -503,6 +543,7 @@ export default function PlayerSettingsMenu({
               onChange={setWatchPosterTheme}
             />
             <ToggleRow
+              compact={compact}
               icon={<PanelTop className="h-3.5 w-3.5" />}
               label={t("watch.playerSettings.showProvidersShort")}
               description={

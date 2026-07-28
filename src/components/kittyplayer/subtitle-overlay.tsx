@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type RefObject,
@@ -14,6 +15,10 @@ import {
   subtitleSettingsToInlineStyles,
   usesBoxedSubtitleLines,
 } from "@/lib/subtitles/subtitle-settings";
+import {
+  parsePlaybackVttCues,
+  type PlaybackVttCue,
+} from "@/lib/subtitles/vtt-parse";
 import { useSettingsStore } from "@/store/settings-store";
 
 import {
@@ -27,6 +32,7 @@ type CaptionOption = {
   id: string;
   label: string;
   language?: string;
+  src?: string;
 };
 
 type PlayerSubtitleOverlayProps = {
@@ -35,23 +41,13 @@ type PlayerSubtitleOverlayProps = {
   captionOptions: readonly CaptionOption[];
   captionSize: CaptionSizePref;
   captionPosition: CaptionPositionPref;
+  /** Player timing offset in seconds (positive = show cues later). */
+  captionOffset?: number;
   /** Lift cues above the pinned control bar in immersive modes. */
   immersive?: boolean;
   /** Player chrome (timeline / controls) currently visible — lift cues clear of it. */
   chromeVisible?: boolean;
 };
-
-function cuePlainText(cue: TextTrackCue): string {
-  const raw = cue.text ?? "";
-  return raw
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/?[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .trim();
-}
 
 function splitCueLines(text: string): string[] {
   return text
@@ -60,14 +56,22 @@ function splitCueLines(text: string): string[] {
     .filter(Boolean);
 }
 
+function activeCueText(cues: readonly PlaybackVttCue[], time: number): string {
+  if (!cues.length) return "";
+  const parts: string[] = [];
+  for (const cue of cues) {
+    if (time >= cue.start && time < cue.end) parts.push(cue.text);
+  }
+  return parts.join("\n");
+}
+
 /**
- * Custom HTML subtitle layer. Native `::cue` / WebKit text-track rendering is
- * unreliable in phone fullscreen (Plyr, Video.js, Flowplayer all hit this).
- * Industry fix: keep TextTrack mode `"hidden"` and paint cues ourselves inside
- * the same container that goes fullscreen.
+ * Custom HTML subtitle layer.
  *
- * Appearance comes from site subtitle customization settings (font, color,
- * box, outline, etc.) so the player matches the settings preview.
+ * Native `<track>` / TextTrack rendering is unreliable (hls.js fights mode,
+ * phone fullscreen ::cue bugs, CORS). We fetch the (proxied) VTT ourselves,
+ * parse cues, and paint them from `currentTime` — same approach as Video.js
+ * emulated tracks / Plyr custom captions.
  */
 export function PlayerSubtitleOverlay({
   videoRef,
@@ -75,11 +79,18 @@ export function PlayerSubtitleOverlay({
   captionOptions,
   captionSize,
   captionPosition,
+  captionOffset = 0,
   immersive = false,
   chromeVisible = false,
 }: PlayerSubtitleOverlayProps) {
   const [text, setText] = useState("");
+  const cuesRef = useRef<PlaybackVttCue[]>([]);
+  const timeOffsetRef = useRef(0);
   const subtitleSettings = useSettingsStore((s) => s.subtitleSettings);
+  const subtitleDelayOffset = useSettingsStore(
+    (s) => s.subtitleSettings.delayOffset,
+  );
+  timeOffsetRef.current = captionOffset + subtitleDelayOffset;
   // Hold lift briefly after chrome hides so cues don't drop under the fading bar.
   const [chromeLift, setChromeLift] = useState(chromeVisible);
 
@@ -92,6 +103,56 @@ export function PlayerSubtitleOverlay({
     return () => window.clearTimeout(timer);
   }, [chromeVisible]);
 
+  // Fetch + parse the selected track (same-origin Kitty proxy / cache URLs).
+  useEffect(() => {
+    cuesRef.current = [];
+    setText("");
+
+    if (!selectedCaptionId) return;
+
+    const option = captionOptions.find((c) => c.id === selectedCaptionId);
+    const src = option?.src?.trim();
+    if (!src) return;
+
+    const controller = new AbortController();
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await fetch(src, {
+          signal: controller.signal,
+          credentials: "same-origin",
+          headers: { Accept: "text/vtt,text/plain,*/*" },
+        });
+        if (!res.ok) return;
+        const body = await res.text();
+        if (cancelled) return;
+        cuesRef.current = parsePlaybackVttCues(body);
+        const video = videoRef.current;
+        if (video) {
+          setText(
+            activeCueText(
+              cuesRef.current,
+              video.currentTime - timeOffsetRef.current,
+            ),
+          );
+        }
+      } catch {
+        if (!cancelled) cuesRef.current = [];
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [
+    selectedCaptionId,
+    captionOptions,
+    videoRef,
+  ]);
+
+  // Sync visible cue text to the playhead.
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !selectedCaptionId) {
@@ -99,66 +160,22 @@ export function PlayerSubtitleOverlay({
       return;
     }
 
-    const findTrack = (): TextTrack | null => {
-      const list = video.textTracks;
-      for (let i = 0; i < list.length; i++) {
-        const tt = list[i];
-        if (!tt || (tt.kind !== "subtitles" && tt.kind !== "captions")) continue;
-        const match = captionOptions.find(
-          (c) => c.label === tt.label || c.language === tt.language,
-        );
-        if (match?.id === selectedCaptionId) return tt;
-      }
-      return null;
-    };
-
-    let bound: TextTrack | null = null;
-
     const sync = () => {
-      const tt = findTrack();
-      if (!tt) {
-        setText("");
-        return;
-      }
-      const cues = tt.activeCues;
-      if (!cues || cues.length === 0) {
-        setText("");
-        return;
-      }
-      const parts: string[] = [];
-      for (let i = 0; i < cues.length; i++) {
-        const cue = cues[i];
-        if (!cue) continue;
-        const line = cuePlainText(cue);
-        if (line) parts.push(line);
-      }
-      setText(parts.join("\n"));
+      const t = video.currentTime - timeOffsetRef.current;
+      const next = activeCueText(cuesRef.current, t);
+      setText((prev) => (prev === next ? prev : next));
     };
 
-    const bindTrack = () => {
-      const tt = findTrack();
-      if (bound && bound !== tt) {
-        bound.removeEventListener("cuechange", sync);
-      }
-      bound = tt;
-      tt?.addEventListener("cuechange", sync);
-      sync();
-    };
-
-    bindTrack();
+    sync();
     video.addEventListener("timeupdate", sync);
     video.addEventListener("seeked", sync);
-    video.textTracks.addEventListener("addtrack", bindTrack);
-    video.textTracks.addEventListener("change", bindTrack);
-
+    video.addEventListener("play", sync);
     return () => {
       video.removeEventListener("timeupdate", sync);
       video.removeEventListener("seeked", sync);
-      video.textTracks.removeEventListener("addtrack", bindTrack);
-      video.textTracks.removeEventListener("change", bindTrack);
-      bound?.removeEventListener("cuechange", sync);
+      video.removeEventListener("play", sync);
     };
-  }, [videoRef, selectedCaptionId, captionOptions]);
+  }, [videoRef, selectedCaptionId, captionOffset, subtitleDelayOffset]);
 
   const fontSizePx = useMemo(
     () => Math.round(subtitleSettings.fontSize * captionSizeScale(captionSize)),

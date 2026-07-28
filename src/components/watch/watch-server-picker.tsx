@@ -252,7 +252,7 @@ export default function WatchServerPicker({
       )}
       <ServerRow
         mode="sub"
-        label={t("watch.softSubBadge")}
+        label={t("watch.softSubsSection")}
         icon={<Captions className="h-3 w-3 shrink-0" />}
         servers={softSubServers}
         provider={provider}
@@ -262,7 +262,7 @@ export default function WatchServerPicker({
       />
       <ServerRow
         mode="hardsub"
-        label={t("watch.hardSubsShort")}
+        label={t("watch.hardSubsSection")}
         icon={<Flame className="h-3 w-3 shrink-0" />}
         servers={hardSubServers}
         provider={provider}

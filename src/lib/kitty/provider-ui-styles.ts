@@ -200,6 +200,8 @@ export const AUDIO_SEGMENT = {
   dubActive: "bg-amber-500/20 text-amber-100 border border-amber-400/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
   dubIdle: "text-muted-foreground dark:text-white/40 hover:text-amber-200/75 border border-transparent",
   dubDisabled: "opacity-35 cursor-not-allowed pointer-events-none",
+  hardActive: "bg-sky-500/20 text-sky-100 border border-sky-400/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+  hardIdle: "text-muted-foreground dark:text-white/40 hover:text-sky-200/75 border border-transparent",
 } as const;
 
 export const PROVIDER_PANEL = {

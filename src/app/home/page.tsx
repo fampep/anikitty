@@ -17,7 +17,7 @@ import {
 import { IAnime, SpotlightAnime } from "@/types/anime";
 import dynamic from "next/dynamic";
 import { useQueryClient } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useT } from "@/providers/i18n-provider";
 
@@ -74,13 +74,19 @@ export default function Home() {
   };
 
   if (isError && !critical) {
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6">
-        <p className="text-sm text-muted-foreground font-mono">{t("home.loadError")}</p>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6 text-center">
+        {offline ? (
+          <WifiOff className="h-8 w-8 text-muted-foreground/70" aria-hidden />
+        ) : null}
+        <p className="text-sm text-muted-foreground font-mono max-w-sm">
+          {offline ? t("home.loadErrorOffline") : t("home.loadError")}
+        </p>
         <button
           onClick={handleRetry}
           disabled={isFetching}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border/60 dark:border-white/10 bg-transparent hover:bg-white/5 text-sm font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border/60 dark:border-white/10 bg-transparent hover:bg-white/5 text-sm font-semibold transition-colors disabled:opacity-50 site-focus"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
           {t("home.tryAgain")}

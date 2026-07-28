@@ -14,15 +14,17 @@ import {
   KITTY_PROVIDER_META,
   getKittyProviderLabel,
   kittyProvidersByGroup,
+  providerHasHardSub,
   providerSupportsDub,
   providerSupportsSub,
   type KittyProvider,
+  type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import { providerCapabilityBadges, resolveProviderBadgeCaps } from "@/lib/kitty/provider-picker-utils";
 import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
 import { AUDIO_SEGMENT } from "@/lib/kitty/provider-ui-styles";
-import { Captions, Mic, Server, Zap } from "lucide-react";
+import { Captions, Flame, Mic, Server, Zap } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
@@ -30,7 +32,8 @@ import { useSettingsStore } from "@/store/settings-store";
 type Props = {
   provider: KittyProvider;
   streamAudio: "sub" | "dub";
-  onAudioChange?: (audio: "sub" | "dub") => void;
+  audioMode?: ProviderAudioMode;
+  onAudioChange?: (audio: ProviderAudioMode) => void;
   onProviderChange: (provider: KittyProvider) => void;
   streamCaps?: EpisodeStreamCapabilities;
   capsLoading?: boolean;
@@ -54,12 +57,19 @@ function FieldLabel({ icon, children }: { icon: React.ReactNode; children: React
 function LangBadges({ id }: { id: KittyProvider }) {
   const sub = providerSupportsSub(id);
   const dub = providerSupportsDub(id);
+  const hard = providerHasHardSub(id);
   return (
     <span className="ml-auto flex items-center gap-1 pl-3 shrink-0">
       {sub && (
         <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold text-teal-300/85">
           <Captions className="w-2.5 h-2.5" />
           SUB
+        </span>
+      )}
+      {hard && (
+        <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold text-sky-300/85">
+          <Flame className="w-2.5 h-2.5" />
+          HS
         </span>
       )}
       {dub && (
@@ -75,6 +85,7 @@ function LangBadges({ id }: { id: KittyProvider }) {
 export default function WatchSimpleProviderRow({
   provider,
   streamAudio,
+  audioMode = "sub",
   onAudioChange,
   onProviderChange,
   streamCaps,
@@ -87,6 +98,9 @@ export default function WatchSimpleProviderRow({
   const showAdultContent = useSettingsStore((s) => s.showAdultContent);
   const serverCount = KITTY_PROVIDER_META.filter((p) => showAdultContent || !p.adultOnly).length;
   const dubEnabled = providerSupportsDub(provider);
+  const hardEnabled = providerHasHardSub(provider);
+  const activeMode: ProviderAudioMode =
+    streamAudio === "dub" ? "dub" : audioMode === "hardsub" && hardEnabled ? "hardsub" : "sub";
 
   return (
     <div className={cn("min-w-0 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end", className)}>
@@ -150,31 +164,45 @@ export default function WatchSimpleProviderRow({
       </div>
 
       {onAudioChange && (
-        <div className="min-w-0 sm:w-[9.5rem]">
+        <div className={cn("min-w-0", hardEnabled ? "sm:w-[14rem]" : "sm:w-[9.5rem]")}>
           <FieldLabel icon={<Captions className="w-3 h-3" />}>
-            {t("card.sub")} / {t("card.dub")}
+            {t("watch.audioMode")}
           </FieldLabel>
-          <div className={AUDIO_SEGMENT.track} role="group" aria-label="Audio">
+          <div className={AUDIO_SEGMENT.track} role="group" aria-label={t("watch.audioMode")}>
             <button
               type="button"
-              aria-pressed={streamAudio === "sub"}
+              aria-pressed={activeMode === "sub"}
               onClick={() => onAudioChange("sub")}
               className={cn(
                 AUDIO_SEGMENT.btn,
-                streamAudio === "sub" ? AUDIO_SEGMENT.subActive : AUDIO_SEGMENT.subIdle,
+                activeMode === "sub" ? AUDIO_SEGMENT.subActive : AUDIO_SEGMENT.subIdle,
               )}
             >
               <Captions className="w-3 h-3 shrink-0 opacity-80" />
               {t("card.sub")}
             </button>
+            {hardEnabled ? (
+              <button
+                type="button"
+                aria-pressed={activeMode === "hardsub"}
+                onClick={() => onAudioChange("hardsub")}
+                className={cn(
+                  AUDIO_SEGMENT.btn,
+                  activeMode === "hardsub" ? AUDIO_SEGMENT.hardActive : AUDIO_SEGMENT.hardIdle,
+                )}
+              >
+                <Flame className="w-3 h-3 shrink-0 opacity-80" />
+                {t("watch.hardSubsShort")}
+              </button>
+            ) : null}
             <button
               type="button"
-              aria-pressed={streamAudio === "dub"}
+              aria-pressed={activeMode === "dub"}
               disabled={!dubEnabled}
               onClick={() => dubEnabled && onAudioChange("dub")}
               className={cn(
                 AUDIO_SEGMENT.btn,
-                streamAudio === "dub" ? AUDIO_SEGMENT.dubActive : AUDIO_SEGMENT.dubIdle,
+                activeMode === "dub" ? AUDIO_SEGMENT.dubActive : AUDIO_SEGMENT.dubIdle,
                 !dubEnabled && AUDIO_SEGMENT.dubDisabled,
               )}
             >

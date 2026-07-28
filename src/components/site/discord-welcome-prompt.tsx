@@ -7,9 +7,10 @@ import {
   readDiscordPromptDismissed,
   writeDiscordPromptDismissed,
 } from "@/lib/site/discord-prompt-storage";
-import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
+import { ROUTES } from "@/constants/routes";
 
-const SHOW_DELAY_MS = 1400;
+/** Only nudge on home, after the user has settled — avoid watch / browse noise. */
+const SHOW_DELAY_MS = 14_000;
 
 export default function DiscordWelcomePrompt() {
   const pathname = usePathname();
@@ -22,11 +23,13 @@ export default function DiscordWelcomePrompt() {
 
   useEffect(() => {
     if (!ready || !pathname) return;
-    if (isPublicAdminUiPath(pathname)) return;
+    if (pathname !== ROUTES.HOME) return;
     if (readDiscordPromptDismissed()) return;
 
     const timer = window.setTimeout(() => {
-      if (!readDiscordPromptDismissed()) setOpen(true);
+      if (!readDiscordPromptDismissed() && window.location.pathname === ROUTES.HOME) {
+        setOpen(true);
+      }
     }, SHOW_DELAY_MS);
 
     return () => window.clearTimeout(timer);

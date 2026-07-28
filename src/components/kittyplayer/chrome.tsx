@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/core/utils";
 import type { StoryboardCue } from "@/lib/player/storyboard-vtt";
+import { useT } from "@/providers/i18n-provider";
 
 import { formatPlayerTime } from "./utils";
 
@@ -134,15 +135,23 @@ export function SegmentedChoice<T extends string>({
   options,
   value,
   onChange,
+  dense,
 }: {
   label: string;
   options: readonly { label: string; value: T }[];
   value: T;
   onChange: (value: T) => void;
+  /** Tighter padding for phone / sheet menus. */
+  dense?: boolean;
 }) {
   return (
-    <div className="px-3 py-2">
-      <p className="mb-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-white/35">
+    <div className={cn(dense ? "px-2.5 py-1" : "px-3 py-2")}>
+      <p
+        className={cn(
+          "font-medium uppercase tracking-[0.08em] text-white/35",
+          dense ? "mb-1 text-[9px]" : "mb-1.5 text-[10px]",
+        )}
+      >
         {label}
       </p>
       <div
@@ -159,7 +168,8 @@ export function SegmentedChoice<T extends string>({
               aria-pressed={active}
               onClick={() => onChange(opt.value)}
               className={cn(
-                "min-w-0 flex-1 rounded px-2 py-1.5 text-[11px] font-medium tracking-wide transition-[color,background-color,transform] duration-150",
+                "min-w-0 flex-1 rounded font-medium tracking-wide transition-[color,background-color,transform] duration-150",
+                dense ? "px-1.5 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]",
                 "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/35",
                 "active:scale-[0.97]",
                 active
@@ -668,6 +678,7 @@ export function UpNextCountdown({
   onPlayNow: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const title =
     episode.title &&
     episode.title.toLowerCase() !== `episode ${episode.number}`
@@ -734,34 +745,34 @@ export function UpNextCountdown({
 
         <div className="min-w-0 flex-1 text-center sm:text-left">
           <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-white/40">
-            {casting ? "Up next · Cast" : "Up next"}
+            {casting ? t("watch.upNextCast") : t("watch.upNext")}
           </p>
           <p className="mt-0.5 truncate text-[14px] font-semibold tracking-tight text-white">
             {title}
           </p>
           <p className="mt-0.5 text-[11px] tabular-nums text-white/45">
             {casting
-              ? `Casting in ${countdown}s`
+              ? t("watch.castingIn", { n: countdown })
               : imageUrl
-                ? `Playing in ${countdown}s`
-                : `Starts in ${countdown}s`}
+                ? t("watch.playingIn", { n: countdown })
+                : t("watch.startsIn", { n: countdown })}
           </p>
         </div>
 
-        <div className="flex shrink-0 flex-col gap-1 sm:items-stretch">
+        <div className="flex w-full shrink-0 flex-col gap-1 sm:w-auto sm:items-stretch">
           <button
             type="button"
             onClick={onPlayNow}
-            className="rounded-md bg-white px-3.5 py-2 text-[12px] font-semibold tracking-wide text-zinc-950 transition-colors hover:bg-white/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="w-full rounded-md bg-white px-3.5 py-2.5 text-[12px] font-semibold tracking-wide text-zinc-950 transition-colors hover:bg-white/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:w-auto sm:py-2"
           >
-            Play now
+            {t("watch.playNow")}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-md px-3.5 py-1.5 text-[12px] font-medium text-white/50 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+            className="w-full rounded-md px-3.5 py-1.5 text-[12px] font-medium text-white/50 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:w-auto"
           >
-            Cancel
+            {t("watch.cancel")}
           </button>
         </div>
       </div>

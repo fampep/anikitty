@@ -17,6 +17,7 @@ import {
   pickHlsAudioTrack,
 } from "@/lib/kitty/hls-audio";
 import { createHlsConfig } from "@/lib/kitty/hls-config";
+import { trackEvent } from "@/lib/analytics";
 import {
   exitElementFullscreen,
   elementSupportsFullscreenRequest,
@@ -175,7 +176,6 @@ import {
   bufferedRangesEqual,
   CAPTION_OFFSET_OPTIONS,
   captionPositionCss,
-  captionPositionLine,
   captionSizeCss,
   clamp,
   KITTY_PLAYER_SPEEDS,
@@ -341,7 +341,6 @@ export function KittyPlayer({
   const liteMode = useEffectiveLiteMode();
   const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
   const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
-  const subtitleDelayOffset = useSettingsStore((s) => s.subtitleSettings.delayOffset);
   const autoSkipRef = useRef(autoSkipIntro);
   const autoNextRef = useRef(autoPlay);
   const seekStepRef = useRef(seekStepSeconds);
@@ -394,8 +393,6 @@ export function KittyPlayer({
   const [captionOffset, setCaptionOffset] = useState(
     () => initialPrefsRef.current?.captionOffset ?? 0,
   );
-  const captionTrackOffsetsRef = useRef(new WeakMap<TextTrack, number>());
-  const captionOffsetSrcRef = useRef<string | null>(null);
   /** Avoid reclaim loops when the UA keeps promoting bare <video> fullscreen. */
   const reclaimHostFsRef = useRef(false);
   const [pipSupported, setPipSupported] = useState(false);
@@ -438,6 +435,8 @@ export function KittyPlayer({
   const [hlsAudioIndex, setHlsAudioIndex] = useState(0);
   const [selectedCaptionId, setSelectedCaptionId] = useState<string | null>(null);
   const lastCaptionIdRef = useRef<string | null>(null);
+  /** User toggled CC in this session — ignore preferSubtitles auto-gate. */
+  const captionUserPickedRef = useRef(false);
   const volumeLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const volumeLongPressFiredRef = useRef(false);
   const [holdSpeedActive, setHoldSpeedActive] = useState(false);
@@ -1287,7 +1286,14 @@ export function KittyPlayer({
       return;
     }
     const prefs = loadKittyPlayerPrefs();
+    // Explicit Off always wins.
     if (prefs.captionsOn === false) {
+      setSelectedCaptionId(null);
+      return;
+    }
+    // Auto-enable gate. Manual CC picks set captionUserPickedRef so a later
+    // preferSubtitles=false (e.g. settings) does not wipe an intentional On.
+    if (!preferSubtitles && !captionUserPickedRef.current) {
       setSelectedCaptionId(null);
       return;
     }
@@ -1298,10 +1304,6 @@ export function KittyPlayer({
         lastCaptionIdRef.current = byLabel.id;
         return;
       }
-    }
-    if (!preferSubtitles) {
-      setSelectedCaptionId(null);
-      return;
     }
     const preferred =
       captionOptions.find((c) => c.isDefault) ?? captionOptions[0] ?? null;
@@ -1315,92 +1317,28 @@ export function KittyPlayer({
     if (selectedCaptionId) lastCaptionIdRef.current = selectedCaptionId;
   }, [selectedCaptionId]);
 
-  // Apply native textTrack modes + timing offset.
+  // Softsubs are painted by PlayerSubtitleOverlay (fetch + parse VTT). Keep any
+  // native / HLS-injected TextTracks disabled so the UA never paints ::cue.
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (captionOffsetSrcRef.current !== activeSrc) {
-      captionTrackOffsetsRef.current = new WeakMap();
-      captionOffsetSrcRef.current = activeSrc;
-    }
-    const offsets = captionTrackOffsetsRef.current;
 
-    const shiftCues = (tt: TextTrack, targetOffset: number) => {
-      const cues = tt.cues;
-      if (!cues || cues.length === 0) return;
-      const current = offsets.get(tt) ?? 0;
-      const delta = targetOffset - current;
-      if (Math.abs(delta) < 0.001) return;
-      for (let i = 0; i < cues.length; i++) {
-        const cue = cues[i];
-        if (!cue) continue;
-        try {
-          cue.startTime = Math.max(0, cue.startTime + delta);
-          cue.endTime = Math.max(cue.startTime + 0.05, cue.endTime + delta);
-        } catch {
-          /* some browsers freeze cue times */
-        }
-      }
-      offsets.set(tt, targetOffset);
-    };
-
-    const layoutCues = (tt: TextTrack) => {
-      const cues = tt.cues;
-      if (!cues || cues.length === 0) return;
-      const line = captionPositionLine(captionPosition);
-      for (let i = 0; i < cues.length; i++) {
-        const cue = cues[i];
-        if (!(cue instanceof VTTCue)) continue;
-        try {
-          cue.snapToLines = true;
-          cue.line = line;
-        } catch {
-          /* some browsers freeze cue layout */
-        }
-      }
-    };
-
-    const apply = () => {
+    const disableNative = () => {
       const list = video.textTracks;
       for (let i = 0; i < list.length; i++) {
         const tt = list[i];
-        if (!tt || (tt.kind !== "subtitles" && tt.kind !== "captions")) continue;
-        const match = captionOptions.find(
-          (c) => c.label === tt.label || c.language === tt.language,
-        );
-        const id = match?.id ?? null;
-        if (selectedCaptionId && id === selectedCaptionId) {
-          // "hidden" = cues still fire / activeCues update, but the UA does not
-          // paint native ::cue (broken in phone fullscreen). We render HTML.
-          tt.mode = "hidden";
-          layoutCues(tt);
-          shiftCues(tt, captionOffset + subtitleDelayOffset);
-        } else {
-          tt.mode = "disabled";
-        }
+        if (!tt) continue;
+        if (tt.kind !== "subtitles" && tt.kind !== "captions") continue;
+        if (tt.mode !== "disabled") tt.mode = "disabled";
       }
     };
 
-    apply();
-    video.textTracks.addEventListener("addtrack", apply);
-    video.textTracks.addEventListener("change", apply);
-    const trackEls = video.querySelectorAll("track");
-    trackEls.forEach((el) => el.addEventListener("load", apply));
+    disableNative();
+    video.textTracks.addEventListener("addtrack", disableNative);
     return () => {
-      video.textTracks.removeEventListener("addtrack", apply);
-      video.textTracks.removeEventListener("change", apply);
-      trackEls.forEach((el) => el.removeEventListener("load", apply));
+      video.textTracks.removeEventListener("addtrack", disableNative);
     };
-  }, [
-    captionOptions,
-    selectedCaptionId,
-    activeSrc,
-    captionOffset,
-    subtitleDelayOffset,
-    captionPosition,
-    fullscreen,
-    cssFullscreen,
-  ]);
+  }, [activeSrc, captionOptions.length]);
 
   // Re-apply preferDub when the watch page toggles SUB/DUB.
   useEffect(() => {
@@ -1740,6 +1678,10 @@ export function KittyPlayer({
         stallWatchRef.current = null;
         const v = videoRef.current;
         if (!v || v.paused || v.readyState >= 3) return;
+        trackEvent("buffer_stall", {
+          ready_state: v.readyState,
+          current_time: Math.round(v.currentTime),
+        });
         kickHlsLoad();
         try {
           hlsRef.current?.recoverMediaError();
@@ -2113,6 +2055,10 @@ export function KittyPlayer({
         return;
       }
       hls = new Hls(createHlsConfig({ lite: liteMode }));
+      // Softsubs are rendered by PlayerSubtitleOverlay — never let hls.js force
+      // TextTrack.mode = "showing" (that is what made captions stick on).
+      hls.subtitleDisplay = false;
+      hls.subtitleTrack = -1;
       hlsRef.current = hls;
       hls.loadSource(activeSrc);
       hls.attachMedia(video);
@@ -2852,6 +2798,7 @@ export function KittyPlayer({
 
   const selectCaption = useCallback(
     (id: string | null) => {
+      captionUserPickedRef.current = true;
       if (id) lastCaptionIdRef.current = id;
       setSelectedCaptionId(id);
       const label =
@@ -3601,18 +3548,7 @@ export function KittyPlayer({
           onPointerMove={surfaceGestures.onPointerMove}
           onPointerUp={surfaceGestures.onPointerUp}
           onPointerCancel={surfaceGestures.onPointerCancel}
-        >
-          {captionOptions.map((track) => (
-            <track
-              key={track.id}
-              kind="subtitles"
-              src={track.src}
-              srcLang={track.language}
-              label={track.label}
-              default={preferSubtitles && track.id === selectedCaptionId}
-            />
-          ))}
-        </video>
+        />
       </div>
 
       <PlayerSubtitleOverlay
@@ -3621,6 +3557,7 @@ export function KittyPlayer({
         captionOptions={captionOptions}
         captionSize={captionSize}
         captionPosition={captionPosition}
+        captionOffset={captionOffset}
         immersive={fullscreen || cssFullscreen}
         chromeVisible={chromeVisible}
       />
@@ -4469,8 +4406,12 @@ export function KittyPlayer({
                                 </span>
                               </div>
                               <div className="max-h-[min(42dvh,280px)] overflow-y-auto overscroll-contain sm:max-h-[min(58dvh,380px)]">
-                                <MenuSection title="Language">
+                                <MenuSection
+                                  dense={coarsePointer || compactChrome}
+                                  title="Language"
+                                >
                                   <MenuItem
+                                    dense={coarsePointer || compactChrome}
                                     active={selectedCaptionId == null}
                                     onClick={() => selectCaption(null)}
                                   >
@@ -4479,6 +4420,7 @@ export function KittyPlayer({
                                   {captionOptions.map((track) => (
                                     <MenuItem
                                       key={track.id}
+                                      dense={coarsePointer || compactChrome}
                                       active={selectedCaptionId === track.id}
                                       onClick={() => selectCaption(track.id)}
                                     >
@@ -4491,6 +4433,7 @@ export function KittyPlayer({
                                     Appearance
                                   </p>
                                   <SegmentedChoice
+                                    dense={coarsePointer || compactChrome}
                                     label="Size"
                                     value={captionSize}
                                     onChange={applyCaptionSize}
@@ -4503,6 +4446,7 @@ export function KittyPlayer({
                                     }
                                   />
                                   <SegmentedChoice
+                                    dense={coarsePointer || compactChrome}
                                     label="Position"
                                     value={captionPosition}
                                     onChange={applyCaptionPosition}
@@ -4515,10 +4459,14 @@ export function KittyPlayer({
                                     }
                                   />
                                 </div>
-                                <MenuSection title="Timing">
+                                <MenuSection
+                                  dense={coarsePointer || compactChrome}
+                                  title="Timing"
+                                >
                                   {CAPTION_OFFSET_OPTIONS.map((offset) => (
                                     <MenuItem
                                       key={offset}
+                                      dense={coarsePointer || compactChrome}
                                       active={
                                         Math.abs(captionOffset - offset) < 0.001
                                       }
@@ -4583,6 +4531,7 @@ export function KittyPlayer({
                                   Appearance
                                 </p>
                                 <SegmentedChoice
+                                  dense={coarsePointer || compactChrome}
                                   label="Size"
                                   value={captionSize}
                                   onChange={applyCaptionSize}
@@ -4595,6 +4544,7 @@ export function KittyPlayer({
                                   }
                                 />
                                 <SegmentedChoice
+                                  dense={coarsePointer || compactChrome}
                                   label="Position"
                                   value={captionPosition}
                                   onChange={applyCaptionPosition}
@@ -4607,10 +4557,14 @@ export function KittyPlayer({
                                   }
                                 />
                               </div>
-                              <MenuSection title="Timing">
+                              <MenuSection
+                                dense={coarsePointer || compactChrome}
+                                title="Timing"
+                              >
                                 {CAPTION_OFFSET_OPTIONS.map((offset) => (
                                   <MenuItem
                                     key={offset}
+                                    dense={coarsePointer || compactChrome}
                                     active={
                                       Math.abs(captionOffset - offset) < 0.001
                                     }

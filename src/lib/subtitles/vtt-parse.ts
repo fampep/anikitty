@@ -53,6 +53,65 @@ export type VttCue = {
   text: string;
 };
 
+function vttTimestampToSeconds(ts: string): number {
+  const cleaned = ts.trim().replace(",", ".");
+  const parts = cleaned.split(":").map((p) => Number(p));
+  if (parts.some((n) => !Number.isFinite(n))) return NaN;
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  return parts[0] ?? NaN;
+}
+
+/** Timed cue for in-player subtitle overlay (seconds). */
+export type PlaybackVttCue = {
+  start: number;
+  end: number;
+  text: string;
+};
+
+/**
+ * Parse a full WEBVTT / SRT file into timed cues for custom HTML rendering.
+ * Skips NOTE/STYLE/REGION headers. No cue limit.
+ */
+export function parsePlaybackVttCues(content: string): PlaybackVttCue[] {
+  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  if (!normalized) return [];
+
+  const blocks = normalized.split(/\n\n+/);
+  const cues: PlaybackVttCue[] = [];
+
+  for (const block of blocks) {
+    const lines = block.split("\n").map((l) => l.trimEnd());
+    if (lines.length === 0) continue;
+    const first = (lines[0] ?? "").trim();
+    if (/^WEBVTT/i.test(first)) continue;
+    if (/^NOTE\b/i.test(first)) continue;
+    if (/^STYLE\b/i.test(first)) continue;
+    if (/^REGION\b/i.test(first)) continue;
+
+    const timeLineIdx = lines.findIndex((l) => l.includes("-->"));
+    if (timeLineIdx === -1) continue;
+
+    const [startRaw, endRaw] = lines[timeLineIdx].split("-->").map((s) => s.trim());
+    const start = vttTimestampToSeconds((startRaw ?? "").split(/\s/)[0] ?? "");
+    const end = vttTimestampToSeconds((endRaw ?? "").split(/\s/)[0] ?? "");
+    if (!Number.isFinite(start) || !Number.isFinite(end) || !(end > start)) continue;
+
+    const text = dedupeAdjacentCueLines(
+      lines
+        .slice(timeLineIdx + 1)
+        .map((l) => stripVttInlineMarkup(l.trim()))
+        .filter(Boolean),
+    ).join("\n");
+    if (!text) continue;
+
+    cues.push({ start, end, text });
+  }
+
+  cues.sort((a, b) => a.start - b.start);
+  return cues;
+}
+
 /** Parse WEBVTT / SRT-style content into display cues (first N for preview). */
 export function parseVttCues(content: string, limit = 12): VttCue[] {
   const normalized = content.replace(/\r\n/g, "\n").trim();

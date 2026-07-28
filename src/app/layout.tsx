@@ -9,6 +9,7 @@ import SkipToContent from "@/components/layout/skip-to-content";
 import Footer from "@/components/layout/footer";
 import ScrollToTop from "@/components/layout/scroll-to-top";
 import SiteAnnouncementBanner from "@/components/layout/site-announcement-banner";
+import NetworkOfflineBanner from "@/components/layout/network-offline-banner";
 import I18nRoot from "@/components/layout/i18n-root";
 import Script from "next/script";
 import QueryProvider from "@/providers/query-provider";
@@ -174,6 +175,7 @@ export default async function RootLayout({
               <SiteDisplaySync />
               <SkipToContent />
               <NavBar />
+              <NetworkOfflineBanner />
               <SiteAnnouncementBanner />
               <main id="main" tabIndex={-1} className="site-page">
                 {children}
