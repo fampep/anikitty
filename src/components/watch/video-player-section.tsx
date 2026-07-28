@@ -1039,14 +1039,28 @@ const VideoPlayerSection = () => {
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
     setStreamKittyNode(kittyProxyManual ? kittyProxyNode : "auto");
-  }, [streamQueryAudio, provider, urlAnimeId, anilistId, preferHardSub, kittyProxyManual, kittyProxyNode]);
+  }, [streamQueryAudio, provider, urlAnimeId, anilistId, preferHardSub]);
 
   // Episode change: clear failover state but keep the player shell mounted.
   useEffect(() => {
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
     setStreamKittyNode(kittyProxyManual ? kittyProxyNode : "auto");
-  }, [episodeId, kittyProxyManual, kittyProxyNode]);
+  }, [episodeId]);
+
+  // User pinned / changed DNS (status page or player menu) — remint on that node.
+  const prevDnsPinRef = useRef(`${kittyProxyManual}:${kittyProxyNode}`);
+  useEffect(() => {
+    const key = `${kittyProxyManual}:${kittyProxyNode}`;
+    if (prevDnsPinRef.current === key) return;
+    prevDnsPinRef.current = key;
+    triedKittyNodesRef.current.clear();
+    setExcludeKittyNodes([]);
+    setStreamKittyNode(kittyProxyManual ? kittyProxyNode : "auto");
+    commitResumeForSourceSwitch();
+    setHeldStreamSnapshot(null);
+    setPlaybackToken((n) => n + 1);
+  }, [kittyProxyManual, kittyProxyNode, commitResumeForSourceSwitch]);
 
   // Clear auto-fullscreen after the new episode stream is up (one-shot restore).
   useEffect(() => {

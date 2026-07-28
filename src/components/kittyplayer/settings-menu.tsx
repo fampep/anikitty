@@ -10,6 +10,7 @@ import {
   ChevronsRight,
   Clapperboard,
   Gauge,
+  Globe2,
   LayoutList,
   ListVideo,
   Monitor,
@@ -21,6 +22,7 @@ import {
   Shuffle,
   Sparkles,
   Subtitles,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
@@ -35,6 +37,7 @@ import {
 } from "@/components/kittyplayer/audio-boost";
 import { ANIME4K_MODES, isWebGpuSupported } from "@/lib/player/anime4k";
 import { MenuItem, MenuSection } from "@/components/kittyplayer/chrome";
+import { KITTY_API_NODES, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 
 export type PlayerSettingsPanelId =
   | "root"
@@ -43,7 +46,8 @@ export type PlayerSettingsPanelId =
   | "captions"
   | "speed"
   | "quality"
-  | "display";
+  | "display"
+  | "dns";
 
 function formatBoostOffset(boost: number): string {
   const pct = Math.round((sanitizeVolumeBoost(boost) - 1) * 100);
@@ -256,10 +260,28 @@ export default function PlayerSettingsMenu({
   const setAnime4kEnabled = useSettingsStore((s) => s.setAnime4kEnabled);
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
   const setAnime4kMode = useSettingsStore((s) => s.setAnime4kMode);
+  const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
+  const setKittyProxyNode = useSettingsStore((s) => s.setKittyProxyNode);
+  const kittyProxyManual = useSettingsStore((s) => s.kittyProxyManual);
+  const setKittyProxyManual = useSettingsStore((s) => s.setKittyProxyManual);
 
   const webGpuReady = isWebGpuSupported();
   const backLabel = t("watch.playerSettings.back");
   const goRoot = () => setPanel("root");
+
+  const activeDnsMeta = KITTY_API_NODES.find((n) => n.id === kittyProxyNode);
+  const dnsRootValue = kittyProxyManual
+    ? (activeDnsMeta?.label ?? activeDnsMeta?.location ?? kittyProxyNode)
+    : t("watch.playerSettings.dnsAuto");
+
+  const selectDnsAuto = () => {
+    setKittyProxyManual(false);
+  };
+
+  const selectDnsNode = (nodeId: KittyApiNodeId) => {
+    setKittyProxyNode(nodeId);
+    setKittyProxyManual(true);
+  };
 
   const captionsRootValue =
     captionsValue ??
@@ -275,6 +297,7 @@ export default function PlayerSettingsMenu({
     speed: t("watch.playerSettings.tabSpeed"),
     quality: t("watch.playerSettings.tabQuality"),
     display: t("watch.playerSettings.tabDisplay"),
+    dns: t("watch.playerSettings.tabDns"),
   };
 
   return (
@@ -338,6 +361,13 @@ export default function PlayerSettingsMenu({
               icon={<Monitor className="h-[18px] w-[18px]" strokeWidth={1.75} />}
               label={t("watch.playerSettings.tabDisplay")}
               onClick={() => setPanel("display")}
+            />
+            <NavRow
+              compact={compact}
+              icon={<Globe2 className="h-[18px] w-[18px]" strokeWidth={1.75} />}
+              label={t("watch.playerSettings.tabDns")}
+              value={dnsRootValue}
+              onClick={() => setPanel("dns")}
             />
           </div>
         ) : null}
@@ -553,6 +583,39 @@ export default function PlayerSettingsMenu({
               onChange={setShowPlayerControls}
             />
             {displayExtras}
+          </div>
+        ) : null}
+
+        {panel === "dns" ? (
+          <div className="py-0.5">
+            {!compact ? (
+              <p className="px-3.5 pb-1.5 pt-2 text-[10px] leading-snug text-white/35">
+                {t("watch.playerSettings.dnsHint")}
+              </p>
+            ) : null}
+            <MenuSection title={t("watch.playerSettings.dnsRouting")} dense={compact}>
+              <MenuItem dense={compact} active={!kittyProxyManual} onClick={selectDnsAuto}>
+                <span className="inline-flex items-center gap-2">
+                  <Zap className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+                  {t("watch.playerSettings.dnsAuto")}
+                </span>
+              </MenuItem>
+            </MenuSection>
+            <MenuSection title={t("watch.playerSettings.dnsLocations")} dense={compact}>
+              {KITTY_API_NODES.map((node) => {
+                const active = kittyProxyManual && kittyProxyNode === node.id;
+                return (
+                  <MenuItem
+                    key={node.id}
+                    dense={compact}
+                    active={active}
+                    onClick={() => selectDnsNode(node.id)}
+                  >
+                    {node.location}
+                  </MenuItem>
+                );
+              })}
+            </MenuSection>
           </div>
         ) : null}
       </div>
