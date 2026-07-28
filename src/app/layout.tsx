@@ -33,7 +33,9 @@ import {
   APP_URL,
   SITE_APPLE_ICON,
   SITE_FAVICON,
+  SITE_FAVICON_ICO,
   SITE_ICON,
+  SITE_ICON_512,
   SITE_LOGO,
 } from "@/lib/seo/site-seo";
 
@@ -60,13 +62,15 @@ export const metadata: Metadata = {
   description: APP_DESCRIPTION,
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
-      { url: SITE_FAVICON, type: "image/png", sizes: "96x96" },
+      // Prefer PNG (Google Search likes ≥48px multiples); ico kept as legacy fallback.
       { url: SITE_ICON, type: "image/png", sizes: "192x192" },
+      { url: SITE_ICON_512, type: "image/png", sizes: "512x512" },
+      { url: SITE_FAVICON, type: "image/png", sizes: "96x96" },
       { url: SITE_LOGO, type: "image/png", sizes: "512x512" },
+      { url: SITE_FAVICON_ICO, sizes: "any" },
     ],
     apple: [{ url: SITE_APPLE_ICON, sizes: "180x180", type: "image/png" }],
-    shortcut: SITE_FAVICON,
+    shortcut: SITE_ICON,
   },
   appleWebApp: {
     capable: true,
@@ -147,9 +151,10 @@ export default async function RootLayout({
           </>
         )}
         <PublicEnvScript />
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
         <link rel="icon" href={SITE_ICON} type="image/png" sizes="192x192" />
+        <link rel="icon" href={SITE_ICON_512} type="image/png" sizes="512x512" />
+        <link rel="icon" href={SITE_FAVICON} type="image/png" sizes="96x96" />
+        <link rel="icon" href={SITE_FAVICON_ICO} sizes="any" />
         <link rel="apple-touch-icon" href={SITE_APPLE_ICON} sizes="180x180" />
         {/* Poster/artwork CDNs — warm the connection so images load a round-trip sooner. */}
         <link rel="preconnect" href="https://s4.anilist.co" crossOrigin="anonymous" />

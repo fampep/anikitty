@@ -5,8 +5,8 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.moe"
 export const APP_DESCRIPTION = "Free anime streaming. Sub & dub. Ad-free.";
 export const APP_DEFAULT_TITLE = "AniKitty — Free Anime Streaming";
 
-/** Bump when brand assets change so browsers / PWA / OG refresh the icon. */
-export const SITE_ICON_VERSION = "20260727a";
+/** Bump when brand assets change so browsers / Google / PWA refresh the icon. */
+export const SITE_ICON_VERSION = "20260728a";
 
 function brandAsset(path: string): string {
   return `${path}?v=${SITE_ICON_VERSION}`;
@@ -15,10 +15,12 @@ function brandAsset(path: string): string {
 /** Cat-face brand mark for icons, cast, and compact chrome. */
 export const SITE_LOGO = brandAsset("/anikitty-logo.png");
 export const SITE_LOGO_OG = brandAsset("/og-share.png");
+export const SITE_FAVICON_ICO = brandAsset("/favicon.ico");
 export const SITE_FAVICON = brandAsset("/favicon.png");
 export const SITE_APPLE_ICON = brandAsset("/apple-touch-icon.png");
-/** Sharper mark for OG cards / embeds (prefer over tiny favicon). */
+/** Sharper mark for Google Search / embeds (48px multiples; prefer over tiny ico). */
 export const SITE_ICON = brandAsset("/icon-192x192.png");
+export const SITE_ICON_512 = brandAsset("/icon-512x512.png");
 
 export type PageSeo = {
   title: string;
