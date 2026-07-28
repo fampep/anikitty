@@ -81,6 +81,7 @@ export const useGetHomeCriticalData = () => {
       trendingAnimes: filterAdultList(query.data.trendingAnimes, allowAdult).slice(0, 15),
       latestEpisodeAnimes: filterAdultList(query.data.latestEpisodeAnimes, allowAdult).slice(0, 15),
       recentlyAddedAnimes: filterAdultList(query.data.recentlyAddedAnimes, allowAdult).slice(0, 15),
+      currentSeasonAnimes: filterAdultList(query.data.currentSeasonAnimes, allowAdult).slice(0, 18),
     } as HomeCriticalData;
   }, [query.data, allowAdult]);
   return { ...query, data };
@@ -102,7 +103,11 @@ export const useGetHomeDiscoveryData = (enabled = true) => {
       mostPopularAnimes: filterAdultList(query.data.mostPopularAnimes, allowAdult),
       topRatedAnimes: filterAdultList(query.data.topRatedAnimes, allowAdult),
       latestCompletedAnimes: filterAdultList(query.data.latestCompletedAnimes, allowAdult),
-      topUpcomingAnimes: filterAdultList(query.data.topUpcomingAnimes, allowAdult),
+      topUpcomingAnimes: filterAdultList(
+        query.data.topUpcomingAnimes as unknown as IAnime[],
+        allowAdult,
+      ) as typeof query.data.topUpcomingAnimes,
+      nextSeasonAnimes: filterAdultList(query.data.nextSeasonAnimes, allowAdult),
     } as HomeDiscoveryData;
   }, [query.data, allowAdult]);
   return { ...query, data };

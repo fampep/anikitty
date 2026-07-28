@@ -15,6 +15,8 @@ type Props = {
   priority?: boolean;
   href?: string;
   episodeBadge?: number;
+  rank?: number;
+  onPrefetch?: () => void;
 };
 
 const HomeCompactPoster = memo(function HomeCompactPoster({
@@ -23,6 +25,8 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
   priority,
   href,
   episodeBadge,
+  rank,
+  onPrefetch,
 }: Props) {
   const rating = scoreLabel(anime.score);
   const linkHref = href ?? `${ROUTES.ANIME_DETAILS}/${anime.id}`;
@@ -32,6 +36,8 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
   return (
     <Link
       href={linkHref}
+      onMouseEnter={onPrefetch}
+      onFocus={onPrefetch}
       className={`home-glass-card flex flex-col gap-y-2 shrink-0 w-[7.5rem] xs:w-[8.5rem] md:w-[9.5rem] lg:w-40 overflow-hidden ${className ?? ""}`}
       draggable={false}
     >
@@ -43,6 +49,11 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
           imageClassName="object-cover"
           priority={priority}
         />
+        {rank != null ? (
+          <span className="absolute left-1 top-1 z-10 flex h-6 min-w-6 items-center justify-center rounded-md bg-black/80 px-1.5 text-[11px] font-black tabular-nums text-white">
+            {rank}
+          </span>
+        ) : null}
         {episodeBadge != null ? (
           <span className="bg-black/75 px-1.5 py-1 rounded-md flex items-center font-medium absolute right-1 top-1 text-xs">
             Ep {episodeBadge}

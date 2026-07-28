@@ -2,20 +2,40 @@ import { unstable_cache } from "next/cache";
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
-import type { IAnimeData } from "@/types/anime";
+import {
+  getAniListSeason,
+  getNextAniListSeason,
+  type AniListSeason,
+} from "@/lib/home/season";
+import type { HomeStudio, HomeVoiceActor, IAnimeData, SpotlightAnime } from "@/types/anime";
 
 const CRITICAL_QUERY = `
-  query {
+  query ($season: MediaSeason, $seasonYear: Int) {
     spotlight: Page(page: 1, perPage: 8) {
       media(type: ANIME, sort: POPULARITY_DESC, status: RELEASING) {
         id
         title { english romaji }
-        coverImage { large }
+        coverImage { large extraLarge }
         bannerImage
         description(asHtml: false)
         episodes
-        nextAiringEpisode { episode airingAt }
+        averageScore
+        season
+        seasonYear
+        status
         format
+        genres
+        studios(isMain: true) { nodes { id name isAnimationStudio } }
+        nextAiringEpisode { episode airingAt }
+        characters(sort: ROLE, page: 1, perPage: 4) {
+          edges {
+            voiceActors(language: JAPANESE, sort: RELEVANCE) {
+              id
+              name { full }
+              image { medium }
+            }
+          }
+        }
       }
     }
     trending: Page(page: 1, perPage: 15) {
@@ -38,11 +58,17 @@ const CRITICAL_QUERY = `
         nextAiringEpisode { episode airingAt }
       }
     }
+    currentSeason: Page(page: 1, perPage: 18) {
+      media(type: ANIME, season: $season, seasonYear: $seasonYear, sort: POPULARITY_DESC) {
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
+        nextAiringEpisode { episode airingAt }
+      }
+    }
   }
 `;
 
 const DISCOVERY_QUERY = `
-  query {
+  query ($nextSeason: MediaSeason, $nextYear: Int) {
     favorite: Page(page: 1, perPage: 15) {
       media(type: ANIME, sort: FAVOURITES_DESC) {
         id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
@@ -68,17 +94,51 @@ const DISCOVERY_QUERY = `
         id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
       }
     }
+    nextSeason: Page(page: 1, perPage: 15) {
+      media(type: ANIME, season: $nextSeason, seasonYear: $nextYear, sort: POPULARITY_DESC) {
+        id title { english romaji } coverImage { large } episodes format averageScore seasonYear status isAdult
+      }
+    }
+    studios: Page(page: 1, perPage: 12) {
+      studios(sort: FAVOURITES_DESC, isAnimationStudio: true) {
+        id
+        name
+        favourites
+      }
+    }
+    staff: Page(page: 1, perPage: 16) {
+      staff(sort: FAVOURITES_DESC) {
+        id
+        name { full }
+        image { large }
+        favourites
+        primaryOccupations
+      }
+    }
   }
 `;
 
 export type HomeCriticalData = Pick<
   IAnimeData,
-  "spotlightAnimes" | "trendingAnimes" | "latestEpisodeAnimes" | "recentlyAddedAnimes"
+  | "spotlightAnimes"
+  | "trendingAnimes"
+  | "latestEpisodeAnimes"
+  | "recentlyAddedAnimes"
+  | "currentSeasonAnimes"
+  | "currentSeasonMeta"
 >;
 
 export type HomeDiscoveryData = Pick<
   IAnimeData,
-  "mostFavoriteAnimes" | "mostPopularAnimes" | "topRatedAnimes" | "latestCompletedAnimes" | "topUpcomingAnimes"
+  | "mostFavoriteAnimes"
+  | "mostPopularAnimes"
+  | "topRatedAnimes"
+  | "latestCompletedAnimes"
+  | "topUpcomingAnimes"
+  | "nextSeasonAnimes"
+  | "nextSeasonMeta"
+  | "featuredStudios"
+  | "featuredVoiceActors"
 >;
 
 function hasStreamableEpisodes(episodes: { sub: number | null; dub: number | null }) {
@@ -119,43 +179,105 @@ export function toAnime(m: {
   };
 }
 
+function formatStatus(status?: string | null): string | null {
+  if (!status) return null;
+  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function mapSpotlight(
+  m: {
+    id: number;
+    title?: { english?: string | null; romaji?: string | null };
+    coverImage?: { large?: string | null; extraLarge?: string | null };
+    bannerImage?: string | null;
+    description?: string | null;
+    episodes?: number | null;
+    format?: string | null;
+    status?: string | null;
+    averageScore?: number | null;
+    season?: string | null;
+    seasonYear?: number | null;
+    genres?: string[] | null;
+    studios?: { nodes?: Array<{ id: number; name: string; isAnimationStudio?: boolean }> } | null;
+    nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
+    characters?: {
+      edges?: Array<{
+        voiceActors?: Array<{
+          id: number;
+          name?: { full?: string | null } | null;
+          image?: { medium?: string | null } | null;
+        } | null> | null;
+      } | null> | null;
+    } | null;
+  },
+  i: number,
+): SpotlightAnime {
+  const cover = m.coverImage?.extraLarge ?? m.coverImage?.large ?? "";
+  const banner = m.bannerImage ?? cover;
+  const studioNode =
+    (m.studios?.nodes ?? []).find((s) => s.isAnimationStudio) ?? m.studios?.nodes?.[0];
+  const genres = (m.genres ?? []).slice(0, 4);
+  const year = m.seasonYear ?? null;
+  const statusLabel = formatStatus(m.status);
+  const score = m.averageScore ?? null;
+
+  const otherInfo: string[] = [];
+  if (score != null) otherInfo.push(`★ ${(score / 10).toFixed(1)}`);
+  if (year) otherInfo.push(String(year));
+  if (statusLabel) otherInfo.push(statusLabel);
+  if (studioNode?.name) otherInfo.push(studioNode.name);
+
+  const seenVa = new Set<number>();
+  const voiceActors: SpotlightAnime["voiceActors"] = [];
+  for (const edge of m.characters?.edges ?? []) {
+    for (const va of edge?.voiceActors ?? []) {
+      if (!va?.id || seenVa.has(va.id)) continue;
+      seenVa.add(va.id);
+      voiceActors.push({
+        id: String(va.id),
+        name: va.name?.full ?? "",
+        image: va.image?.medium ?? undefined,
+      });
+      if (voiceActors.length >= 3) break;
+    }
+    if (voiceActors.length >= 3) break;
+  }
+
+  return {
+    rank: i + 1,
+    id: String(m.id),
+    name: toTitle(m.title ?? {}),
+    jname: m.title?.romaji ?? "",
+    poster: banner,
+    cover,
+    description: (m.description ?? "").replace(/<[^>]*>/g, ""),
+    episodes: {
+      sub: airedCountFromAnilist(m.nextAiringEpisode, {
+        status: m.status,
+        episodes: m.episodes,
+      }),
+      dub: 0,
+    },
+    type: toFormat(m.format) as SpotlightAnime["type"],
+    otherInfo,
+    genres,
+    score,
+    year,
+    status: m.status ?? null,
+    studio: studioNode?.name ?? null,
+    season: m.season ?? null,
+    nextEpisode: m.nextAiringEpisode?.episode ?? null,
+    voiceActors,
+  };
+}
+
 type EnrichableAnime = { id: string; episodes: { sub: number | null; dub: number | null } };
 
 async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
-  const raw = await queryAniList(CRITICAL_QUERY);
+  const { season, year } = getAniListSeason();
+  const raw = await queryAniList(CRITICAL_QUERY, { season, seasonYear: year });
 
-  const spotlightAnimes = (raw.spotlight?.media ?? []).map(
-    (
-      m: {
-        id: number;
-        title?: { english?: string | null; romaji?: string | null };
-        coverImage?: { large?: string | null; extraLarge?: string | null };
-        bannerImage?: string | null;
-        description?: string | null;
-        episodes?: number | null;
-        format?: string | null;
-        status?: string | null;
-        nextAiringEpisode?: { episode: number; airingAt?: number | null } | null;
-      },
-      i: number,
-    ) => ({
-      rank: i + 1,
-      id: String(m.id),
-      name: toTitle(m.title ?? {}),
-      jname: m.title?.romaji ?? "",
-      poster: m.bannerImage ?? m.coverImage?.large ?? m.coverImage?.extraLarge ?? "",
-      description: (m.description ?? "").replace(/<[^>]*>/g, ""),
-      episodes: {
-        sub: airedCountFromAnilist(m.nextAiringEpisode, {
-          status: m.status,
-          episodes: m.episodes,
-        }),
-        dub: 0,
-      },
-      type: toFormat(m.format),
-      otherInfo: [],
-    }),
-  );
+  const spotlightAnimes = (raw.spotlight?.media ?? []).map(mapSpotlight);
 
   const trendingAnimes = (raw.trending?.media ?? []).map(toAnime);
 
@@ -187,12 +309,12 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
     .map((s) =>
       toAnime({
         ...s.media!,
-        // The episode that just aired becomes the latest available sub count.
         nextAiringEpisode: { episode: s.episode + 1 },
       }),
     );
 
   let recentlyAddedAnimes = (raw.recentlyAdded?.media ?? []).map(toAnime);
+  const currentSeasonAnimes = (raw.currentSeason?.media ?? []).map(toAnime);
 
   const uniqueById = new Map<string, EnrichableAnime>();
   for (const anime of [
@@ -200,6 +322,7 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
     ...trendingAnimes,
     ...latestEpisodeAnimes,
     ...recentlyAddedAnimes,
+    ...currentSeasonAnimes,
   ]) {
     if (!uniqueById.has(anime.id)) uniqueById.set(anime.id, anime);
   }
@@ -218,17 +341,61 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
     recentlyAddedAnimes: withAudio(recentlyAddedAnimes)
       .filter((anime) => hasStreamableEpisodes(anime.episodes))
       .slice(0, 15),
+    currentSeasonAnimes: withAudio(currentSeasonAnimes).slice(0, 18),
+    currentSeasonMeta: { season, year },
   } as HomeCriticalData;
 }
 
+function isLikelyVoiceActor(occupations?: string[] | null): boolean {
+  if (!occupations?.length) return true;
+  return occupations.some((o) => /voice|seiyuu|actor|actress/i.test(o));
+}
+
 async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
-  const raw = await queryAniList(DISCOVERY_QUERY);
+  const current = getAniListSeason();
+  const next = getNextAniListSeason(current.season as AniListSeason, current.year);
+  const raw = await queryAniList(DISCOVERY_QUERY, {
+    nextSeason: next.season,
+    nextYear: next.year,
+  });
 
   const mostFavoriteAnimes = (raw.favorite?.media ?? []).map(toAnime);
   const mostPopularAnimes = (raw.popular?.media ?? []).map(toAnime);
   const topRatedAnimes = (raw.rated?.media ?? []).map(toAnime);
   const latestCompletedAnimes = (raw.latest?.media ?? []).map(toAnime);
   const topUpcomingAnimes = (raw.upcoming?.media ?? []).map(toAnime);
+  const nextSeasonAnimes = (raw.nextSeason?.media ?? []).map(toAnime);
+
+  const featuredStudios: HomeStudio[] = (raw.studios?.studios ?? [])
+    .filter((s: { id?: number; name?: string }) => s?.id && s?.name)
+    .slice(0, 10)
+    .map((s: { id: number; name: string; favourites?: number }) => ({
+      id: String(s.id),
+      name: s.name,
+      favourites: s.favourites,
+    }));
+
+  const featuredVoiceActors: HomeVoiceActor[] = (raw.staff?.staff ?? [])
+    .filter(
+      (s: { id?: number; name?: { full?: string }; primaryOccupations?: string[] }) =>
+        s?.id && s?.name?.full && isLikelyVoiceActor(s.primaryOccupations),
+    )
+    .slice(0, 10)
+    .map(
+      (s: {
+        id: number;
+        name?: { full?: string };
+        image?: { large?: string };
+        favourites?: number;
+        primaryOccupations?: string[];
+      }) => ({
+        id: String(s.id),
+        name: s.name?.full ?? "",
+        image: s.image?.large ?? undefined,
+        favourites: s.favourites,
+        occupations: s.primaryOccupations,
+      }),
+    );
 
   const uniqueById = new Map<string, EnrichableAnime>();
   for (const anime of [
@@ -237,6 +404,7 @@ async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
     ...topRatedAnimes,
     ...latestCompletedAnimes,
     ...topUpcomingAnimes,
+    ...nextSeasonAnimes,
   ]) {
     if (!uniqueById.has(anime.id)) uniqueById.set(anime.id, anime);
   }
@@ -256,6 +424,10 @@ async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
     topUpcomingAnimes: withAudio(topUpcomingAnimes).filter(
       (anime) => !hasStreamableEpisodes(anime.episodes),
     ),
+    nextSeasonAnimes: withAudio(nextSeasonAnimes).slice(0, 15),
+    nextSeasonMeta: { season: next.season, year: next.year },
+    featuredStudios,
+    featuredVoiceActors,
   } as HomeDiscoveryData;
 }
 
@@ -274,15 +446,15 @@ async function fetchHomeDataUncached(): Promise<IAnimeData> {
   };
 }
 
-export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v3"], {
+export const getHomeCriticalData = unstable_cache(fetchHomeCriticalUncached, ["home-critical-v4"], {
   revalidate: 300,
 });
 
-export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v3"], {
+export const getHomeDiscoveryData = unstable_cache(fetchHomeDiscoveryUncached, ["home-discovery-v4"], {
   revalidate: 300,
 });
 
-export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v5"], {
+export const getHomePageData = unstable_cache(fetchHomeDataUncached, ["home-page-data-v6"], {
   revalidate: 300,
 });
 

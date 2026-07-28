@@ -1,20 +1,45 @@
 "use client";
 
-import { Flame } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Flame, Heart, Star } from "lucide-react";
 import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
+import { cn } from "@/lib/core/utils";
 import HomeCompactPoster from "./home-compact-poster";
 import { HomeRailEmpty, HomeScrollRail, HomeSectionLink } from "./home-shared";
 
+type TabId = "trending" | "popular" | "rated";
+
 type Props = {
-  animes: IAnime[];
+  trending: IAnime[];
+  popular?: IAnime[];
+  rated?: IAnime[];
   loading?: boolean;
 };
 
-export default function HomeTrendingRail({ animes, loading }: Props) {
+const TABS: { id: TabId; icon: typeof Flame; labelKey: "trendingNow" | "mostPopular" | "topRated" }[] = [
+  { id: "trending", icon: Flame, labelKey: "trendingNow" },
+  { id: "popular", icon: Heart, labelKey: "mostPopular" },
+  { id: "rated", icon: Star, labelKey: "topRated" },
+];
+
+export default function HomeTrendingRail({ trending, popular = [], rated = [], loading }: Props) {
   const t = useT();
+  const [tab, setTab] = useState<TabId>("trending");
+
+  const lists = useMemo(
+    () => ({
+      trending,
+      popular: popular.length ? popular : trending,
+      rated: rated.length ? rated : trending,
+    }),
+    [trending, popular, rated],
+  );
+
+  const active = lists[tab];
+  const visibleTabs = TABS.filter(({ id }) => lists[id].length > 0 || loading);
 
   if (loading) {
     return (
@@ -31,16 +56,54 @@ export default function HomeTrendingRail({ animes, loading }: Props) {
 
   return (
     <Container id="trending" className="flex flex-col gap-3 scroll-mt-[calc(var(--nav-height)+4.5rem)]">
-      <HomeSectionLink
-        href={ROUTES.TRENDING}
-        title={t("home.trendingNow")}
-        icon={<Flame className="w-4 h-4" />}
-        compact
-      />
-      {animes.length ? (
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <HomeSectionLink
+            href={ROUTES.TRENDING}
+            title={t("home.trendingNow")}
+            icon={<Flame className="w-4 h-4" />}
+            compact
+          />
+        </div>
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide scroll-momentum shrink-0">
+          {visibleTabs.map(({ id, icon: Icon, labelKey }) => {
+            const selected = tab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                aria-pressed={selected}
+                className={cn(
+                  "shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wide transition-colors",
+                  selected
+                    ? "bg-foreground text-background dark:bg-white dark:text-black"
+                    : "text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75",
+                )}
+              >
+                <Icon className="w-3 h-3" aria-hidden />
+                {t(`home.${labelKey}`)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {active.length ? (
         <HomeScrollRail>
-          {animes.map((anime, i) => (
-            <HomeCompactPoster key={anime.id} anime={anime} />
+          {active.map((anime, i) => (
+            <HomeCompactPoster
+              key={`${tab}-${anime.id}`}
+              anime={anime}
+              rank={i + 1}
+              onPrefetch={() => {
+                try {
+                  void fetch(`/api/anime/${anime.id}`, { priority: "low" } as RequestInit);
+                } catch {
+                  /* ignore */
+                }
+              }}
+            />
           ))}
         </HomeScrollRail>
       ) : (

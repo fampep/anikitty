@@ -7,14 +7,15 @@ import {
   Compass,
   Flame,
   History,
-  Search,
   Sparkles,
   Tv2,
 } from "lucide-react";
 import Container from "@/components/layout/container";
+import SearchBar from "@/components/layout/search-bar";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
+import HomeCustomizeButton from "./home-customize";
 
 const SCROLL_OFFSET = 150;
 
@@ -22,13 +23,14 @@ const LINKS = [
   { id: "continue", href: `${ROUTES.HOME}#continue`, icon: History, key: "continue" },
   { id: "new-episodes", href: `${ROUTES.HOME}#new-episodes`, icon: Tv2, key: "latest" },
   { id: "trending", href: `${ROUTES.HOME}#trending`, icon: Flame, key: "trending" },
-  { id: "discover", href: `${ROUTES.HOME}#discover`, icon: Compass, key: "discover" },
+  { id: "seasonal", href: `${ROUTES.HOME}#seasonal`, icon: Compass, key: "discover" },
   { id: "schedule", href: `${ROUTES.HOME}#schedule`, icon: CalendarDays, key: "today" },
 ] as const;
 
 export default function HomeQuickNav() {
   const t = useT();
   const [activeId, setActiveId] = useState<string>(LINKS[0].id);
+  const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
     const updateActive = () => {
@@ -40,6 +42,7 @@ export default function HomeQuickNav() {
         }
       }
       setActiveId(current);
+      setStuck(window.scrollY > 220);
     };
 
     updateActive();
@@ -52,21 +55,18 @@ export default function HomeQuickNav() {
   }, []);
 
   return (
-    <Container className="sticky top-[var(--nav-total-height)] z-20 py-1.5 pb-2">
+    <Container
+      className={cn(
+        "sticky top-[var(--nav-total-height)] z-20 py-1.5 pb-2 transition-shadow",
+        stuck && "drop-shadow-[0_12px_28px_rgba(0,0,0,0.28)]",
+      )}
+    >
       <div className="site-panel flex flex-col gap-2 p-2 sm:p-2.5 shadow-[0_8px_28px_rgba(15,10,30,0.08)] dark:shadow-[0_10px_32px_rgba(0,0,0,0.35)]">
-        <div className="flex items-center gap-2 min-w-0">
-          <Link
-            href={ROUTES.SEARCH}
-            className="site-input group flex flex-1 items-center gap-2.5 min-w-0 px-3 py-2 rounded-lg transition-all"
-          >
-            <Search className="w-3.5 h-3.5 shrink-0 text-muted-foreground dark:text-white/30 group-hover:text-zinc-300/80 transition-colors" />
-            <span className="text-sm text-muted-foreground dark:text-white/35 group-hover:text-foreground dark:group-hover:text-white/55 truncate transition-colors">
-              {t("home.exploreSearch")}
-            </span>
-            <kbd className="ml-auto hidden sm:inline-flex shrink-0 items-center rounded border border-border dark:border-white/12 bg-muted/60 dark:bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground/70 dark:text-white/30">
-              /
-            </kbd>
-          </Link>
+        <div className="flex items-start gap-2 min-w-0">
+          <div className="min-w-0 flex-1">
+            <SearchBar className="w-full" />
+          </div>
+          <HomeCustomizeButton />
         </div>
 
         <nav

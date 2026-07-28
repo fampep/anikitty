@@ -18,3 +18,9 @@ export const OFFICIAL_DOMAINS = [
 
 /** ISO date for the FAQ help center — update when content changes. */
 export const FAQ_LAST_UPDATED = "2026-07-28";
+
+/** ISO date for the DMCA / copyright help center — update when policy text changes. */
+export const DMCA_LAST_UPDATED = "2026-07-28";
+
+/** Designated copyright / DMCA contact published on the site. */
+export const DMCA_EMAIL = "anikittymoe@proton.me";

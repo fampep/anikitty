@@ -102,7 +102,8 @@ export const PAGE_SEO = {
   },
   dmca: {
     title: "DMCA & Copyright | AniKitty",
-    description: "How to file a DMCA / copyright takedown request for content on AniKitty.",
+    description:
+      "AniKitty copyright help center — policy, what we host, DMCA takedown steps, timelines, FAQ, and designated contact.",
     path: "/dmca",
   },
   status: {

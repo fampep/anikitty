@@ -13,7 +13,16 @@ import Image from "next/image";
 import Link from "next/link";
 
 import React, { useEffect, useState } from "react";
-import { ArrowLeft, ArrowRight, Bookmark, Info, Play } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
+  Clapperboard,
+  Info,
+  Play,
+  Star,
+  Users,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ROUTES } from "@/constants/routes";
 import { SpotlightAnime } from "@/types/anime";
@@ -24,6 +33,11 @@ import useBookMarks from "@/hooks/use-get-bookmark";
 import { trackEvent } from "@/lib/analytics";
 import { cn } from "@/lib/core/utils";
 import { formatAnimeType } from "./home-shared";
+import AnimeClearLogo from "@/components/anime/anime-clear-logo";
+import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
+import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
+import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import { useProgressStore } from "@/store/progress-store";
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -34,6 +48,13 @@ function isNearSlide(index: number, current: number, total: number): boolean {
   const diff = Math.abs(index - current);
   return diff <= 1 || diff === total - 1;
 }
+
+function formatStatus(status?: string | null): string | null {
+  if (!status) return null;
+  return status.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+type ContinueHint = { episodeId: string; current: number } | null;
 
 type IHeroSectionProps = {
   spotlightAnime: SpotlightAnime[];
@@ -47,6 +68,8 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
   const pauseCarousel = reducedMotion;
   const [api, setApi] = React.useState<CarouselApi>();
   const [current, setCurrent] = React.useState(0);
+  const { auth } = useAuthStore();
+  const [continueById, setContinueById] = useState<Record<string, ContinueHint>>({});
 
   useEffect(() => {
     if (!api) return;
@@ -58,6 +81,35 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
     const active = spotlightAnime?.[current];
     onActivePosterChange?.(active?.poster);
   }, [current, spotlightAnime, onActivePosterChange]);
+
+  useEffect(() => {
+    if (!auth?.id || !spotlightAnime?.length) return;
+    let cancelled = false;
+    const getProgress = useProgressStore.getState().getProgress;
+    anisurgeContinue
+      .get(true, 20)
+      .then((res) => {
+        if (cancelled) return;
+        const map: Record<string, ContinueHint> = {};
+        for (const row of res?.data ?? []) {
+          const animeId = String(row.animeId ?? "");
+          if (!animeId) continue;
+          const episodeId = String(row.episodeId ?? "");
+          const cached = getProgress(animeId, episodeId);
+          map[animeId] = {
+            episodeId,
+            current: cached?.current ?? row.currentTime ?? 0,
+          };
+        }
+        setContinueById(map);
+      })
+      .catch(() => {
+        /* best-effort */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [auth?.id, spotlightAnime?.length]);
 
   useEffect(() => {
     if (!api || !spotlightAnime?.length || pauseCarousel) return;
@@ -100,7 +152,9 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
               <HeroCarouselItem
                 anime={anime}
                 isNearActive={isNearSlide(index, current, spotlightAnime.length)}
+                isActive={index === current}
                 priority={index === 0}
+                continueHint={continueById[anime.id] ?? null}
               />
             </CarouselItem>
           ))}
@@ -154,17 +208,27 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
 const HeroCarouselItem = ({
   anime,
   isNearActive,
+  isActive,
   priority = false,
+  continueHint,
 }: {
   anime: SpotlightAnime;
   isNearActive: boolean;
+  isActive: boolean;
   priority?: boolean;
+  continueHint: ContinueHint;
 }) => {
   const t = useT();
   const { auth } = useAuthStore();
   const { createOrUpdateBookMark } = useBookMarks({ populate: false });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const anilistId = Number(anime.id);
+  const { data: mappingData } = useGetAnimeMappings(
+    Number.isFinite(anilistId) ? anilistId : undefined,
+    isActive,
+  );
+  const logoUrl = pickAnimeClearLogo(mappingData?.images);
 
   const handleBookmark = async () => {
     if (!auth) {
@@ -176,7 +240,7 @@ const HeroCarouselItem = ({
     const result = await createOrUpdateBookMark(
       String(anime.id),
       anime.name ?? "",
-      anime.poster ?? "",
+      anime.cover ?? anime.poster ?? "",
       "plan to watch",
       false,
       { anilistId: Number(anime.id) || undefined },
@@ -189,6 +253,16 @@ const HeroCarouselItem = ({
       toast.error(t("anime.listError"));
     }
   };
+
+  const epCount = anime.episodes?.sub ?? anime.episodes?.dub;
+  const statusLabel = formatStatus(anime.status);
+  const scoreLabel =
+    anime.score != null && anime.score > 0 ? (anime.score / 10).toFixed(1) : null;
+  const watchHref = continueHint
+    ? `${ROUTES.WATCH}?anime=${anime.id}&episode=${continueHint.episodeId}${
+        continueHint.current > 10 ? `&t=${Math.floor(continueHint.current)}` : ""
+      }`
+    : `${ROUTES.WATCH}?anime=${anime.id}`;
 
   return (
     <div className="relative w-full max-h-[var(--home-hero-max-h)] min-h-[42lvh] sm:min-h-[40lvh] aspect-video overflow-hidden bg-black">
@@ -205,42 +279,89 @@ const HeroCarouselItem = ({
         ) : null}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-transparent z-10" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent dark:from-black dark:via-black/50 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-transparent z-10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/45 to-transparent dark:from-black dark:via-black/55 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent dark:from-black/70 z-10" />
 
       <div className="absolute inset-0 z-20 flex items-end">
         <Container className="w-full pb-16 sm:pb-20 pointer-events-none">
-          <div className="flex w-full flex-col gap-3 md:gap-4 max-w-full">
-            <Link
+          <div className="flex w-full flex-col gap-3 md:gap-4 max-w-full xl:max-w-[52%]">
+            <AnimeClearLogo
+              name={anime.name}
+              logoUrl={logoUrl}
               href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-              className="pointer-events-auto text-2xl lg:text-3xl font-extrabold line-clamp-2 hover:opacity-80 w-fit max-w-full xl:max-w-[40%] text-foreground dark:text-white"
-            >
-              {anime.name}
-            </Link>
+              size="lg"
+              className="pointer-events-auto"
+            />
 
-            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm pointer-events-none">
-              <span className="text-[10px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-[0.2em]">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs sm:text-sm pointer-events-none">
+              <span className="text-[10px] font-mono text-muted-foreground dark:text-white/45 uppercase tracking-[0.2em]">
                 {formatAnimeType(anime.type)}
               </span>
-              {anime.otherInfo?.slice(0, 3).map((info, i) => (
-                <span key={i} className="text-xs text-muted-foreground dark:text-white/40 font-mono">
-                  {info}
+              {scoreLabel ? (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-200/90">
+                  <Star className="h-3 w-3 fill-amber-400 stroke-amber-400" aria-hidden />
+                  {scoreLabel}
                 </span>
-              ))}
+              ) : null}
+              {anime.year ? (
+                <span className="text-xs text-muted-foreground dark:text-white/45 font-mono">{anime.year}</span>
+              ) : null}
+              {statusLabel ? (
+                <span className="text-xs text-muted-foreground dark:text-white/45 font-mono">{statusLabel}</span>
+              ) : null}
+              {epCount ? (
+                <span className="text-xs text-muted-foreground dark:text-white/45 font-mono">
+                  {t("common.ep")} {epCount}
+                </span>
+              ) : null}
+              {anime.studio ? (
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground dark:text-white/45">
+                  <Clapperboard className="h-3 w-3" aria-hidden />
+                  {anime.studio}
+                </span>
+              ) : null}
             </div>
 
-            <p className="select-text hidden sm:line-clamp-2 text-muted-foreground text-sm xl:max-w-[60%] pointer-events-auto">
+            {anime.genres?.length ? (
+              <div className="flex flex-wrap gap-1.5 pointer-events-auto">
+                {anime.genres.slice(0, 4).map((genre) => (
+                  <Link
+                    key={genre}
+                    href={`${ROUTES.SEARCH}?genres=${encodeURIComponent(genre.toLowerCase().replace(/\s+/g, "-"))}`}
+                    className="rounded-md border border-white/15 bg-black/35 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/70 hover:text-white hover:border-white/30 transition-colors"
+                  >
+                    {genre}
+                  </Link>
+                ))}
+              </div>
+            ) : null}
+
+            <p className="select-text hidden sm:line-clamp-2 text-muted-foreground text-sm pointer-events-auto">
               {stripHtml(anime?.description ?? "")}
             </p>
 
+            {anime.voiceActors?.length ? (
+              <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground dark:text-white/45 pointer-events-auto">
+                <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                <span className="truncate">
+                  {anime.voiceActors.map((va) => va.name).filter(Boolean).join(" · ")}
+                </span>
+              </div>
+            ) : null}
+
             <div className="flex items-center gap-x-2 text-sm pointer-events-auto">
               <Link
-                href={`${ROUTES.WATCH}?anime=${anime.id}`}
-                onClick={() => trackEvent("home_hero_watch", { anime_id: anime.id })}
+                href={watchHref}
+                onClick={() =>
+                  trackEvent(continueHint ? "home_hero_continue" : "home_hero_watch", {
+                    anime_id: anime.id,
+                  })
+                }
                 className="inline-flex items-center h-9 px-6 font-semibold gap-2 text-sm justify-center bg-white text-black hover:bg-white/90 rounded-full"
               >
                 <Play className="h-4 w-4 fill-current" />
-                {t("home.watchNow")}
+                {continueHint ? t("home.continueWatching") : t("home.watchNow")}
               </Link>
               <Link
                 href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
