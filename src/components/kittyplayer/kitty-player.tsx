@@ -5033,14 +5033,10 @@ export function KittyPlayer({
                           aria-label="Settings"
                           className={cn(
                             coarsePointer || compactChrome
-                              ? "relative z-[80] flex max-h-[min(58%,19rem)] w-[min(17.5rem,82%)] flex-col overflow-hidden overscroll-contain rounded-xl border border-white/[0.14] bg-zinc-950/92 py-0.5 text-xs text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/88"
+                              ? "relative z-[80] max-h-[min(70vh,480px)] w-[min(92vw,20rem)] overflow-hidden py-0"
                               : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,20rem)] overflow-hidden py-0",
-                            !(coarsePointer || compactChrome) &&
-                              PLAYER_POPOVER_CLASS,
-                            !reduceMotion &&
-                              (coarsePointer || compactChrome
-                                ? "animate-in fade-in zoom-in-95 duration-200"
-                                : PLAYER_POPOVER_MOTION_CLASS),
+                            PLAYER_POPOVER_CLASS,
+                            !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                           )}
                         >
                           <PlayerSettingsMenu
@@ -5049,7 +5045,7 @@ export function KittyPlayer({
                                 ? "min-h-0 flex-1 overflow-hidden"
                                 : undefined
                             }
-                            compact={coarsePointer || compactChrome}
+                            compact={false}
                             watchingHardSub={watchingHardSub}
                             showQualityTab={showQualityPicker}
                             speedLabel={speedButtonLabel}
@@ -5083,7 +5079,7 @@ export function KittyPlayer({
                             qualityPanel={
                               showQualityPicker ? (
                                 <QualityMenuContent
-                                  dense={coarsePointer || compactChrome}
+                                  dense={false}
                                   activeSrc={activeSrc}
                                   serverQualities={serverQualities}
                                   showHlsQualityMenu={showHlsQualityMenu}
@@ -5106,7 +5102,7 @@ export function KittyPlayer({
                             }
                             speedPanel={
                               <SpeedMenuContent
-                                dense={coarsePointer || compactChrome}
+                                dense={false}
                                 playbackRate={playbackRate}
                                 onSelect={(rate) => {
                                   applyPlaybackRate(rate, { hint: true });
@@ -5116,70 +5112,34 @@ export function KittyPlayer({
                             }
                             displayExtras={
                               <>
-                                <MenuSection
-                                  title="Brightness"
-                                  dense={coarsePointer || compactChrome}
-                                >
-                                  {(coarsePointer || compactChrome) ? (
-                                    <div className="flex gap-1 px-2 pb-1.5 pt-0.5">
-                                      {[
-                                        { label: "Dim", value: 0.7 },
-                                        { label: "Normal", value: 1 },
-                                        { label: "Bright", value: 1.35 },
-                                      ].map((opt) => (
-                                        <button
-                                          key={opt.label}
-                                          type="button"
-                                          onClick={() => {
-                                            setBrightnessLevel(opt.value, {
-                                              hint: true,
-                                            });
-                                            setMoreOpen(false);
-                                          }}
-                                          className={cn(
-                                            "min-h-8 flex-1 rounded-md border text-[11px] font-medium transition-colors",
-                                            Math.abs(brightness - opt.value) < 0.05
-                                              ? "border-white/25 bg-white text-zinc-950"
-                                              : "border-white/10 text-white/55 hover:bg-white/[0.06] hover:text-white/85",
-                                          )}
-                                        >
-                                          {opt.label}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    [
-                                      { label: "Dim", value: 0.7 },
-                                      { label: "Normal", value: 1 },
-                                      { label: "Bright", value: 1.35 },
-                                    ].map((opt) => (
-                                      <MenuItem
-                                        key={opt.label}
-                                        active={
-                                          Math.abs(brightness - opt.value) < 0.05
-                                        }
-                                        onClick={() => {
-                                          setBrightnessLevel(opt.value, {
-                                            hint: true,
-                                          });
-                                          setMoreOpen(false);
-                                        }}
-                                      >
-                                        {opt.label}
-                                      </MenuItem>
-                                    ))
-                                  )}
+                                <MenuSection title="Brightness">
+                                  {[
+                                    { label: "Dim", value: 0.7 },
+                                    { label: "Normal", value: 1 },
+                                    { label: "Bright", value: 1.35 },
+                                  ].map((opt) => (
+                                    <MenuItem
+                                      key={opt.label}
+                                      active={
+                                        Math.abs(brightness - opt.value) < 0.05
+                                      }
+                                      onClick={() => {
+                                        setBrightnessLevel(opt.value, {
+                                          hint: true,
+                                        });
+                                        setMoreOpen(false);
+                                      }}
+                                    >
+                                      {opt.label}
+                                    </MenuItem>
+                                  ))}
                                 </MenuSection>
 
                                 {showAudioMenu ? (
-                                  <MenuSection
-                                    title="Audio"
-                                    dense={coarsePointer || compactChrome}
-                                  >
+                                  <MenuSection title="Audio">
                                     {hlsAudioOptions.map((track) => (
                                       <MenuItem
                                         key={track.index}
-                                        dense={coarsePointer || compactChrome}
                                         active={hlsAudioIndex === track.index}
                                         onClick={() => {
                                           selectHlsAudio(track.index);
