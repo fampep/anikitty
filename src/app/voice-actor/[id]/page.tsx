@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import Container from "@/components/layout/container";
-import AniListRichText from "@/components/anime/anilist-rich-text";
-import VoiceActorFilmography from "@/components/voice-actor/voice-actor-filmography";
+import VoiceActorDetailClient from "@/components/voice-actor/voice-actor-detail-client";
 import { ROUTES } from "@/constants/routes";
-import { formatVaBirthday, getVoiceActor } from "@/lib/core/voice-actors";
+import { getVoiceActor } from "@/lib/core/voice-actors";
 import { ExternalLink, MapPin, Mic, Search, Star } from "lucide-react";
 
 export async function generateMetadata(
@@ -19,22 +19,11 @@ export async function generateMetadata(
     if (!va) return { title: "Voice Actor | AniKitty" };
     return {
       title: `${va.name} — Voice Actor | AniKitty`,
-      description: `Complete filmography for ${va.name}${va.native ? ` (${va.native})` : ""} — every anime role.`,
+      description: `Voice actor profile and filmography for ${va.name}${va.native ? ` (${va.native})` : ""}.`,
     };
   } catch {
     return { title: "Voice Actor | AniKitty" };
   }
-}
-
-function MetaItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <dt className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/30">
-        {label}
-      </dt>
-      <dd className="mt-0.5 text-sm text-foreground/85 dark:text-white/75">{value}</dd>
-    </div>
-  );
 }
 
 export default async function VoiceActorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -67,18 +56,6 @@ export default async function VoiceActorPage({ params }: { params: Promise<{ id:
         </Link>
       </Container>
     );
-  }
-
-  const birthday = formatVaBirthday(va.birthday);
-  const metaItems: Array<{ label: string; value: string }> = [];
-  if (va.native) metaItems.push({ label: "Japanese name", value: va.native });
-  if (birthday) metaItems.push({ label: "Birthday", value: birthday });
-  if (va.age != null) metaItems.push({ label: "Age", value: String(va.age) });
-  if (va.gender) metaItems.push({ label: "Gender", value: va.gender });
-  if (va.home) metaItems.push({ label: "Place of birth", value: va.home });
-  if (va.language) metaItems.push({ label: "Language", value: va.language });
-  if (va.favourites != null && va.favourites > 0) {
-    metaItems.push({ label: "Favourites", value: va.favourites.toLocaleString() });
   }
 
   return (
@@ -126,26 +103,27 @@ export default async function VoiceActorPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
-      {metaItems.length > 0 && (
-        <dl className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-4 max-w-3xl">
-          {metaItems.map((item) => (
-            <MetaItem key={item.label} label={item.label} value={item.value} />
-          ))}
-        </dl>
-      )}
-
-      {va.description && (
-        <AniListRichText
-          text={va.description}
-          className="mt-6 max-w-3xl text-sm text-muted-foreground dark:text-white/55 leading-7"
+      <Suspense fallback={<div className="mt-10 h-24 animate-pulse rounded-xl bg-muted/30 dark:bg-white/5" />}>
+        <VoiceActorDetailClient
+          profile={{
+            id: va.id,
+            name: va.name,
+            native: va.native,
+            description: va.description,
+            home: va.home,
+            gender: va.gender,
+            age: va.age,
+            birthday: va.birthday,
+            favourites: va.favourites,
+            siteUrl: va.siteUrl,
+            language: va.language,
+            primaryOccupations: va.primaryOccupations,
+          }}
+          initialRoles={va.roles}
+          initialPage={va.rolesPage}
+          initialHasNextPage={va.rolesHasNextPage}
         />
-      )}
-
-      <h2 className="mt-10 mb-5 text-[11px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30">
-        Complete Filmography ({va.roles.length})
-      </h2>
-
-      <VoiceActorFilmography roles={va.roles} />
+      </Suspense>
     </Container>
   );
 }

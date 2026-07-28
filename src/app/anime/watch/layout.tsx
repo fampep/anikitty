@@ -49,6 +49,7 @@ import {
 import Link from "next/link";
 import { cn } from "@/lib/core/utils";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
+import { useGetAnimeRelated } from "@/query/anime/get-anime-related";
 import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import { useSettingsStore } from "@/store/settings-store";
@@ -209,9 +210,12 @@ const Layout = (props: Props) => {
 
   const anilistId = anime?.anime?.info?.anilistId;
   const { data: mappingData } = useGetAnimeMappings(anilistId);
+  const { data: relatedData } = useGetAnimeRelated(anilistId ?? animeId ?? undefined, Boolean(anime));
   const mappings = mappingData?.mappings;
   const extMeta = mappingData?.metadata;
   const malMeta = extMeta?.mal;
+  const relatedAnimes = relatedData?.relatedAnimes ?? anime?.relatedAnimes ?? [];
+  const recommendedAnimes = relatedData?.recommendedAnimes ?? anime?.recommendedAnimes ?? [];
 
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (anilistId)              externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(anilistId) });
@@ -234,8 +238,7 @@ const Layout = (props: Props) => {
     return tab && valid.has(tab) ? tab : "comments";
   }, [searchParams]);
 
-  const hasRelated =
-    (anime?.relatedAnimes?.length ?? 0) > 0 || (anime?.recommendedAnimes?.length ?? 0) > 0;
+  const hasRelated = relatedAnimes.length > 0 || recommendedAnimes.length > 0;
 
   const handleWatchTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -705,17 +708,17 @@ const Layout = (props: Props) => {
       {!theatreMode && hasRelated && (
       <div className="mt-7 sm:mt-9 space-y-6 border-t border-border/50 dark:border-white/[0.05] pt-6 sm:pt-8 hidden lg:block">
           <section id="watch-tab-related" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-5">
-            {(anime?.relatedAnimes?.length ?? 0) > 0 && (
+            {relatedAnimes.length > 0 && (
               <AnimeCarousel
                 title={t("common.alsoWatch")}
-                anime={(anime?.relatedAnimes ?? []) as IAnime[]}
+                anime={relatedAnimes as IAnime[]}
                 className="gap-3 [&_h5]:text-base [&_h5]:font-semibold [&_h5]:tracking-tight"
               />
             )}
-            {(anime?.recommendedAnimes?.length ?? 0) > 0 && (
+            {recommendedAnimes.length > 0 && (
               <AnimeCarousel
                 title={t("common.recommended")}
-                anime={(anime?.recommendedAnimes ?? []) as IAnime[]}
+                anime={recommendedAnimes as IAnime[]}
                 className="gap-3 [&_h5]:text-base [&_h5]:font-semibold [&_h5]:tracking-tight"
               />
             )}
@@ -772,17 +775,17 @@ const Layout = (props: Props) => {
           icon={Tv2}
         >
           <div className="space-y-5">
-            {(anime?.relatedAnimes?.length ?? 0) > 0 && (
+            {relatedAnimes.length > 0 && (
               <AnimeCarousel
                 title={t("common.alsoWatch")}
-                anime={(anime?.relatedAnimes ?? []) as IAnime[]}
+                anime={relatedAnimes as IAnime[]}
                 className="gap-3 [&_h5]:text-base [&_h5]:font-semibold [&_h5]:tracking-tight"
               />
             )}
-            {(anime?.recommendedAnimes?.length ?? 0) > 0 && (
+            {recommendedAnimes.length > 0 && (
               <AnimeCarousel
                 title={t("common.recommended")}
-                anime={(anime?.recommendedAnimes ?? []) as IAnime[]}
+                anime={recommendedAnimes as IAnime[]}
                 className="gap-3 [&_h5]:text-base [&_h5]:font-semibold [&_h5]:tracking-tight"
               />
             )}

@@ -35,6 +35,11 @@ export type AudioAvailabilityOpts = {
   fallbackSub?: number;
   /** AniList status — RELEASING triggers faster refresh. */
   status?: string | null;
+  /**
+   * Serve memory/DB (even stale) or AniList fallback immediately and refresh
+   * Kitty/Anikoto in the background. Use on metadata critical paths.
+   */
+  preferCached?: boolean;
 };
 
 type SearchHit = {
@@ -574,6 +579,7 @@ export async function getAudioAvailability(
 ): Promise<AudioAvailability> {
   const ctx = cacheContext(opts);
   const cacheKey = String(opts.anilistId);
+  const fallbackSub = opts.fallbackSub ?? 0;
 
   const mem = memoryCache.get(cacheKey);
   if (mem && memoryIsFresh(mem, ctx)) {
@@ -605,6 +611,30 @@ export async function getAudioAvailability(
       }).catch(() => {});
     }
     remember(opts.anilistId, value, ctx);
+    return value;
+  }
+
+  // Metadata pages: never block first paint on Kitty/Anikoto cold refresh.
+  if (opts.preferCached) {
+    if (stored) {
+      const clamped = clampAudioCounts(
+        stored.value.sub,
+        stored.value.dub,
+        opts.fallbackSub,
+      );
+      const value = {
+        ...stored.value,
+        sub: clamped.sub,
+        dub: clamped.dub,
+        hasSub: clamped.sub > 0,
+        hasDub: clamped.dub > 0,
+      };
+      remember(opts.anilistId, value, ctx);
+      refreshAudioCountsInBackground([opts]);
+      return value;
+    }
+    const value = toCounts(fallbackSub, 0, fallbackSub);
+    refreshAudioCountsInBackground([opts]);
     return value;
   }
 

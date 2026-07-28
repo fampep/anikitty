@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
 import { comments, users, roles } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import { queryAniList, toTitle } from "@/lib/oauth/anilist";
 import { decryptStoredText } from "@/lib/security/ugc-crypto";
@@ -40,8 +41,9 @@ async function fetchAnimeTitles(ids: number[]): Promise<Map<number, string>> {
   return map;
 }
 
-export async function GET() {
+async function loadLatestComments(limit: number) {
   const db = getDb();
+  const safeLimit = Math.min(Math.max(limit, 1), 20);
 
   const rows = await db
     .select({
@@ -66,7 +68,7 @@ export async function GET() {
     .innerJoin(users, eq(users.id, comments.userId))
     .leftJoin(roles, eq(roles.name, users.role))
     .orderBy(desc(comments.createdAt))
-    .limit(8);
+    .limit(safeLimit);
 
   const xpStatsMap = await getUsersXpStats(db, rows.map((r) => r.userId));
   const enriched = rows.map((r) =>
@@ -76,11 +78,32 @@ export async function GET() {
   const uniqueIds = [...new Set(rows.map((r) => parseAnilistId(r.animeId)).filter((id): id is number => id !== null))];
   const titleMap = await fetchAnimeTitles(uniqueIds);
 
-  const withTitles = enriched.map((r) => {
+  return enriched.map((r) => {
     const numId = parseAnilistId(r.animeId);
     const animeTitle = numId ? titleMap.get(numId) ?? null : null;
     return { ...r, animeTitle };
   });
+}
 
-  return Response.json({ comments: withTitles });
+const getCachedLatestComments = unstable_cache(
+  loadLatestComments,
+  ["comments-latest-v1"],
+  { revalidate: 30 },
+);
+
+export async function GET(req: Request) {
+  const url = new URL(req.url);
+  const limitParam = parseInt(url.searchParams.get("limit") ?? "8", 10);
+  const limit = Number.isFinite(limitParam) ? limitParam : 8;
+
+  const withTitles = await getCachedLatestComments(limit);
+
+  return Response.json(
+    { comments: withTitles },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+      },
+    },
+  );
 }

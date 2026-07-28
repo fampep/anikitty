@@ -143,12 +143,12 @@ export default function Home() {
         </LazyMount>
 
         <Container className="grid w-full gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <LazyMount rootMargin="500px 0px">
+          <LazyMount rootMargin="500px 0px" keepMounted>
             <div id="community" className="scroll-mt-[calc(var(--nav-total-height)+4.5rem)]">
               <LatestComments bare />
             </div>
           </LazyMount>
-          <LazyMount rootMargin="600px 0px">
+          <LazyMount rootMargin="600px 0px" keepMounted>
             <div id="schedule" className="scroll-mt-[calc(var(--nav-total-height)+4.5rem)]">
               <HomeSchedulePanel />
             </div>

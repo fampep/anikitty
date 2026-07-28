@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import FramedAvatar from "@/components/common/framed-avatar";
@@ -13,27 +13,13 @@ import { MessageSquare, MessagesSquare, ArrowRight, Pin, Lock, MessageCircle } f
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 import { forumBodyPreview, forumTimeAgo, type ForumThread } from "@/lib/social/forum";
+import {
+  useLatestComments,
+  useLatestForum,
+  type LatestCommentItem,
+} from "@/query/home/get-community-latest";
 
-interface LatestComment {
-  id: string;
-  body: string;
-  gifUrl: string | null;
-  isSpoiler?: boolean;
-  animeId: string;
-  animeTitle?: string | null;
-  episodeId?: string | null;
-  episodeNumber?: number | null;
-  createdAt: string;
-  username: string;
-  avatarUrl: string | null;
-  role: string | null;
-  roleColor: string | null;
-  level?: number;
-  levelRole?: string;
-  levelRoleColor?: string;
-  equippedFrame?: string | null;
-  equippedIcon?: string | null;
-}
+type LatestComment = LatestCommentItem;
 
 function commentLink(c: LatestComment) {
   if (c.episodeId) {
@@ -272,22 +258,9 @@ function ColumnSkeleton() {
 
 export default function CommunityActivityFeed() {
   const t = useT();
-  const [comments, setComments] = useState<LatestComment[]>([]);
-  const [threads, setThreads] = useState<ForumThread[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/comments/latest").then((r) => r.json()),
-      fetch("/api/forum/latest").then((r) => r.json()),
-    ])
-      .then(([commentsData, forumData]) => {
-        setComments(commentsData.comments ?? []);
-        setThreads(forumData.threads ?? []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: comments = [], isLoading: commentsLoading } = useLatestComments(8);
+  const { data: threads = [], isLoading: forumLoading } = useLatestForum();
+  const loading = commentsLoading || forumLoading;
 
   const empty = !loading && !comments.length && !threads.length;
   if (empty) return null;
@@ -302,7 +275,7 @@ export default function CommunityActivityFeed() {
             href={ROUTES.COMMUNITY}
             linkLabel={t("common.seeAll")}
           />
-          {loading ? <ColumnSkeleton /> : <CommentsColumn comments={comments} />}
+          {commentsLoading ? <ColumnSkeleton /> : <CommentsColumn comments={comments} />}
         </section>
 
         <section className="site-panel p-4 sm:p-5">
@@ -312,7 +285,7 @@ export default function CommunityActivityFeed() {
             href={ROUTES.FORUM}
             linkLabel={t("community.forumCta")}
           />
-          {loading ? <ColumnSkeleton /> : <ForumColumn threads={threads} />}
+          {forumLoading ? <ColumnSkeleton /> : <ForumColumn threads={threads} />}
         </section>
       </div>
     </Container>

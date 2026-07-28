@@ -8,11 +8,11 @@ const getAllEpisodes = async (animeId: string) => {
     return res.data.data as IEpisodes;
 };
 
-export const useGetAllEpisodes = (animeId: string) => {
+export const useGetAllEpisodes = (animeId: string, enabled = true) => {
     return useQuery({
         queryFn: () => getAllEpisodes(animeId),
         queryKey: [GET_ALL_EPISODES, animeId],
-        enabled: Boolean(animeId?.trim()),
+        enabled: enabled && Boolean(animeId?.trim()),
         staleTime: 10 * 60_000,
     });
 };

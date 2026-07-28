@@ -49,11 +49,14 @@ const getAnimeMappings = async (anilistId: number) => {
   return res.data;
 };
 
-export const useGetAnimeMappings = (anilistId: number | undefined) => {
+export const useGetAnimeMappings = (
+  anilistId: number | undefined,
+  enabled = true,
+) => {
   return useQuery({
     queryKey: [GET_ANIME_MAPPINGS, anilistId],
     queryFn: () => getAnimeMappings(anilistId!),
-    enabled: !!anilistId,
+    enabled: enabled && !!anilistId,
     staleTime: 24 * 60 * 60 * 1000,
   });
 };

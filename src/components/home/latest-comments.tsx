@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import Container from "@/components/layout/container";
 import FramedAvatar from "@/components/common/framed-avatar";
@@ -11,30 +11,12 @@ import { CommentFeedBody } from "@/components/comments/comment-feed-body";
 import { ArrowRight, MessageSquare, ThumbsUp } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
+import {
+  useLatestComments,
+  type LatestCommentItem,
+} from "@/query/home/get-community-latest";
 
-interface LatestComment {
-  id: string;
-  body: string;
-  gifUrl: string | null;
-  isSpoiler?: boolean;
-  likeCount?: number;
-  animeId: string;
-  animeTitle?: string | null;
-  episodeId?: string | null;
-  episodeNumber?: number | null;
-  createdAt: string;
-  username: string;
-  avatarUrl: string | null;
-  role: string | null;
-  roleColor: string | null;
-  level?: number;
-  levelRole?: string;
-  levelRoleColor?: string;
-  equippedFrame?: string | null;
-  equippedIcon?: string | null;
-}
-
-function commentLink(c: LatestComment) {
+function commentLink(c: LatestCommentItem) {
   const hash = `#comment-${c.id}`;
   if (c.episodeId) {
     return `${ROUTES.WATCH}?anime=${encodeURIComponent(c.animeId)}&episode=${encodeURIComponent(c.episodeId)}${hash}`;
@@ -60,11 +42,11 @@ function formatAnimeId(id: string) {
     .join(" ");
 }
 
-function animeLabel(c: LatestComment) {
+function animeLabel(c: LatestCommentItem) {
   return c.animeTitle ?? formatAnimeId(c.animeId);
 }
 
-function CommentsFeed({ comments }: { comments: LatestComment[] }) {
+function CommentsFeed({ comments }: { comments: LatestCommentItem[] }) {
   const t = useT();
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
 
@@ -173,33 +155,7 @@ function EmptyState() {
 
 export default function LatestComments({ bare = false }: { bare?: boolean }) {
   const t = useT();
-  const [comments, setComments] = useState<LatestComment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/comments/latest")
-      .then(async (r) => {
-        if (!r.ok) throw new Error("fail");
-        return r.json();
-      })
-      .then((d) => {
-        if (!cancelled) {
-          setComments(d.comments ?? []);
-          setError(false);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { data: comments = [], isLoading, isError, refetch, isFetching } = useLatestComments(5);
 
   const header = (
     <div className="flex items-center justify-between gap-3 w-full">
@@ -220,21 +176,14 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
     </div>
   );
 
-  const body = error ? (
+  const body = isError ? (
     <div className="flex flex-col items-center gap-2 py-8 text-center">
       <p className="text-sm text-muted-foreground dark:text-white/35">{t("home.latestCommentsLoadError")}</p>
       <button
         type="button"
-        onClick={() => {
-          setLoading(true);
-          setError(false);
-          fetch("/api/comments/latest")
-            .then((r) => r.json())
-            .then((d) => setComments(d.comments ?? []))
-            .catch(() => setError(true))
-            .finally(() => setLoading(false));
-        }}
-        className="text-[12px] font-semibold text-zinc-300 hover:text-white transition-colors"
+        onClick={() => void refetch()}
+        disabled={isFetching}
+        className="text-[12px] font-semibold text-zinc-300 hover:text-white transition-colors disabled:opacity-50"
       >
         {t("home.retry")}
       </button>
@@ -246,7 +195,7 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
   );
 
   if (bare) {
-    if (loading) return <BareLoadingSkeleton />;
+    if (isLoading) return <BareLoadingSkeleton />;
     return (
       <div className="flex flex-col gap-4">
         {header}
@@ -255,7 +204,7 @@ export default function LatestComments({ bare = false }: { bare?: boolean }) {
     );
   }
 
-  if (loading) return <LoadingSkeleton />;
+  if (isLoading) return <LoadingSkeleton />;
 
   return (
     <Container className="flex flex-col gap-4 items-start scroll-mt-[calc(var(--nav-height)+4.5rem)]">

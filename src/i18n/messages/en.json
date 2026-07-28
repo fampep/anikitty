@@ -2470,7 +2470,60 @@
   "voiceActor": {
     "noRoles": "No anime roles found.",
     "cast": "Cast",
-    "loadingMore": "Loading more roles…"
+    "loadingMore": "Loading more roles…",
+    "retryLoad": "Couldn't load more roles — retry",
+    "anilistProfile": "AniList profile",
+    "loadingFilmography": "Loading filmography… {count} credits so far",
+    "partialLoad": "Some credits may be missing — try refreshing.",
+    "statsUpdating": "Updating stats…",
+    "episodesShort": "{count} eps",
+    "statusAiring": "Airing",
+    "statusFinished": "Finished",
+    "statusUpcoming": "Upcoming",
+    "tabs": {
+      "overview": "Overview",
+      "all": "All Credits",
+      "tv": "TV",
+      "movie": "Movies",
+      "ova": "OVA",
+      "ona": "ONA",
+      "special": "Specials",
+      "music": "Music",
+      "game": "Games",
+      "other": "Other"
+    },
+    "roles": {
+      "all": "All",
+      "main": "Main",
+      "supporting": "Supporting",
+      "background": "Background",
+      "minor": "Minor",
+      "cameo": "Cameo",
+      "unknown": "Unknown"
+    },
+    "fields": {
+      "native": "Japanese name",
+      "birthday": "Birthday",
+      "age": "Age",
+      "gender": "Gender",
+      "home": "Place of birth",
+      "language": "Language",
+      "favourites": "Favourites",
+      "occupations": "Occupations"
+    },
+    "sections": {
+      "details": "Details",
+      "biography": "Biography",
+      "statistics": "Statistics"
+    },
+    "stats": {
+      "totalCredits": "Total Credits",
+      "main": "Main Roles",
+      "supporting": "Supporting",
+      "background": "Background",
+      "firstAppearance": "First Appearance",
+      "latestAppearance": "Latest Appearance"
+    }
   },
   "voiceActorsPage": {
     "title": "Voice Actors",

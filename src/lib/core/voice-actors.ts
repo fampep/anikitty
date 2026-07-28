@@ -3,16 +3,37 @@ import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 
 export type VaRoleCharacter = { id: number; name: string; image: string | null };
 
+/** Normalized media-type buckets for VA filmography tabs. */
+export type VaMediaCategory =
+  | "tv"
+  | "movie"
+  | "ova"
+  | "ona"
+  | "special"
+  | "music"
+  | "game"
+  | "other";
+
+/** Normalized voice-role keys for filter chips. */
+export type VaRoleKey = "main" | "supporting" | "background" | "minor" | "cameo" | "unknown";
+
 export type VaRole = {
   role: string | null;
+  roleKey: VaRoleKey;
   character: VaRoleCharacter | null;
   anime: {
     id: string;
     name: string;
-    jname: string;
+    english: string | null;
+    romaji: string;
     poster: string;
     type: string;
+    format: string | null;
+    category: VaMediaCategory;
     year: number | null;
+    episodes: number | null;
+    score: number | null;
+    status: string | null;
   };
 };
 
@@ -36,7 +57,16 @@ export type VoiceActorDetail = {
   favourites: number | null;
   siteUrl: string | null;
   primaryOccupations: string[];
+  /** First chunk of credits only — remaining pages via getVoiceActorFilmographyPage. */
   roles: VaRole[];
+  rolesPage: number;
+  rolesHasNextPage: boolean;
+};
+
+export type VoiceActorFilmographyPage = {
+  roles: VaRole[];
+  page: number;
+  hasNextPage: boolean;
 };
 
 export type VoiceActorSummary = {
@@ -54,13 +84,15 @@ export type VoiceActorSearchResult = {
 };
 
 /** AniList caps nested characterMedia.perPage at 25. */
-const MEDIA_PER_PAGE = 25;
+export const VA_MEDIA_PER_PAGE = 25;
 /** Safety cap (~1000 roles) for extremely large filmographies. */
-const MAX_MEDIA_PAGES = 40;
+export const VA_MAX_MEDIA_PAGES = 40;
+
+const MEDIA_PER_PAGE = VA_MEDIA_PER_PAGE;
+const MAX_MEDIA_PAGES = VA_MAX_MEDIA_PAGES;
 
 /**
  * Filmography sort: POPULARITY_DESC (AniList/TMDB-style — most-known titles first).
- * Release-date order was the previous default; popularity is clearer for large credits.
  */
 const MEDIA_SORT = "POPULARITY_DESC";
 
@@ -68,7 +100,22 @@ const ROLE_RANK: Record<string, number> = {
   MAIN: 0,
   SUPPORTING: 1,
   BACKGROUND: 2,
+  MINOR: 3,
+  CAMEO: 4,
 };
+
+const MEDIA_NODE_FIELDS = `
+  id
+  type
+  title { english romaji }
+  coverImage { extraLarge large }
+  format
+  seasonYear
+  startDate { year }
+  episodes
+  averageScore
+  status
+`;
 
 const STAFF_META_QUERY = `
   query ($id: Int, $page: Int) {
@@ -90,15 +137,7 @@ const STAFF_META_QUERY = `
         edges {
           characterRole
           characters { id name { full } image { large } }
-          node {
-            id
-            type
-            title { english romaji }
-            coverImage { extraLarge large }
-            format
-            seasonYear
-            startDate { year }
-          }
+          node { ${MEDIA_NODE_FIELDS} }
         }
       }
     }
@@ -113,15 +152,7 @@ const STAFF_MEDIA_PAGE_QUERY = `
         edges {
           characterRole
           characters { id name { full } image { large } }
-          node {
-            id
-            type
-            title { english romaji }
-            coverImage { extraLarge large }
-            format
-            seasonYear
-            startDate { year }
-          }
+          node { ${MEDIA_NODE_FIELDS} }
         }
       }
     }
@@ -139,6 +170,9 @@ type StaffEdge = {
     format?: string | null;
     seasonYear?: number | null;
     startDate?: { year?: number | null } | null;
+    episodes?: number | null;
+    averageScore?: number | null;
+    status?: string | null;
   };
 };
 
@@ -147,6 +181,57 @@ type CharacterMediaPage = {
   edges?: StaffEdge[] | null;
 };
 
+export const VA_MEDIA_CATEGORY_ORDER: VaMediaCategory[] = [
+  "tv",
+  "movie",
+  "ova",
+  "ona",
+  "special",
+  "music",
+  "game",
+  "other",
+];
+
+export const VA_ROLE_KEY_ORDER: VaRoleKey[] = [
+  "main",
+  "supporting",
+  "background",
+  "minor",
+  "cameo",
+  "unknown",
+];
+
+export function formatToVaCategory(format: string | null | undefined): VaMediaCategory {
+  switch ((format ?? "").toUpperCase()) {
+    case "TV":
+    case "TV_SHORT":
+      return "tv";
+    case "MOVIE":
+      return "movie";
+    case "OVA":
+      return "ova";
+    case "ONA":
+      return "ona";
+    case "SPECIAL":
+      return "special";
+    case "MUSIC":
+      return "music";
+    default:
+      return "other";
+  }
+}
+
+export function normalizeVaRoleKey(role: string | null | undefined): VaRoleKey {
+  if (!role) return "unknown";
+  const key = role.trim().toUpperCase().replace(/\s+/g, "_");
+  if (key === "MAIN" || key === "PROTAGONIST") return "main";
+  if (key === "SUPPORTING") return "supporting";
+  if (key === "BACKGROUND") return "background";
+  if (key === "MINOR") return "minor";
+  if (key === "CAMEO") return "cameo";
+  return "unknown";
+}
+
 function roleRank(role: string | null | undefined): number {
   if (!role) return 99;
   return ROLE_RANK[role.toUpperCase()] ?? 50;
@@ -154,20 +239,31 @@ function roleRank(role: string | null | undefined): number {
 
 function edgeToRole(edge: StaffEdge): VaRole | null {
   const node = edge.node;
+  // Voice credits are almost always ANIME; keep manga/etc. out of filmography tabs.
   if (!node || node.type !== "ANIME") return null;
   const character = edge.characters?.[0];
+  const english = node.title?.english?.trim() || null;
+  const romaji = node.title?.romaji?.trim() || "";
+  const format = node.format ?? null;
   return {
     role: edge.characterRole ?? null,
+    roleKey: normalizeVaRoleKey(edge.characterRole),
     character: character
       ? { id: character.id, name: character.name?.full ?? "", image: character.image?.large ?? null }
       : null,
     anime: {
       id: String(node.id),
       name: toTitle(node.title ?? {}),
-      jname: node.title?.romaji ?? "",
+      english,
+      romaji,
       poster: node.coverImage?.extraLarge ?? node.coverImage?.large ?? "",
       type: toFormat(node.format),
+      format,
+      category: formatToVaCategory(format),
       year: node.seasonYear ?? node.startDate?.year ?? null,
+      episodes: typeof node.episodes === "number" ? node.episodes : null,
+      score: typeof node.averageScore === "number" ? node.averageScore : null,
+      status: node.status ?? null,
     },
   };
 }
@@ -187,36 +283,28 @@ function mergeRoleEdges(edges: StaffEdge[]): VaRole[] {
   return Array.from(best.values());
 }
 
+/** Deduplicate roles across paginated fetches (same preference rules as mergeRoleEdges). */
+export function mergeVaRoles(existing: VaRole[], incoming: VaRole[]): VaRole[] {
+  const best = new Map<string, VaRole>();
+  for (const role of [...existing, ...incoming]) {
+    const key = `${role.anime.id}-${role.character?.id ?? ""}`;
+    const prev = best.get(key);
+    if (!prev || roleRank(role.role) < roleRank(prev.role)) {
+      best.set(key, role);
+    }
+  }
+  return Array.from(best.values());
+}
+
+export function vaRoleDedupeKey(role: VaRole): string {
+  return `${role.anime.id}-${role.character?.id ?? ""}`;
+}
+
 async function fetchCharacterMediaPage(id: number, page: number): Promise<CharacterMediaPage> {
   const data = await queryAniList<{
     Staff?: { characterMedia?: CharacterMediaPage | null } | null;
   }>(STAFF_MEDIA_PAGE_QUERY, { id, page });
   return data.Staff?.characterMedia ?? {};
-}
-
-/** Load remaining filmography pages in small parallel batches (avoids duplicate work via queryAniList cache). */
-async function fetchAllCharacterMedia(id: number, firstPage: CharacterMediaPage | undefined): Promise<StaffEdge[]> {
-  const edges: StaffEdge[] = [...(firstPage?.edges ?? [])];
-  let hasNext = firstPage?.pageInfo?.hasNextPage === true;
-  let page = (firstPage?.pageInfo?.currentPage ?? 1) + 1;
-  const batchSize = 3;
-
-  while (hasNext && page <= MAX_MEDIA_PAGES) {
-    const batchPages: number[] = [];
-    for (let i = 0; i < batchSize && page + i <= MAX_MEDIA_PAGES; i++) {
-      batchPages.push(page + i);
-    }
-
-    const results = await Promise.all(batchPages.map((p) => fetchCharacterMediaPage(id, p)));
-    hasNext = false;
-    for (const media of results) {
-      edges.push(...(media.edges ?? []));
-      hasNext = media.pageInfo?.hasNextPage === true;
-    }
-    page += batchPages.length;
-  }
-
-  return edges;
 }
 
 async function fetchVoiceActor(id: number): Promise<VoiceActorDetail | null> {
@@ -241,8 +329,11 @@ async function fetchVoiceActor(id: number): Promise<VoiceActorDetail | null> {
   const s = data.Staff;
   if (!s) return null;
 
-  const allEdges = await fetchAllCharacterMedia(id, s.characterMedia ?? undefined);
-  const roles = mergeRoleEdges(allEdges);
+  const media = s.characterMedia ?? {};
+  const roles = mergeRoleEdges(media.edges ?? []);
+  const rolesPage = media.pageInfo?.currentPage ?? 1;
+  const rolesHasNextPage =
+    media.pageInfo?.hasNextPage === true && rolesPage < MAX_MEDIA_PAGES;
 
   const dob = s.dateOfBirth;
   const birthday =
@@ -269,12 +360,38 @@ async function fetchVoiceActor(id: number): Promise<VoiceActorDetail | null> {
     siteUrl: s.siteUrl ?? null,
     primaryOccupations: s.primaryOccupations ?? [],
     roles,
+    rolesPage,
+    rolesHasNextPage,
   };
 }
 
-export const getVoiceActor = unstable_cache(fetchVoiceActor, ["voice-actor-v3"], {
+export const getVoiceActor = unstable_cache(fetchVoiceActor, ["voice-actor-v5"], {
   revalidate: 86400,
 });
+
+async function fetchVoiceActorFilmographyPage(
+  id: number,
+  page: number,
+): Promise<VoiceActorFilmographyPage> {
+  const safePage = Math.max(1, Math.min(MAX_MEDIA_PAGES, Math.floor(page) || 1));
+  const media = await fetchCharacterMediaPage(id, safePage);
+  const roles = mergeRoleEdges(media.edges ?? []);
+  const currentPage = media.pageInfo?.currentPage ?? safePage;
+  const hasNextPage =
+    media.pageInfo?.hasNextPage === true && currentPage < MAX_MEDIA_PAGES;
+
+  return {
+    roles,
+    page: currentPage,
+    hasNextPage,
+  };
+}
+
+export const getVoiceActorFilmographyPage = unstable_cache(
+  fetchVoiceActorFilmographyPage,
+  ["voice-actor-filmography-v2"],
+  { revalidate: 86400 },
+);
 
 const SEARCH_QUERY = `
   query ($search: String, $page: Int, $perPage: Int) {
@@ -301,7 +418,6 @@ type StaffSearchNode = {
 
 function isVoiceOccupation(occupations: string[] | null | undefined): boolean {
   const occ = (occupations ?? []).map((o) => o.toLowerCase());
-  // Empty occupations: include (AniList often omits them for known VAs).
   if (occ.length === 0) return true;
   return occ.some((o) => o.includes("voice") || o.includes("actor") || o.includes("seiyuu"));
 }
@@ -366,4 +482,22 @@ export function formatVaBirthday(date: VaFuzzyDate | null | undefined): string |
   }
   if (date.year) parts.push(String(date.year));
   return parts.join(" ") || null;
+}
+
+export function formatVaStatus(status: string | null | undefined): string | null {
+  if (!status) return null;
+  switch (status.toUpperCase()) {
+    case "FINISHED":
+      return "Finished";
+    case "RELEASING":
+      return "Airing";
+    case "NOT_YET_RELEASED":
+      return "Upcoming";
+    case "CANCELLED":
+      return "Cancelled";
+    case "HIATUS":
+      return "Hiatus";
+    default:
+      return status;
+  }
 }

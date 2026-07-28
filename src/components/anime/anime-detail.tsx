@@ -35,7 +35,7 @@ import { useSettingsStore } from "@/store/settings-store";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { toast } from "sonner";
 import useBookMarks from "@/hooks/use-get-bookmark";
-import { useGetAnimeBanner } from "@/query/home/get-banner-anime";
+import { useGetAnimeRelated } from "@/query/anime/get-anime-related";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import { cn } from "@/lib/core/utils";
@@ -130,22 +130,6 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const anilistId = anime?.anime.info.anilistId;
 
-  const { data: banner } = useGetAnimeBanner(anilistId!);
-  const { data: mappingData } = useGetAnimeMappings(anilistId);
-  const { data: episodesData } = useGetAllEpisodes(slug);
-  const watchedEpisodes = useEpisodeProgress(slug);
-
-  const rawEpisodeCount =
-    episodesData?.episodes?.length ?? episodesData?.totalEpisodes ?? 0;
-
-  const watchedEpisodeCount = useMemo(() => {
-    return watchedEpisodes.filter((w) => {
-      const duration = w.duration ?? 0;
-      if (duration > 0) return w.current / duration >= 0.95;
-      return w.current > 10;
-    }).length;
-  }, [watchedEpisodes]);
-
   const defaultTab = useMemo(() => {
     const tab = searchParams.get("tab");
     const valid = new Set([
@@ -169,6 +153,42 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab]);
+
+  // Defer heavy mappings until idle (or immediately for art/media tabs).
+  const [deferMappings, setDeferMappings] = useState(false);
+  useEffect(() => {
+    if (!anilistId) return;
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof win.requestIdleCallback === "function") {
+      const id = win.requestIdleCallback(() => setDeferMappings(true), { timeout: 1200 });
+      return () => win.cancelIdleCallback?.(id);
+    }
+    const t = window.setTimeout(() => setDeferMappings(true), 200);
+    return () => window.clearTimeout(t);
+  }, [anilistId]);
+
+  const needsMappings =
+    deferMappings || activeTab === "art" || activeTab === "media";
+  const needsEpisodes = activeTab === "episodes" || activeTab === "comments";
+
+  const { data: relatedData } = useGetAnimeRelated(anilistId ?? slug, Boolean(anime));
+  const { data: mappingData } = useGetAnimeMappings(anilistId, needsMappings);
+  const { data: episodesData } = useGetAllEpisodes(slug, needsEpisodes);
+  const watchedEpisodes = useEpisodeProgress(slug);
+
+  const rawEpisodeCount =
+    episodesData?.episodes?.length ?? episodesData?.totalEpisodes ?? 0;
+
+  const watchedEpisodeCount = useMemo(() => {
+    return watchedEpisodes.filter((w) => {
+      const duration = w.duration ?? 0;
+      if (duration > 0) return w.current / duration >= 0.95;
+      return w.current > 10;
+    }).length;
+  }, [watchedEpisodes]);
 
   // Record this anime for the home "Recently viewed" rail.
   const viewedInfo = anime?.anime?.info;
@@ -276,6 +296,12 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const hasDub   = (stats?.episodes?.dub ?? 0) > 0;
   const isAiring = moreInfo.status === "Currently Airing";
 
+  const charactersVoiceActors =
+    relatedData?.charactersVoiceActors ?? info.charactersVoiceActors ?? [];
+  const relatedAnimes = relatedData?.relatedAnimes ?? anime.relatedAnimes ?? [];
+  const recommendedAnimes =
+    relatedData?.recommendedAnimes ?? anime.recommendedAnimes ?? [];
+
   // Adult titles stay on the normal anime page — hide unless setting is on.
   if (info.isAdult && !showAdultContent) {
     return (
@@ -301,7 +327,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     ? `https://www.themoviedb.org/tv/${mappings.themoviedb_id}`
     : null;
 
-  const totalEpisodeCount = rawEpisodeCount;
+  const totalEpisodeCount =
+    rawEpisodeCount > 0 ? rawEpisodeCount : (stats?.episodes?.sub ?? 0);
   const plannedTotal =
     episodesData?.plannedTotal && episodesData.plannedTotal > 0
       ? episodesData.plannedTotal
@@ -320,7 +347,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const bannerSrc =
     resolveAnimeBackdropUrl({
       images: mapImages,
-      anilistBanner: banner?.Media.bannerImage,
+      anilistBanner: info.banner,
       infoBanner: info.banner,
       poster: info.poster,
     }) || info.poster;
@@ -361,13 +388,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       : []),
     { value: "media", label: t("anime.tabs.media") },
     ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
-    ...(info.charactersVoiceActors.length > 0
+    ...(charactersVoiceActors.length > 0
       ? [
           { value: "characters", label: t("anime.tabs.characters") },
           { value: "voices", label: t("anime.tabs.voiceActors") },
         ]
       : []),
-    ...(anime.relatedAnimes?.length > 0
+    ...(relatedAnimes.length > 0
       ? [{ value: "relations", label: t("anime.tabs.relations") }]
       : []),
     { value: "reviews", label: t("anime.tabs.reviews") },
@@ -980,11 +1007,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           )}
 
           {/* ── Characters ── */}
-          {info.charactersVoiceActors.length > 0 && (
+          {charactersVoiceActors.length > 0 && (
             <TabsContent value="characters" className="mt-6">
               <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-5">{t("anime.charactersAndVa")}</h3>
               <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                {info.charactersVoiceActors.map((character, idx) => (
+                {charactersVoiceActors.map((character, idx) => (
                   <CharacterCard key={idx} character={character} className="self-center justify-self-center" />
                 ))}
               </div>
@@ -992,19 +1019,19 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           )}
 
           {/* ── Voice Actors ── */}
-          {info.charactersVoiceActors.length > 0 && (
+          {charactersVoiceActors.length > 0 && (
             <TabsContent value="voices" className="mt-6">
               <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-5">{t("anime.voiceActorsAndRoles")}</h3>
-              <VoiceActorsPanel characters={info.charactersVoiceActors} />
+              <VoiceActorsPanel characters={charactersVoiceActors} />
             </TabsContent>
           )}
 
           {/* ── Relations ── */}
-          {anime.relatedAnimes && anime.relatedAnimes.length > 0 && (
+          {relatedAnimes.length > 0 && (
             <TabsContent value="relations" className="mt-6">
               <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-5">{t("anime.relatedSeries")}</h3>
               <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-5">
-                {anime.relatedAnimes.map((relation) => (
+                {relatedAnimes.map((relation) => (
                   <AnimeCard
                     key={relation.id}
                     title={relation.name}
@@ -1046,8 +1073,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </Tabs>
         </div>
 
-        {anime.recommendedAnimes.length > 0 && (
-          <AnimeCarousel anime={anime.recommendedAnimes as IAnime[]} title={t("common.recommended")} className="mt-16" />
+        {recommendedAnimes.length > 0 && (
+          <AnimeCarousel anime={recommendedAnimes as IAnime[]} title={t("common.recommended")} className="mt-16" />
         )}
       </Container>
     </div>

@@ -2,6 +2,7 @@ import { getVoiceActor } from "@/lib/core/voice-actors";
 
 export const revalidate = 86400;
 
+/** Profile + first filmography page only. Remaining credits: /api/voice-actors/[id]/filmography. */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },

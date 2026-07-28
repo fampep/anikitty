@@ -2,13 +2,17 @@
 
 import type { ComponentType } from "react";
 import {
+  Clapperboard,
+  Disc3,
   Film,
+  Gamepad2,
   ImageIcon,
   LayoutGrid,
   ListMusic,
   MessageSquare,
   Sparkles,
   Subtitles,
+  Tv,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
@@ -24,6 +28,16 @@ const TAB_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   characters: Users,
   relations: Film,
   comments: MessageSquare,
+  // Voice-actor filmography
+  all: LayoutGrid,
+  tv: Tv,
+  movie: Clapperboard,
+  ova: Disc3,
+  ona: Disc3,
+  special: Sparkles,
+  music: ListMusic,
+  game: Gamepad2,
+  other: Film,
 };
 
 type Tab = { value: string; label: string; badge?: number | string };

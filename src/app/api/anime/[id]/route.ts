@@ -1,5 +1,6 @@
+import { unstable_cache } from "next/cache";
 import { queryAniList, toTitle, toFormat, toStatus, formatPartialDate } from "@/lib/oauth/anilist";
-import { enrichAnimeListWithAudio, getAudioAvailability } from "@/lib/providers/anikoto-availability";
+import { getAudioAvailability } from "@/lib/providers/anikoto-availability";
 import {
   airedCountFromAnilist,
   resolveEffectiveNextAiringEpisode,
@@ -8,58 +9,8 @@ import { publicErrorMessage } from "@/lib/security/public-error";
 
 export const revalidate = 3600;
 
-const DETAIL_QUERY = `
-  query ($id: Int) {
-    Media(id: $id, type: ANIME) {
-      id
-      idMal
-      isAdult
-      title { english romaji native }
-      description(asHtml: false)
-      coverImage { extraLarge large }
-      bannerImage
-      episodes
-      format
-      status
-      duration
-      averageScore
-      genres
-      synonyms
-      season
-      seasonYear
-      source
-      startDate { year month day }
-      endDate { year month day }
-      nextAiringEpisode { episode airingAt }
-      studios { nodes { name isAnimationStudio } }
-      trailer { id site }
-      recommendations(page: 1, perPage: 12) {
-        nodes {
-          mediaRecommendation {
-            id title { english romaji } coverImage { extraLarge } episodes format
-          }
-        }
-      }
-      relations {
-        edges {
-          relationType(version: 2)
-          node {
-            id title { english romaji } coverImage { extraLarge } type episodes format
-          }
-        }
-      }
-      characters(sort: ROLE, page: 1, perPage: 12) {
-        edges {
-          role
-          node { id name { full } image { large } }
-          voiceActors(language: JAPANESE) { id name { full } image { large } }
-        }
-      }
-    }
-  }
-`;
-
-const MINIMAL_DETAIL_QUERY = `
+/** Hero + overview only — characters/relations/recs load via /related. */
+const CRITICAL_DETAIL_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
       id
@@ -88,19 +39,120 @@ const MINIMAL_DETAIL_QUERY = `
   }
 `;
 
-function mapAnime(node: any) {
-  if (!node?.id) return null;
+const SOURCE_LABELS: Record<string, string> = {
+  ORIGINAL: "Original",
+  MANGA: "Manga",
+  LIGHT_NOVEL: "Light Novel",
+  VISUAL_NOVEL: "Visual Novel",
+  VIDEO_GAME: "Video Game",
+  NOVEL: "Novel",
+  DOUJINSHI: "Doujinshi",
+  ANIME: "Anime",
+  WEB_NOVEL: "Web Novel",
+  LIVE_ACTION: "Live Action",
+  GAME: "Game",
+  COMIC: "Comic",
+  MULTIMEDIA_PROJECT: "Multimedia Project",
+  PICTURE_BOOK: "Picture Book",
+  OTHER: "Other",
+};
+
+type CriticalAnimePayload = {
+  anime: {
+    info: Record<string, unknown>;
+    moreInfo: Record<string, unknown>;
+  };
+  seasons: [];
+  mostPopularAnimes: [];
+  relatedAnimes: [];
+  recommendedAnimes: [];
+  _meta: {
+    episodeCount: number;
+    status: string | null;
+    idMal: number | null;
+    titles: (string | null | undefined)[];
+  };
+};
+
+async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePayload | null> {
+  const raw = await queryAniList<{ Media?: any }>(CRITICAL_DETAIL_QUERY, { id: numId });
+  const m = raw.Media;
+  if (!m) return null;
+
+  const episodeCount = airedCountFromAnilist(m.nextAiringEpisode, {
+    status: m.status,
+    episodes: m.episodes,
+  });
+
+  const animationStudios = (m.studios?.nodes ?? [])
+    .filter((s: any) => s.isAnimationStudio)
+    .map((s: any) => s.name);
+
+  const producers = (m.studios?.nodes ?? [])
+    .filter((s: any) => !s.isAnimationStudio)
+    .map((s: any) => s.name);
+
   return {
-    id: String(node.id),
-    name: toTitle(node.title ?? {}),
-    jname: node.title?.romaji ?? "",
-    poster: node.coverImage?.extraLarge ?? "",
-    episodes: { sub: node.episodes ?? 0, dub: 0 },
-    type: toFormat(node.format),
-    duration: "",
-    rating: null,
+    anime: {
+      info: {
+        id: String(m.id),
+        anilistId: m.id,
+        malId: m.idMal ?? 0,
+        isAdult: Boolean(m.isAdult),
+        name: toTitle(m.title),
+        poster: m.coverImage?.extraLarge ?? "",
+        banner: m.bannerImage ?? m.coverImage?.extraLarge ?? "",
+        description: (m.description ?? "").replace(/<[^>]*>/g, ""),
+        stats: {
+          rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
+          quality: "HD",
+          // dub filled after cache with preferCached audio
+          episodes: { sub: episodeCount, dub: 0 },
+          type: toFormat(m.format),
+          duration: m.duration ? `${m.duration} min` : "N/A",
+        },
+        nextAiringEpisode: resolveEffectiveNextAiringEpisode(m.nextAiringEpisode),
+        promotionalVideos: m.trailer?.site === "youtube" && m.trailer.id
+          ? [{
+              title: "Trailer",
+              source: `https://www.youtube.com/embed/${m.trailer.id}`,
+              thumbnail: "",
+            }]
+          : [],
+        charactersVoiceActors: [],
+      },
+      moreInfo: {
+        japanese: m.title?.native ?? "",
+        synonyms: (m.synonyms ?? []).join(", "),
+        aired: `${formatPartialDate(m.startDate)} to ${formatPartialDate(m.endDate)}`,
+        premiered: `${m.season ?? ""} ${m.seasonYear ?? ""}`.trim() || "N/A",
+        duration: m.duration ? `${m.duration} min` : "N/A",
+        status: toStatus(m.status),
+        malscore: "N/A",
+        source: m.source ? (SOURCE_LABELS[m.source] ?? m.source) : null,
+        genres: m.genres ?? [],
+        studios: animationStudios.join(", "),
+        producers,
+      },
+    },
+    seasons: [],
+    mostPopularAnimes: [],
+    relatedAnimes: [],
+    recommendedAnimes: [],
+    _meta: {
+      episodeCount,
+      status: m.status ?? null,
+      idMal: m.idMal ?? null,
+      titles: [toTitle(m.title), m.title?.romaji, m.title?.english],
+    },
   };
 }
+
+const getCachedCriticalAnime = unstable_cache(
+  fetchCriticalAnimePayload,
+  ["anime-details-critical-v1"],
+  { revalidate: 3600 },
+);
 
 export async function GET(
   _req: Request,
@@ -113,32 +165,20 @@ export async function GET(
     return Response.json({ error: "Invalid anime id" }, { status: 400 });
   }
 
-  const cacheHeaders = {
-    "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-  };
-
   try {
-    let raw: { Media?: any };
-    try {
-      raw = await queryAniList(DETAIL_QUERY, { id: numId });
-    } catch (primaryErr) {
-      console.error("Anime detail primary query failed:", primaryErr);
-      raw = await queryAniList(MINIMAL_DETAIL_QUERY, { id: numId });
-    }
-    const m = raw.Media;
-    if (!m) return Response.json({ error: "Not found" }, { status: 404 });
+    const payload = await getCachedCriticalAnime(numId);
+    if (!payload) return Response.json({ error: "Not found" }, { status: 404 });
 
-    const episodeCount = airedCountFromAnilist(m.nextAiringEpisode, {
-      status: m.status,
-      episodes: m.episodes,
-    });
+    const { _meta, ...cached } = payload;
+    const episodeCount = _meta.episodeCount;
 
     const audio = await getAudioAvailability({
       anilistId: numId,
-      malId: m.idMal,
-      titles: [toTitle(m.title), m.title?.romaji, m.title?.english],
+      malId: _meta.idMal,
+      titles: _meta.titles,
       fallbackSub: episodeCount,
-      status: m.status,
+      status: _meta.status,
+      preferCached: true,
     }).catch(() => ({
       sub: episodeCount,
       dub: 0,
@@ -149,141 +189,21 @@ export async function GET(
     const dubCount =
       episodeCount > 0 ? Math.min(audio.dub || 0, episodeCount) : Math.min(audio.dub || 0, 500);
 
-    const animationStudios = (m.studios?.nodes ?? [])
-      .filter((s: any) => s.isAnimationStudio)
-      .map((s: any) => s.name);
-
-    const producers = (m.studios?.nodes ?? [])
-      .filter((s: any) => !s.isAnimationStudio)
-      .map((s: any) => s.name);
-
-    const SOURCE_LABELS: Record<string, string> = {
-      ORIGINAL: "Original",
-      MANGA: "Manga",
-      LIGHT_NOVEL: "Light Novel",
-      VISUAL_NOVEL: "Visual Novel",
-      VIDEO_GAME: "Video Game",
-      NOVEL: "Novel",
-      DOUJINSHI: "Doujinshi",
-      ANIME: "Anime",
-      WEB_NOVEL: "Web Novel",
-      LIVE_ACTION: "Live Action",
-      GAME: "Game",
-      COMIC: "Comic",
-      MULTIMEDIA_PROJECT: "Multimedia Project",
-      PICTURE_BOOK: "Picture Book",
-      OTHER: "Other",
+    // Clone before attaching live audio so unstable_cache isn't mutated.
+    const data = structuredClone(cached);
+    (data.anime.info as { stats: { episodes: { sub: number; dub: number } } }).stats.episodes = {
+      sub: episodeCount,
+      dub: dubCount,
     };
-
-    const data = {
-      anime: {
-        info: {
-          id: String(m.id),
-          anilistId: m.id,
-          malId: m.idMal ?? 0,
-          isAdult: Boolean(m.isAdult),
-          name: toTitle(m.title),
-          poster: m.coverImage?.extraLarge ?? "",
-          banner: m.bannerImage ?? m.coverImage?.extraLarge ?? "",
-          description: (m.description ?? "").replace(/<[^>]*>/g, ""),
-          stats: {
-            rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
-            quality: "HD",
-            episodes: { sub: episodeCount, dub: dubCount },
-            type: toFormat(m.format),
-            duration: m.duration ? `${m.duration} min` : "N/A",
-          },
-          nextAiringEpisode: resolveEffectiveNextAiringEpisode(m.nextAiringEpisode),
-          promotionalVideos: m.trailer?.site === "youtube" && m.trailer.id
-            ? [{
-                title: "Trailer",
-                source: `https://www.youtube.com/embed/${m.trailer.id}`,
-                thumbnail: "",
-              }]
-            : [],
-          charactersVoiceActors: (m.characters?.edges ?? []).map((edge: any) => ({
-            character: {
-              id: String(edge.node?.id ?? ""),
-              poster: edge.node?.image?.large ?? "",
-              name: edge.node?.name?.full ?? "Unknown",
-              cast: edge.role === "MAIN" ? "Main" : "Supporting",
-            },
-            voiceActor: {
-              id: String(edge.voiceActors?.[0]?.id ?? ""),
-              poster: edge.voiceActors?.[0]?.image?.large ?? "",
-              name: edge.voiceActors?.[0]?.name?.full ?? "",
-              cast: "Japanese",
-            },
-          })),
-        },
-        moreInfo: {
-          japanese: m.title?.native ?? "",
-          synonyms: (m.synonyms ?? []).join(", "),
-          aired: `${formatPartialDate(m.startDate)} to ${formatPartialDate(m.endDate)}`,
-          premiered: `${m.season ?? ""} ${m.seasonYear ?? ""}`.trim() || "N/A",
-          duration: m.duration ? `${m.duration} min` : "N/A",
-          status: toStatus(m.status),
-          malscore: "N/A",
-          source: m.source ? (SOURCE_LABELS[m.source] ?? m.source) : null,
-          genres: m.genres ?? [],
-          studios: animationStudios.join(", "),
-          producers,
-        },
-      },
-      seasons: [],
-      mostPopularAnimes: (m.relations?.edges ?? [])
-        .filter((e: any) => e?.node?.type === "ANIME")
-        .slice(0, 5)
-        .map((e: any) => mapAnime(e.node))
-        .filter(Boolean),
-      relatedAnimes: (m.relations?.edges ?? [])
-        .filter((e: any) => e?.node?.type === "ANIME")
-        .map((e: any) => mapAnime(e.node))
-        .filter(Boolean),
-      recommendedAnimes: (m.recommendations?.nodes ?? [])
-        .filter((n: any) => n?.mediaRecommendation)
-        .map((n: any) => mapAnime(n.mediaRecommendation))
-        .filter(Boolean),
-    };
-
-    let mostPopularAnimes = data.mostPopularAnimes;
-    let relatedAnimes = data.relatedAnimes;
-    let recommendedAnimes = data.recommendedAnimes;
-
-    try {
-      const combined = [
-        ...data.mostPopularAnimes,
-        ...data.relatedAnimes,
-        ...data.recommendedAnimes,
-      ];
-      const uniqueById = new Map(combined.map((a) => [a.id, a]));
-      const enriched = await enrichAnimeListWithAudio([...uniqueById.values()]);
-      const byId = new Map(enriched.map((a) => [a.id, a]));
-      const pick = (list: typeof data.mostPopularAnimes) =>
-        list.map((a: (typeof list)[number]) => byId.get(a.id) ?? a);
-      [mostPopularAnimes, relatedAnimes, recommendedAnimes] = [
-        pick(data.mostPopularAnimes),
-        pick(data.relatedAnimes),
-        pick(data.recommendedAnimes),
-      ];
-    } catch (enrichErr) {
-      console.error("Audio enrich failed:", enrichErr);
-    }
 
     return Response.json({
-      data: {
-        ...data,
-        mostPopularAnimes,
-        relatedAnimes,
-        recommendedAnimes,
-      },
+      data,
     }, {
       headers: {
-        ...cacheHeaders,
         "Cache-Control":
-          m.status === "RELEASING"
+          _meta.status === "RELEASING"
             ? "public, s-maxage=300, stale-while-revalidate=1800"
-            : cacheHeaders["Cache-Control"],
+            : "public, s-maxage=3600, stale-while-revalidate=86400",
       },
     });
   } catch (err) {

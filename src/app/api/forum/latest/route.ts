@@ -78,5 +78,12 @@ export async function GET() {
     ),
   );
 
-  return Response.json({ threads });
+  return Response.json(
+    { threads },
+    {
+      headers: {
+        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
+      },
+    },
+  );
 }

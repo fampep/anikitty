@@ -156,6 +156,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-amber-400",
     glow: "from-amber-500/20",
   },
+  Animeya: {
+    chip: "border-teal-400/30 bg-teal-500/10 text-teal-100/90",
+    pillActive: "border-teal-400/45 bg-teal-500/20 text-teal-50 shadow-[0_0_12px_-4px_rgba(45,212,191,0.35)]",
+    pillIdle: "border-transparent text-teal-300/45 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+    dot: "bg-teal-400",
+    glow: "from-teal-500/20",
+  },
   Anitaku: {
     chip: "border-lime-400/30 bg-lime-500/10 text-lime-100/90",
     pillActive: "border-lime-400/45 bg-lime-500/20 text-lime-50 shadow-[0_0_12px_-4px_rgba(163,230,53,0.35)]",
