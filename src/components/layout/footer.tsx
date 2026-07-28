@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity, Mic, Scale, History, Timer } from "lucide-react";
+import { Flame, CalendarDays, Search, Captions, Coffee, Tv2, MessageSquare, Activity, Scale, History, Timer } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useOnlineCount } from "@/hooks/use-online-count";
 import { useSettingsStore } from "@/store/settings-store";
@@ -91,7 +91,6 @@ const Footer = () => {
             <NavLink href="/trending" label={t("nav.trending")} icon={<Flame className="w-3 h-3" />} />
             <NavLink href="/community" label={t("nav.community")} icon={<MessageSquare className="w-3 h-3" />} />
             <NavLink href="/subtitles" label={t("nav.subtitles")} icon={<Captions className="w-3 h-3" />} />
-            <NavLink href={ROUTES.VOICE_ACTORS} label={t("nav.voiceActors")} icon={<Mic className="w-3 h-3" />} />
             <NavLink href="/schedule" label={t("nav.schedule")} icon={<CalendarDays className="w-3 h-3" />} />
           </div>
 

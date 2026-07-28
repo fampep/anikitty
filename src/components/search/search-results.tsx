@@ -5,6 +5,7 @@ import { ROUTES } from "@/constants/routes";
 import AnimeCard from "@/components/anime/anime-card";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetSearchAnimeResults } from "@/query/search/get-search-results";
+import { useSearchVoiceActors } from "@/query/search/search-anime";
 import Pagination from "@/components/common/pagination";
 import { useAnimeSearchParams } from "@/hooks/use-anime-search-params";
 import { useFilterLabels } from "@/hooks/use-filter-labels";
@@ -15,8 +16,21 @@ import { cn } from "@/lib/core/utils";
 import SearchBar from "@/components/layout/search-bar";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useRecentSearches } from "@/hooks/use-recent-searches";
-import { Clock } from "lucide-react";
-import { SlidersHorizontal, RotateCcw, Search, RefreshCw, Minus, Plus, ChevronDown, Loader2, X } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Clock,
+  Mic,
+  SlidersHorizontal,
+  RotateCcw,
+  Search,
+  RefreshCw,
+  Minus,
+  Plus,
+  ChevronDown,
+  Loader2,
+  X,
+} from "lucide-react";
 import {
   cycleGenreFilterMode,
   parseGenreFilterModes,
@@ -67,6 +81,12 @@ const SearchResults = () => {
   const displayPhrase = params.q.replace(/^"+|"+$/g, "").trim();
 
   const { data: searchResults, isLoading, isError, refetch, isFetching } = useGetSearchAnimeResults(params);
+  const showVaSearch = displayPhrase.trim().length >= 2;
+  const {
+    data: vaSearch,
+    isLoading: vaLoading,
+    isFetching: vaFetching,
+  } = useSearchVoiceActors(displayPhrase, 1, showVaSearch);
 
   const [filters, setFilters] = React.useState<SearchAnimeParams>({
     ...EMPTY_FILTERS,
@@ -449,14 +469,7 @@ const SearchResults = () => {
             t("search.resultsFor", { query: displayPhrase })
           )}
         </h1>
-        {searchResults && !isLoading && (
-          <span className="text-xs text-muted-foreground dark:text-white/35 font-mono">
-            {searchResults.totalResults
-              ? `${t("search.resultsCount", { count: searchResults.totalResults.toLocaleString() })} · ${t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}`
-              : t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}
-          </span>
-        )}
-        {isFetching && !isLoading && (
+        {(isFetching || vaFetching) && !isLoading && (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground dark:text-white/35 font-mono">
             <Loader2 className="h-3 w-3 animate-spin" />
             {t("search.updating")}
@@ -464,76 +477,156 @@ const SearchResults = () => {
         )}
       </div>
 
-      {/* Grid */}
-      {isError && !searchResults ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <p className="text-sm text-muted-foreground dark:text-white/40 font-mono">{t("search.loadError")}</p>
-          <button
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-            {t("common.tryAgain")}
-          </button>
-        </div>
-      ) : isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-          {Array.from({ length: 14 }).map((_, idx) => (
-            <div key={idx} className="flex flex-col gap-2 w-full">
-              <div className="rounded-xl aspect-[2/3] w-full animate-pulse bg-muted/60 dark:bg-white/[0.06]" />
-              <div className="h-3 w-[80%] rounded animate-pulse bg-muted/50 dark:bg-white/[0.05]" />
-              <div className="h-2.5 w-1/2 rounded animate-pulse bg-muted/40 dark:bg-white/[0.04]" />
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-          {searchResults?.animes.map((anime) => (
-            <AnimeCard
-              key={anime.id}
-              title={anime.name}
-              subTitle={anime.type}
-              poster={anime.poster}
-              href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-              className="self-center justify-self-center w-full"
-              showGenre={false}
-              episodeCard
-              deferImage
-              sub={anime.episodes?.sub}
-              dub={anime.episodes?.dub}
-              score={anime.score}
-              year={anime.year}
-              status={anime.status}
-            />
-          ))}
-          {searchResults?.animes.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-              <span className="text-5xl mb-4">🐱</span>
-              <p className="text-muted-foreground dark:text-white/50 font-medium">{t("search.noResults")}</p>
-              <p className="text-muted-foreground dark:text-white/35 text-sm mt-1">{t("search.noResultsHint")}</p>
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={resetFilters}
-                  className="mt-5 flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  {t("search.clearFilters")}
-                </button>
-              )}
-            </div>
+      {/* Anime section */}
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35">
+            {t("search.sectionAnime")}
+          </h2>
+          {searchResults && !isLoading && (
+            <span className="text-xs text-muted-foreground dark:text-white/35 font-mono">
+              {searchResults.totalResults
+                ? `${t("search.resultsCount", { count: searchResults.totalResults.toLocaleString() })} · ${t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}`
+                : t("search.pageOf", { current: searchResults.currentPage, total: searchResults.totalPages })}
+            </span>
           )}
         </div>
-      )}
 
-      {searchResults && searchResults.totalPages > 1 && (
-        <Pagination
-          totalPages={searchResults.totalPages}
-          currentPage={params.page}
-          handleNextPage={handleNextPage}
-          handlePageChange={handlePageChange}
-          handlePreviousPage={handlePreviousPage}
-        />
+        {isError && !searchResults ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <p className="text-sm text-muted-foreground dark:text-white/40 font-mono">{t("search.loadError")}</p>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+              {t("common.tryAgain")}
+            </button>
+          </div>
+        ) : isLoading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+            {Array.from({ length: 14 }).map((_, idx) => (
+              <div key={idx} className="flex flex-col gap-2 w-full">
+                <div className="rounded-xl aspect-[2/3] w-full animate-pulse bg-muted/60 dark:bg-white/[0.06]" />
+                <div className="h-3 w-[80%] rounded animate-pulse bg-muted/50 dark:bg-white/[0.05]" />
+                <div className="h-2.5 w-1/2 rounded animate-pulse bg-muted/40 dark:bg-white/[0.04]" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+            {searchResults?.animes.map((anime) => (
+              <AnimeCard
+                key={anime.id}
+                title={anime.name}
+                subTitle={anime.type}
+                poster={anime.poster}
+                href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                className="self-center justify-self-center w-full"
+                showGenre={false}
+                episodeCard
+                deferImage
+                sub={anime.episodes?.sub}
+                dub={anime.episodes?.dub}
+                score={anime.score}
+                year={anime.year}
+                status={anime.status}
+              />
+            ))}
+            {searchResults?.animes.length === 0 && (
+              <div className="col-span-full flex flex-col items-center justify-center py-16 text-center">
+                <span className="text-5xl mb-4">🐱</span>
+                <p className="text-muted-foreground dark:text-white/50 font-medium">{t("search.noResults")}</p>
+                <p className="text-muted-foreground dark:text-white/35 text-sm mt-1">{t("search.noResultsHint")}</p>
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={resetFilters}
+                    className="mt-5 flex items-center gap-2 px-4 py-2 rounded-xl border border-border dark:border-white/10 bg-muted/50 dark:bg-white/5 hover:bg-accent dark:hover:bg-white/8 text-muted-foreground dark:text-white/70 text-sm font-semibold transition-colors"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    {t("search.clearFilters")}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {searchResults && searchResults.totalPages > 1 && (
+          <Pagination
+            totalPages={searchResults.totalPages}
+            currentPage={params.page}
+            handleNextPage={handleNextPage}
+            handlePageChange={handlePageChange}
+            handlePreviousPage={handlePreviousPage}
+          />
+        )}
+      </section>
+
+      {/* Voice actors section — only when searching by name */}
+      {showVaSearch && (
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35">
+              {t("search.sectionVoiceActors")}
+            </h2>
+            {vaSearch && !vaLoading && (
+              <span className="text-xs text-muted-foreground dark:text-white/35 font-mono">
+                {t("search.vaResultsCount", { count: vaSearch.results.length })}
+              </span>
+            )}
+          </div>
+
+          {vaLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-3 rounded-xl border border-border dark:border-white/8 p-2.5 animate-pulse"
+                >
+                  <div className="h-12 w-12 rounded-full bg-muted/60 dark:bg-white/[0.06]" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 w-3/4 rounded bg-muted/50 dark:bg-white/[0.05]" />
+                    <div className="h-2.5 w-1/2 rounded bg-muted/40 dark:bg-white/[0.04]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : vaSearch && vaSearch.results.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {vaSearch.results.map((va) => (
+                <Link
+                  key={va.id}
+                  href={`${ROUTES.VOICE_ACTOR}/${va.id}`}
+                  className="group flex items-center gap-3 rounded-xl border border-border dark:border-white/8 bg-muted/20 dark:bg-white/[0.02] p-2.5 hover:border-primary/30 hover:bg-primary/[0.04] transition-colors"
+                >
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-1 ring-white/10">
+                    {va.image ? (
+                      <Image src={va.image} alt={va.name} fill sizes="48px" className="object-cover" unoptimized />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-primary/10 text-zinc-300">
+                        <Mic className="h-4 w-4" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-semibold text-foreground/90 dark:text-white/85 line-clamp-1 group-hover:text-zinc-200">
+                      {va.name}
+                    </p>
+                    <p className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground/70 dark:text-white/30 line-clamp-1">
+                      {[va.native, va.language].filter(Boolean).join(" · ") || t("search.voiceActor")}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="py-6 text-sm text-muted-foreground dark:text-white/35 font-mono">
+              {t("search.noVoiceActors", { query: displayPhrase })}
+            </p>
+          )}
+        </section>
       )}
     </div>
   );

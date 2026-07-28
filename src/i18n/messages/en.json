@@ -416,7 +416,7 @@
   },
   "search": {
     "title": "Search",
-    "placeholder": "Search anime...",
+    "placeholder": "Search anime & voice actors...",
     "clear": "Clear search",
     "filters": "Filters",
     "reset": "Reset",
@@ -428,6 +428,11 @@
     "hideFilters": "Hide filters",
     "updating": "Updating…",
     "resultsCount": "{count} results",
+    "vaResultsCount": "{count} shown",
+    "sectionAnime": "Anime",
+    "sectionVoiceActors": "Voice Actors",
+    "voiceActor": "Voice actor",
+    "noVoiceActors": "No voice actors found for \"{query}\"",
     "recentSearches": "Recent searches",
     "clearRecent": "Clear",
     "removeRecent": "Remove {query}",
@@ -441,7 +446,7 @@
     "pageOf": "page {current}/{total}",
     "viewAllResults": "View all results for \"{query}\"",
     "noResultsFor": "No results for \"{query}\"",
-    "browseAllLink": "Browse all anime →",
+    "browseAllLink": "Browse all results →",
     "placeholders": {
       "type": "Type",
       "status": "Status",
@@ -1447,7 +1452,7 @@
       "recentlyViewedQ": "What is the Recently viewed row?",
       "recentlyViewedA": "The home page keeps a local list of anime you opened recently so you can jump back to something you were browsing. It is stored only in your browser and is separate from Continue Watching.",
       "voiceActorsQ": "Can I look up voice actors?",
-      "voiceActorsA": "Yes. Open any anime and use the Voice Actors tab, or click a voice actor to open their page with their full filmography. You can also search voice actors by name and filter by language from the Voice Actors page in the footer.",
+      "voiceActorsA": "Yes. Open any anime and use the Voice Actors tab, or click a voice actor to open their page with their complete filmography. You can also search voice actors by name in the main Search — results show Anime and Voice Actors together.",
       "anilistQ": "Can I sync my list from AniList?",
       "anilistA": "Yes. In Settings → Connections, connect AniList via OAuth and import your library into your AniKitty watchlist. On anime pages you can also rate titles straight to AniList (0.5–10, e.g. 6.5). MyAnimeList account sign-in was removed — use AniList for list sync. Anime pages still show MyAnimeList metadata (score, rank, popularity, etc.) for reference.",
       "subtitlesQ": "Subtitles and the subtitle library",
@@ -2461,6 +2466,11 @@
     "noResults": "No GIFs found for \"{query}\".",
     "tryDifferent": "Try a different search.",
     "poweredBy": "Powered by KLIPY"
+  },
+  "voiceActor": {
+    "noRoles": "No anime roles found.",
+    "cast": "Cast",
+    "loadingMore": "Loading more roles…"
   },
   "voiceActorsPage": {
     "title": "Voice Actors",

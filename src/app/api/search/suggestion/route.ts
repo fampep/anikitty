@@ -1,10 +1,11 @@
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
+import { searchVoiceActors } from "@/lib/core/voice-actors";
 
-const QUERY = `
+const ANIME_QUERY = `
   query ($search: String, $isAdult: Boolean) {
-    Page(page: 1, perPage: 10) {
+    Page(page: 1, perPage: 6) {
       media(type: ANIME, search: $search, sort: SEARCH_MATCH, isAdult: $isAdult) {
         id
         title { english romaji }
@@ -26,14 +27,24 @@ export async function GET(request: Request) {
   const allowAdult = searchParams.get("adult") === "1";
 
   if (!q) {
-    return Response.json({ data: { suggestions: [] } });
+    return Response.json({ data: { suggestions: [], voiceActors: [] } });
   }
 
   try {
-    const raw = await queryAniList(QUERY, {
-      search: q,
-      isAdult: allowAdult ? undefined : false,
-    });
+    const [raw, vaSearch] = await Promise.all([
+      queryAniList(ANIME_QUERY, {
+        search: q,
+        isAdult: allowAdult ? undefined : false,
+      }),
+      q.length >= 2
+        ? searchVoiceActors(q, "", 1, 6).catch(() => ({
+            results: [],
+            hasNextPage: false,
+            currentPage: 1,
+          }))
+        : Promise.resolve({ results: [], hasNextPage: false, currentPage: 1 }),
+    ]);
+
     const media = raw.Page?.media ?? [];
 
     const suggestions = media.map((m: any) => ({
@@ -58,9 +69,14 @@ export async function GET(request: Request) {
 
     const enrichedSuggestions = await enrichAnimeListWithAudio(suggestions);
 
-    return Response.json({ data: { suggestions: enrichedSuggestions } });
+    return Response.json({
+      data: {
+        suggestions: enrichedSuggestions,
+        voiceActors: vaSearch.results,
+      },
+    });
   } catch (err) {
     console.error("Suggestion search error:", err);
-    return Response.json({ data: { suggestions: [] } });
+    return Response.json({ data: { suggestions: [], voiceActors: [] } });
   }
 }

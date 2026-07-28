@@ -1,15 +1,22 @@
 "use client";
 
-import React, { useId, useState, useRef, useEffect } from "react";
-import { SearchIcon, X, ArrowRight } from "lucide-react";
+import React, { useId, useState, useRef, useEffect, useMemo } from "react";
+import { SearchIcon, X, ArrowRight, Mic } from "lucide-react";
 import useDebounce from "@/hooks/use-debounce";
-import { useSearchAnime } from "@/query/search/search-anime";
+import { useSearchSuggestions } from "@/query/search/search-anime";
 import Image from "next/image";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 import { useRouter } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
+import type { VoiceActorSummary } from "@/lib/core/voice-actors";
+import type { ISuggestionAnime } from "@/types/anime";
+
+type NavOption =
+  | { kind: "anime"; item: ISuggestionAnime }
+  | { kind: "va"; item: VoiceActorSummary }
+  | { kind: "viewAll" };
 
 const SearchBar = ({
   className,
@@ -35,13 +42,21 @@ const SearchBar = ({
   const listboxId = useId();
   const optionId = (index: number) => `${listboxId}-option-${index}`;
 
-  const { data: searchResults, isLoading } = useSearchAnime(debouncedValue);
+  const { data, isLoading } = useSearchSuggestions(debouncedValue);
+  const animeResults = data?.anime ?? [];
+  const vaResults = data?.voiceActors ?? [];
 
-  const results = searchResults ?? [];
-  const hasResults = results.length > 0;
-  // Navigable rows: each result plus a trailing "view all results" row.
-  const optionCount = hasResults ? results.length + 1 : 0;
-  const viewAllIndex = hasResults ? results.length : -1;
+  const options: NavOption[] = useMemo(() => {
+    const list: NavOption[] = [
+      ...animeResults.map((item) => ({ kind: "anime" as const, item })),
+      ...vaResults.map((item) => ({ kind: "va" as const, item })),
+    ];
+    if (list.length > 0) list.push({ kind: "viewAll" });
+    return list;
+  }, [animeResults, vaResults]);
+
+  const hasResults = animeResults.length > 0 || vaResults.length > 0;
+  const optionCount = options.length;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -63,10 +78,9 @@ const SearchBar = ({
     setSearchValue(defaultValue);
   }, [defaultValue]);
 
-  // Reset the highlighted option whenever the result set or query changes.
   useEffect(() => {
     setActiveIndex(-1);
-  }, [debouncedValue, searchResults]);
+  }, [debouncedValue, data]);
 
   const handleClear = () => {
     setSearchValue("");
@@ -94,14 +108,19 @@ const SearchBar = ({
   };
 
   const navigateToOption = (index: number) => {
-    if (index === viewAllIndex) {
+    const option = options[index];
+    if (!option) return;
+    if (option.kind === "viewAll") {
       router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`);
       handleSelect();
       return;
     }
-    const anime = results[index];
-    if (!anime) return;
-    router.push(`${ROUTES.ANIME_DETAILS}/${anime.id}`);
+    if (option.kind === "anime") {
+      router.push(`${ROUTES.ANIME_DETAILS}/${option.item.id}`);
+      handleSelect();
+      return;
+    }
+    router.push(`${ROUTES.VOICE_ACTOR}/${option.item.id}`);
     handleSelect();
   };
 
@@ -138,13 +157,13 @@ const SearchBar = ({
 
   const showDropdown = isOpen && searchValue.trim().length > 0;
 
-  // Keep the highlighted option scrolled into view during keyboard nav.
   useEffect(() => {
     if (activeIndex < 0) return;
     document.getElementById(optionId(activeIndex))?.scrollIntoView({ block: "nearest" });
-    // optionId is stable per render; listboxId is stable for the component.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIndex]);
+
+  let runningIndex = 0;
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
@@ -204,73 +223,143 @@ const SearchBar = ({
 
           {!isLoading && hasResults && (
             <div className="flex flex-col">
-              {results.map((anime, index) => (
-                <Link
-                  key={anime.id}
-                  id={optionId(index)}
-                  href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
-                  role="option"
-                  aria-selected={activeIndex === index}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onClick={handleSelect}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 transition-colors group",
-                    activeIndex === index
-                      ? "bg-accent dark:bg-white/10"
-                      : "hover:bg-accent dark:hover:bg-white/8",
-                  )}
-                >
-                  <div className="h-14 w-10 overflow-hidden rounded shrink-0 bg-accent dark:bg-white/8">
-                    {anime.poster && (
-                      <Image
-                        src={anime.poster}
-                        alt={anime.name}
-                        height={56}
-                        width={40}
-                        sizes="40px"
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1 group-hover:text-foreground dark:hover:text-white transition-colors">
-                      {anime.name || anime.jname}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-white/40">
-                      {anime.type && (
-                        <span className="bg-accent dark:bg-white/10 px-1.5 py-0.5 rounded text-muted-foreground dark:text-white/60 font-mono text-[10px]">
-                          {anime.type}
-                        </span>
-                      )}
-                      {anime.moreInfo?.join(" · ")}
-                    </div>
-                  </div>
-                </Link>
-              ))}
+              {animeResults.length > 0 && (
+                <>
+                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35">
+                    {t("search.sectionAnime")}
+                  </p>
+                  {animeResults.map((anime) => {
+                    const index = runningIndex++;
+                    return (
+                      <Link
+                        key={`anime-${anime.id}`}
+                        id={optionId(index)}
+                        href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                        role="option"
+                        aria-selected={activeIndex === index}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={handleSelect}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2 transition-colors group",
+                          activeIndex === index
+                            ? "bg-accent dark:bg-white/10"
+                            : "hover:bg-accent dark:hover:bg-white/8",
+                        )}
+                      >
+                        <div className="h-14 w-10 overflow-hidden rounded shrink-0 bg-accent dark:bg-white/8">
+                          {anime.poster && (
+                            <Image
+                              src={anime.poster}
+                              alt={anime.name}
+                              height={56}
+                              width={40}
+                              sizes="40px"
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1 group-hover:text-foreground dark:hover:text-white transition-colors">
+                            {anime.name || anime.jname}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-white/40">
+                            {anime.type && (
+                              <span className="bg-accent dark:bg-white/10 px-1.5 py-0.5 rounded text-muted-foreground dark:text-white/60 font-mono text-[10px]">
+                                {anime.type}
+                              </span>
+                            )}
+                            {anime.moreInfo?.join(" · ")}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
 
-              <Link
-                id={optionId(viewAllIndex)}
-                href={`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`}
-                role="option"
-                aria-selected={activeIndex === viewAllIndex}
-                onMouseEnter={() => setActiveIndex(viewAllIndex)}
-                onClick={handleSelect}
-                className={cn(
-                  "flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 transition-colors text-sm font-medium",
-                  activeIndex === viewAllIndex
-                    ? "bg-muted/50 dark:bg-white/5 text-foreground/90 dark:text-white/80"
-                    : "hover:bg-muted/50 dark:hover:bg-white/5",
-                )}
-              >
-                <span>{t("search.viewAllResults", { query: searchValue.trim() })}</span>
-                <ArrowRight className="h-4 w-4" />
-              </Link>
+              {vaResults.length > 0 && (
+                <>
+                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35 border-t border-border/60 dark:border-white/[0.06]">
+                    {t("search.sectionVoiceActors")}
+                  </p>
+                  {vaResults.map((va) => {
+                    const index = runningIndex++;
+                    return (
+                      <Link
+                        key={`va-${va.id}`}
+                        id={optionId(index)}
+                        href={`${ROUTES.VOICE_ACTOR}/${va.id}`}
+                        role="option"
+                        aria-selected={activeIndex === index}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={handleSelect}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2 transition-colors group",
+                          activeIndex === index
+                            ? "bg-accent dark:bg-white/10"
+                            : "hover:bg-accent dark:hover:bg-white/8",
+                        )}
+                      >
+                        <div className="relative h-10 w-10 overflow-hidden rounded-full shrink-0 bg-accent dark:bg-white/8 ring-1 ring-white/10">
+                          {va.image ? (
+                            <Image
+                              src={va.image}
+                              alt={va.name}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-zinc-400">
+                              <Mic className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1">
+                            {va.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground dark:text-white/40 line-clamp-1">
+                            {[va.native, va.language].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {(() => {
+                const viewAllIndex = runningIndex;
+                return (
+                  <Link
+                    id={optionId(viewAllIndex)}
+                    href={`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`}
+                    role="option"
+                    aria-selected={activeIndex === viewAllIndex}
+                    onMouseEnter={() => setActiveIndex(viewAllIndex)}
+                    onClick={handleSelect}
+                    className={cn(
+                      "flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 transition-colors text-sm font-medium",
+                      activeIndex === viewAllIndex
+                        ? "bg-muted/50 dark:bg-white/5 text-foreground/90 dark:text-white/80"
+                        : "hover:bg-muted/50 dark:hover:bg-white/5",
+                    )}
+                  >
+                    <span>{t("search.viewAllResults", { query: searchValue.trim() })}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                );
+              })()}
             </div>
           )}
 
-          {!isLoading && debouncedValue && (!searchResults || searchResults.length === 0) && (
+          {!isLoading && !hasResults && debouncedValue && (
             <div className="px-4 py-6 text-center">
-              <p className="text-muted-foreground dark:text-white/35 text-sm">{t("search.noResultsFor", { query: debouncedValue })}</p>
+              <p className="text-muted-foreground dark:text-white/35 text-sm">
+                {t("search.noResultsFor", { query: debouncedValue })}
+              </p>
               <Link
                 href={`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`}
                 onClick={handleSelect}

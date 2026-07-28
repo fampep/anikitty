@@ -5,6 +5,7 @@ export const GET_ANIME_DETAILS = "get-anime-details";
 export const GET_EPISODE_DATA = "get-episode-data";
 export const GET_ALL_EPISODES = "get-all-episodes";
 export const SEARCH_ANIME = "search-anime";
+export const SEARCH_VOICE_ACTORS = "search-voice-actors";
 export const GET_EPISODE_SERVERS = "get-episode-servers";
 export const GET_ANIME_BANNER = "get-anime-banner";
 export const GET_ANIME_SCHEDULE = "get-anime-schedule";
