@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Accessibility,
   AudioLines,
@@ -38,6 +38,12 @@ import {
 import { ANIME4K_MODES, isWebGpuSupported } from "@/lib/player/anime4k";
 import { MenuItem, MenuSection } from "@/components/kittyplayer/chrome";
 import { KITTY_API_NODES, type KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import {
+  flagForKittyLocation,
+  formatKittyBandwidthMbps,
+  formatKittyPingMs,
+} from "@/lib/kitty/kitty-node-display";
+import { useKittyNodePing } from "@/hooks/use-kitty-node-ping";
 
 export type PlayerSettingsPanelId =
   | "root"
@@ -269,9 +275,40 @@ export default function PlayerSettingsMenu({
   const backLabel = t("watch.playerSettings.back");
   const goRoot = () => setPanel("root");
 
+  const dnsOpen = panel === "dns";
+  const {
+    nodes: dnsPingNodes,
+    pingByNode,
+    bandwidthByNode,
+    fastestId,
+    loading: dnsPingLoading,
+  } = useKittyNodePing({ enabled: dnsOpen, lightweight: false });
+
+  const pingById = useMemo(() => {
+    const map = new Map<KittyApiNodeId, (typeof dnsPingNodes)[number]>();
+    for (const row of dnsPingNodes) map.set(row.id, row);
+    return map;
+  }, [dnsPingNodes]);
+
   const activeDnsMeta = KITTY_API_NODES.find((n) => n.id === kittyProxyNode);
+  const activeDnsFlag = activeDnsMeta
+    ? flagForKittyLocation(activeDnsMeta.location)
+    : null;
+  const activeDnsStats = (() => {
+    if (!kittyProxyManual || !activeDnsMeta) return null;
+    const ping = formatKittyPingMs(pingByNode[activeDnsMeta.id]);
+    const speed = formatKittyBandwidthMbps(bandwidthByNode[activeDnsMeta.id]);
+    if (!ping && !speed) return null;
+    return [ping, speed].filter(Boolean).join(" · ");
+  })();
   const dnsRootValue = kittyProxyManual
-    ? (activeDnsMeta?.label ?? activeDnsMeta?.location ?? kittyProxyNode)
+    ? [
+        activeDnsFlag,
+        activeDnsMeta?.label ?? activeDnsMeta?.location ?? kittyProxyNode,
+        activeDnsStats,
+      ]
+        .filter(Boolean)
+        .join(" ")
     : t("watch.playerSettings.dnsAuto");
 
   const selectDnsAuto = () => {
@@ -281,6 +318,16 @@ export default function PlayerSettingsMenu({
   const selectDnsNode = (nodeId: KittyApiNodeId) => {
     setKittyProxyNode(nodeId);
     setKittyProxyManual(true);
+  };
+
+  const formatNodeMeta = (nodeId: KittyApiNodeId): string => {
+    const row = pingById.get(nodeId);
+    if (!row) return dnsPingLoading ? "…" : "—";
+    if (!row.ok) return t("watch.playerSettings.dnsOffline");
+    const ping = formatKittyPingMs(row.pingMs);
+    const speed = formatKittyBandwidthMbps(row.bandwidthMbps);
+    const parts = [ping, speed].filter(Boolean);
+    return parts.length ? parts.join(" · ") : "—";
   };
 
   const captionsRootValue =
@@ -594,7 +641,25 @@ export default function PlayerSettingsMenu({
               </p>
             ) : null}
             <MenuSection title={t("watch.playerSettings.dnsRouting")} dense={compact}>
-              <MenuItem dense={compact} active={!kittyProxyManual} onClick={selectDnsAuto}>
+              <MenuItem
+                dense={compact}
+                active={!kittyProxyManual}
+                onClick={selectDnsAuto}
+                meta={
+                  fastestId
+                    ? (() => {
+                        const fast = KITTY_API_NODES.find((n) => n.id === fastestId);
+                        const flag = fast
+                          ? flagForKittyLocation(fast.location)
+                          : null;
+                        const ping = formatKittyPingMs(pingByNode[fastestId]);
+                        return [flag, ping].filter(Boolean).join(" ") || undefined;
+                      })()
+                    : dnsPingLoading
+                      ? "…"
+                      : undefined
+                }
+              >
                 <span className="inline-flex items-center gap-2">
                   <Zap className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
                   {t("watch.playerSettings.dnsAuto")}
@@ -604,14 +669,28 @@ export default function PlayerSettingsMenu({
             <MenuSection title={t("watch.playerSettings.dnsLocations")} dense={compact}>
               {KITTY_API_NODES.map((node) => {
                 const active = kittyProxyManual && kittyProxyNode === node.id;
+                const flag = flagForKittyLocation(node.location);
+                const offline = pingById.get(node.id)?.ok === false;
                 return (
                   <MenuItem
                     key={node.id}
                     dense={compact}
                     active={active}
                     onClick={() => selectDnsNode(node.id)}
+                    meta={formatNodeMeta(node.id)}
+                    className={offline ? "opacity-55" : undefined}
                   >
-                    {node.location}
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <span className="shrink-0 text-[13px] leading-none" aria-hidden>
+                        {flag ?? "🌐"}
+                      </span>
+                      <span className="truncate">{node.location}</span>
+                      {fastestId === node.id ? (
+                        <span className="shrink-0 rounded bg-emerald-500/15 px-1 py-px text-[9px] font-medium uppercase tracking-wide text-emerald-300/90">
+                          {t("watch.playerSettings.dnsFastest")}
+                        </span>
+                      ) : null}
+                    </span>
                   </MenuItem>
                 );
               })}

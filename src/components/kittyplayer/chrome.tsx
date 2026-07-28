@@ -90,6 +90,7 @@ export function MenuItem({
   onClick,
   className,
   dense,
+  meta,
 }: {
   children: ReactNode;
   active?: boolean;
@@ -97,6 +98,8 @@ export function MenuItem({
   className?: string;
   /** Tighter padding for narrow / sheet menus. */
   dense?: boolean;
+  /** Trailing stats (e.g. DNS ping / speed) — shown left of the active check. */
+  meta?: ReactNode;
 }) {
   return (
     <button
@@ -119,10 +122,24 @@ export function MenuItem({
           aria-hidden
         />
       ) : null}
-      <span className="min-w-0 truncate">{children}</span>
-      {active ? (
-        <span className="shrink-0 text-[11px] text-white/70" aria-hidden>
-          ✓
+      <span className="min-w-0 flex-1 truncate">{children}</span>
+      {meta || active ? (
+        <span className="flex shrink-0 items-center gap-1.5">
+          {meta ? (
+            <span
+              className={cn(
+                "tabular-nums text-white/40",
+                dense ? "text-[9px]" : "text-[10px]",
+              )}
+            >
+              {meta}
+            </span>
+          ) : null}
+          {active ? (
+            <span className="text-[11px] text-white/70" aria-hidden>
+              ✓
+            </span>
+          ) : null}
         </span>
       ) : null}
     </button>

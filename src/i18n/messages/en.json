@@ -2101,6 +2101,8 @@
       "dnsRouting": "Routing",
       "dnsLocations": "Locations",
       "dnsHint": "Pin streaming to a region, or leave Auto to race healthy locations. Origin IPs stay hidden.",
+      "dnsFastest": "Fastest",
+      "dnsOffline": "Offline",
       "back": "Back",
       "volumeBoost": "Volume Boost",
       "volumeBoostHint": "Amplify audio beyond 100% when a stream is quiet.",

@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { DiscordIcon } from "@/components/auth/discord-connect";
 import { ANNOUNCEMENT_STYLES } from "@/lib/announcements/announcement-styles";
+import { flagForKittyLocation } from "@/lib/kitty/kitty-node-display";
 
 type OverallStatus = "operational" | "degraded" | "outage" | "checking";
 
@@ -73,26 +74,8 @@ const STATUS_META: Record<
   },
 };
 
-/** Flags keyed by location label so node geo changes don’t leave stale country icons. */
-const LOCATION_FLAGS: Record<string, string> = {
-  Germany: "🇩🇪",
-  Sweden: "🇸🇪",
-  Switzerland: "🇨🇭",
-  "Zug, Switzerland": "🇨🇭",
-  Netherlands: "🇳🇱",
-  Bulgaria: "🇧🇬",
-  Singapore: "🇸🇬",
-  Canada: "🇨🇦",
-  "Montreal, Canada": "🇨🇦",
-};
-
 function flagForLocation(location: string): string | null {
-  const exact = LOCATION_FLAGS[location];
-  if (exact) return exact;
-  const match = Object.entries(LOCATION_FLAGS).find(
-    ([key]) => key !== location && location.includes(key),
-  );
-  return match?.[1] ?? null;
+  return flagForKittyLocation(location);
 }
 
 function latencyClass(ms: number | null | undefined): string {

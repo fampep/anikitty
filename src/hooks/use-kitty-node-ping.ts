@@ -49,7 +49,12 @@ type UseKittyNodePingOptions = {
 
 async function fetchNodePings(lightweight = false): Promise<PingCache> {
   if (pingCache && Date.now() - pingCache.at < PING_CACHE_TTL_MS) {
-    return pingCache;
+    // Lightweight cache (ping-only) is fine for failover; full client measure
+    // is required when the caller wants bandwidth (DNS menu / status detail).
+    const hasBandwidth = pingCache.nodes.some((n) => n.bandwidthMbps != null);
+    if (lightweight || hasBandwidth) {
+      return pingCache;
+    }
   }
 
   if (!pingInflight) {
