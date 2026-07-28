@@ -539,6 +539,18 @@ export async function migrateDb() {
         CONSTRAINT anime_reviews_user_anime UNIQUE (user_id, anime_id)
       )`,
       `CREATE INDEX IF NOT EXISTS anime_reviews_anime_id_idx ON anime_reviews (anime_id)`,
+      // Site-only episode ratings (0.5–10). Not AniList.
+      `CREATE TABLE IF NOT EXISTS episode_ratings (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        anime_id VARCHAR(255) NOT NULL,
+        episode_number INTEGER NOT NULL,
+        score REAL NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP,
+        CONSTRAINT episode_ratings_user_anime_ep UNIQUE (user_id, anime_id, episode_number)
+      )`,
+      `CREATE INDEX IF NOT EXISTS episode_ratings_anime_ep_idx ON episode_ratings (anime_id, episode_number)`,
       `CREATE TABLE IF NOT EXISTS review_likes (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         review_id UUID NOT NULL REFERENCES anime_reviews(id) ON DELETE CASCADE,

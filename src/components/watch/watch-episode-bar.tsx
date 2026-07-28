@@ -14,6 +14,7 @@ import type { Episode, IEpisodes } from "@/types/episodes";
 import type { WatchHistory } from "@/hooks/use-get-bookmark";
 import { EpisodeThumbPreview } from "@/components/watch/episode-nav-preview";
 import WatchMarkEpisodeButton from "@/components/watch/watch-mark-episode-button";
+import WatchEpisodeRateButton from "@/components/watch/watch-episode-rate-button";
 import { useState } from "react";
 
 type Props = {
@@ -161,6 +162,10 @@ export default function WatchEpisodeBar({
               )}
             </div>
 
+            <p className="mt-0.5 truncate text-[11px] sm:text-[12px] font-medium leading-snug text-foreground/80 dark:text-white/70">
+              {title}
+            </p>
+
             {onJumpToEpisode && total > 1 && (
               <form
                 className={cn(
@@ -194,11 +199,15 @@ export default function WatchEpisodeBar({
             )}
 
             {animeId && (
-              <div className="mt-1.5 hidden sm:block">
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                 <WatchMarkEpisodeButton
                   animeId={animeId}
                   episodeId={currentEpisode.episodeId}
                   duration={episodeDuration}
+                />
+                <WatchEpisodeRateButton
+                  animeId={animeId}
+                  episodeNumber={currentEpisode.number}
                 />
               </div>
             )}

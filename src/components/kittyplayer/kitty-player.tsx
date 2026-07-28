@@ -48,6 +48,7 @@ import {
 } from "@/lib/kitty/stream-quality";
 import { isHlsStreamUrl, isMp4StreamUrl } from "@/lib/kitty/stream-format";
 import { cn } from "@/lib/core/utils";
+import { useT } from "@/providers/i18n-provider";
 import {
   createHtmlVideoPlayerController,
   type PlayerController,
@@ -253,6 +254,7 @@ export function KittyPlayer({
   playbackIssueHint,
   watchingHardSub = false,
 }: KittyPlayerProps) {
+  const t = useT();
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -711,7 +713,10 @@ export function KittyPlayer({
       mediaRetryRef.current = false;
       setPlaybackIssue(null);
       setAttachNonce((n) => n + 1);
-      showGestureHint({ label: "Back online", detail: "Retrying" });
+      showGestureHint({
+        label: t("watch.offlineBackOnline"),
+        detail: t("watch.offlineRetrying"),
+      });
     };
     const onOffline = () => setIsOffline(true);
     syncOffline();
@@ -721,7 +726,7 @@ export function KittyPlayer({
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, [playbackIssue, showGestureHint]);
+  }, [playbackIssue, showGestureHint, t]);
 
   bumpControlsRef.current = bumpControls;
   showGestureHintRef.current = showGestureHint;
@@ -1802,7 +1807,7 @@ export function KittyPlayer({
       setPlaybackIssue(
         playbackIssueHint ??
           (typeof navigator !== "undefined" && navigator.onLine === false
-            ? "You're offline. Reconnect, then retry."
+            ? t("watch.offlineErrorBody")
             : "Can't play this stream. Retry, or pick another source."),
       );
       setSourceLoading(false);
@@ -1915,7 +1920,7 @@ export function KittyPlayer({
       if (seekFlashTimerRef.current) clearTimeout(seekFlashTimerRef.current);
       if (gestureHintTimerRef.current) clearTimeout(gestureHintTimerRef.current);
     };
-  }, [bumpControls, clearIdleTimer, activeSrc, enterCssFullscreen, playbackIssueHint, reportW2g, getFullscreenTarget]);
+  }, [bumpControls, clearIdleTimer, activeSrc, enterCssFullscreen, playbackIssueHint, reportW2g, getFullscreenTarget, t]);
 
   // Attach progressive / HLS source (prefer hls.js when MSE works).
   // AirPlay uses a reminted native URL — MSE object URLs black-screen on Apple TV.
@@ -1959,7 +1964,7 @@ export function KittyPlayer({
       setPlaybackIssue(
         playbackIssueHint ??
           (offline
-            ? "You're offline. Reconnect, then retry."
+            ? t("watch.offlineErrorBody")
             : type === "network" || status === 0
               ? "Network error loading this stream. Retry, or try another source."
               : "Can't play this stream. Retry, or pick another source."),
@@ -2280,7 +2285,7 @@ export function KittyPlayer({
       }
     };
     // qualities intentionally omitted — unstable [] / ladder updates must not tear down HLS mid-play.
-  }, [activeSrc, playbackIssueHint, attachNonce, airPlayNativeUrl]);
+  }, [activeSrc, playbackIssueHint, attachNonce, airPlayNativeUrl, t]);
 
   const togglePlay = useCallback(() => {
     if (castingRef.current) {
@@ -3671,10 +3676,10 @@ export function KittyPlayer({
           className="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 rounded-lg border border-amber-400/20 bg-zinc-950/92 px-3.5 py-2.5 text-left backdrop-blur-xl sm:inset-x-auto sm:left-3 sm:max-w-xs"
         >
           <p className="text-[12px] font-semibold tracking-wide text-white">
-            You&apos;re offline
+            {t("watch.offlineErrorTitle")}
           </p>
           <p className="mt-0.5 text-[11px] leading-snug text-white/60">
-            Playback may stall until the connection returns.
+            {t("network.offlineBanner")}
           </p>
         </div>
       ) : null}

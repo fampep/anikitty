@@ -7,7 +7,7 @@ import { ROUTES } from "@/constants/routes";
 import { Episode } from "@/types/episodes";
 import { useAnimeStore } from "@/store/anime-store";
 import { useHasAnimeWatched } from "@/hooks/use-is-anime-watched";
-import { Check, Play } from "lucide-react";
+import { Check, Play, Star } from "lucide-react";
 import Link from "next/link";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { isEpisodePlayable } from "@/lib/anime/episode-availability";
@@ -326,8 +326,11 @@ const EpisodeCard = memo(function EpisodeCard({
               </span>
             )}
             {!listInProgress && props.episode.rating != null && props.episode.rating > 0 && (
-              <span className="text-[9px] font-mono text-emerald-300/70">
-                {Math.round(props.episode.rating * 10)}%
+              <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-semibold text-amber-300/80">
+                <Star className="h-2.5 w-2.5" fill="currentColor" />
+                {Number.isInteger(props.episode.rating)
+                  ? props.episode.rating
+                  : props.episode.rating.toFixed(1)}
               </span>
             )}
             {props.episode.runtime != null && props.episode.runtime > 0 && (

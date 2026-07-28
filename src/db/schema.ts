@@ -839,6 +839,34 @@ export const animeReviews = pgTable(
   }),
 );
 
+/**
+ * Site-only per-episode ratings (0.5–10). Not synced to AniList —
+ * title-level AniList scores stay on the anime page.
+ */
+export const episodeRatings = pgTable(
+  "episode_ratings",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    animeId: varchar("anime_id", { length: 255 }).notNull(),
+    episodeNumber: integer("episode_number").notNull(),
+    /** Half-point score 0.5–10 (e.g. 6.5). */
+    score: real("score").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
+  },
+  (t) => ({
+    userAnimeEp: unique("episode_ratings_user_anime_ep").on(
+      t.userId,
+      t.animeId,
+      t.episodeNumber,
+    ),
+    animeEpIdx: index("episode_ratings_anime_ep_idx").on(t.animeId, t.episodeNumber),
+  }),
+);
+
 // "Helpful" votes on a review.
 export const reviewLikes = pgTable(
   "review_likes",

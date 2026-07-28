@@ -23,6 +23,8 @@ import {
   resolveTotalEpisodeCount,
 } from "@/lib/anime/episode-availability";
 import { getAnikotoSeriesSchedule } from "@/lib/providers/anikoto-availability";
+import { getDb } from "@/db";
+import { getEpisodeRatingsForAnime } from "@/lib/reviews/episode-ratings";
 
 /** Episode list length + planned total come from AniList; Anikoto is titles-only. */
 
@@ -167,6 +169,19 @@ export async function GET(
         aired: resolveEpisodeAiredStatus(num, airDate, airedUpTo),
       };
     }).filter((ep) => ep.aired);
+
+    // Overlay site-only community episode averages (0.5–10) when present.
+    try {
+      const siteRatings = await getEpisodeRatingsForAnime(getDb(), String(id));
+      for (const ep of episodes) {
+        const row = siteRatings[ep.number];
+        if (row?.average != null && row.count > 0) {
+          ep.rating = row.average;
+        }
+      }
+    } catch {
+      /* table may not exist yet on a fresh deploy — keep metadata rating */
+    }
 
     return Response.json(
       {
