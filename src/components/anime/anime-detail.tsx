@@ -52,6 +52,7 @@ import AnimeQuickNav from "@/components/anime/anime-quick-nav";
 import AnimeShareButton from "@/components/anime/anime-share-button";
 import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
+import AnilistRateButton from "@/components/anime/anilist-rate-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
@@ -593,6 +594,16 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               {auth && (bookmarks?.[0]?.status || selected) === "completed" && (
                 <RewatchStepper animeId={slug} initial={bookmarks?.[0]?.rewatchCount ?? 0} />
               )}
+              {auth ? (
+                <AnilistRateButton
+                  anilistId={
+                    typeof anilistId === "number"
+                      ? anilistId
+                      : parseInt(slug, 10) || null
+                  }
+                  localListStatus={bookmarks?.[0]?.status || selected || null}
+                />
+              ) : null}
             </div>
           </div>
         </div>
