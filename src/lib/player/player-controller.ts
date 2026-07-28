@@ -1,6 +1,10 @@
 import {
   exitElementFullscreen,
+  elementSupportsFullscreenRequest,
+  exitVideoWebkitFullscreen,
   isElementFullscreen,
+  isVideoWebkitFullscreen,
+  prefersCssImmersiveFullscreen,
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
 
@@ -25,6 +29,7 @@ export type PlayerController = {
 export function createHtmlVideoPlayerController(
   video: HTMLVideoElement,
   root?: HTMLElement | null,
+  opts?: { toggleFullscreen?: () => void },
 ): PlayerController {
   return {
     play: () => {
@@ -62,13 +67,29 @@ export function createHtmlVideoPlayerController(
       video.muted = value;
     },
     toggleFullscreen: () => {
-      const target = root ?? video;
-      if (isElementFullscreen(target)) {
-        void exitElementFullscreen().catch(() => {});
+      if (opts?.toggleFullscreen) {
+        opts.toggleFullscreen();
         return;
       }
-      // Never fall back to native <video> fullscreen — it hides custom chrome.
-      void requestElementFullscreen(target).catch(() => {});
+      const target = root ?? video;
+      if (isElementFullscreen(target) || isVideoWebkitFullscreen(video)) {
+        if (isVideoWebkitFullscreen(video)) {
+          try {
+            exitVideoWebkitFullscreen(video);
+          } catch {
+            /* ignore */
+          }
+        } else {
+          void exitElementFullscreen().catch(() => {});
+        }
+        return;
+      }
+      // iOS CSS immersive is owned by the React player hook — do not enter
+      // native webkit video FS from this adapter (drops kitty chrome).
+      if (prefersCssImmersiveFullscreen()) return;
+      if (elementSupportsFullscreenRequest(target)) {
+        void requestElementFullscreen(target).catch(() => {});
+      }
     },
     get video() {
       return video;

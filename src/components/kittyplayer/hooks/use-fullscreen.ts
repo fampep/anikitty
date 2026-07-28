@@ -4,8 +4,11 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from "react"
 import {
   exitElementFullscreen,
   elementSupportsFullscreenRequest,
+  exitVideoWebkitFullscreen,
   getFullscreenElement,
   isElementFullscreen,
+  isVideoWebkitFullscreen,
+  prefersCssImmersiveFullscreen,
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
 import {
@@ -65,7 +68,7 @@ export function usePlayerFullscreen({
       isElementFullscreen(target) ||
       isElementFullscreen(rootRef.current) ||
       Boolean(getFullscreenElement());
-    const inWebkit = Boolean(video?.webkitDisplayingFullscreen);
+    const inWebkit = isVideoWebkitFullscreen(video);
 
     try {
       if (inCss || inDoc || inWebkit) {
@@ -73,8 +76,12 @@ export function usePlayerFullscreen({
           setCssFullscreen(false);
           setFullscreen(false);
         }
-        if (inWebkit && video?.webkitExitFullscreen) {
-          video.webkitExitFullscreen();
+        if (inWebkit && video) {
+          try {
+            exitVideoWebkitFullscreen(video);
+          } catch {
+            /* ignore */
+          }
         } else if (inDoc) {
           await exitElementFullscreen();
         }
@@ -82,28 +89,44 @@ export function usePlayerFullscreen({
         return;
       }
 
-      if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
+      // iOS (Safari, CriOS, FxiOS, EdgiOS, WebViews): CSS immersive keeps
+      // kitty custom chrome. Do not call video.webkitEnterFullscreen() —
+      // that swaps to Apple's native controls.
+      if (prefersCssImmersiveFullscreen()) {
         enterCssFullscreen();
         return;
       }
 
-      try {
-        await requestElementFullscreen(target);
-        const videoEl = videoRef.current;
-        if (videoEl && getFullscreenElement() === videoEl) {
-          await exitElementFullscreen();
+      const canElement = elementSupportsFullscreenRequest(target);
+
+      // Desktop Chrome / Firefox / Safari / Android: host Element Fullscreen
+      // preserves custom chrome on the player container (not bare <video>).
+      if (canElement) {
+        try {
           await requestElementFullscreen(target);
+          const videoEl = videoRef.current;
+          // Some UAs promote bare <video> — reclaim the player host once.
+          if (videoEl && getFullscreenElement() === videoEl) {
+            await exitElementFullscreen();
+            await requestElementFullscreen(target);
+          }
+          await tryLockLandscapeOrientation();
+          if (videoEl && getFullscreenElement() === videoEl) {
+            await exitElementFullscreen();
+            await requestElementFullscreen(target);
+          }
+          setFullscreen(true);
+          setControlsVisible(true);
+          bumpControls();
+          return;
+        } catch {
+          enterCssFullscreen();
+          return;
         }
-        await tryLockLandscapeOrientation();
-        if (videoEl && getFullscreenElement() === videoEl) {
-          await exitElementFullscreen();
-          await requestElementFullscreen(target);
-        }
-        setFullscreen(true);
-        setControlsVisible(true);
-      } catch {
-        enterCssFullscreen();
       }
+
+      // Last resort: fixed CSS immersive overlay.
+      enterCssFullscreen();
     } catch {
       /* browser may deny fullscreen without gesture */
     }

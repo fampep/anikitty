@@ -94,8 +94,9 @@ export function isFirefoxMobile(): boolean {
 }
 
 /**
- * Prefer fixed CSS fullscreen only on iOS — Safari has no reliable host
- * Fullscreen API (needed to hide the browser chrome). Android uses document FS.
+ * iOS/iPadOS (Safari, CriOS, FxiOS, EdgiOS, WebViews): prefer CSS immersive
+ * fullscreen so kitty custom chrome stays visible. Also used to restore CSS FS
+ * across episode transitions.
  */
 export function prefersCssFullscreen(): boolean {
   return isAppleTouchDevice();

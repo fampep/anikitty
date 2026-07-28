@@ -21,9 +21,12 @@ import { trackEvent } from "@/lib/analytics";
 import {
   exitElementFullscreen,
   elementSupportsFullscreenRequest,
+  exitVideoWebkitFullscreen,
   getFullscreenElement,
   isElementFullscreen,
+  isVideoWebkitFullscreen,
   onFullscreenChange,
+  prefersCssImmersiveFullscreen,
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
 import {
@@ -185,7 +188,6 @@ import {
   loadKittyPlayerPrefs,
   nextKittyPlayerSpeed,
   prefersCoarsePointer,
-  prefersCssFullscreen,
   pulsePlayerHaptic,
   resolveStreamAttachMode,
   saveKittyPlayerPrefs,
@@ -609,6 +611,8 @@ export function KittyPlayer({
     bumpControls,
     setControlsVisible,
   });
+  const toggleFullscreenRef = useRef(toggleFullscreen);
+  toggleFullscreenRef.current = toggleFullscreen;
 
   useEffect(() => {
     cssFullscreenRef.current = cssFullscreen;
@@ -1511,7 +1515,11 @@ export function KittyPlayer({
     refreshPipSupport();
 
     onPlayerReadyRef.current?.(
-      createHtmlVideoPlayerController(video, rootRef.current),
+      createHtmlVideoPlayerController(video, rootRef.current, {
+        toggleFullscreen: () => {
+          void toggleFullscreenRef.current();
+        },
+      }),
     );
 
     const applyStartTime = () => {
@@ -1713,18 +1721,23 @@ export function KittyPlayer({
         autoFsRef.current = false;
         const target = getFullscreenTarget();
         if (!target) return;
-        // iOS: CSS FS. Android: document FS (hides browser chrome).
-        if (prefersCssFullscreen() || !elementSupportsFullscreenRequest(target)) {
+        // iOS: CSS immersive keeps kitty chrome (no native webkit video FS).
+        if (prefersCssImmersiveFullscreen()) {
           enterCssFullscreen();
           return;
         }
-        void requestElementFullscreen(target)
-          .then(async () => {
-            await tryLockLandscapeOrientation();
-          })
-          .catch(() => {
-            enterCssFullscreen();
-          });
+        // Desktop / Android: prefer Element FS on the player host when available.
+        if (elementSupportsFullscreenRequest(target)) {
+          void requestElementFullscreen(target)
+            .then(async () => {
+              await tryLockLandscapeOrientation();
+            })
+            .catch(() => {
+              enterCssFullscreen();
+            });
+          return;
+        }
+        enterCssFullscreen();
       }
     };
     const onSeeking = () => {
@@ -1743,24 +1756,24 @@ export function KittyPlayer({
       const target = getFullscreenTarget();
       const video = videoRef.current as WebkitVideo | null;
       const fsEl = getFullscreenElement();
-      // Browser promoted bare <video> (drops our chrome). Reclaim host FS on
-      // Android so the address bar stays hidden; iOS falls back to CSS FS.
-      if (video && (fsEl === video || Boolean(video.webkitDisplayingFullscreen))) {
+      // Document Fullscreen promoted bare <video> (drops our chrome). Reclaim
+      // the player host when the Element API works. On iOS, skip host Element
+      // FS and use CSS immersive so kitty controls stay visible.
+      if (video && fsEl === video) {
         if (reclaimHostFsRef.current) return;
         reclaimHostFsRef.current = true;
         void (async () => {
           try {
-            if (fsEl === video) await exitElementFullscreen();
-            else if (video.webkitExitFullscreen) video.webkitExitFullscreen();
+            await exitElementFullscreen();
           } catch {
             /* ignore */
           }
+          if (prefersCssImmersiveFullscreen()) {
+            enterCssFullscreen();
+            return;
+          }
           const host = getFullscreenTarget();
-          if (
-            host &&
-            !prefersCssFullscreen() &&
-            elementSupportsFullscreenRequest(host)
-          ) {
+          if (host && elementSupportsFullscreenRequest(host)) {
             try {
               await requestElementFullscreen(host);
               await tryLockLandscapeOrientation();
@@ -1781,7 +1794,7 @@ export function KittyPlayer({
       }
       const hostFs = isElementFullscreen(target) || isElementFullscreen(rootRef.current);
       setFullscreen(
-        hostFs || Boolean(video?.webkitDisplayingFullscreen) || cssFullscreenRef.current,
+        hostFs || isVideoWebkitFullscreen(video) || cssFullscreenRef.current,
       );
     };
     const onVideoEnded = () => {
@@ -1826,23 +1839,16 @@ export function KittyPlayer({
       }
     };
     const onWebkitBeginFs = () => {
-      // iOS native video FS hides our chrome — swap to CSS FS immediately.
-      if (prefersCssFullscreen()) {
-        try {
-          video.webkitExitFullscreen?.();
-        } catch {
-          /* ignore */
-        }
-        enterCssFullscreen();
-        return;
-      }
+      // System/native video fullscreen (not our default enter path). Sync UI
+      // only — do not tear it down or swap to CSS while native FS is active.
       setFullscreen(true);
     };
     const onWebkitEndFs = () => {
       setFullscreen(false);
-      // Native iOS video FS hides our chrome — restore it on exit.
-      setControlsVisible(true);
-      bumpControlsRef.current();
+      if (!cssFullscreenRef.current && !getFullscreenElement()) {
+        setControlsVisible(true);
+        bumpControlsRef.current();
+      }
     };
 
     video.addEventListener("play", onPlay);
@@ -2559,8 +2565,8 @@ export function KittyPlayer({
       }
       if (getFullscreenElement()) {
         await exitElementFullscreen();
-      } else if (video?.webkitDisplayingFullscreen && video.webkitExitFullscreen) {
-        video.webkitExitFullscreen();
+      } else if (isVideoWebkitFullscreen(video) && video) {
+        exitVideoWebkitFullscreen(video);
       }
     } catch {
       /* ignore */
