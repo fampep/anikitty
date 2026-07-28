@@ -37,8 +37,12 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("AniKuro");
         continue;
       }
-      if (item === "AniZone") {
-        push("AniNeko");
+      if (item === "AniZone" || item === "Juliet") {
+        push("AniWatch");
+        continue;
+      }
+      if (item === "HQ" || item === "AniHQ") {
+        push("AniWatch");
         continue;
       }
       if (item === "Zenkai") {
@@ -49,7 +53,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Luna" ||
         item === "FlixCloud" ||
         item === "Flix" ||
-        item === "AniWatch" ||
         item === "AniWaves" ||
         item === "MKissa" ||
         item === "Animex" ||

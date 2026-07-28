@@ -438,7 +438,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 82,
+      version: 84,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1078,6 +1078,27 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.kittyProxyNode = coerceKittyApiNodeId(
             typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
           );
+        }
+        if (version < 83) {
+          // Soft-sub default source: BD (AniBD) right after HQ; hard default stays HQ.
+          const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
+          const without = order.filter((id) => id !== "AniBD");
+          const hqAt = without.indexOf("AniHQ");
+          const insertAt = hqAt >= 0 ? hqAt + 1 : 1;
+          next.providerOrder = sanitizeProviderOrder([
+            ...without.slice(0, insertAt),
+            "AniBD",
+            ...without.slice(insertAt),
+          ]);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniHQ",
+            next.providerOrder,
+          );
+        }
+        if (version < 84) {
+          // Drop HQ; Juliet (AniWatch / AniZone) is the site default. Soft-sub BD stays second.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniWatch", next.providerOrder);
         }
         return next as ISettingsStore;
       },

@@ -61,7 +61,6 @@ export default function FaqContent() {
         items: [
           { q: t("faq.watching.streamingQ"), a: t("faq.watching.streamingA") },
           { q: t("faq.watching.providersQ"), a: t("faq.watching.providersA") },
-          { q: t("faq.watching.hqCacheQ"), a: t("faq.watching.hqCacheA") },
           { q: t("faq.watching.subDubQ"), a: t("faq.watching.subDubA") },
           { q: t("faq.watching.playerSettingsQ"), a: t("faq.watching.playerSettingsA") },
           { q: t("faq.watching.castQ"), a: t("faq.watching.castA") },

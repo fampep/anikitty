@@ -25,6 +25,7 @@ import {
 } from "@/query/stream/get-kitty-stream";
 import {
   DEFAULT_KITTY_PROVIDER,
+  DEFAULT_SOFT_SUB_PROVIDER,
   getKittyProviderLabel,
   normalizeKittyProvider,
   normalizeProviderAudioMode,
@@ -244,7 +245,7 @@ const VideoPlayerSection = () => {
     applyStreamAudio("dub");
   }, [dubSearchParam, applyStreamAudio]);
 
-  // Default / restored hard-only providers (GG, HQ, …) highlight under Hard Subs.
+  // Default / restored hard-only providers (Heaven, …) highlight under Hard Subs.
   useEffect(() => {
     if (streamAudio === "dub" || audioMode === "dub" || audioMode === "hardsub") return;
     if (!providerIsHardSubOnly(provider)) return;
@@ -277,7 +278,7 @@ const VideoPlayerSection = () => {
       if (normalized === "hardsub") {
         return providerHasHardSub(p) ? "hardsub" : "sub";
       }
-      // Soft-sub row → hard-only providers (GG, HQ, …) still land on Hard Subs.
+      // Soft-sub row → hard-only providers (Heaven, …) still land on Hard Subs.
       if (providerIsHardSubOnly(p)) return "hardsub";
       return "sub";
     },
@@ -1317,8 +1318,11 @@ const VideoPlayerSection = () => {
         setExcludeKittyNodes([]);
         fallbackBusyRef.current = false;
       }
-      setProvider(p);
-      const resolvedMode = resolveProviderAudioMode(p, mode);
+      // Soft Subs from a hard-only source → land on the soft-sub default (BD).
+      const target =
+        mode === "sub" && providerIsHardSubOnly(p) ? DEFAULT_SOFT_SUB_PROVIDER : p;
+      setProvider(target);
+      const resolvedMode = resolveProviderAudioMode(target, mode);
       setAudioMode(resolvedMode);
       localStorage.setItem("kittyAudioMode", resolvedMode);
       if (mode === "dub") {
