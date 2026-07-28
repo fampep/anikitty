@@ -27,6 +27,8 @@ const REMOVED_KITTY_HOST_MARKERS = [
   "45.150.111.153",
   "92-119-165-226", // retired Switzerland / secondary
   "92.119.165.226",
+  "132-243-174-157", // retired Switzerland (replaced by 143.246.195.251)
+  "132.243.174.157",
 ] as const;
 
 /**
@@ -43,7 +45,7 @@ export const KITTY_API_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
   "fourth-choice": "23.111.15.143",
   "fifth-choice": "94.75.223.124",
   "sixth-choice": "184.107.88.54",
-  "seventh-choice": "132.243.174.157",
+  "seventh-choice": "143.246.195.251",
 };
 
 /** True when a URL/host belongs to a removed KittyAPI node. */
@@ -223,7 +225,7 @@ export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined):
   if (match) return match.id;
 
   const ip = extractKittyOriginIpv4(trimmed);
-  if (!ip || ip === "92.119.165.226") return null;
+  if (!ip || ip === "92.119.165.226" || ip === "132.243.174.157") return null;
   const byIp = (Object.entries(KITTY_API_NODE_ORIGIN_IPS) as [KittyApiNodeId, string][]).find(
     ([, value]) => value === ip,
   );
