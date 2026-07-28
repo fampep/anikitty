@@ -2,10 +2,11 @@ import {
   DEFAULT_KITTY_API_NODE_ID,
   getKittyApiNodeUrl,
   isRemovedKittyApiHost,
-  KITTY_API_NODE_ORIGIN_IPS,
+  KITTY_API_NODE_DNS_SLUGS,
   KITTY_API_NODES,
   PUBLIC_KITTY_API_HOST,
   PUBLIC_KITTY_API_ORIGIN,
+  PUBLIC_KITTY_DNS_ZONE,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";
 
@@ -20,6 +21,7 @@ export {
   KITTY_API_NODES,
   PUBLIC_KITTY_API_HOST,
   PUBLIC_KITTY_API_ORIGIN,
+  PUBLIC_KITTY_DNS_ZONE,
   parseKittyNodeParam,
   resolveKittyNodeIdFromOrigin,
   isKittyNodeRaceParam,
@@ -153,7 +155,7 @@ function normalizeBase(base: string): string {
   return base.replace(/\/$/, "");
 }
 
-/** KittyAPI origin for a node (static IP). Defaults to the primary node. */
+/** KittyAPI origin for a node (public location DNS). Defaults to Sweden. */
 export function getKittyApiPublicBase(nodeId?: KittyApiNodeId): string {
   if (nodeId) return getKittyApiNodeUrl(nodeId);
   return getKittyApiNodeUrl(DEFAULT_KITTY_API_NODE_ID);
@@ -168,28 +170,40 @@ export function getKittyApiBase(nodeId?: KittyApiNodeId): string {
   return getKittyApiPublicBase(nodeId);
 }
 
-/** True when the host belongs to a configured KittyAPI cluster node. */
+/** True when the host belongs to a configured KittyAPI cluster node (public DNS only). */
 export function isKittyApiHost(hostname: string): boolean {
   const lower = hostname.toLowerCase();
   if (lower === PUBLIC_KITTY_API_HOST) return true;
   if (/^vps-[a-z0-9-]+\.anikitty\.online$/i.test(lower)) return true;
   if (/\.vps\.anikitty\.online$/i.test(lower)) return true;
-  // Legacy sslip hostnames — rewrite onto the active node's static IP.
-  if (/^kittyapi\.[\d-]+\.sslip\.io$/i.test(lower)) return true;
+  // Location DNS: sweden.anikitty.online, etc. — not the marketing site.
   if (KITTY_API_NODES.some((node) => node.host.toLowerCase() === lower)) return true;
-  return Object.values(KITTY_API_NODE_ORIGIN_IPS).some((ip) => ip === lower);
+  for (const slug of Object.values(KITTY_API_NODE_DNS_SLUGS)) {
+    if (lower === `${slug}.${PUBLIC_KITTY_DNS_ZONE}`) return true;
+  }
+  // Legacy sslip hostnames — rewrite onto the active node's public DNS.
+  if (/^kittyapi\.[\d-]+\.sslip\.io$/i.test(lower)) return true;
+  return false;
+}
+
+function isBareIpv4Hostname(hostname: string): boolean {
+  return /^\d{1,3}(?:\.\d{1,3}){3}$/.test(hostname);
 }
 
 /**
- * Pin KittyAPI absolute URLs to the selected node origin (and https when the
- * base is https). Relative paths are handled by {@link resolveKittyStreamUrl}.
+ * Pin KittyAPI absolute URLs to the selected node's public location DNS
+ * (never leave bare origin IPs in browser-facing URLs).
  */
 export function normalizeKittyApiUrl(url: string, nodeId?: KittyApiNodeId): string {
   const kittyBase = getKittyApiBase(nodeId);
 
   try {
     const parsed = new URL(url);
-    if (!isKittyApiHost(parsed.hostname)) return url;
+    const host = parsed.hostname.toLowerCase();
+    // With a known node, rewrite bare IPs / legacy hosts onto public DNS.
+    const rewrite =
+      isKittyApiHost(host) || (Boolean(nodeId) && isBareIpv4Hostname(host));
+    if (!rewrite) return url;
 
     const baseUrl = new URL(kittyBase);
     parsed.protocol = baseUrl.protocol;

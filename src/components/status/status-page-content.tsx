@@ -12,6 +12,7 @@ import { ROUTES } from "@/constants/routes";
 import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
+import { toast } from "sonner";
 import {
   Activity,
   CheckCircle2,
@@ -113,6 +114,9 @@ function latencyBarWidth(ms: number | null, maxMs: number): number {
 export default function StatusPageContent() {
   const t = useT();
   const activeNode = useSettingsStore((s) => s.kittyProxyNode);
+  const kittyProxyManual = useSettingsStore((s) => s.kittyProxyManual);
+  const setKittyProxyNode = useSettingsStore((s) => s.setKittyProxyNode);
+  const setKittyProxyManual = useSettingsStore((s) => s.setKittyProxyManual);
   const statusPollMs = usePollingIntervalMs("status");
   const { nodes, pingByNode, bandwidthByNode, fastestId, recommended, ready, loading, refresh } =
     useKittyNodePing({ lightweight: true });
@@ -146,6 +150,16 @@ export default function StatusPageContent() {
     refresh();
   }, [refresh]);
 
+  const selectNode = useCallback(
+    (nodeId: KittyApiNodeId) => {
+      const meta = KITTY_API_NODES.find((n) => n.id === nodeId);
+      setKittyProxyNode(nodeId);
+      setKittyProxyManual(true);
+      toast.success(t("status.nodeSelected", { location: meta?.location ?? nodeId }));
+    },
+    [setKittyProxyManual, setKittyProxyNode, t],
+  );
+
   useIntervalWhenVisible(handleRefresh, statusPollMs, statusPollMs > 0);
 
   const overall = useMemo(
@@ -159,6 +173,17 @@ export default function StatusPageContent() {
   const fastestNode = KITTY_API_NODES.find((n) => n.id === fastestNodeId);
   const fastestPing = fastestNode ? pingByNode[fastestNode.id] : null;
   const activeMeta = KITTY_API_NODES.find((n) => n.id === activeNode);
+
+  const enableAuto = useCallback(() => {
+    setKittyProxyManual(false);
+    if (fastestNodeId) setKittyProxyNode(fastestNodeId);
+    toast.success(t("status.autoEnabled"));
+  }, [fastestNodeId, setKittyProxyManual, setKittyProxyNode, t]);
+
+  const useFastest = useCallback(() => {
+    if (!fastestNodeId) return;
+    selectNode(fastestNodeId);
+  }, [fastestNodeId, selectNode]);
 
   const sortedNodes = useMemo(() => {
     return [...KITTY_API_NODES].sort((a, b) => {
@@ -422,14 +447,39 @@ export default function StatusPageContent() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground dark:text-white/90">
-                {t("status.modeAuto")}
+                {kittyProxyManual ? t("status.modeManual") : t("status.modeAuto")}
               </p>
               <p className="text-[12px] text-muted-foreground dark:text-white/45 mt-0.5 leading-relaxed">
-                {t("status.modeAutoDesc", {
-                  location: activeMeta?.location ?? activeNode,
-                })}
+                {kittyProxyManual
+                  ? t("status.modeManualDesc", {
+                      location: activeMeta?.location ?? activeNode,
+                    })
+                  : t("status.modeAutoDesc", {
+                      location: activeMeta?.location ?? activeNode,
+                    })}
               </p>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {kittyProxyManual ? (
+              <button
+                type="button"
+                onClick={enableAuto}
+                className="site-ghost-btn site-focus text-[12px]"
+              >
+                {t("status.enableAuto")}
+              </button>
+            ) : null}
+            {fastestNodeId && (!kittyProxyManual || activeNode !== fastestNodeId) ? (
+              <button
+                type="button"
+                onClick={useFastest}
+                disabled={!nodes.find((n) => n.id === fastestNodeId)?.ok}
+                className="site-ghost-btn site-focus text-[12px] disabled:opacity-40"
+              >
+                {t("status.switchFastest")}
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -508,9 +558,6 @@ export default function StatusPageContent() {
                             </span>
                           )}
                         </div>
-                        <p className="text-[11px] font-mono text-muted-foreground/70 dark:text-white/30 mt-1 truncate">
-                          {node.host}
-                        </p>
                         <p className="text-[11px] text-muted-foreground/80 dark:text-white/35 mt-1.5">
                           {loading && ping == null
                             ? t("status.measuring")
@@ -536,6 +583,17 @@ export default function StatusPageContent() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                      <button
+                        type="button"
+                        onClick={() => selectNode(node.id)}
+                        disabled={isActive && kittyProxyManual}
+                        className={cn(
+                          "site-ghost-btn site-focus text-[11px] disabled:opacity-50",
+                          isActive && kittyProxyManual && "border-sky-400/30 text-sky-300",
+                        )}
+                      >
+                        {isActive && kittyProxyManual ? t("status.usingNode") : t("status.useNode")}
+                      </button>
                       <span
                         className={cn(
                           "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-mono border",

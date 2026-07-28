@@ -117,12 +117,18 @@ interface ISettingsStore {
   toggleProviderSectionHidden: (mode: ProviderAudioMode) => void;
 
   /**
-   * Active KittyAPI proxy node (last stream-race winner). Updated when a
-   * provider stream race completes — not by geo / lowest-ping preference.
+   * Preferred KittyAPI location DNS node. In auto mode this tracks the last
+   * stream-race winner; in manual mode it is the user-pinned location.
    */
   kittyProxyNode: KittyApiNodeId;
   setKittyProxyNode: (node: KittyApiNodeId) => void;
-  /** Soft-set sticky proxy after a successful stream race (no-op if already set). */
+  /**
+   * When true, playback pins to `kittyProxyNode` instead of racing locations.
+   * Set from the status page DNS picker.
+   */
+  kittyProxyManual: boolean;
+  setKittyProxyManual: (manual: boolean) => void;
+  /** Soft-set sticky proxy after a successful stream race (skipped when manual). */
   applyAutoKittyProxyNode: (node: KittyApiNodeId) => void;
 
   subtitleSettings: SubtitleSettings;
@@ -286,8 +292,13 @@ export const useSettingsStore = create<ISettingsStore>()(
 
       kittyProxyNode: DEFAULT_KITTY_API_NODE_ID,
       setKittyProxyNode: (kittyProxyNode) => set({ kittyProxyNode }),
+      kittyProxyManual: false,
+      setKittyProxyManual: (kittyProxyManual) => set({ kittyProxyManual }),
       applyAutoKittyProxyNode: (kittyProxyNode) =>
-        set((s) => (s.kittyProxyNode === kittyProxyNode ? s : { kittyProxyNode })),
+        set((s) => {
+          if (s.kittyProxyManual) return s;
+          return s.kittyProxyNode === kittyProxyNode ? s : { kittyProxyNode };
+        }),
 
       subtitleSettings: { ...DEFAULT_SUBTITLE_SETTINGS },
       setSubtitleFontSize: (fontSize) =>
@@ -427,7 +438,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 81,
+      version: 82,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -446,6 +457,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         simpleProviderPicker: state.simpleProviderPicker,
         providerSectionHidden: state.providerSectionHidden,
         kittyProxyNode: state.kittyProxyNode,
+        kittyProxyManual: state.kittyProxyManual,
         autoSkipIntro: state.autoSkipIntro,
         playThemeSong: state.playThemeSong,
         siteAccentColor: state.siteAccentColor,
@@ -1058,6 +1070,13 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.defaultProvider = sanitizeDefaultProvider(
             next.defaultProvider === "Miruro" ? "AniHQ" : (next.defaultProvider ?? "AniHQ"),
             next.providerOrder,
+          );
+        }
+        if (version < 82) {
+          // Location DNS picker restored — default stays automatic routing.
+          next.kittyProxyManual = next.kittyProxyManual ?? false;
+          next.kittyProxyNode = coerceKittyApiNodeId(
+            typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
           );
         }
         return next as ISettingsStore;

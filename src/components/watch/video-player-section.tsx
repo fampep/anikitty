@@ -157,7 +157,7 @@ const VideoPlayerSection = () => {
   const searchParamsKey = searchParams.toString();
   const { selectedEpisode, anime, setSelectedEpisode } = useAnimeStore();
 
-  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, setSimpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider, watchLayout } = useSettingsStore();
+  const { setPreferDub, preferDub, showPlayerControls, setShowPlayerControls, setPlayerSettingsOpen, providerAutoFallback, setProviderAutoFallback, simpleProviderPicker, setSimpleProviderPicker, theatreMode, toggleTheatreMode, setTheatreMode, kittyProxyNode, setKittyProxyNode, kittyProxyManual, applyAutoKittyProxyNode, seekStepSeconds, autoEnableSubtitles, hardSubSoftSubs, providerOrder, defaultProvider, watchLayout } = useSettingsStore();
   const effectiveLiteMode = useEffectiveLiteMode();
   // Lightweight health probes — used only to skip known-dead nodes on failover, not for geo/ping routing.
   const { nodes: proxyNodes } = useKittyNodePing({
@@ -166,8 +166,9 @@ const VideoPlayerSection = () => {
   });
   const [excludeKittyNodes, setExcludeKittyNodes] = useState<KittyApiNodeId[]>([]);
   /** `auto` races; pin to a node for HLS remints / quality stickiness on the same episode. */
-  const [streamKittyNode, setStreamKittyNode] = useState<KittyStreamNodeParam>("auto");
-  const compactProviderPicker = simpleProviderPicker;
+  const [streamKittyNode, setStreamKittyNode] = useState<KittyStreamNodeParam>(() =>
+    kittyProxyManual ? kittyProxyNode : "auto",
+  );  const compactProviderPicker = simpleProviderPicker;
 
   // Drop inactive stream / capability payloads when leaving the watch player.
   useEffect(() => {
@@ -992,13 +993,12 @@ const VideoPlayerSection = () => {
     streamRefreshNonce,
   );
 
-  // Remember the race winner for labels / remints — not geo/ping routing.
+  // Remember the race winner for labels / remints — not when the user pinned a DNS.
   useEffect(() => {
     const won = streamData?.kittyNode;
     if (!won || !isKittyApiNodeId(won)) return;
-    if (kittyProxyNode === won) return;
-    setKittyProxyNode(won);
-  }, [streamData?.kittyNode, kittyProxyNode, setKittyProxyNode]);
+    applyAutoKittyProxyNode(won);
+  }, [streamData?.kittyNode, applyAutoKittyProxyNode]);
 
   const streamQueryEnabled =
     animeMatchesUrl &&
@@ -1038,15 +1038,15 @@ const VideoPlayerSection = () => {
     setPlaybackToken((n) => n + 1);
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
-    setStreamKittyNode("auto");
-  }, [streamQueryAudio, provider, urlAnimeId, anilistId, preferHardSub]);
+    setStreamKittyNode(kittyProxyManual ? kittyProxyNode : "auto");
+  }, [streamQueryAudio, provider, urlAnimeId, anilistId, preferHardSub, kittyProxyManual, kittyProxyNode]);
 
   // Episode change: clear failover state but keep the player shell mounted.
   useEffect(() => {
     triedKittyNodesRef.current.clear();
     setExcludeKittyNodes([]);
-    setStreamKittyNode("auto");
-  }, [episodeId]);
+    setStreamKittyNode(kittyProxyManual ? kittyProxyNode : "auto");
+  }, [episodeId, kittyProxyManual, kittyProxyNode]);
 
   // Clear auto-fullscreen after the new episode stream is up (one-shot restore).
   useEffect(() => {

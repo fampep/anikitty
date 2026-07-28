@@ -1,19 +1,31 @@
 import "server-only";
 
-import {
-  KITTY_API_NODE_ORIGIN_IPS,
-  type KittyApiNodeId,
-} from "@/lib/kitty/kitty-api-nodes";
+import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 
 /**
- * Real VPS IPv4 addresses — re-exported from the shared node registry.
- * Playback and API fetches pin to these static IPs (no Cloudflare hop).
+ * Real VPS IPv4 addresses — server-only. Never import this module from client
+ * components; browser traffic uses Cloudflare-proxied location DNS names.
  */
+export const KITTY_API_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
+  primary: "143.246.195.251",
+  "third-choice": "131.123.42.153",
+  "fourth-choice": "23.111.15.143",
+  "fifth-choice": "94.75.223.124",
+  "sixth-choice": "184.107.88.54",
+  "seventh-choice": "132.243.174.157",
+};
+
+const RETIRED_ORIGIN_IPS = new Set([
+  "45.150.111.153",
+  "92.119.165.226",
+  "176.125.240.251",
+]);
+
 export function getKittyApiNodeOriginIp(id: KittyApiNodeId): string {
   return KITTY_API_NODE_ORIGIN_IPS[id];
 }
 
-/** Server-side origin that pins traffic to one VPS static IP. */
+/** Server-side origin that pins traffic to one VPS static IP (no CF hop). */
 export function getKittyApiNodeDirectUrl(id: KittyApiNodeId): string {
   return `http://${getKittyApiNodeOriginIp(id)}`;
 }
@@ -26,9 +38,7 @@ export function resolveKittyNodeIdFromOriginIp(origin: string | null | undefined
   const ip = sslip
     ? `${sslip[1]}.${sslip[2]}.${sslip[3]}.${sslip[4]}`
     : lower.match(/\b(\d{1,3}(?:\.\d{1,3}){3})\b/)?.[1] ?? null;
-  if (!ip) return null;
-  // Retired Switzerland IP — treat as gone (do not map to a live node).
-  if (ip === "92.119.165.226") return null;
+  if (!ip || RETIRED_ORIGIN_IPS.has(ip)) return null;
   const entry = Object.entries(KITTY_API_NODE_ORIGIN_IPS).find(([, value]) => value === ip);
   return (entry?.[0] as KittyApiNodeId | undefined) ?? null;
 }

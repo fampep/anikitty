@@ -34,6 +34,7 @@ export type SyncedUserPreferences = {
   simpleProviderPicker?: boolean;
   providerSectionHidden?: Partial<Record<ProviderAudioMode, boolean>>;
   kittyProxyNode?: KittyApiNodeId;
+  kittyProxyManual?: boolean;
   autoSkipIntro?: boolean;
   playThemeSong?: boolean;
   watchPosterTheme?: boolean;
@@ -128,6 +129,9 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   }
   if (typeof input.kittyProxyNode === "string") {
     out.kittyProxyNode = coerceKittyApiNodeId(input.kittyProxyNode);
+  }
+  if (typeof input.kittyProxyManual === "boolean") {
+    out.kittyProxyManual = input.kittyProxyManual;
   }
 
   return out;

@@ -8,12 +8,19 @@ export type KittyApiNodeId =
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
-  /** Display number in the proxy chooser (1 = Primary, 2 = …). */
+  /** Display number in the DNS chooser (1 = Sweden, 2 = …). */
   index: number;
   label: string;
-  /** Direct static-IP origin for this node (`http://A.B.C.D`). */
+  /**
+   * Public Cloudflare-proxied origin (`https://{dnsSlug}.anikitty.online`).
+   * Never a bare IPv4 — origin IPs stay server-only.
+   * Note: must be a single-label subdomain (not `*.vps.*`) so Universal SSL covers it.
+   */
   url: string;
+  /** Public hostname only (no IP). */
   host: string;
+  /** DNS label under `anikitty.online`. */
+  dnsSlug: string;
   location: string;
   timezone: string;
 };
@@ -23,30 +30,40 @@ export type KittyApiNodeMeta = {
  * even if a stale Coolify `NEXT_PUBLIC_KITTY_NODE_*` build arg still points at them.
  */
 const REMOVED_KITTY_HOST_MARKERS = [
-  "45-150-111-153", // retired Bulgaria IP (replaced by 131.123.42.153)
+  "45-150-111-153",
   "45.150.111.153",
-  "92-119-165-226", // retired Switzerland / secondary
+  "92-119-165-226",
   "92.119.165.226",
-  "176-125-240-251", // retired Sweden primary (replaced by 143.246.195.251)
+  "176-125-240-251",
   "176.125.240.251",
 ] as const;
 
 /**
- * Legacy Cloudflare shared hostname — still accepted when rewriting old URLs,
- * but playback no longer routes through it.
+ * Legacy shared hostname — load-balanced A records; prefer per-location DNS
+ * for pinned routing.
  */
 export const PUBLIC_KITTY_API_HOST = "vps.anikitty.online";
 export const PUBLIC_KITTY_API_ORIGIN = `https://${PUBLIC_KITTY_API_HOST}`;
+/** Zone for location DNS labels (`sweden.anikitty.online`, …). */
+export const PUBLIC_KITTY_DNS_ZONE = "anikitty.online";
 
-/** Static origin IPv4 per cluster node (source of truth for direct routing). */
-export const KITTY_API_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
-  primary: "143.246.195.251",
-  "third-choice": "131.123.42.153",
-  "fourth-choice": "23.111.15.143",
-  "fifth-choice": "94.75.223.124",
-  "sixth-choice": "184.107.88.54",
-  "seventh-choice": "132.243.174.157",
+/** Location DNS slug → node id (Cloudflare A → origin IP, proxied). */
+export const KITTY_API_NODE_DNS_SLUGS: Record<KittyApiNodeId, string> = {
+  primary: "sweden",
+  "third-choice": "bulgaria",
+  "fourth-choice": "singapore",
+  "fifth-choice": "netherlands",
+  "sixth-choice": "canada",
+  "seventh-choice": "switzerland",
 };
+
+export function kittyApiNodePublicHost(id: KittyApiNodeId): string {
+  return `${KITTY_API_NODE_DNS_SLUGS[id]}.${PUBLIC_KITTY_DNS_ZONE}`;
+}
+
+export function kittyApiNodePublicUrl(id: KittyApiNodeId): string {
+  return `https://${kittyApiNodePublicHost(id)}`;
+}
 
 /** True when a URL/host belongs to a removed KittyAPI node. */
 export function isRemovedKittyApiHost(value: string | null | undefined): boolean {
@@ -61,41 +78,38 @@ export function isKittySslipHost(value: string | null | undefined): boolean {
   return /(?:^|[/.])kittyapi\.[\d-]+\.sslip\.io(?:\/|$)/i.test(value.trim());
 }
 
-function staticOriginUrl(ip: string): string {
-  return `http://${ip}`;
-}
-
 /**
- * Resolve a node origin. Prefer static IPs. Stale Coolify sslip / removed hosts
- * fall back to the hard-coded IP for that slot.
+ * Resolve a public node origin. Env overrides must be location DNS names (or the
+ * shared `vps.anikitty.online` host) — bare IPs and sslip hosts are rejected.
  */
-function nodeUrl(envValue: string | undefined, fallbackIp: string): string {
-  const fallback = staticOriginUrl(fallbackIp);
+function nodeUrl(envValue: string | undefined, nodeId: KittyApiNodeId): string {
+  const fallback = kittyApiNodePublicUrl(nodeId);
   const raw = (envValue && envValue.trim()) || fallback;
   const trimmed = raw.trim().replace(/\/+$/, "");
-  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   if (isRemovedKittyApiHost(withProto) || isKittySslipHost(withProto)) {
     return fallback;
   }
   try {
     const host = new URL(withProto).hostname.toLowerCase();
-    // Shared CF hostname is not a pin — map to this node's static IP.
-    if (host === PUBLIC_KITTY_API_HOST || host.endsWith(".anikitty.online")) {
-      return fallback;
+    // Reject bare IPv4 in public config — never ship origin IPs to the browser.
+    if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return fallback;
+    if (host === PUBLIC_KITTY_API_HOST) return fallback;
+    // Accept any `*.vps.anikitty.online` / `*.anikitty.online` override.
+    if (host.endsWith(".anikitty.online") || host === "anikitty.online") {
+      return `https://${host}`;
     }
-    const bareIp = extractKittyOriginIpv4(host);
-    if (bareIp) return staticOriginUrl(bareIp);
   } catch {
     return fallback;
   }
-  return withProto;
+  return fallback;
 }
 
 function nodeHost(url: string): string {
   return url.replace(/^https?:\/\//i, "").replace(/\/.*$/, "");
 }
 
-/** Extract an IPv4 from a URL/host (including `kittyapi.A-B-C-D.sslip.io`). */
+/** Extract an IPv4 from a URL/host (including legacy `kittyapi.A-B-C-D.sslip.io`). */
 export function extractKittyOriginIpv4(value: string | null | undefined): string | null {
   if (!value?.trim()) return null;
   const lower = value.trim().toLowerCase();
@@ -105,21 +119,19 @@ export function extractKittyOriginIpv4(value: string | null | undefined): string
   return bare?.[1] ?? null;
 }
 
-const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, KITTY_API_NODE_ORIGIN_IPS.primary);
-const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, KITTY_API_NODE_ORIGIN_IPS["third-choice"]);
-const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, KITTY_API_NODE_ORIGIN_IPS["fourth-choice"]);
-const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, KITTY_API_NODE_ORIGIN_IPS["fifth-choice"]);
-const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, KITTY_API_NODE_ORIGIN_IPS["sixth-choice"]);
-const SEVENTH_URL = nodeUrl(
-  process.env.NEXT_PUBLIC_KITTY_NODE_SEVENTH,
-  KITTY_API_NODE_ORIGIN_IPS["seventh-choice"],
-);
+const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "primary");
+const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "third-choice");
+const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "fourth-choice");
+const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "fifth-choice");
+const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, "sixth-choice");
+const SEVENTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SEVENTH, "seventh-choice");
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "primary",
     index: 1,
     label: "Sweden",
+    dnsSlug: KITTY_API_NODE_DNS_SLUGS.primary,
     url: PRIMARY_URL,
     host: nodeHost(PRIMARY_URL),
     location: "Sweden",
@@ -129,6 +141,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     id: "third-choice",
     index: 2,
     label: "Bulgaria",
+    dnsSlug: KITTY_API_NODE_DNS_SLUGS["third-choice"],
     url: THIRD_URL,
     host: nodeHost(THIRD_URL),
     location: "Bulgaria",
@@ -138,6 +151,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     id: "fourth-choice",
     index: 3,
     label: "Singapore",
+    dnsSlug: KITTY_API_NODE_DNS_SLUGS["fourth-choice"],
     url: FOURTH_URL,
     host: nodeHost(FOURTH_URL),
     location: "Singapore",
@@ -147,6 +161,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     id: "fifth-choice",
     index: 4,
     label: "Netherlands",
+    dnsSlug: KITTY_API_NODE_DNS_SLUGS["fifth-choice"],
     url: FIFTH_URL,
     host: nodeHost(FIFTH_URL),
     location: "Netherlands",
@@ -156,6 +171,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     id: "sixth-choice",
     index: 5,
     label: "Canada",
+    dnsSlug: KITTY_API_NODE_DNS_SLUGS["sixth-choice"],
     url: SIXTH_URL,
     host: nodeHost(SIXTH_URL),
     location: "Montreal, Canada",
@@ -165,6 +181,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     id: "seventh-choice",
     index: 6,
     label: "Switzerland",
+    dnsSlug: KITTY_API_NODE_DNS_SLUGS["seventh-choice"],
     url: SEVENTH_URL,
     host: nodeHost(SEVENTH_URL),
     location: "Switzerland",
@@ -172,12 +189,11 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   },
 ];
 
-/** Default preferred node when the user has not picked one (Stockholm). */
+/** Default preferred DNS node when the user has not picked one (Sweden). */
 export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
 
 /** Legacy node ids that may still be stored in local settings / prefs. */
 const LEGACY_KITTY_NODE_ALIASES: Record<string, KittyApiNodeId> = {
-  // Retired Switzerland node → Sweden
   secondary: "primary",
   fallback: "primary",
   main: "primary",
@@ -220,16 +236,15 @@ export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined):
 
   const normalized = normalizeNodeOrigin(trimmed);
   const match = KITTY_API_NODES.find(
-    (node) => normalizeNodeOrigin(node.url) === normalized || node.host.toLowerCase() === normalized,
+    (node) =>
+      normalizeNodeOrigin(node.url) === normalized ||
+      node.host.toLowerCase() === normalized ||
+      `${node.dnsSlug}.${PUBLIC_KITTY_DNS_ZONE}` === normalized,
   );
   if (match) return match.id;
 
-  const ip = extractKittyOriginIpv4(trimmed);
-  if (!ip || ip === "92.119.165.226" || ip === "176.125.240.251") return null;
-  const byIp = (Object.entries(KITTY_API_NODE_ORIGIN_IPS) as [KittyApiNodeId, string][]).find(
-    ([, value]) => value === ip,
-  );
-  return byIp?.[0] ?? null;
+  // Do not map bare IPs on the client — origin IPs are server-only.
+  return null;
 }
 
 export function parseKittyNodeParam(value: string | null | undefined): KittyApiNodeId {
@@ -238,6 +253,13 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
 
   const aliased = LEGACY_KITTY_NODE_ALIASES[normalized];
   if (aliased) return aliased;
+
+  // Location / DNS slug aliases.
+  for (const [id, slug] of Object.entries(KITTY_API_NODE_DNS_SLUGS) as [KittyApiNodeId, string][]) {
+    if (normalized === slug || normalized === `${slug}.vps` || normalized.startsWith(`${slug}.`)) {
+      return id;
+    }
+  }
 
   if (normalized === "seventh-choice" || normalized === "seventhchoice" || normalized === "7") {
     return "seventh-choice";
@@ -257,13 +279,12 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
     normalized === "3" ||
     normalized === "2"
   ) {
-    // "2" was Switzerland; remap to the next live node (Bulgaria).
     return "third-choice";
   }
   if (normalized === "fallback" || normalized === "secondary") {
     return "primary";
   }
-  if (normalized === "primary" || normalized === "main" || normalized === "1") {
+  if (normalized === "primary" || normalized === "main" || normalized === "1" || normalized === "sweden") {
     return "primary";
   }
   return DEFAULT_KITTY_API_NODE_ID;
