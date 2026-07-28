@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronDown, ChevronUp, GripVertical, RotateCcw, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, GripVertical, RotateCcw, Sparkles, Star } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import {
   getKittyProviderLabel,
@@ -9,6 +9,7 @@ import {
   RECOMMENDED_PROVIDER_COUNT,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
+import { ProviderRankIcon } from "@/components/player/provider-rank-icon";
 import {
   isSiteDefaultProviderOrder,
   moveProviderInOrder,
@@ -128,8 +129,8 @@ export default function ProviderOrderSettings() {
         >
           <GripVertical className="w-5 h-5 sm:w-4 sm:h-4 pointer-events-none" />
         </button>
-        <span className="w-6 shrink-0 text-center text-[11px] font-mono tabular-nums text-muted-foreground/80 dark:text-white/30">
-          {index + 1}
+        <span className="shrink-0">
+          <ProviderRankIcon rank={index + 1} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground/90 dark:text-white/85 truncate">
@@ -211,7 +212,8 @@ export default function ProviderOrderSettings() {
       <div className="space-y-3">
         {recommended.length > 0 && (
           <div className="space-y-1.5">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/35 px-0.5">
+            <p className="inline-flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-teal-300/60 px-0.5">
+              <Sparkles className="w-3 h-3" />
               {t("watch.providerGroupFeatured")}
             </p>
             <ol className="flex flex-col gap-1.5">

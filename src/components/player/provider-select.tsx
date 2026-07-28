@@ -1,7 +1,17 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Captions, ChevronDown, ChevronRight, Eye, EyeOff, Flame, Mic, Server } from "lucide-react";
+import {
+  Captions,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Flame,
+  Mic,
+  Sparkles,
+  Star,
+} from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -32,6 +42,7 @@ import { getProviderAccent, providerPillClass as providerPillAccentClass } from 
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
+import { ProviderRankIcon } from "@/components/player/provider-rank-icon";
 
 type Props = {
   value: KittyProvider;
@@ -95,10 +106,11 @@ export function ProviderDefaultBadge({
   return (
     <span
       className={cn(
-        "font-mono font-bold uppercase rounded border shrink-0 border-teal-400/45 bg-teal-500/15 text-teal-200/90",
+        "inline-flex items-center gap-0.5 font-mono font-bold uppercase rounded border shrink-0 border-amber-400/40 bg-amber-500/15 text-amber-200/90",
         compact ? "text-[8px] px-1 py-px leading-tight" : "text-[9px] px-1.5 py-0.5",
       )}
     >
+      <Star className={cn(compact ? "w-2 h-2" : "w-2.5 h-2.5", "fill-current")} />
       {t("watch.providerDefaultBadge")}
     </span>
   );
@@ -115,75 +127,90 @@ export default function ProviderSelect({
   const providerOrder = useSettingsStore((s) => s.providerOrder);
   const defaultProvider = useSettingsStore((s) => s.defaultProvider);
   const showAdultContent = useSettingsStore((s) => s.showAdultContent);
+  const rank = getKittyProviderNumber(value, providerOrder);
+  const accent = getProviderAccent(value);
 
   return (
     <Select value={value} onValueChange={(v) => onChange(v as KittyProvider)} disabled={disabled}>
       <SelectTrigger
         className={cn(
+          "gap-2 transition-colors",
           compact
-            ? "h-8 min-w-[9.5rem] text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/[0.07]"
-            : "h-9 min-w-[11rem] text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/[0.07]",
-          getProviderAccent(value).chip,
+            ? "h-9 min-w-[10.5rem] rounded-lg text-[11px] font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-muted-foreground dark:text-white/70 hover:bg-accent dark:hover:bg-white/[0.07]"
+            : "h-10 min-w-[12.5rem] rounded-xl text-xs font-mono bg-muted/50 dark:bg-white/[0.04] border-border dark:border-white/12 text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/[0.07]",
+          accent.chip,
           className,
         )}
       >
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <Server className="w-3.5 h-3.5 shrink-0 opacity-50" />
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <ProviderRankIcon rank={rank} compact={compact} />
           <SelectValue placeholder={t("watch.providerSelect")}>
-            {(() => {
-              const num = getKittyProviderNumber(value, providerOrder);
-              return num > 0 ? `${num} · ${getKittyProviderLabel(value)}` : getKittyProviderLabel(value);
-            })()}
+            <span className="truncate font-semibold tracking-wide">{getKittyProviderLabel(value)}</span>
           </SelectValue>
         </div>
       </SelectTrigger>
-      <SelectContent className="bg-[#0c0c0c] border-border dark:border-white/10 max-h-[min(22rem,70vh)]">
-        {(["featured", "other"] as const).map((group) => {
-          const items = sortProvidersForPicker(
-            kittyProvidersByGroup(group).filter((p) => showAdultContent || !p.adultOnly),
-            {
-              priorityOrder: providerOrder,
-              defaultProvider,
-            },
-          );
-          if (items.length === 0) return null;
+      <SelectContent
+        className={cn(
+          "bg-[#0a0a0f]/98 border-white/10 max-h-[min(24rem,72vh)] min-w-[16rem] p-0",
+          "shadow-[0_20px_50px_-20px_rgba(0,0,0,0.85)]",
+        )}
+      >
+        <div className="p-1.5 space-y-1">
+          {(["featured", "other"] as const).map((group) => {
+            const items = sortProvidersForPicker(
+              kittyProvidersByGroup(group).filter((p) => showAdultContent || !p.adultOnly),
+              {
+                priorityOrder: providerOrder,
+                defaultProvider,
+              },
+            );
+            if (items.length === 0) return null;
 
-          return (
-            <SelectGroup key={group}>
-              <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30 px-2 py-1.5">
-                {group === "featured"
-                  ? t("watch.providerGroupFeatured")
-                  : t("watch.providerGroupOther")}
-              </SelectLabel>
-              {items.map((p) => {
-                const num = getKittyProviderNumber(p.id, providerOrder);
-                return (
-                <SelectItem
-                  key={p.id}
-                  value={p.id}
-                  textValue={`${num} ${p.label}`}
-                  className="text-xs text-foreground/90 dark:text-white/80 focus:bg-accent dark:bg-white/[0.06] focus:text-foreground dark:text-white py-2.5"
-                >
-                  <div className="flex flex-col gap-0.5 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {num > 0 && (
-                        <span className="font-mono text-[10px] tabular-nums text-muted-foreground/80 dark:text-white/35 w-4 shrink-0">
-                          {num}
-                        </span>
+            return (
+              <SelectGroup key={group}>
+                <SelectLabel className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-[0.14em] text-white/35 px-2.5 py-2">
+                  {group === "featured" ? (
+                    <Sparkles className="w-3 h-3 text-teal-300/70" />
+                  ) : (
+                    <span className="inline-block w-3 h-3 rounded-full border border-white/20" />
+                  )}
+                  {group === "featured"
+                    ? t("watch.providerGroupFeatured")
+                    : t("watch.providerGroupOther")}
+                </SelectLabel>
+                {items.map((p) => {
+                  const num = getKittyProviderNumber(p.id, providerOrder);
+                  const itemAccent = getProviderAccent(p.id);
+                  return (
+                    <SelectItem
+                      key={p.id}
+                      value={p.id}
+                      textValue={`${num} ${p.label}`}
+                      className={cn(
+                        "text-xs text-white/80 rounded-lg py-2.5 pl-2.5 pr-8 my-0.5",
+                        "focus:bg-white/[0.07] focus:text-white data-[state=checked]:bg-white/[0.06]",
                       )}
-                      <span className="font-semibold">{p.label}</span>
-                      <ProviderDefaultBadge id={p.id} />
-                    </div>
-                    {p.hint && (
-                      <span className="text-[10px] font-mono text-muted-foreground dark:text-white/35 truncate">{p.hint}</span>
-                    )}
-                  </div>
-                </SelectItem>
-                );
-              })}
-            </SelectGroup>
-          );
-        })}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <ProviderRankIcon rank={num} />
+                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", itemAccent.dot)} />
+                        <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold tracking-wide">{p.label}</span>
+                            <ProviderDefaultBadge id={p.id} />
+                          </div>
+                          {p.hint && (
+                            <span className="text-[10px] font-mono text-white/30 truncate">{p.hint}</span>
+                          )}
+                        </div>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+              </SelectGroup>
+            );
+          })}
+        </div>
       </SelectContent>
     </Select>
   );
@@ -363,14 +390,14 @@ export function ProviderGrid({
               type="button"
               disabled={disabled}
               onClick={() => onSelect(p.id, mode)}
-              title={p.hint ?? p.label}
+              title={p.hint ? `${num}. ${p.label} — ${p.hint}` : `${num}. ${p.label}`}
               aria-pressed={isActive}
-              className={providerPillClass(compact, isActive, styles, p.id)}
+              className={cn(providerPillClass(compact, isActive, styles, p.id), "gap-1.5")}
             >
-              {num > 0 && (
-                <span className="font-mono tabular-nums opacity-70 shrink-0">{num}</span>
-              )}
-              <span className="truncate max-w-[9.5rem] sm:max-w-none">{p.label}</span>
+              <ProviderRankIcon rank={num} compact />
+              <span className="truncate max-w-[9.5rem] sm:max-w-none font-semibold tracking-wide">
+                {p.label}
+              </span>
               <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
               <ProviderDefaultBadge id={p.id} compact />
             </button>
@@ -409,7 +436,8 @@ export function ProviderGrid({
           <>
             {recommendedItems.length > 0 && (
               <div className={cn("flex flex-col gap-1.5 min-w-0", compact ? "w-max" : "w-full")}>
-                <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/30 px-0.5">
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest text-teal-300/55 px-0.5">
+                  <Sparkles className="w-3 h-3" />
                   {t("watch.providerGroupFeatured")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">{recommendedItems.map(renderPill)}</div>
@@ -417,7 +445,8 @@ export function ProviderGrid({
             )}
             {moreItems.length > 0 && (
               <div className={cn("flex flex-col gap-1.5 min-w-0", compact ? "w-max" : "w-full")}>
-                <span className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/30 px-0.5">
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/30 px-0.5">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full border border-current opacity-60" />
                   {t("watch.providerGroupOther")}
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -459,10 +488,12 @@ export function ProviderGrid({
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {isHidden && activeItem && (
-                    <span className={cn("text-[10px] font-mono px-2 py-0.5 rounded-md border", styles.active)}>
-                      {getKittyProviderNumber(activeItem.id, providerOrder) > 0
-                        ? `${getKittyProviderNumber(activeItem.id, providerOrder)} · ${activeItem.label}`
-                        : activeItem.label}
+                    <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded-md border", styles.active)}>
+                      <ProviderRankIcon
+                        rank={getKittyProviderNumber(activeItem.id, providerOrder)}
+                        compact
+                      />
+                      {activeItem.label}
                     </span>
                   )}
                   {isHidden ? (
@@ -517,15 +548,14 @@ export function ProviderGrid({
               <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 pt-0.5">
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold",
+                    "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold",
                     styles.active,
                   )}
                 >
-                  {getKittyProviderNumber(activeItem.id, providerOrder) > 0 && (
-                    <span className="font-mono tabular-nums opacity-70">
-                      {getKittyProviderNumber(activeItem.id, providerOrder)}
-                    </span>
-                  )}
+                  <ProviderRankIcon
+                    rank={getKittyProviderNumber(activeItem.id, providerOrder)}
+                    compact
+                  />
                   {activeItem.label}
                 </span>
               </div>
@@ -537,4 +567,5 @@ export function ProviderGrid({
   );
 }
 
+export { ProviderRankIcon } from "@/components/player/provider-rank-icon";
 export { DEFAULT_KITTY_PROVIDER };
