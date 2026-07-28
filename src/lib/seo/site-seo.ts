@@ -95,8 +95,9 @@ export const PAGE_SEO = {
     path: "/faq",
   },
   history: {
-    title: "My List | AniKitty",
-    description: "Your anime list — watching, completed, plan to watch, on hold, and dropped — plus recent episode history.",
+    title: "Watch History | AniKitty",
+    description:
+      "Your viewing history dashboard — continue watching, stats, heatmap, calendar, and every episode you've played.",
     path: "/history",
   },
   dmca: {

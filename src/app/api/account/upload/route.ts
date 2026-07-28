@@ -48,7 +48,8 @@ export async function POST(req: Request) {
     const form = await req.formData();
     const file = form.get("file");
     const kindRaw = String(form.get("kind") ?? "avatar");
-    const kind = kindRaw === "banner" ? "banner" : "avatar";
+    const kind =
+      kindRaw === "banner" ? "banner" : kindRaw === "chat" ? "chat" : "avatar";
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -89,10 +90,25 @@ export async function POST(req: Request) {
     // Tag GIFs with a ".gif" hint so the client renders them as an animated
     // <img> instead of running them through next/image (which flattens them).
     // Static images stay extensionless so next/image can still optimize them.
+    // Chat attachments need an extension so gif-url validation accepts them.
+    const ext =
+      file.type === "image/gif"
+        ? ".gif"
+        : file.type === "image/png"
+          ? ".png"
+          : file.type === "image/webp"
+            ? ".webp"
+            : file.type === "image/jpeg"
+              ? ".jpg"
+              : kind === "chat"
+                ? ".webp"
+                : "";
     const url =
       file.type === "image/gif"
         ? `/api/uploads/${row.id}.gif`
-        : `/api/uploads/${row.id}`;
+        : kind === "chat"
+          ? `/api/uploads/${row.id}${ext || ".webp"}`
+          : `/api/uploads/${row.id}`;
     return NextResponse.json({ url });
   } catch (e) {
     console.error("[account/upload]", e);

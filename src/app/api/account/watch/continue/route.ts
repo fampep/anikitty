@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const latestPerAnime = searchParams.get("latestPerAnime") === "true";
   const animeIdFilter = searchParams.get("animeId") ?? null;
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 500);
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 1000);
   const offset = parseInt(searchParams.get("offset") ?? "0");
 
   const db = getDb();

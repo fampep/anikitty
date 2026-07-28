@@ -2,7 +2,7 @@
 // in-memory rate limiter (per server instance — good enough to stop spam from
 // a single client; swap for Redis if you run multiple instances).
 
-import { normalizeGifUrl, isPlausibleGifUrl, resolveGifUrlAsync } from "@/lib/core/gif-url";
+import { normalizeGifUrl, isPlausibleGifUrl, resolveGifUrlAsync, isChatUploadPath } from "@/lib/core/gif-url";
 
 const MAX_BODY = 1000;
 
@@ -18,6 +18,7 @@ export function sanitizeGifUrl(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const normalized = normalizeGifUrl(input);
   if (!normalized || !isPlausibleGifUrl(normalized)) return null;
+  // Persist relative upload paths as-is; absolute upload URLs collapse to path.
   return normalized;
 }
 
@@ -25,6 +26,7 @@ export function sanitizeGifUrl(input: unknown): string | null {
 export async function sanitizeAndResolveGifUrl(input: unknown): Promise<string | null> {
   const sync = sanitizeGifUrl(input);
   if (!sync) return null;
+  if (isChatUploadPath(sync)) return sync;
   const resolved = await resolveGifUrlAsync(sync);
   if (!isPlausibleGifUrl(resolved)) return null;
   return resolved;

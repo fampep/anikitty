@@ -15,7 +15,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const folder = searchParams.get("folder")?.toUpperCase();
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 250);
   const offset = parseInt(searchParams.get("offset") ?? "0");
 
   const db = getDb();

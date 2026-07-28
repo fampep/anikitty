@@ -1,9 +1,19 @@
 const MAX_GIF_LEN = 2000;
 
 /** Normalize common share links (KLIPY, Giphy, Imgur, etc.) to direct media URLs. */
+/** Same-origin chat image uploads: `/api/uploads/<uuid>(.ext)?`. */
+const UPLOAD_PATH_RE = /^\/api\/uploads\/[0-9a-f-]{36}(?:\.(?:gif|png|jpe?g|webp|apng))?$/i;
+
+export function isChatUploadPath(path: string): boolean {
+  return UPLOAD_PATH_RE.test(path.split("?")[0] ?? "");
+}
+
 export function normalizeGifUrl(input: string): string | null {
   const trimmed = input.trim().slice(0, MAX_GIF_LEN);
   if (!trimmed) return null;
+
+  // Relative same-origin uploads (chat paste/drop).
+  if (isChatUploadPath(trimmed)) return trimmed;
 
   let url: URL;
   try {
@@ -12,6 +22,10 @@ export function normalizeGifUrl(input: string): string | null {
     return null;
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+
+  if (isChatUploadPath(url.pathname)) {
+    return `${url.pathname}${url.search || ""}`;
+  }
 
   const host = url.hostname.toLowerCase();
   const path = url.pathname;
@@ -60,8 +74,10 @@ export function normalizeGifUrl(input: string): string | null {
 }
 
 export function isPlausibleGifUrl(url: string): boolean {
+  if (isChatUploadPath(url)) return true;
   try {
-    const u = new URL(url);
+    const u = new URL(url, "https://example.invalid");
+    if (isChatUploadPath(u.pathname)) return true;
     if (u.protocol !== "http:" && u.protocol !== "https:") return false;
     const path = u.pathname.toLowerCase();
     const hostPath = `${u.hostname.toLowerCase()}${path}`;
@@ -146,6 +162,13 @@ export async function resolveGifUrlAsync(url: string): Promise<string> {
 export function gifDisplayUrl(url: string | null | undefined): string {
   if (!url) return "";
   const normalized = normalizeGifUrl(url) ?? url;
+  if (isChatUploadPath(normalized)) return normalized.split("?")[0];
+  try {
+    const u = new URL(normalized);
+    if (isChatUploadPath(u.pathname)) return u.pathname;
+  } catch {
+    /* fall through to proxy */
+  }
   return `/api/media/gif?url=${encodeURIComponent(normalized)}`;
 }
 
