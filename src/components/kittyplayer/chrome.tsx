@@ -25,9 +25,9 @@ export const PLAYER_POPOVER_CLASS =
 export const PLAYER_POPOVER_MOTION_CLASS =
   "animate-in fade-in zoom-in-95 slide-in-from-bottom-1 duration-200";
 
-/** Mobile picker surface — same visual theme as desktop popovers (zinc + blur). */
+/** Mobile bottom-sheet — compact phone layout, dark desktop surface tokens. */
 export const PLAYER_SHEET_CLASS =
-  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(70dvh,28rem)] w-full overflow-y-auto overscroll-contain rounded-t-xl border border-white/[0.14] border-b-0 bg-zinc-950/94 py-0 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/85";
+  "absolute inset-x-0 bottom-0 z-[80] max-h-[min(58dvh,20rem)] w-full overflow-y-auto overscroll-contain rounded-t-2xl border-x-0 border-b-0 border-t border-white/[0.14] bg-zinc-950/94 py-1 pb-[max(0.5rem,env(safe-area-inset-bottom))] text-xs text-white shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl supports-[backdrop-filter]:bg-zinc-950/85";
 
 /**
  * Portal overlays into the player host (or fullscreen wrapper) so sheets stay

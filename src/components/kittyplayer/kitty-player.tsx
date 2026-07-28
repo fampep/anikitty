@@ -4387,6 +4387,12 @@ export function KittyPlayer({
                                 !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                               )}
                             >
+                              <div
+                                className="flex justify-center pb-1 pt-2.5"
+                                aria-hidden
+                              >
+                                <div className="h-1 w-10 rounded-full bg-white/25" />
+                              </div>
                               <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
                                 <p className="text-[11px] font-semibold tracking-wide text-white">
                                   Captions
@@ -4399,9 +4405,13 @@ export function KittyPlayer({
                                     : "Off"}
                                 </span>
                               </div>
-                              <div className="max-h-[min(52vh,320px)] overflow-y-auto overscroll-contain">
-                                <MenuSection title="Language">
+                              <div className="max-h-[min(42dvh,280px)] overflow-y-auto overscroll-contain sm:max-h-[min(58dvh,380px)]">
+                                <MenuSection
+                                  dense={coarsePointer || compactChrome}
+                                  title="Language"
+                                >
                                   <MenuItem
+                                    dense={coarsePointer || compactChrome}
                                     active={selectedCaptionId == null}
                                     onClick={() => selectCaption(null)}
                                   >
@@ -4410,6 +4420,7 @@ export function KittyPlayer({
                                   {captionOptions.map((track) => (
                                     <MenuItem
                                       key={track.id}
+                                      dense={coarsePointer || compactChrome}
                                       active={selectedCaptionId === track.id}
                                       onClick={() => selectCaption(track.id)}
                                     >
@@ -4422,6 +4433,7 @@ export function KittyPlayer({
                                     Appearance
                                   </p>
                                   <SegmentedChoice
+                                    dense={coarsePointer || compactChrome}
                                     label="Size"
                                     value={captionSize}
                                     onChange={applyCaptionSize}
@@ -4434,6 +4446,7 @@ export function KittyPlayer({
                                     }
                                   />
                                   <SegmentedChoice
+                                    dense={coarsePointer || compactChrome}
                                     label="Position"
                                     value={captionPosition}
                                     onChange={applyCaptionPosition}
@@ -4446,10 +4459,14 @@ export function KittyPlayer({
                                     }
                                   />
                                 </div>
-                                <MenuSection title="Timing">
+                                <MenuSection
+                                  dense={coarsePointer || compactChrome}
+                                  title="Timing"
+                                >
                                   {CAPTION_OFFSET_OPTIONS.map((offset) => (
                                     <MenuItem
                                       key={offset}
+                                      dense={coarsePointer || compactChrome}
                                       active={
                                         Math.abs(captionOffset - offset) < 0.001
                                       }
@@ -4599,6 +4616,12 @@ export function KittyPlayer({
                                 !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                               )}
                             >
+                              <div
+                                className="flex justify-center pb-1 pt-2.5"
+                                aria-hidden
+                              >
+                                <div className="h-1 w-10 rounded-full bg-white/25" />
+                              </div>
                               <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
                                 <p className="text-[11px] font-semibold tracking-wide text-white">
                                   Audio
@@ -4607,11 +4630,12 @@ export function KittyPlayer({
                                   {activeAudioLabel}
                                 </span>
                               </div>
-                              <div className="max-h-[min(52vh,320px)] overflow-y-auto overscroll-contain">
-                                <MenuSection title="Track">
+                              <div className="max-h-[min(42dvh,280px)] overflow-y-auto overscroll-contain sm:max-h-[min(58dvh,380px)]">
+                                <MenuSection title="Track" dense>
                                   {hlsAudioOptions.map((track) => (
                                     <MenuItem
                                       key={track.index}
+                                      dense
                                       active={hlsAudioIndex === track.index}
                                       onClick={() => selectHlsAudio(track.index)}
                                     >
@@ -4867,6 +4891,12 @@ export function KittyPlayer({
                               !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
                             )}
                           >
+                            <div
+                              className="flex justify-center pb-2 pt-1"
+                              aria-hidden
+                            >
+                              <div className="h-1 w-10 rounded-full bg-white/25" />
+                            </div>
                             <p className="mb-3 text-center text-[11px] font-semibold tracking-wide text-white">
                               Volume
                             </p>
@@ -4998,10 +5028,13 @@ export function KittyPlayer({
                           aria-label="Settings"
                           className={cn(
                             coarsePointer || compactChrome
-                              ? "relative z-[80] max-h-[min(70vh,480px)] w-[min(92vw,20rem)] overflow-hidden py-0"
+                              ? "relative z-[80] flex max-h-[min(58%,19rem)] w-[min(17.5rem,82%)] flex-col overflow-hidden overscroll-contain py-0.5"
                               : "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(70vh,480px)] w-[min(92vw,20rem)] overflow-hidden py-0",
                             PLAYER_POPOVER_CLASS,
-                            !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                            !reduceMotion &&
+                              (coarsePointer || compactChrome
+                                ? "animate-in fade-in zoom-in-95 duration-200"
+                                : PLAYER_POPOVER_MOTION_CLASS),
                           )}
                         >
                           <PlayerSettingsMenu
@@ -5010,7 +5043,7 @@ export function KittyPlayer({
                                 ? "min-h-0 flex-1 overflow-hidden"
                                 : undefined
                             }
-                            compact={false}
+                            compact={coarsePointer || compactChrome}
                             watchingHardSub={watchingHardSub}
                             showQualityTab={showQualityPicker}
                             speedLabel={speedButtonLabel}
@@ -5044,7 +5077,7 @@ export function KittyPlayer({
                             qualityPanel={
                               showQualityPicker ? (
                                 <QualityMenuContent
-                                  dense={false}
+                                  dense={coarsePointer || compactChrome}
                                   activeSrc={activeSrc}
                                   serverQualities={serverQualities}
                                   showHlsQualityMenu={showHlsQualityMenu}
@@ -5067,7 +5100,7 @@ export function KittyPlayer({
                             }
                             speedPanel={
                               <SpeedMenuContent
-                                dense={false}
+                                dense={coarsePointer || compactChrome}
                                 playbackRate={playbackRate}
                                 onSelect={(rate) => {
                                   applyPlaybackRate(rate, { hint: true });
@@ -5077,34 +5110,70 @@ export function KittyPlayer({
                             }
                             displayExtras={
                               <>
-                                <MenuSection title="Brightness">
-                                  {[
-                                    { label: "Dim", value: 0.7 },
-                                    { label: "Normal", value: 1 },
-                                    { label: "Bright", value: 1.35 },
-                                  ].map((opt) => (
-                                    <MenuItem
-                                      key={opt.label}
-                                      active={
-                                        Math.abs(brightness - opt.value) < 0.05
-                                      }
-                                      onClick={() => {
-                                        setBrightnessLevel(opt.value, {
-                                          hint: true,
-                                        });
-                                        setMoreOpen(false);
-                                      }}
-                                    >
-                                      {opt.label}
-                                    </MenuItem>
-                                  ))}
+                                <MenuSection
+                                  title="Brightness"
+                                  dense={coarsePointer || compactChrome}
+                                >
+                                  {coarsePointer || compactChrome ? (
+                                    <div className="flex gap-1 px-2 pb-1.5 pt-0.5">
+                                      {[
+                                        { label: "Dim", value: 0.7 },
+                                        { label: "Normal", value: 1 },
+                                        { label: "Bright", value: 1.35 },
+                                      ].map((opt) => (
+                                        <button
+                                          key={opt.label}
+                                          type="button"
+                                          onClick={() => {
+                                            setBrightnessLevel(opt.value, {
+                                              hint: true,
+                                            });
+                                            setMoreOpen(false);
+                                          }}
+                                          className={cn(
+                                            "min-h-8 flex-1 rounded-md border text-[11px] font-medium transition-colors",
+                                            Math.abs(brightness - opt.value) < 0.05
+                                              ? "border-white/25 bg-white text-zinc-950"
+                                              : "border-white/10 text-white/55 hover:bg-white/[0.06] hover:text-white/85",
+                                          )}
+                                        >
+                                          {opt.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    [
+                                      { label: "Dim", value: 0.7 },
+                                      { label: "Normal", value: 1 },
+                                      { label: "Bright", value: 1.35 },
+                                    ].map((opt) => (
+                                      <MenuItem
+                                        key={opt.label}
+                                        active={
+                                          Math.abs(brightness - opt.value) < 0.05
+                                        }
+                                        onClick={() => {
+                                          setBrightnessLevel(opt.value, {
+                                            hint: true,
+                                          });
+                                          setMoreOpen(false);
+                                        }}
+                                      >
+                                        {opt.label}
+                                      </MenuItem>
+                                    ))
+                                  )}
                                 </MenuSection>
 
                                 {showAudioMenu ? (
-                                  <MenuSection title="Audio">
+                                  <MenuSection
+                                    title="Audio"
+                                    dense={coarsePointer || compactChrome}
+                                  >
                                     {hlsAudioOptions.map((track) => (
                                       <MenuItem
                                         key={track.index}
+                                        dense={coarsePointer || compactChrome}
                                         active={hlsAudioIndex === track.index}
                                         onClick={() => {
                                           selectHlsAudio(track.index);
@@ -5193,8 +5262,12 @@ export function KittyPlayer({
                                   </MenuSection>
                                 ) : null}
 
-                                <MenuSection title="Help">
+                                <MenuSection
+                                  title="Help"
+                                  dense={coarsePointer || compactChrome}
+                                >
                                   <MenuItem
+                                    dense={coarsePointer || compactChrome}
                                     onClick={() => {
                                       setMoreOpen(false);
                                       popoverOpenRef.current = true;
