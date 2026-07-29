@@ -2070,13 +2070,30 @@ export function KittyPlayer({
         currentTime: video.currentTime,
         paused: video.paused,
       });
-      void video.play().catch((err) => {
-        logPlayerDebug("tryAutoplay-rejected", {
-          name: err instanceof Error ? err.name : "unknown",
-          message: err instanceof Error ? err.message : String(err),
+      void video
+        .play()
+        .then(() => {
+          logPlayerDebug("tryAutoplay-ok", {
+            readyState: video.readyState,
+            currentTime: video.currentTime,
+          });
+        })
+        .catch((err) => {
+          logPlayerDebug("tryAutoplay-rejected", {
+            name: err instanceof Error ? err.name : "unknown",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          // AbortError / early play: retry once media can play (AniVibe often
+          // rejects the first play() before the MSE pipeline settles).
+          const retry = () => {
+            logPlayerDebug("tryAutoplay-retry");
+            void video.play().catch(() => {
+              /* user must tap play */
+            });
+          };
+          video.addEventListener("canplay", retry, { once: true });
+          window.setTimeout(retry, 700);
         });
-        // Autoplay blocked — user must tap play (expected on mobile).
-      });
     };
 
     const mediaHasStartupBuffer = () => {
@@ -2168,7 +2185,12 @@ export function KittyPlayer({
         provider: providerRef.current ?? null,
         earnVidsLike,
       });
-      hls = new Hls(createHlsConfig({ lite: liteMode }));
+      hls = new Hls(
+        createHlsConfig({
+          lite: liteMode,
+          prefetchStartFrag: earnVidsLike,
+        }),
+      );
       // Softsubs are rendered by PlayerSubtitleOverlay — never let hls.js force
       // TextTrack.mode = "showing" (that is what made captions stick on).
       hls.subtitleDisplay = false;
@@ -2229,9 +2251,31 @@ export function KittyPlayer({
           pickHlsAudioTrack(hls, preferDubAudioRef.current);
           setHlsAudioIndex(hls.audioTrack);
         }
-        // Keep loading UI until first fragment — clearing early looked "ready"
-        // then stuck forever on EarnVids CDNs.
+        // Force start-of-stream load (mirrors pause→play startLoad). Critical for
+        // EarnVids when startFragPrefetch alone isn't enough through the proxy.
+        try {
+          hls.startLoad(0);
+        } catch {
+          try {
+            hls.startLoad();
+          } catch {
+            /* ignore */
+          }
+        }
         kickStartupAutoplay("manifest-parsed");
+      });
+      hls.on(Hls.Events.FRAG_LOADED, (_event, data) => {
+        if (cancelled) return;
+        const frag = data.frag;
+        if (frag?.type === "subtitle") return;
+        // Progress only — do not autoplay yet. Early play() before MSE append
+        // is what left AniVibe stuck buffering; wait for FRAG_BUFFERED/canplay.
+        logPlayerDebug("FRAG_LOADED", {
+          sn: frag?.sn,
+          type: frag?.type,
+          readyState: video.readyState,
+          firstFragBuffered,
+        });
       });
       hls.on(Hls.Events.FRAG_BUFFERED, (_event, data) => {
         if (cancelled) return;
@@ -2289,7 +2333,7 @@ export function KittyPlayer({
         });
         firstFragBuffered = true;
         kickStartupAutoplay("cold-watch-timeout");
-      }, earnVidsLike ? 3500 : 5000);
+      }, earnVidsLike ? 2000 : 5000);
 
       hlsAttachCleanup = () => {
         video.removeEventListener("canplay", onCanPlayStartup);

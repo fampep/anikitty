@@ -200,7 +200,9 @@ export function isPlayerDebugEnabled(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("debugPlayer") === "1") return true;
+    const flag = params.get("debugPlayer");
+    // Accept ?debugPlayer=1 or =2 (or any non-empty / non-false value).
+    if (flag && flag !== "0" && flag.toLowerCase() !== "false") return true;
     if (window.localStorage?.getItem("kittyDebugPlayer") === "1") return true;
   } catch {
     /* ignore */

@@ -10,8 +10,14 @@ export function createHlsConfig(opts?: {
   enableWebVTT?: boolean;
   /** Smaller forward/back buffers for low-memory / Save-Data devices. */
   lite?: boolean;
+  /**
+   * EarnVids / StreamHG (AniVibe): prefetch the start fragment before play()
+   * so we don't wait forever for FRAG_BUFFERED with startFragPrefetch off.
+   */
+  prefetchStartFrag?: boolean;
 }): Partial<HlsConfig> {
   const lite = Boolean(opts?.lite);
+  const prefetchStartFrag = Boolean(opts?.prefetchStartFrag);
   return {
     enableWorker: true,
     lowLatencyMode: false,
@@ -28,8 +34,11 @@ export function createHlsConfig(opts?: {
     nudgeMaxRetry: 8,
     startLevel: 0,
     capLevelToPlayerSize: true,
-    startFragPrefetch: false,
-    testBandwidth: true,
+    // Default false elsewhere (saves bandwidth). AniVibe needs true so the
+    // first fragment arrives before/without waiting on play().
+    startFragPrefetch: prefetchStartFrag,
+    autoStartLoad: true,
+    testBandwidth: !prefetchStartFrag,
     progressive: false,
     enableWebVTT: opts?.enableWebVTT ?? true,
     // KittyPlayer paints cues in HTML (PlayerSubtitleOverlay). Native TextTrack
