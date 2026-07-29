@@ -52,6 +52,12 @@ export default function HomeQuickNav() {
     };
   }, []);
 
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Don't leave a sticky hash in the URL — remounts / soft nav re-apply it and yank scroll back.
+    window.history.replaceState(null, "", ROUTES.HOME);
+  };
+
   return (
     <Container
       className={cn(
@@ -78,6 +84,12 @@ export default function HomeQuickNav() {
                 key={key}
                 href={href}
                 aria-current={active ? "true" : undefined}
+                onClick={(e) => {
+                  if (typeof window === "undefined") return;
+                  if (window.location.pathname !== ROUTES.HOME) return;
+                  e.preventDefault();
+                  scrollToSection(id);
+                }}
                 className={cn(
                   "site-chip site-focus snap-start shrink-0 py-1.5 text-xs transition-[color,background-color,border-color,box-shadow] duration-200",
                   active && "site-chip-active shadow-[inset_0_-2px_0_0_rgba(255, 255, 255, 0.55)]",

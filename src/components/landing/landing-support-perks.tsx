@@ -20,10 +20,7 @@ export default function LandingSupportPerks() {
   const reducedMotion = usePrefersReducedMotion();
 
   return (
-    <section
-      id="support"
-      className="relative z-10 scroll-mt-20 px-4 sm:px-6 md:px-12 py-14 sm:py-16 border-t border-white/[0.06]"
-    >
+    <section className="relative z-10 px-4 sm:px-6 md:px-12 py-14 sm:py-16 border-t border-white/[0.06]">
       <div
         className={cn(
           "max-w-3xl mx-auto",

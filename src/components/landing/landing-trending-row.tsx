@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import type { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
+import { HomeScrollRail } from "@/components/home/home-shared";
 
 type Props = {
   anime: IAnime[];
@@ -41,19 +42,19 @@ export default function LandingTrendingRow({ anime, loading }: Props) {
           </Link>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-momentum snap-x snap-mandatory -mx-1 px-1">
+        <HomeScrollRail edgeFade={false}>
           {loading
             ? Array.from({ length: 6 }).map((_, i) => (
                 <div
                   key={i}
-                  className="shrink-0 snap-start w-[110px] sm:w-[128px] aspect-[2/3] rounded-xl bg-white/[0.04] animate-pulse"
+                  className="shrink-0 w-[110px] sm:w-[128px] aspect-[2/3] rounded-xl bg-white/[0.04] animate-pulse"
                 />
               ))
             : items.map((item) => (
                 <Link
                   key={item.id}
                   href={`${ROUTES.ANIME_DETAILS}/${item.id}`}
-                  className="group shrink-0 snap-start w-[110px] sm:w-[128px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-xl"
+                  className="group shrink-0 w-[110px] sm:w-[128px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-xl"
                   aria-label={item.name}
                 >
                   <div className="relative aspect-[2/3] rounded-xl overflow-hidden ring-1 ring-white/[0.08] group-hover:ring-primary/30 transition-all duration-300">
@@ -73,7 +74,7 @@ export default function LandingTrendingRow({ anime, loading }: Props) {
                   </div>
                 </Link>
               ))}
-        </div>
+        </HomeScrollRail>
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { HelpCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -110,20 +110,29 @@ export default function FaqContent({ initialData }: Props) {
     [articles],
   );
 
+  // Only scroll for the first hash apply + real hashchange — re-running when
+  // `articles`/`openQuestion` identity changes was yanking scroll back up.
+  const initialHashApplied = useRef(false);
   useEffect(() => {
-    const applyHash = () => {
+    const applyHash = (scroll: boolean) => {
       const hash = window.location.hash.replace(/^#/, "");
       if (!hash) return;
       if (articles.some((item) => item.id === hash)) {
-        openQuestion(hash, { replaceHash: false });
+        openQuestion(hash, { replaceHash: false, scroll });
       } else if (categoryMeta.some((c) => c.id === hash)) {
         setActiveCategory(hash);
-        document.getElementById(`faq-cat-${hash}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (scroll) {
+          document.getElementById(`faq-cat-${hash}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       }
     };
-    applyHash();
-    window.addEventListener("hashchange", applyHash);
-    return () => window.removeEventListener("hashchange", applyHash);
+    if (!initialHashApplied.current && articles.length > 0) {
+      initialHashApplied.current = true;
+      applyHash(true);
+    }
+    const onHashChange = () => applyHash(true);
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, [openQuestion, articles, categoryMeta]);
 
   useEffect(() => {

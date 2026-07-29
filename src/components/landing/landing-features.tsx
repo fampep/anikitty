@@ -25,10 +25,7 @@ export default function LandingFeatures() {
   const t = useT();
 
   return (
-    <section
-      id="features"
-      className="relative z-10 scroll-mt-20 px-4 sm:px-6 md:px-12 py-14 sm:py-16 border-t border-white/[0.06]"
-    >
+    <section className="relative z-10 px-4 sm:px-6 md:px-12 py-14 sm:py-16 border-t border-white/[0.06]">
       <div className="max-w-6xl mx-auto">
         <p className="site-label mb-2 text-center">{t("landing.featuresLabel")}</p>
         <h2 className="text-xl sm:text-2xl font-bold text-white/90 text-center mb-3">

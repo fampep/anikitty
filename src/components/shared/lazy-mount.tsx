@@ -7,9 +7,15 @@ type Props = {
   rootMargin?: string;
   minHeight?: number | string;
   className?: string;
+  id?: string;
   onVisible?: () => void;
   /** Keep mounted forever after first reveal (default: unmount when off-screen). */
   keepMounted?: boolean;
+  /**
+   * Keep `minHeight` as a floor after reveal. Prevents jump-back-up when
+   * lazy children mount shorter than the placeholder (or briefly return null).
+   */
+  retainMinHeight?: boolean;
 };
 
 function toMinHeight(value: number | string | undefined): string | undefined {
@@ -26,8 +32,10 @@ export default function LazyMount({
   rootMargin = "320px 0px",
   minHeight,
   className,
+  id,
   onVisible,
   keepMounted = false,
+  retainMinHeight = false,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -60,10 +68,11 @@ export default function LazyMount({
   }, [rootMargin, keepMounted]);
 
   const reservedMin = toMinHeight(minHeight);
-  const style = !visible && reservedMin ? { minHeight: reservedMin } : undefined;
+  const style =
+    reservedMin && (!visible || retainMinHeight) ? { minHeight: reservedMin } : undefined;
 
   return (
-    <div ref={ref} className={className} style={style}>
+    <div ref={ref} id={id} className={className} style={style}>
       {visible ? children : null}
     </div>
   );

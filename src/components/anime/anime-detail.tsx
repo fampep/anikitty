@@ -261,13 +261,24 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     else params.set("tab", next);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    if (typeof window !== "undefined") {
+    // Keep tab state in the query string only — writing a hash + scrollIntoView
+    // fought page scroll (smooth hash targeting / sticky chrome bounce).
+    if (typeof window !== "undefined" && window.location.hash) {
       const url = new URL(window.location.href);
-      url.hash = next === "overview" ? "" : next;
-      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+      url.hash = "";
+      window.history.replaceState(null, "", `${url.pathname}${url.search}`);
     }
     requestAnimationFrame(() => {
-      document.getElementById("anime-tabs-panel")?.scrollIntoView({
+      const el = document.getElementById("anime-tabs-panel");
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const nav =
+        parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--nav-total-height"),
+        ) || 64;
+      // Sticky tabs already parked under the nav — don't yank scroll back up.
+      if (rect.top <= nav + 12 && rect.bottom > nav + 96) return;
+      el.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });

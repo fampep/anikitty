@@ -193,7 +193,16 @@ export default function LandingHero({ poster }: Props) {
               </span>
               <a
                 href="#features"
-                onClick={() => trackEvent("landing_learn_more")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  trackEvent("landing_learn_more");
+                  document
+                    .getElementById("features")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  // Don't leave a sticky hash — LazyMount remounts / soft nav
+                  // re-apply it and yank scroll back up (same as home quick nav).
+                  window.history.replaceState(null, "", "/");
+                }}
                 className="inline-flex items-center px-4 py-2 text-[13px] font-semibold text-white/45 hover:text-white/80 transition-colors rounded-xl"
               >
                 {t("landing.learnMore")}

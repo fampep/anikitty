@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarDays, Clock } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
+import { HomeScrollRail } from "@/components/home/home-shared";
 
 type ScheduleItem = {
   id: string;
@@ -20,8 +21,7 @@ function formatAiringTime(ts: number) {
 
 export default function LandingScheduleStrip() {
   const t = useT();
-  const [items, setItems] = useState<ScheduleItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<ScheduleItem[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,16 +33,14 @@ export default function LandingScheduleStrip() {
       })
       .catch(() => {
         if (!cancelled) setItems([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  if (!loading && items.length === 0) return null;
+  // Wait for data before painting — avoid skeleton→null collapse that jumps scroll up.
+  if (!items || items.length === 0) return null;
 
   return (
     <section className="relative z-10 px-4 sm:px-6 md:px-12 py-10 sm:py-12 border-t border-white/[0.06]">
@@ -67,35 +65,28 @@ export default function LandingScheduleStrip() {
           </Link>
         </div>
 
-        <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide scroll-momentum -mx-1 px-1">
-          {loading
-            ? Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="shrink-0 w-[200px] h-[72px] rounded-xl bg-white/[0.04] animate-pulse"
-                />
-              ))
-            : items.map((item) => (
-                <Link
-                  key={`${item.id}-${item.episode}`}
-                  href={`${ROUTES.ANIME_DETAILS}/${item.id}`}
-                  className="shrink-0 w-[220px] rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 py-3 hover:border-white/15 transition-colors"
-                >
-                  <p className="text-[13px] font-semibold text-white/85 line-clamp-1 mb-1">
-                    {item.name}
-                  </p>
-                  <div className="flex items-center justify-between gap-2 text-[11px] text-white/40 font-mono">
-                    <span>{t("home.episode", { n: item.episode })}</span>
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {item.secondsUntilAiring <= 0
-                        ? t("home.aired")
-                        : formatAiringTime(item.airingTimestamp)}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-        </div>
+        <HomeScrollRail edgeFade={false}>
+          {items.map((item) => (
+            <Link
+              key={`${item.id}-${item.episode}`}
+              href={`${ROUTES.ANIME_DETAILS}/${item.id}`}
+              className="shrink-0 w-[220px] rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 py-3 hover:border-white/15 transition-colors"
+            >
+              <p className="text-[13px] font-semibold text-white/85 line-clamp-1 mb-1">
+                {item.name}
+              </p>
+              <div className="flex items-center justify-between gap-2 text-[11px] text-white/40 font-mono">
+                <span>{t("home.episode", { n: item.episode })}</span>
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {item.secondsUntilAiring <= 0
+                    ? t("home.aired")
+                    : formatAiringTime(item.airingTimestamp)}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </HomeScrollRail>
       </div>
     </section>
   );

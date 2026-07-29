@@ -153,6 +153,17 @@ export function useHomeRailScroll(scrollRef: RefObject<HTMLDivElement | null>) {
   return { canScrollLeft, canScrollRight, scrollByDir, update };
 }
 
+const RAIL_DRAG_THRESHOLD_PX = 8;
+
+function isRailInteractiveTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      "a,button,input,textarea,select,label,[role='button'],[role='link'],[data-no-rail-drag]",
+    ),
+  );
+}
+
 export function HomeScrollRail({
   children,
   className,
@@ -170,8 +181,17 @@ export function HomeScrollRail({
   const ref = externalRef ?? internalRef;
   const [fadeLeft, setFadeLeft] = useState(false);
   const [fadeRight, setFadeRight] = useState(false);
-  const drag = useRef<{ active: boolean; startX: number; startScroll: number; moved: boolean }>({
-    active: false,
+  const drag = useRef<{
+    tracking: boolean;
+    dragging: boolean;
+    pointerId: number | null;
+    startX: number;
+    startScroll: number;
+    moved: boolean;
+  }>({
+    tracking: false,
+    dragging: false,
+    pointerId: null,
     startX: 0,
     startScroll: 0,
     moved: false,
@@ -204,11 +224,16 @@ export function HomeScrollRail({
     const el = ref.current;
     if (!el) return;
 
+    // Only redirect wheel when the user is clearly scrolling sideways (or Shift+wheel).
+    // Stealing pure vertical wheel was fighting page scroll and felt like bounce-back.
     const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
       if (el.scrollWidth <= el.clientWidth) return;
+      const horizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
+      if (!horizontalIntent) return;
+      const delta = e.shiftKey && Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+      if (delta === 0) return;
       e.preventDefault();
-      el.scrollLeft += e.deltaY;
+      el.scrollLeft += delta;
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
@@ -217,33 +242,50 @@ export function HomeScrollRail({
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    // Never start drag-scroll from poster Watch / links / buttons.
+    if (isRailInteractiveTarget(e.target)) return;
     const el = ref.current;
     if (!el) return;
     drag.current = {
-      active: true,
+      tracking: true,
+      dragging: false,
+      pointerId: e.pointerId,
       startX: e.clientX,
       startScroll: el.scrollLeft,
       moved: false,
     };
-    el.setPointerCapture(e.pointerId);
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!drag.current.active) return;
+    if (!drag.current.tracking || drag.current.pointerId !== e.pointerId) return;
     const el = ref.current;
     if (!el) return;
     const dx = e.clientX - drag.current.startX;
-    if (Math.abs(dx) > 4) drag.current.moved = true;
+    if (!drag.current.dragging) {
+      if (Math.abs(dx) < RAIL_DRAG_THRESHOLD_PX) return;
+      drag.current.dragging = true;
+      drag.current.moved = true;
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
     el.scrollLeft = drag.current.startScroll - dx;
   };
 
   const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (!drag.current.active) return;
-    drag.current.active = false;
-    try {
-      ref.current?.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
+    if (!drag.current.tracking || drag.current.pointerId !== e.pointerId) return;
+    const wasDragging = drag.current.dragging;
+    drag.current.tracking = false;
+    drag.current.dragging = false;
+    drag.current.pointerId = null;
+    if (wasDragging) {
+      try {
+        ref.current?.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
   };
 

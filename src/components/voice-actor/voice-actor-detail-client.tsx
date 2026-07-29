@@ -256,7 +256,18 @@ export default function VoiceActorDetailClient({
     router.replace(qs ? `?${qs}` : "?", { scroll: false });
     setRoleFilter("all");
     setVisible(REVEAL_PAGE);
-    document.getElementById("va-tabs-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    requestAnimationFrame(() => {
+      const el = document.getElementById("va-tabs-panel");
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const nav =
+        parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue("--nav-total-height"),
+        ) || 64;
+      // Sticky tabs already in view — avoid bounce-back on every tab click.
+      if (rect.top <= nav + 12 && rect.bottom > nav + 96) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
 
   const filteredRoles = useMemo(() => {

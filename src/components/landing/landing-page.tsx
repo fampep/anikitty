@@ -25,6 +25,8 @@ const LandingTestimonials = dynamic(() => import("@/components/landing/landing-t
 const LandingSupportPerks = dynamic(() => import("@/components/landing/landing-support-perks"));
 const LandingFinalCta = dynamic(() => import("@/components/landing/landing-final-cta"));
 
+const LANDING_HASH_IDS = new Set(["features", "support"]);
+
 export default function LandingPage() {
   const router = useRouter();
   const { data: homeData, isLoading: homeLoading } = useGetHomeCriticalData();
@@ -36,6 +38,21 @@ export default function LandingPage() {
     router.prefetch(ROUTES.TRENDING);
   }, [router]);
 
+  // One-shot hash scroll, then clear — sticky #features/#support + LazyMount
+  // remounts were yanking scroll back up (same class of bug as home quick nav).
+  useEffect(() => {
+    const hash = window.location.hash.replace(/^#/, "");
+    if (!hash || !LANDING_HASH_IDS.has(hash)) return;
+
+    const apply = () => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.replaceState(null, "", "/");
+    };
+
+    // Target wrappers are always in the DOM; children may still be lazy.
+    requestAnimationFrame(apply);
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-[#09090b] text-white overflow-x-hidden flex flex-col">
       <LandingHero poster={spotlight?.poster ?? null} />
@@ -43,51 +60,62 @@ export default function LandingPage() {
       <LandingWatchYourWay />
       <LandingTrendingRow anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
 
-      <LazyMount keepMounted minHeight={280} rootMargin="400px 0px">
-        <LandingScheduleStrip />
-      </LazyMount>
+      {/* Schedule/community can be empty — no LazyMount floor (avoids gap or collapse jump). */}
+      <LandingScheduleStrip />
 
-      <LazyMount keepMounted minHeight={420} rootMargin="400px 0px">
+      <LazyMount
+        id="features"
+        keepMounted
+        retainMinHeight
+        minHeight={420}
+        rootMargin="400px 0px"
+        className="scroll-mt-20"
+      >
         <LandingFeatures />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={380} rootMargin="400px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={380} rootMargin="400px 0px">
         <LandingWhy />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={480} rootMargin="400px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={480} rootMargin="400px 0px">
         <LandingPlayerPreview />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={320} rootMargin="400px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={320} rootMargin="400px 0px">
         <LandingSyncStory />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={320} rootMargin="400px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={320} rootMargin="400px 0px">
         <LandingPersonalized />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={400} rootMargin="400px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={400} rootMargin="400px 0px">
         <LandingSearchDemo />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={320} rootMargin="400px 0px">
-        <LandingCommunity />
-      </LazyMount>
+      <LandingCommunity />
 
-      <LazyMount keepMounted minHeight={360} rootMargin="400px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
         <LandingFaq />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={280} rootMargin="400px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={280} rootMargin="400px 0px">
         <LandingTestimonials />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={360} rootMargin="400px 0px">
+      <LazyMount
+        id="support"
+        keepMounted
+        retainMinHeight
+        minHeight={360}
+        rootMargin="400px 0px"
+        className="scroll-mt-20"
+      >
         <LandingSupportPerks />
       </LazyMount>
 
-      <LazyMount keepMounted minHeight={220} rootMargin="360px 0px">
+      <LazyMount keepMounted retainMinHeight minHeight={220} rootMargin="360px 0px">
         <LandingFinalCta />
       </LazyMount>
 

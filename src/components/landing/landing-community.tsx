@@ -30,7 +30,8 @@ export default function LandingCommunity() {
   const { data, isLoading, isError } = useLatestComments(6, true);
   const comments = data ?? [];
 
-  if (!isLoading && (isError || comments.length === 0)) return null;
+  // Wait for data before painting — avoid skeleton→empty collapse that jumps scroll up.
+  if (isLoading || isError || comments.length === 0) return null;
 
   return (
     <section className="relative z-10 px-4 sm:px-6 md:px-12 py-14 sm:py-16 border-t border-white/[0.06]">
@@ -56,39 +57,35 @@ export default function LandingCommunity() {
         </div>
 
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {isLoading
-            ? Array.from({ length: 4 }).map((_, i) => (
-                <li key={i} className="h-24 rounded-xl bg-white/[0.04] animate-pulse" />
-              ))
-            : comments.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={commentHref(c)}
-                    className="flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5 hover:border-white/14 transition-colors h-full"
-                  >
-                    <FramedAvatar
-                      username={c.username}
-                      url={c.avatarUrl ?? undefined}
-                      frameSlug={c.equippedFrame}
-                      className="w-9 h-9 shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-semibold text-white/80 mb-1 truncate">
-                        <CosmeticUsername username={c.username} iconSlug={c.equippedIcon} />
-                      </p>
-                      <p className="text-[13px] text-white/50 leading-relaxed line-clamp-2">
-                        {c.isSpoiler ? t("comments.spoilerBadge") : snippet(c.body || t("home.sharedGif"))}
-                      </p>
-                      {c.animeTitle ? (
-                        <p className="text-[10px] text-white/28 font-mono mt-1.5 truncate">
-                          {c.animeTitle}
-                          {c.episodeNumber != null ? ` · EP ${c.episodeNumber}` : ""}
-                        </p>
-                      ) : null}
-                    </div>
-                  </Link>
-                </li>
-              ))}
+          {comments.map((c) => (
+            <li key={c.id}>
+              <Link
+                href={commentHref(c)}
+                className="flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-3.5 hover:border-white/14 transition-colors h-full"
+              >
+                <FramedAvatar
+                  username={c.username}
+                  url={c.avatarUrl ?? undefined}
+                  frameSlug={c.equippedFrame}
+                  className="w-9 h-9 shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px] font-semibold text-white/80 mb-1 truncate">
+                    <CosmeticUsername username={c.username} iconSlug={c.equippedIcon} />
+                  </p>
+                  <p className="text-[13px] text-white/50 leading-relaxed line-clamp-2">
+                    {c.isSpoiler ? t("comments.spoilerBadge") : snippet(c.body || t("home.sharedGif"))}
+                  </p>
+                  {c.animeTitle ? (
+                    <p className="text-[10px] text-white/28 font-mono mt-1.5 truncate">
+                      {c.animeTitle}
+                      {c.episodeNumber != null ? ` · EP ${c.episodeNumber}` : ""}
+                    </p>
+                  ) : null}
+                </div>
+              </Link>
+            </li>
+          ))}
         </ul>
       </div>
     </section>

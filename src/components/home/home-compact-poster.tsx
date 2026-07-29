@@ -141,11 +141,16 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
           </div>
         ) : null}
 
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/55 opacity-0 [@media(hover:hover)]:group-hover/poster:opacity-100 transition-opacity duration-150 pointer-events-none [@media(hover:hover)]:group-hover/poster:pointer-events-auto">
+        <div
+          data-no-rail-drag
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/55 opacity-0 [@media(hover:hover)]:group-hover/poster:opacity-100 transition-opacity duration-150 pointer-events-none [@media(hover:hover)]:group-hover/poster:pointer-events-auto"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
           <Link
             href={playHref}
             className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-black hover:bg-white/90"
             aria-label={t("home.watchNow")}
+            onClick={(e) => e.stopPropagation()}
           >
             <Play className="h-3.5 w-3.5 fill-current" />
             {t("home.watchNow")}
@@ -173,6 +178,7 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
               href={detailsHref}
               className="size-8 rounded-full bg-black/55 text-white/85 hover:bg-white/15 flex items-center justify-center"
               aria-label={t("home.details")}
+              onClick={(e) => e.stopPropagation()}
             >
               <Info className="h-3.5 w-3.5" />
             </Link>

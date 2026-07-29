@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Ban,
@@ -95,25 +95,36 @@ export default function DmcaContent() {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  // Scroll only on initial hash / hashchange — never from IntersectionObserver
+  // (spy only updates activeId). Guard remount re-applies with a ref.
+  const initialHashApplied = useRef(false);
   useEffect(() => {
-    const applyHash = () => {
+    const applyHash = (scroll: boolean) => {
       const hash = window.location.hash.replace(/^#/, "");
       if (!hash) return;
       if (DMCA_TOC.some((s) => s.id === hash)) {
         setActiveId(hash as DmcaSectionId);
-        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (scroll) {
+          document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
         return;
       }
       if (DMCA_FAQ_ITEMS.some((f) => f.id === hash)) {
         setActiveId("faq");
-        requestAnimationFrame(() => {
-          document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
+        if (scroll) {
+          requestAnimationFrame(() => {
+            document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }
       }
     };
-    applyHash();
-    window.addEventListener("hashchange", applyHash);
-    return () => window.removeEventListener("hashchange", applyHash);
+    if (!initialHashApplied.current) {
+      initialHashApplied.current = true;
+      applyHash(true);
+    }
+    const onHashChange = () => applyHash(true);
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
   useEffect(() => {
