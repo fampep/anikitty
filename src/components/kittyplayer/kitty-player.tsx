@@ -2443,9 +2443,7 @@ export function KittyPlayer({
       };
       video.addEventListener("canplay", onCanPlayStartup);
 
-      // EarnVids needs a longer first-hop budget; keep it modest so failed
-      // loads recover without sitting on "Loading stream…" for ages.
-      armColdWatch(earnVidsLike ? 5_000 : 5_000, 0);
+      armColdWatch(5_000, 0);
 
       hlsAttachCleanup = () => {
         video.removeEventListener("canplay", onCanPlayStartup);
