@@ -1,4 +1,4 @@
-import { getDb, rowsOf } from "@/db";
+import { getDb } from "@/db";
 import { discordWebhooks, discordWebhookLogs } from "@/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { WEBHOOK_EVENTS_BY_TYPE, interpolateTemplate } from "./webhook-events";
