@@ -1744,7 +1744,7 @@
     "sent": "Submitted — you'll get a notification when it's reviewed.",
     "failed": "Could not submit skip times",
     "needSegment": "Mark at least a full opening or credits range.",
-    "pending": "You already have a pending submission for this episode.",
+    "pending": "You have a submission awaiting review for this episode — you can still submit other segments (intro, credits, etc.).",
     "approved": "Your last submission for this episode was approved.",
     "rejected": "Your last submission was declined — you can submit updated times.",
     "liveTimes": "Live community times for this episode",

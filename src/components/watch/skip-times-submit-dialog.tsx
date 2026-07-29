@@ -150,23 +150,9 @@ export default function SkipTimesSubmitDialog({
         );
         const subData = await subRes.json();
         if (cancelled) return;
-        const sub = subData.submission;
-        setPendingStatus(sub?.status ?? null);
-        if (sub?.status === "pending") {
-          if (isSkipSegmentType(sub.segmentType)) setSegmentType(sub.segmentType);
-          const eps = sub.episodes?.length ? sub.episodes.join(",") : String(sub.episode ?? episode);
-          setEpisodesInput(eps);
-          if (sub.noSegment) {
-            setStart("");
-            setEnd("");
-          } else {
-            const s = sub.startSec ?? sub.introStart ?? sub.outroStart;
-            const e = sub.endSec ?? sub.introEnd ?? sub.outroEnd;
-            setStart(s != null ? formatSkipSeconds(s) : "");
-            setEnd(e != null ? formatSkipSeconds(e) : "");
-          }
-          if (sub.durationSec != null) setDuration(formatSkipSeconds(sub.durationSec));
-        }
+        // Status banner only — do not lock the form or prefill, so users can
+        // submit intro + credits + other segments while one awaits review.
+        setPendingStatus(subData.submission?.status ?? null);
       } catch {
         if (!cancelled) setPendingStatus(null);
       }
@@ -437,7 +423,7 @@ export default function SkipTimesSubmitDialog({
                 <button
                   type="button"
                   onClick={() => void submitPayload(true)}
-                  disabled={submitting || pendingStatus === "pending"}
+                  disabled={submitting}
                   className="px-3.5 py-2 rounded-md border border-white/10 text-xs font-semibold text-white/60 hover:bg-white/5 disabled:opacity-40 transition-colors"
                 >
                   {t("skipSubmit.noIntro")}
@@ -446,7 +432,7 @@ export default function SkipTimesSubmitDialog({
               <button
                 type="button"
                 onClick={() => void submitPayload(false)}
-                disabled={submitting || pendingStatus === "pending"}
+                disabled={submitting}
                 className="px-3.5 py-2 rounded-md text-xs font-semibold bg-teal-400 text-zinc-950 hover:bg-teal-300 disabled:opacity-40 transition-colors"
               >
                 {submitting ? (

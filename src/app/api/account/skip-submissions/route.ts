@@ -147,12 +147,16 @@ export async function POST(req: Request) {
 
   const db = getDb();
 
-  // Block if any pending submission overlaps this anime + segment + episodes
+  // Only block exact duplicate pending submissions (same segment + episodes + times).
+  // Users may submit intro + credits + other types, or different episodes, while others await review.
   const pendingCandidates = await db
     .select({
       id: episodeSkipSubmissions.id,
       episode: episodeSkipSubmissions.episode,
       episodes: episodeSkipSubmissions.episodes,
+      startSec: episodeSkipSubmissions.startSec,
+      endSec: episodeSkipSubmissions.endSec,
+      noSegment: episodeSkipSubmissions.noSegment,
     })
     .from(episodeSkipSubmissions)
     .where(
@@ -165,15 +169,25 @@ export async function POST(req: Request) {
     )
     .limit(50);
 
-  const episodeSet = new Set(episodes);
-  const existingPending = pendingCandidates.find((row) => {
-    const eps = row.episodes && row.episodes.length > 0 ? row.episodes : [row.episode];
-    return eps.some((ep) => episodeSet.has(ep));
+  const sameEpisodeSet = (a: number[], b: number[]) =>
+    a.length === b.length && a.every((ep, i) => ep === b[i]);
+  const sameTime = (a: number | null, b: number | null) => {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return Math.abs(a - b) < 0.05;
+  };
+
+  const exactDuplicate = pendingCandidates.find((row) => {
+    const eps = (row.episodes && row.episodes.length > 0 ? row.episodes : [row.episode]).slice().sort((x, y) => x - y);
+    if (!sameEpisodeSet(eps, episodes)) return false;
+    if (Boolean(row.noSegment) !== noSegment) return false;
+    if (noSegment) return true;
+    return sameTime(row.startSec, resolvedStart) && sameTime(row.endSec, resolvedEnd);
   });
 
-  if (existingPending) {
+  if (exactDuplicate) {
     return NextResponse.json(
-      { error: "You already have a pending submission for this segment on overlapping episodes" },
+      { error: "You already have an identical pending submission for this segment" },
       { status: 409 },
     );
   }
