@@ -56,11 +56,11 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
 export const KITTY_PROVIDERS = [
-  "AniWatch",
-  "AniBD",
-  "Anikoto",
-  "Animeya",
   "AniSnatch",
+  "Anikoto",
+  "AniWatch",
+  "Animeya",
+  "AniBD",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -103,29 +103,16 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
-    id: "AniWatch",
-    label: "Juliet",
+    id: "AniSnatch",
+    label: "Sierra",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
     hardSub: false,
     nativeSubs: true,
-    kittySubs: true,
-    supportsMulti: true,
+    kittySubs: false,
     hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "AniBD",
-    label: "BD",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · soft subs",
   },
   {
     id: "Anikoto",
@@ -137,6 +124,19 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hardSub: false,
     nativeSubs: true,
     kittySubs: true,
+    hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "AniWatch",
+    label: "Juliet",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: true,
+    supportsMulti: true,
     hint: "SUB · DUB · soft subs",
   },
   {
@@ -152,16 +152,16 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs · VidNest",
   },
   {
-    id: "AniSnatch",
-    label: "Sierra",
+    id: "AniBD",
+    label: "BD",
     group: "featured",
     supportsSub: true,
-    supportsDub: true,
+    supportsDub: false,
     softSub: true,
     hardSub: false,
     nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs",
+    kittySubs: true,
+    hint: "SUB · soft subs",
   },
   {
     id: "Anitaku",
@@ -262,14 +262,15 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. Top 5 are Recommended; AniSnatch (Sierra) is #5.
+ * tries these before anything else. Top 5 Recommended:
+ * 1 Sierra (AniSnatch), 2 Kilo, 3 Juliet, 4 Ya, 5 BD.
  * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
-  "AniWatch",
-  "AniBD",
-  "Anikoto",
-  "Animeya",
   "AniSnatch",
+  "Anikoto",
+  "AniWatch",
+  "Animeya",
+  "AniBD",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",

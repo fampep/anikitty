@@ -34,12 +34,6 @@ import {
   type AllanimeMirrorId,
 } from "@/lib/providers/allanime-api";
 import {
-  DEFAULT_ANISNATCH_SERVER,
-  isAnisnatchServerId,
-  probeAnisnatchServerCapabilities,
-  type AnisnatchServerId,
-} from "@/lib/providers/anisnatch-api";
-import {
   probeAnisnatchEpisodeCapabilities,
 } from "@/lib/providers/anisnatch-api";
 import {
@@ -51,6 +45,7 @@ import {
 import { isSubtitleTrack, type StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 
 const EMPTY_MULTI_SERVER_FIELDS = {
+  anisnatchServers: {},
   allanimeServers: {},
   mkissaServers: {},
   allanimeServerRows: [] as AllanimeKittyServer[],
@@ -61,14 +56,15 @@ const PROBE_TIMEOUT_MS = 12_000;
 /** Keep capability fan-out light — each probe holds stream JSON in memory. */
 const DIRECT_PROBE_CONCURRENCY = 2;
 /** First-pass probes: top of site priority only (rest deferred to `tier=rest`). */
-const FEATURED_PROBE_LIMIT = 4;
+const FEATURED_PROBE_LIMIT = 5;
 
 /**
  * Multi-server providers are probed via `/servers` (mirrors / site lines).
  * Direct stream-direct often false-negatives (Echo needs a mirror) and used to
  * overwrite good multi results in featured merge.
+ * AniSnatch is Kilo-style (single stream-direct) — not multi-server.
  */
-const MULTI_SERVER_PROBE_PROVIDERS = new Set<KittyProvider>(["MKissa", "AniSnatch"]);
+const MULTI_SERVER_PROBE_PROVIDERS = new Set<KittyProvider>(["MKissa"]);
 
 /** Providers that often only succeed on non-primary KittyAPI nodes (sequential). */
 const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["Anikoto"]);
@@ -213,17 +209,14 @@ async function probeMultiProviderEpisodeCapabilities(
   episode: number,
   title?: string | null,
 ) {
-  const [anisnatch, mkissa] = await Promise.all([
-    probeAnisnatchEpisodeCapabilities(anilistId, episode, title),
-    probeAllanimeEpisodeCapabilities("MKissa", anilistId, episode, title),
-  ]);
+  // AniSnatch is direct stream-direct (like Kilo); only MKissa keeps /servers probes.
+  const mkissa = await probeAllanimeEpisodeCapabilities("MKissa", anilistId, episode, title);
 
   return {
     providers: {
-      AniSnatch: anisnatch.provider,
       MKissa: mkissa.provider,
     } satisfies Partial<Record<KittyProvider, StreamCapabilities>>,
-    anisnatchServers: anisnatch.servers,
+    anisnatchServers: {},
     allanimeServers: {},
     mkissaServers: mkissa.servers,
     allanimeServerRows: [],
@@ -307,11 +300,10 @@ export async function fetchActiveProviderStreamCapabilities(
   const { provider } = target;
 
   if (provider === "AniSnatch") {
-    const server = target.anisnatchServer ?? DEFAULT_ANISNATCH_SERVER;
-    const caps = await probeAnisnatchServerCapabilities(anilistId, episode, server, title);
+    const episodeCaps = await probeAnisnatchEpisodeCapabilities(anilistId, episode, title);
     return {
-      providers: { AniSnatch: caps },
-      anisnatchServers: { [server]: caps },
+      providers: { AniSnatch: episodeCaps.provider },
+      anisnatchServers: {},
       ...EMPTY_MULTI_SERVER_FIELDS,
     };
   }
@@ -346,11 +338,6 @@ export function parseStreamCapabilityTarget(searchParams: URLSearchParams): Stre
   if (!provider || !isKittyProvider(provider)) return null;
 
   const target: StreamCapabilityTarget = { provider };
-
-  const anisnatchServer = searchParams.get("anisnatchServer");
-  if (anisnatchServer && isAnisnatchServerId(anisnatchServer)) {
-    target.anisnatchServer = anisnatchServer;
-  }
 
   const mkissaMirror = searchParams.get("mkissaMirror");
   if (mkissaMirror && isAllanimeMirrorId(mkissaMirror)) {

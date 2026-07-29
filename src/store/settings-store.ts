@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 87,
+      version: 88,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1164,6 +1164,11 @@ export const useSettingsStore = create<ISettingsStore>()(
           // AniSnatch (Sierra) joins Recommended as #5 after Ya; expand featured top 5.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniWatch", next.providerOrder);
+        }
+        if (version < 88) {
+          // Default order: Sierra → Kilo → Juliet → Ya → BD; Sierra is site default.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniSnatch", next.providerOrder);
         }
         return next as ISettingsStore;
       },

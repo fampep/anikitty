@@ -33,12 +33,7 @@ import { fetchAniwatchVideoStream } from "@/lib/providers/aniwatch-api";
 import { fetchSenshiVideoStream } from "@/lib/providers/senshi-api";
 import { fetchKickAssAnimeVideoStream } from "@/lib/providers/kickassanime-api";
 import { fetchKuroHostVideoStream } from "@/lib/providers/kurohost-api";
-import {
-  DEFAULT_ANISNATCH_SERVER,
-  fetchAnisnatchVideoStream,
-  isAnisnatchServerId,
-  type AnisnatchServerId,
-} from "@/lib/providers/anisnatch-api";
+import { fetchAnisnatchVideoStream } from "@/lib/providers/anisnatch-api";
 import {
   handleKittyApiRequest,
   getKittyRequestNodeId,
@@ -86,7 +81,6 @@ import { KITTY_SUB_SOURCE_PROVIDER } from "@/lib/kitty/kitty-subs-api";
 import { isLikelyMediaStreamUrl } from "@/lib/kitty/stream-url-guard";
 
 const SAFE_PROVIDER = /^[a-zA-Z0-9_-]{1,40}$/;
-const SAFE_ANISNATCH_SERVER = /^[a-z0-9]{2,12}$/;
 const SAFE_ALLANIME_MIRROR = /^[a-zA-Z0-9_-]{1,40}$/;
 const SAFE_ANIKURO_SERVER = /^[a-z0-9-]{2,16}$/;
 const SAFE_ANIWAVES_SERVER = /^[0-9]{1,3}$/;
@@ -153,7 +147,6 @@ export async function GET(req: Request) {
     searchParams.get("provider") || DEFAULT_KITTY_PROVIDER,
   );
   const preferHardSub = searchParams.get("preferHardSub") === "true";
-  const anisnatchServerParam = searchParams.get("anisnatchServer");
   const mkissaMirrorParam = searchParams.get("mkissaMirror");
   const anikuroServerParam = searchParams.get("anikuroServer");
   const aniwavesServerParam = searchParams.get("aniwavesServer");
@@ -181,15 +174,6 @@ export async function GET(req: Request) {
     episode: parseInt(episode, 10),
     audio: audio as "sub" | "dub",
   };
-
-  const anisnatchServer =
-    anisnatchServerParam &&
-    SAFE_ANISNATCH_SERVER.test(anisnatchServerParam) &&
-    isAnisnatchServerId(anisnatchServerParam)
-      ? anisnatchServerParam
-      : provider === "AniSnatch"
-        ? DEFAULT_ANISNATCH_SERVER
-        : null;
 
   const mkissaMirror =
     mkissaMirrorParam &&
@@ -785,8 +769,8 @@ export async function GET(req: Request) {
             anilistId: subtitleCtx.anilistId,
             episode: subtitleCtx.episode,
             audio: streamAudio,
-            serverId: anisnatchServer as AnisnatchServerId,
             title: titleParam,
+            refresh: refreshStream,
           });
 
           if (!anisnatch?.file) return null;
