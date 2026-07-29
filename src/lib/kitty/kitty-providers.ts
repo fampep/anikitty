@@ -14,6 +14,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniBD",
   "Anikoto",
   "Animeya",
+  "AniVibe",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -59,6 +60,7 @@ export const KITTY_PROVIDERS = [
   "AniSnatch",
   "Anikoto",
   "AniWatch",
+  "AniVibe",
   "Animeya",
   "AniBD",
   "Anitaku",
@@ -138,6 +140,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     supportsMulti: true,
     hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "AniVibe",
+    label: "Vibe",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs · EarnVids/StreamHG",
   },
   {
     id: "Animeya",
@@ -263,12 +277,13 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. Top 5 Recommended:
- * 1 Sierra (AniSnatch), 2 Kilo, 3 Juliet, 4 Ya, 5 BD.
+ * 1 Sierra (AniSnatch), 2 Kilo, 3 Juliet, 4 Vibe (AniVibe), 5 Ya.
  * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniSnatch",
   "Anikoto",
   "AniWatch",
+  "AniVibe",
   "Animeya",
   "AniBD",
   "Anitaku",
@@ -330,6 +345,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Anitaku",
   "Animeya",
   "AniSnatch",
+  "AniVibe",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -358,6 +374,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
   if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
   if (value === "Sierra" || value === "Snatch") return "AniSnatch";
+  if (value === "Vibe" || value === "AniVibeLive") return "AniVibe";
   // HQ retired — map legacy saves to Juliet (AniZone).
   if (value === "HQ" || value === "AniHQ") return "AniWatch";
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "AniBD";

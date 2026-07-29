@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 88,
+      version: 89,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1169,6 +1169,14 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Default order: Sierra → Kilo → Juliet → Ya → BD; Sierra is site default.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniSnatch", next.providerOrder);
+        }
+        if (version < 89) {
+          // AniVibe (Vibe) becomes Recommended #4 (EarnVids/StreamHG only).
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniSnatch",
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },

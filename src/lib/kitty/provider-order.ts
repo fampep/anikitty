@@ -52,6 +52,10 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("AniSnatch");
         continue;
       }
+      if (item === "Vibe" || item === "AniVibeLive") {
+        push("AniVibe");
+        continue;
+      }
       if (
         item === "Lunar" ||
         item === "Luna" ||
