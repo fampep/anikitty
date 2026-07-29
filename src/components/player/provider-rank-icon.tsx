@@ -3,7 +3,7 @@
 import { RECOMMENDED_PROVIDER_COUNT } from "@/lib/kitty/kitty-providers";
 import { cn } from "@/lib/core/utils";
 
-/** Hex-shield rank badge — recommended (1–4) use teal. */
+/** Hex-shield rank badge — recommended (1–5) use teal. */
 export function ProviderRankIcon({
   rank,
   compact,

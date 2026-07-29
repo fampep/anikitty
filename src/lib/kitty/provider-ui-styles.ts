@@ -163,6 +163,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-teal-400",
     glow: "from-teal-500/20",
   },
+  AniSnatch: {
+    chip: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100/90",
+    pillActive: "border-cyan-400/45 bg-cyan-500/20 text-cyan-50 shadow-[0_0_12px_-4px_rgba(34,211,238,0.35)]",
+    pillIdle: "border-transparent text-cyan-300/45 hover:text-cyan-200/80 hover:bg-cyan-500/[0.06]",
+    dot: "bg-cyan-400",
+    glow: "from-cyan-500/20",
+  },
   Anitaku: {
     chip: "border-lime-400/30 bg-lime-500/10 text-lime-100/90",
     pillActive: "border-lime-400/45 bg-lime-500/20 text-lime-50 shadow-[0_0_12px_-4px_rgba(163,230,53,0.35)]",

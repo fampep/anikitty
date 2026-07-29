@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 86,
+      version: 87,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1159,6 +1159,11 @@ export const useSettingsStore = create<ISettingsStore>()(
             typeof w === "number" && Number.isFinite(w)
               ? Math.min(440, Math.max(260, Math.round(w)))
               : 320;
+        }
+        if (version < 87) {
+          // AniSnatch (Sierra) joins Recommended as #5 after Ya; expand featured top 5.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniWatch", next.providerOrder);
         }
         return next as ISettingsStore;
       },

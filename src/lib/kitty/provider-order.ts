@@ -48,6 +48,10 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
       if (item === "Zenkai") {
         continue;
       }
+      if (item === "Sierra" || item === "Snatch") {
+        push("AniSnatch");
+        continue;
+      }
       if (
         item === "Lunar" ||
         item === "Luna" ||
@@ -58,7 +62,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Animex" ||
         item === "AnimeLok" ||
         item === "Yenime" ||
-        item === "AniSnatch" ||
         item === "HentaiHaven"
       ) {
         continue;

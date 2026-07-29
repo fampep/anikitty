@@ -60,6 +60,7 @@ export const KITTY_PROVIDERS = [
   "AniBD",
   "Anikoto",
   "Animeya",
+  "AniSnatch",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -71,7 +72,7 @@ export const KITTY_PROVIDERS = [
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 4;
+export const RECOMMENDED_PROVIDER_COUNT = 5;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -149,6 +150,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs · VidNest",
+  },
+  {
+    id: "AniSnatch",
+    label: "Sierra",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "Anitaku",
@@ -249,13 +262,14 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. Top 4 are Recommended; Animeya is #4, Anitaku #5.
+ * tries these before anything else. Top 5 are Recommended; AniSnatch (Sierra) is #5.
  * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniWatch",
   "AniBD",
   "Anikoto",
   "Animeya",
+  "AniSnatch",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -314,6 +328,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "MeguAnime",
   "Anitaku",
   "Animeya",
+  "AniSnatch",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -341,6 +356,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Taku") return "Anitaku";
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
   if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
+  if (value === "Sierra" || value === "Snatch") return "AniSnatch";
   // HQ retired — map legacy saves to Juliet (AniZone).
   if (value === "HQ" || value === "AniHQ") return "AniWatch";
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "AniBD";
@@ -354,8 +370,6 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
     value === "Yen" ||
     value === "AniWaves" ||
     value === "Whiskey" ||
-    value === "AniSnatch" ||
-    value === "Sierra" ||
     value === "HentaiHaven" ||
     value === "Haven"
   ) {
