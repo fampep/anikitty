@@ -40,7 +40,7 @@ const CRITICAL_DETAIL_QUERY = `
       studios { nodes { name isAnimationStudio } }
       trailer { id site }
       rankings { rank type context allTime }
-      tags(page: 1, perPage: 30) {
+      tags {
         name
         category
         rank
@@ -122,7 +122,9 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
       category: String(t.category ?? ""),
       rank: typeof t.rank === "number" ? t.rank : 0,
     }))
-    .filter((t: { name: string }) => t.name);
+    .filter((t: { name: string }) => t.name)
+    .sort((a: { rank: number }, b: { rank: number }) => b.rank - a.rank)
+    .slice(0, 30);
 
   const themes = tags
     .filter((t: { category: string }) => /theme/i.test(t.category))
@@ -232,7 +234,7 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
 
 const getCachedCriticalAnime = unstable_cache(
   fetchCriticalAnimePayload,
-  ["anime-details-critical-v2"],
+  ["anime-details-critical-v3"],
   { revalidate: 3600 },
 );
 
