@@ -117,13 +117,61 @@ export function isIOSLike(): boolean {
   );
 }
 
+/** iPhone / iPod only (not iPad) — Element FS is least reliable here. */
+export function isIPhoneLike(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPod/i.test(navigator.userAgent || "");
+}
+
 /**
- * iOS browsers cannot reliably keep custom player chrome with Element FS or
- * video.webkitEnterFullscreen() (native Safari controls). Prefer the CSS
- * immersive host overlay instead.
+ * Prefer CSS immersive (keep kitty chrome) instead of Element FS or
+ * video.webkitEnterFullscreen(). True on iPhone; iPad tries Element FS first.
  */
 export function prefersCssImmersiveFullscreen(): boolean {
-  return isIOSLike();
+  return isIPhoneLike();
+}
+
+/**
+ * Sync a fixed CSS-fullscreen host to the visual viewport (iOS Safari URL bar
+ * show/hide). Returns an unsubscribe. No-ops when VisualViewport is missing.
+ */
+export function bindCssFullscreenToVisualViewport(
+  host: HTMLElement,
+): () => void {
+  if (typeof window === "undefined") return () => {};
+  const vv = window.visualViewport;
+  if (!vv) return () => {};
+
+  const sync = () => {
+    host.style.position = "fixed";
+    host.style.top = `${vv.offsetTop}px`;
+    host.style.left = `${vv.offsetLeft}px`;
+    host.style.width = `${vv.width}px`;
+    host.style.height = `${vv.height}px`;
+    host.style.maxWidth = "none";
+    host.style.maxHeight = "none";
+    host.style.margin = "0";
+    host.style.inset = "auto";
+  };
+
+  sync();
+  vv.addEventListener("resize", sync);
+  vv.addEventListener("scroll", sync);
+  window.addEventListener("orientationchange", sync);
+  return () => {
+    vv.removeEventListener("resize", sync);
+    vv.removeEventListener("scroll", sync);
+    window.removeEventListener("orientationchange", sync);
+    host.style.top = "";
+    host.style.left = "";
+    host.style.width = "";
+    host.style.height = "";
+    host.style.maxWidth = "";
+    host.style.maxHeight = "";
+    host.style.margin = "";
+    host.style.inset = "";
+    host.style.position = "";
+  };
 }
 
 /** Whether <video> exposes webkitEnterFullscreen (exit / sync only — not default enter). */

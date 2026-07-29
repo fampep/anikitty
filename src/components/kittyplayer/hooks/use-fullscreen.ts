@@ -89,9 +89,9 @@ export function usePlayerFullscreen({
         return;
       }
 
-      // iOS (Safari, CriOS, FxiOS, EdgiOS, WebViews): CSS immersive keeps
-      // kitty custom chrome. Do not call video.webkitEnterFullscreen() —
-      // that swaps to Apple's native controls.
+      // iPhone: CSS immersive keeps kitty custom chrome. Do not call
+      // video.webkitEnterFullscreen() — that swaps to Apple's native controls.
+      // iPad tries Element FS below (falls back to CSS on failure).
       if (prefersCssImmersiveFullscreen()) {
         enterCssFullscreen();
         return;

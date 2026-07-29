@@ -19,11 +19,13 @@ import {
 import { createHlsConfig } from "@/lib/kitty/hls-config";
 import { trackEvent } from "@/lib/analytics";
 import {
+  bindCssFullscreenToVisualViewport,
   exitElementFullscreen,
   elementSupportsFullscreenRequest,
   exitVideoWebkitFullscreen,
   getFullscreenElement,
   isElementFullscreen,
+  isIOSLike,
   isVideoWebkitFullscreen,
   onFullscreenChange,
   prefersCssImmersiveFullscreen,
@@ -630,6 +632,7 @@ export function KittyPlayer({
   }, [cssFullscreen, cssFullscreenRef]);
 
   // CSS fullscreen: cover the real viewport (escape .site-page z-1 under nav).
+  // On iOS Safari, pin to visualViewport so the URL bar resize doesn't leave gaps.
   useEffect(() => {
     const host = getFullscreenTarget();
     if (!host) return;
@@ -661,7 +664,12 @@ export function KittyPlayer({
       body.appendChild(host);
     }
 
+    const unbindViewport = prefersCssImmersiveFullscreen() || isIOSLike()
+      ? bindCssFullscreenToVisualViewport(host)
+      : () => {};
+
     return () => {
+      unbindViewport();
       if (persistentHost && peekPersistCssFullscreen()) {
         return;
       }

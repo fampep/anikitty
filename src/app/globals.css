@@ -1436,8 +1436,13 @@ html.anikitty-css-fs body {
   overflow: hidden !important;
   overscroll-behavior: none;
   height: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
   touch-action: none;
   background: #000 !important;
+  /* Prevent iOS bounce / rubber-band behind the player */
+  position: relative;
+  overscroll-behavior-y: none;
 }
 
 /* Hide site chrome — player host lives under main.site-page (z-1), below nav. */
