@@ -1540,11 +1540,17 @@ export function KittyPlayer({
       const resume = qualityResumeRef.current;
       const t =
         resume != null && resume > 0 ? resume : startTimeRef.current;
-      if (t > 0.5 && Number.isFinite(t)) {
-        video.currentTime = t;
-        startAppliedRef.current = true;
-        qualityResumeRef.current = null;
+      if (!(t > 0.5 && Number.isFinite(t))) return;
+      const earnVids =
+        providerRef.current === "AniVibe" ||
+        isEarnVidsLikeHeaders(headersRef.current);
+      // Same EarnVids rule as applyResumeTime — don't seek into an empty buffer.
+      if (earnVids && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+        return;
       }
+      video.currentTime = t;
+      startAppliedRef.current = true;
+      qualityResumeRef.current = null;
     };
 
     const onPlay = () => {
@@ -1704,11 +1710,21 @@ export function KittyPlayer({
         stallWatchRef.current = null;
         const v = videoRef.current;
         if (!v) return;
-        const cold = v.currentTime < 0.35;
+        const earnVidsStall =
+          providerRef.current === "AniVibe" ||
+          isEarnVidsLikeHeaders(headersRef.current);
+        // Resume seek before first buffer makes currentTime>0.35 while still
+        // starting — treat that as cold/startup so we never recoverMediaError.
+        const startupPhase =
+          !startedRef.current ||
+          v.readyState < 2 ||
+          (earnVidsStall && !hlsStartupFragLoadedRef.current);
+        const cold = v.currentTime < 0.35 || startupPhase;
         // Still have future data and advancing — leave alone.
-        if (v.readyState >= 3 && !v.paused && v.currentTime > 0.05) return;
+        if (v.readyState >= 3 && !v.paused && v.currentTime > 0.05 && !startupPhase)
+          return;
         // Mid-playback with enough buffer — not a stall we should force.
-        if (!cold && v.readyState >= 3) return;
+        if (!cold && !startupPhase && v.readyState >= 3) return;
 
         trackEvent("buffer_stall", {
           ready_state: v.readyState,
@@ -1721,12 +1737,13 @@ export function KittyPlayer({
           currentTime: v.currentTime,
           paused: v.paused,
           cold,
+          startupPhase,
         });
 
         // Mirror manual pause→play: resume loading + play.
-        // Do NOT recoverMediaError on cold start — that tears MSE and loops waiting.
+        // Do NOT recoverMediaError on cold/startup — that tears MSE and loops waiting.
         kickHlsLoad();
-        if (!cold) {
+        if (!cold && !startupPhase) {
           try {
             hlsRef.current?.recoverMediaError();
           } catch {
@@ -1737,18 +1754,15 @@ export function KittyPlayer({
 
         // Soft reattach once if still stuck at t≈0. EarnVids first segments are
         // ~2MB via double proxy — reattaching mid-fetch aborts play() and loops
-        // "Loading stream…". Wait much longer and skip if a frag already arrived.
-        if (cold && !coldStartRecoverRef.current) {
+        // "Loading stream…". Wait much longer and skip if a fragment has arrived.
+        if ((cold || startupPhase) && !coldStartRecoverRef.current) {
           coldStartRecoverRef.current = true;
-          const earnVidsCold =
-            providerRef.current === "AniVibe" ||
-            isEarnVidsLikeHeaders(headersRef.current);
-          const reattachDelay = earnVidsCold ? 14_000 : 2200;
+          const reattachDelay = earnVidsStall ? 14_000 : 2200;
           window.setTimeout(() => {
             const again = videoRef.current;
-            if (!again || again.currentTime >= 0.35) return;
+            if (!again || again.currentTime >= 0.35 && again.readyState >= 3) return;
             if (again.readyState >= 3 && !again.paused) return;
-            if (earnVidsCold && hlsStartupFragLoadedRef.current) {
+            if (earnVidsStall && hlsStartupFragLoadedRef.current) {
               // Frag downloaded — keep MSE; nudge load/play instead of teardown.
               logPlayerDebug("stall-skip-reattach-frag-loaded", {
                 readyState: again.readyState,
@@ -1761,7 +1775,7 @@ export function KittyPlayer({
             logPlayerDebug("stall-soft-reattach", {
               readyState: again.readyState,
               currentTime: again.currentTime,
-              earnVidsCold,
+              earnVidsCold: earnVidsStall,
             });
             mediaRetryRef.current = false;
             setAttachNonce((n) => n + 1);
@@ -2065,11 +2079,42 @@ export function KittyPlayer({
       const resume = qualityResumeRef.current;
       const t =
         resume != null && resume > 0 ? resume : startTimeRef.current;
-      if (t > 0.5) {
-        video.currentTime = t;
-        startAppliedRef.current = true;
-        qualityResumeRef.current = null;
+      if (!(t > 0.5)) return;
+
+      const earnVids =
+        providerRef.current === "AniVibe" ||
+        isEarnVidsLikeHeaders(headersRef.current);
+      // EarnVids: seeking before the first fragment is buffered leaves currentTime
+      // in a hole (e.g. 8s/90s) → waiting → recoverMediaError → endless buffer.
+      // Start at 0, then seek once we actually have media.
+      if (earnVids && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+        logPlayerDebug("resume-deferred", {
+          t,
+          readyState: video.readyState,
+        });
+        const flush = () => {
+          if (startAppliedRef.current) return;
+          if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+          logPlayerDebug("resume-flush", {
+            t,
+            readyState: video.readyState,
+          });
+          try {
+            video.currentTime = t;
+          } catch {
+            /* ignore */
+          }
+          startAppliedRef.current = true;
+          qualityResumeRef.current = null;
+        };
+        video.addEventListener("playing", flush, { once: true });
+        video.addEventListener("canplay", flush, { once: true });
+        return;
       }
+
+      video.currentTime = t;
+      startAppliedRef.current = true;
+      qualityResumeRef.current = null;
     };
 
     const tryAutoplay = () => {
