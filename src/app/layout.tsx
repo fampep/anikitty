@@ -37,6 +37,7 @@ import {
   SITE_ICON,
   SITE_ICON_512,
   SITE_LOGO,
+  SITE_LOGO_OG,
 } from "@/lib/seo/site-seo";
 
 const GA_MEASUREMENT_ID =
@@ -89,7 +90,7 @@ export const metadata: Metadata = {
     description: APP_DESCRIPTION,
     images: [
       {
-        url: "/opengraph-image",
+        url: SITE_LOGO_OG,
         width: 1200,
         height: 630,
         alt: "AniKitty — Free Anime Streaming",
@@ -100,7 +101,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: APP_DEFAULT_TITLE,
     description: APP_DESCRIPTION,
-    images: ["/opengraph-image"],
+    images: [SITE_LOGO_OG],
   },
 };
 

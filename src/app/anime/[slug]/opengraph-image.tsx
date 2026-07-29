@@ -1,13 +1,15 @@
 import { ImageResponse } from "next/og";
 import { getAnimeSeoData } from "@/lib/seo/anime-seo-data";
-import { loadNightTokyoFont, OG_SIZE, OG_CONTENT_TYPE } from "@/lib/seo/og-card-image";
-import { APP_URL, SITE_ICON } from "@/lib/seo/site-seo";
+import {
+  loadNightTokyoFont,
+  loadSiteIconSrc,
+  OG_SIZE,
+  OG_CONTENT_TYPE,
+} from "@/lib/seo/og-card-image";
 
 export const alt = "Anime | AniKitty";
 export const size = OG_SIZE;
 export const contentType = OG_CONTENT_TYPE;
-
-const SITE_ICON_URL = `${APP_URL}${SITE_ICON}`;
 
 function scoreColor(score: number): string {
   if (score >= 80) return "#22d3ee";
@@ -35,7 +37,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
     year ? String(year) : null,
   ].filter(Boolean) as string[];
 
-  const fontData = await loadNightTokyoFont();
+  const [fontData, iconSrc] = await Promise.all([loadNightTokyoFont(), loadSiteIconSrc()]);
 
   return new ImageResponse(
     (
@@ -88,13 +90,13 @@ export default async function Image({ params }: { params: { slug: string } }) {
         >
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={SITE_ICON_URL} alt="AniKitty" height={44} style={{ objectFit: "contain" }} />
+            <img src={iconSrc} alt="AniKitty" height={44} style={{ objectFit: "contain" }} />
             <div
               style={{
                 padding: "8px 14px",
                 borderRadius: 999,
-                background: "rgba(255, 255, 255, 0.18)",
-                color: "rgba(196,181,253,0.95)",
+                background: "rgba(255, 255, 255, 0.14)",
+                color: "rgba(255,255,255,0.92)",
                 fontSize: 12,
                 fontWeight: 700,
                 letterSpacing: "0.08em",

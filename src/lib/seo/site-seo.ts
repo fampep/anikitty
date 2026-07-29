@@ -5,8 +5,8 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.moe"
 export const APP_DESCRIPTION = "Free anime streaming. Sub & dub. Ad-free.";
 export const APP_DEFAULT_TITLE = "AniKitty — Free Anime Streaming";
 
-/** Bump when brand assets change so browsers / Google / PWA refresh the icon. */
-export const SITE_ICON_VERSION = "20260728a";
+/** Bump when brand assets change so browsers / Google / PWA / embeds refresh. */
+export const SITE_ICON_VERSION = "20260729a";
 
 function brandAsset(path: string): string {
   return `${path}?v=${SITE_ICON_VERSION}`;
@@ -14,6 +14,7 @@ function brandAsset(path: string): string {
 
 /** Cat-face brand mark for icons, cast, and compact chrome. */
 export const SITE_LOGO = brandAsset("/anikitty-logo.png");
+/** 1200×630 NightTokyo share card — prefer over dynamic /opengraph-image (year-cached). */
 export const SITE_LOGO_OG = brandAsset("/og-share.png");
 export const SITE_FAVICON_ICO = brandAsset("/favicon.ico");
 export const SITE_FAVICON = brandAsset("/favicon.png");
@@ -21,6 +22,12 @@ export const SITE_APPLE_ICON = brandAsset("/apple-touch-icon.png");
 /** Sharper mark for Google Search / embeds (48px multiples; prefer over tiny ico). */
 export const SITE_ICON = brandAsset("/icon-192x192.png");
 export const SITE_ICON_512 = brandAsset("/icon-512x512.png");
+
+/** Cache-bust a dynamic opengraph-image route path. */
+export function ogImageRoute(path: string): string {
+  const base = path.startsWith("/") ? path : `/${path}`;
+  return `${base}?v=${SITE_ICON_VERSION}`;
+}
 
 export type PageSeo = {
   title: string;
@@ -123,7 +130,7 @@ export function buildPageMetadata(
   opts?: { ogImagePath?: string },
 ): Metadata {
   const url = `${APP_URL}${page.path}`;
-  const ogImage = opts?.ogImagePath ?? "/opengraph-image";
+  const ogImage = opts?.ogImagePath ?? SITE_LOGO_OG;
   const shareTitle = page.title.replace(/ \| AniKitty$/, "");
 
   return {

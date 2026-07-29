@@ -1,10 +1,14 @@
 import { ImageResponse } from "next/og";
-import { APP_URL, SITE_ICON } from "@/lib/seo/site-seo";
+import { APP_URL, SITE_ICON_VERSION } from "@/lib/seo/site-seo";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";
 
-const SITE_ICON_URL = `${APP_URL}${SITE_ICON}`;
+/** Absolute icon URL fallback when local bundling isn't available. */
+function siteIconAbsoluteUrl(): string {
+  const base = APP_URL.replace(/\/$/, "");
+  return `${base}/icon-192x192.png?v=${SITE_ICON_VERSION}`;
+}
 
 export type OgAccent = "violet" | "teal" | "sky" | "emerald" | "rose";
 
@@ -58,7 +62,22 @@ export async function loadNightTokyoFont(): Promise<ArrayBuffer> {
   );
 }
 
-export function renderOgCard(config: OgCardConfig) {
+/** Prefer bundled public icon so OG cards don't embed a stale remote mark. */
+export async function loadSiteIconSrc(): Promise<string> {
+  try {
+    const res = await fetch(new URL("../../../public/icon-192x192.png", import.meta.url));
+    if (!res.ok) throw new Error(`icon fetch ${res.status}`);
+    const buf = await res.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+    return `data:image/png;base64,${btoa(binary)}`;
+  } catch {
+    return siteIconAbsoluteUrl();
+  }
+}
+
+export function renderOgCard(config: OgCardConfig, iconSrc: string) {
   const accent = ACCENT_STYLES[config.accent ?? "violet"];
   const features = config.features ?? [];
 
@@ -107,7 +126,7 @@ export function renderOgCard(config: OgCardConfig) {
         <div style={{ display: "flex", alignItems: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={SITE_ICON_URL}
+            src={iconSrc}
             alt="AniKitty"
             height={48}
             style={{ objectFit: "contain" }}
@@ -227,8 +246,8 @@ export function renderOgCard(config: OgCardConfig) {
 }
 
 export async function createOgImageResponse(config: OgCardConfig) {
-  const fontData = await loadNightTokyoFont();
-  return new ImageResponse(renderOgCard(config), {
+  const [fontData, iconSrc] = await Promise.all([loadNightTokyoFont(), loadSiteIconSrc()]);
+  return new ImageResponse(renderOgCard(config, iconSrc), {
     ...OG_SIZE,
     fonts: [{ name: "NightTokyo", data: fontData, style: "normal" }],
   });

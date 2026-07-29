@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
-import { buildPageMetadata, PAGE_SEO } from "@/lib/seo/site-seo";
+import { buildPageMetadata, ogImageRoute, PAGE_SEO } from "@/lib/seo/site-seo";
 
-export const metadata: Metadata = buildPageMetadata(PAGE_SEO.messages);
+export const metadata: Metadata = buildPageMetadata(PAGE_SEO.messages, {
+  ogImagePath: ogImageRoute("/messages/opengraph-image"),
+});
 
 export default function MessagesLayout({ children }: { children: React.ReactNode }) {
   return children;

@@ -6,7 +6,6 @@ import FramedAvatar from "@/components/common/framed-avatar";
 import { CosmeticUsername, ProfileStickerBadge } from "@/components/common/user-cosmetics";
 import { cn } from "@/lib/core/utils";
 import { useAuthHydrated, useAuthStore } from "@/store/auth-store";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -16,23 +15,14 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { applyUserThemeColor, hexToRgb } from "@/lib/core/theme-color";
 import { withAuth } from "@/lib/auth/auth-fetch";
-import ProfileBioContent from "@/components/profile/profile-bio-content";
 import ProfileCustomizationForm, {
   type ProfileCustomizationValues,
 } from "@/components/profile/profile-customization-form";
 import ProfileMediaPreview from "@/components/profile/profile-media-preview";
 import { useWatchlistStore } from "@/store/watchlist-store";
-import AnimeHeatmap from "@/components/profile/anime-heatmap";
-import ContinueWatching from "@/components/home/continue-watching";
 import Loading from "@/app/loading";
 import {
   Clock,
-  CheckCircle,
-  BookOpen,
-  PauseCircle,
-  XCircle,
-  Activity,
-  List,
   ShieldCheck,
   Pencil,
   MessageSquare,
@@ -50,7 +40,6 @@ import {
   Users,
   Coins,
   BarChart3,
-  UserRound,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -61,15 +50,12 @@ import ProfileBadgesRow from "@/components/profile/profile-badges-row";
 import type { AccountBadges } from "@/lib/user/account-badges";
 import { useUserLevel, type UserLevelData } from "@/hooks/use-user-level";
 import LevelProgressCard from "@/components/profile/level-progress-card";
-import AnimeLists from "@/components/profile/anime-lists";
 import AchievementsSection from "@/components/profile/achievements-section";
 import FollowListModal, { type FollowListType } from "@/components/profile/follow-list-modal";
 import FriendsModal from "@/components/profile/friends-modal";
-import ProfileSectionNav from "@/components/profile/profile-section-nav";
 import ProfileSubNav from "@/components/profile/profile-sub-nav";
-import ProfileLibraryBreakdownBar, {
-  type LibrarySegment,
-} from "@/components/profile/profile-library-breakdown-bar";
+import ProfileHub from "@/components/profile/hub/profile-hub";
+import ProfileBioContent from "@/components/profile/profile-bio-content";
 import type { FriendStatus } from "@/app/api/users/[username]/friend/route";
 import { useT } from "@/providers/i18n-provider";
 import { useI18n } from "@/providers/i18n-provider";
@@ -117,46 +103,6 @@ type ProfileData = {
   equippedSticker?: string | null;
   equippedIcon?: string | null;
 };
-
-const getStatusTabs = (t: ReturnType<typeof useT>) => [
-  { value: "watching",      label: t("profile.stats.watching"),      key: "watching",  icon: Clock        },
-  { value: "plan to watch", label: t("profile.stats.planToWatch"), key: "plan",      icon: BookOpen     },
-  { value: "on hold",       label: t("profile.stats.onHold"),    key: "onHold",    icon: PauseCircle  },
-  { value: "completed",     label: t("profile.stats.completed"),     key: "completed", icon: CheckCircle  },
-  { value: "dropped",       label: t("profile.stats.dropped"),       key: "dropped",   icon: XCircle      },
-] as const;
-
-const LIST_STATUS_STYLES: Record<string, { bar: string; icon: string; tab: string }> = {
-  watching: {
-    bar: "bg-sky-500",
-    icon: "text-sky-400",
-    tab: "data-[state=active]:text-sky-300 data-[state=active]:border-sky-500/30 data-[state=active]:bg-sky-500/10",
-  },
-  plan: {
-    bar: "bg-primary",
-    icon: "text-zinc-400",
-    tab: "data-[state=active]:text-zinc-300 data-[state=active]:border-primary/30 data-[state=active]:bg-primary/10",
-  },
-  onHold: {
-    bar: "bg-amber-500",
-    icon: "text-amber-400",
-    tab: "data-[state=active]:text-amber-300 data-[state=active]:border-amber-500/30 data-[state=active]:bg-amber-500/10",
-  },
-  completed: {
-    bar: "bg-emerald-500",
-    icon: "text-emerald-400",
-    tab: "data-[state=active]:text-emerald-300 data-[state=active]:border-emerald-500/30 data-[state=active]:bg-emerald-500/10",
-  },
-  dropped: {
-    bar: "bg-rose-500/90",
-    icon: "text-rose-400",
-    tab: "data-[state=active]:text-rose-300 data-[state=active]:border-rose-500/30 data-[state=active]:bg-rose-500/10",
-  },
-};
-
-function scrollToProfileSection(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
 
 function EditProfileDialog({
   open,
@@ -255,18 +201,6 @@ function ProfilePage() {
   const { auth, setAuth } = useAuthStore();
   const hasHydrated = useAuthHydrated();
   const watchlistVersion = useWatchlistStore((s) => s.version);
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window === "undefined") return "watching";
-    return new URLSearchParams(window.location.search).get("list") || "watching";
-  });
-  // Keep the selected list in the URL so it's shareable and survives refresh.
-  const handleTabChange = useCallback((value: string) => {
-    setActiveTab(value);
-    const url = new URL(window.location.href);
-    if (value === "watching") url.searchParams.delete("list");
-    else url.searchParams.set("list", value);
-    window.history.replaceState(null, "", url.toString());
-  }, []);
   const [editOpen, setEditOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [counts, setCounts] = useState<ProfileCounts>({
@@ -539,24 +473,6 @@ function ProfilePage() {
   const bannerUrl = profile.bannerUrl ?? null;
   const themeRgb = profile.themeColor ? hexToRgb(profile.themeColor) : null;
 
-  const profileSections = [
-    ...(isOwn && isProfileSectionVisible(profile.profileSections, "continueWatching")
-      ? [{ id: "continue", label: t("profile.sectionNav.continue") }]
-      : []),
-    ...(isProfileSectionVisible(profile.profileSections, "about")
-      ? [{ id: "about", label: t("profile.sectionNav.about") }]
-      : []),
-    ...(isProfileSectionVisible(profile.profileSections, "watchlist")
-      ? [{ id: "watchlist", label: t("profile.sectionNav.watchlist") }]
-      : []),
-    ...(isProfileSectionVisible(profile.profileSections, "activity")
-      ? [{ id: "activity", label: t("profile.sectionNav.activity") }]
-      : []),
-    ...(isProfileSectionVisible(profile.profileSections, "achievements")
-      ? [{ id: "achievements", label: t("profile.sectionNav.achievements") }]
-      : []),
-  ];
-
   const sectionVis = profile.profileSections ?? DEFAULT_PROFILE_SECTIONS;
   const showHeaderBio = isProfileSectionVisible(sectionVis, "headerBio");
   const showContinue = isOwn && isProfileSectionVisible(sectionVis, "continueWatching");
@@ -569,19 +485,7 @@ function ProfilePage() {
     isProfileSectionVisible(sectionVis, "skipContributions") &&
     skipContributions &&
     skipContributions.approved > 0;
-  const hasSidebar = showLibraryStats || showAchievements || showSkipContributions;
-
-  const librarySegments: LibrarySegment[] = getStatusTabs(t).map((tab) => ({
-    key: tab.key,
-    count: counts[tab.key as keyof ProfileCounts],
-    color: LIST_STATUS_STYLES[tab.key]?.bar ?? "bg-muted",
-    label: tab.label,
-  }));
-
-  const jumpToList = (tabValue: string) => {
-    handleTabChange(tabValue);
-    scrollToProfileSection("watchlist");
-  };
+  const hasSidebar = showAchievements || showSkipContributions;
 
   const handleProfileSaved = (data: ProfileCustomizationValues) => {
     if (!auth || !isOwn) return;
@@ -605,7 +509,7 @@ function ProfilePage() {
   return (
     <div className="min-h-screen pb-24">
       {/* ── Hero banner ─────────────────────────────────────────── */}
-      <div className="relative h-52 md:h-64 w-full overflow-hidden">
+      <div className="relative h-56 md:h-72 w-full overflow-hidden">
         <ProfileStickerBadge
           stickerSlug={profile.equippedSticker}
           className="right-6 bottom-16 md:right-10 md:bottom-20"
@@ -615,28 +519,27 @@ function ProfilePage() {
             <ProfileMediaPreview src={bannerUrl} alt="Profile banner" variant="banner" />
           </div>
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-900" />
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-black to-neutral-950" />
         )}
-        {/* Grid overlay on non-banner */}
         {!bannerUrl && (
           <div
-            className="absolute inset-0 opacity-[0.04]"
+            className="absolute inset-0 opacity-[0.045]"
             style={{
               backgroundImage:
-                "repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 36px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 36px)",
+                "repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 40px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 40px)",
             }}
           />
         )}
-        {bannerUrl && <div className="absolute inset-0 bg-muted dark:bg-black/30" />}
+        {bannerUrl && <div className="absolute inset-0 bg-muted dark:bg-black/25" />}
         {themeRgb && (
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              background: `linear-gradient(135deg, rgba(${themeRgb.r},${themeRgb.g},${themeRgb.b},0.28) 0%, transparent 50%), linear-gradient(to top, rgba(${themeRgb.r},${themeRgb.g},${themeRgb.b},0.12), transparent 40%)`,
+              background: `linear-gradient(135deg, rgba(${themeRgb.r},${themeRgb.g},${themeRgb.b},0.32) 0%, transparent 52%), linear-gradient(to top, rgba(${themeRgb.r},${themeRgb.g},${themeRgb.b},0.14), transparent 42%)`,
             }}
           />
         )}
-        <div className="absolute bottom-0 inset-x-0 h-28 bg-gradient-to-t from-black to-transparent" />
+        <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-black via-black/70 to-transparent" />
       </div>
 
       <Container className="-mt-16 sm:-mt-20 relative z-10">
@@ -863,7 +766,6 @@ function ProfilePage() {
                     accent="text-sky-300"
                     value={(displayLevel?.startedEpisodes ?? 0).toLocaleString()}
                     label={t("profile.episodesWatched")}
-                    onClick={() => scrollToProfileSection("activity")}
                   />
                   <StatTile
                     icon={MessageSquare}
@@ -899,8 +801,6 @@ function ProfilePage() {
           </div>
         </div>
 
-        {profileSections.length > 0 && <ProfileSectionNav sections={profileSections} />}
-
         <ProfileSubNav
           username={profile.username}
           active="overview"
@@ -921,144 +821,24 @@ function ProfilePage() {
             placement="sidebar"
           />
 
-          {/* ── Center: primary content ── */}
-          <div className="flex flex-col gap-10 min-w-0 lg:col-span-1">
-          {showContinue && (
-            <section id="continue" className="scroll-mt-24">
-              <ContinueWatching loading={false} />
-            </section>
-          )}
-
-          {showAbout && (
-          <section id="about" className="scroll-mt-24">
-            <SectionLabel icon={<UserRound className="w-4 h-4" />} title={t("profile.aboutMe")} />
-            <div className="site-panel p-5">
-              {profile.bio ? (
-                <ProfileBioContent bio={profile.bio} />
-              ) : isOwn ? (
-                <div className="flex flex-col items-center gap-4 py-4 text-center sm:flex-row sm:items-center sm:py-2 sm:text-left">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03]">
-                    <UserRound className="w-6 h-6 text-muted-foreground/40 dark:text-white/20" />
-                  </div>
-                  <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-muted-foreground/70 dark:text-white/30">{t("profile.noBioOwn")}</p>
-                    <button
-                      type="button"
-                      onClick={() => setEditOpen(true)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-primary/20 transition-colors shrink-0"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      {t("profile.addBioCta")}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-2 py-6 text-center">
-                  <UserRound className="w-8 h-8 text-muted-foreground/20 dark:text-white/10" />
-                  <p className="text-sm text-muted-foreground/70 dark:text-white/30 italic">{t("profile.noBio")}</p>
-                </div>
-              )}
-            </div>
-          </section>
-          )}
-
-          {showWatchlist && (
-          <section id="watchlist" className="scroll-mt-24">
-            <SectionLabel
-              icon={<List className="w-4 h-4" />}
-              title={t("profile.watchlist")}
-              count={totalAnime}
+          <div className="flex flex-col gap-6 min-w-0 lg:col-span-1">
+            <ProfileHub
+              username={profile.username}
+              isOwn={isOwn}
+              bio={profile.bio}
+              counts={counts}
+              showContinue={showContinue}
+              showAbout={showAbout}
+              showWatchlist={showWatchlist}
+              showActivity={showActivity}
+              showLibraryStats={showLibraryStats}
+              showAchievements={false}
+              onEditBio={() => setEditOpen(true)}
             />
-            <Tabs value={activeTab} onValueChange={handleTabChange}>
-              <TabsList className="flex flex-wrap gap-1.5 h-auto bg-transparent p-0 mb-6 border-b border-border dark:border-white/10 pb-3">
-                {getStatusTabs(t).map((tab) => {
-                  const count = counts[tab.key as keyof typeof counts];
-                  const Icon = tab.icon;
-                  const styles = LIST_STATUS_STYLES[tab.key];
-                  return (
-                    <TabsTrigger
-                      key={tab.value}
-                      value={tab.value}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-transparent text-muted-foreground dark:text-white/35 hover:text-foreground/80 dark:hover:text-white/60 transition-all bg-transparent",
-                        styles?.tab,
-                        "data-[state=active]:text-foreground dark:data-[state=active]:text-white/90 data-[state=active]:border-border dark:data-[state=active]:border-white/20",
-                      )}
-                    >
-                      <Icon className={cn("w-3.5 h-3.5", styles?.icon)} />
-                      {tab.label}
-                      <span
-                        className={cn(
-                          "ml-0.5 px-1.5 py-px rounded-full text-[10px] font-bold leading-none tabular-nums",
-                          count > 0
-                            ? "bg-accent dark:bg-white/10 text-muted-foreground dark:text-white/50 data-[state=active]:bg-white/20 data-[state=active]:text-foreground dark:text-white"
-                            : "bg-muted/50 dark:bg-white/5 text-muted-foreground/80 dark:text-white/25",
-                        )}
-                      >
-                        {count}
-                      </span>
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-
-              {getStatusTabs(t).map((tab) => (
-                <TabsContent key={tab.value} value={tab.value}>
-                  <AnimeLists
-                    status={tab.value}
-                    username={profile.username}
-                    isOwn={isOwn}
-                  />
-                </TabsContent>
-              ))}
-            </Tabs>
-          </section>
-          )}
-
-          {showActivity && (
-          <section id="activity" className="scroll-mt-24">
-            <SectionLabel icon={<Activity className="w-4 h-4" />} title={t("profile.watchActivity")} />
-            <div className="site-panel p-5">
-              <AnimeHeatmap username={profile.username} />
-            </div>
-          </section>
-          )}
           </div>
 
           {hasSidebar && (
           <aside className="flex flex-col gap-6 lg:sticky lg:top-20 lg:col-span-1">
-            {showLibraryStats && (
-            <div className="site-panel p-5">
-              <SectionLabel icon={<List className="w-4 h-4" />} title={t("profile.libraryStats")} inline />
-              <ProfileLibraryBreakdownBar segments={librarySegments} total={totalAnime} />
-              <div className="flex flex-col divide-y divide-border dark:divide-white/6">
-                {getStatusTabs(t).map((tab) => {
-                  const count = counts[tab.key as keyof typeof counts];
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.value;
-                  const styles = LIST_STATUS_STYLES[tab.key];
-                  return (
-                    <LibraryStatRow
-                      key={tab.key}
-                      icon={Icon}
-                      label={tab.label}
-                      value={count}
-                      total={totalAnime}
-                      accent={styles?.icon}
-                      barColor={styles?.bar}
-                      active={isActive}
-                      onClick={() => jumpToList(tab.value)}
-                    />
-                  );
-                })}
-              </div>
-              <p className="mt-3 pt-3 border-t border-border dark:border-white/6 text-[11px] font-mono text-muted-foreground/70 dark:text-white/35 text-center">
-                <span className="font-bold text-foreground/80 dark:text-white/70 tabular-nums">{totalAnime}</span>{" "}
-                {t("profile.stats.total")}
-              </p>
-            </div>
-            )}
-
             {showAchievements && (
             <div id="achievements" className="site-panel p-5 scroll-mt-24">
               <SectionLabel icon={<Trophy className="w-4 h-4" />} title={t("profile.achievements")} />
@@ -1151,72 +931,6 @@ function StatTile({
     </button>
   ) : (
     <div className="px-2.5 py-2">{inner}</div>
-  );
-}
-
-/** One labelled stat row in the sidebar library breakdown. */
-function LibraryStatRow({
-  icon: Icon,
-  label,
-  value,
-  total = 0,
-  accent,
-  barColor,
-  active = false,
-  onClick,
-}: {
-  icon: LucideIcon;
-  label: string;
-  value: number;
-  total?: number;
-  accent?: string;
-  barColor?: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-  const inner = (
-    <div
-      className={cn(
-        "relative flex items-center justify-between py-2.5 px-1 rounded-lg transition-colors overflow-hidden",
-        active && "bg-accent/60 dark:bg-white/[0.06]",
-      )}
-    >
-      {active && barColor && (
-        <div className={cn("absolute inset-y-1 left-0 w-0.5 rounded-full", barColor)} />
-      )}
-      <span
-        className={cn(
-          "flex items-center gap-2.5 text-sm pl-1",
-          active ? "text-foreground dark:text-white/85 font-medium" : "text-muted-foreground dark:text-white/50",
-        )}
-      >
-        <Icon className={cn("w-4 h-4", active ? accent : "text-muted-foreground/70 dark:text-white/40")} />
-        {label}
-      </span>
-      <span className="flex items-center gap-2">
-        {total > 0 && value > 0 && (
-          <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/25 tabular-nums">
-            {pct}%
-          </span>
-        )}
-        <span
-          className={cn(
-            "text-sm font-bold tabular-nums",
-            active ? "text-foreground dark:text-white" : "text-muted-foreground dark:text-white/60",
-          )}
-        >
-          {value}
-        </span>
-      </span>
-    </div>
-  );
-  return onClick ? (
-    <button type="button" onClick={onClick} className="text-left w-full hover:bg-accent/40 dark:hover:bg-white/[0.03] rounded-lg transition-colors">
-      {inner}
-    </button>
-  ) : (
-    inner
   );
 }
 

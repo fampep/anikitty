@@ -16,6 +16,7 @@ import TelegramIcon from "@/icons/telegram";
 import { trackEvent } from "@/lib/analytics";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import LandingAmbient from "@/components/landing/landing-ambient";
+import { SITE_LOGO } from "@/lib/seo/site-seo";
 
 type Props = {
   poster?: string | null;
@@ -59,12 +60,13 @@ export default function LandingHero({ poster }: Props) {
       <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5">
         <Link href="/" className="flex items-center gap-2.5 group transition-opacity hover:opacity-90">
           <Image
-            src="/anikitty-logo.png"
+            src={SITE_LOGO}
             alt=""
             width={36}
             height={36}
             className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg opacity-95"
             priority
+            unoptimized
           />
           <SiteBrandWordmark size="landing" />
         </Link>
@@ -101,12 +103,13 @@ export default function LandingHero({ poster }: Props) {
           )}
         >
           <Image
-            src="/anikitty-logo.png"
+            src={SITE_LOGO}
             alt="AniKitty"
             width={112}
             height={112}
             className="mx-auto h-20 w-20 sm:h-28 sm:w-28 drop-shadow-2xl"
             priority
+            unoptimized
           />
         </div>
 

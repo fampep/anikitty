@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { buildPageMetadata, PAGE_SEO } from "@/lib/seo/site-seo";
+import { buildPageMetadata, ogImageRoute, PAGE_SEO } from "@/lib/seo/site-seo";
 
 export const metadata: Metadata = buildPageMetadata(PAGE_SEO.search, {
-  ogImagePath: "/search/opengraph-image",
+  ogImagePath: ogImageRoute("/search/opengraph-image"),
 });
 
 export default function SearchLayout({ children }: { children: React.ReactNode }) {

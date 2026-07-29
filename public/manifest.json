@@ -12,37 +12,37 @@
   "categories": ["entertainment"],
   "icons": [
     {
-      "src": "/icon-192x192.png?v=20260728a",
+      "src": "/icon-192x192.png?v=20260729a",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-192x192.png?v=20260728a",
+      "src": "/icon-192x192.png?v=20260729a",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/icon-256x256.png?v=20260728a",
+      "src": "/icon-256x256.png?v=20260729a",
       "sizes": "256x256",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-384x384.png?v=20260728a",
+      "src": "/icon-384x384.png?v=20260729a",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png?v=20260728a",
+      "src": "/icon-512x512.png?v=20260729a",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512x512.png?v=20260728a",
+      "src": "/icon-512x512.png?v=20260729a",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
