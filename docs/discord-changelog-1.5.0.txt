@@ -1,0 +1,46 @@
+**AniKitty 1.5.0**
+
+This one’s been cooking for the past 2 weeks — a big drop of discovery, watch, social, and polish.
+
+https://anikitty.moe/
+
+**Watch & playback**
+- Softsubs fixed and polished (Juliet / AniZone)
+- Juliet is the default stream source; AniBD (BD) for soft-subs
+- Provider picker polish — numbered list, shield rank icons, cleaner order
+- DNS location picker with node flags, ping, and speed
+- Phone player menus restyled to match desktop
+- Custom Kitty controls stay in iOS fullscreen
+- Watch/offline UX reliability polish
+
+**Ratings & anime pages**
+- Rate on AniList from anime pages (0.5–10)
+- Site episode ratings
+- Anime details + watch pages rebuilt into fuller hubs
+- Critical fix: anime pages no longer 500 from a bad AniList tags query
+
+**Search & voice actors**
+- Unified search for anime and voice actors
+- Full VA filmographies
+- VA pages redesigned with credit tabs
+- Example: https://anikitty.moe/voice-actor/95065
+
+**Home & discovery**
+- Home rebuilt as a discovery hub, then slimmed to essentials
+- Faster metadata / home fetches
+- Landing page redesigned as a cinematic brand-first hub
+- NightTokyo wordmark + refreshed favicons / PWA icons
+
+**History & chat**
+- History viewing dashboard
+- Discord-style live chat polish
+- Notes, pins, and reactions stored in the database
+
+**Help & legal**
+- FAQ help center (DB-seeded)
+- DMCA redesigned as a legal help center
+
+**Also**
+- Lite mode removed site-wide (from the 1.1.0 line)
+- Timestamp submit rate limit removed
+- Lots of small UX and reliability fixes along the way
