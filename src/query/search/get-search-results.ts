@@ -5,8 +5,12 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 const searchAnime = async (params: SearchAnimeParams & { adult?: "1" }) => {
+  const cleaned = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== "" && v !== undefined && v !== null),
+  ) as SearchAnimeParams & { adult?: "1" };
+
   const res = await api.get("/api/search", {
-    params,
+    params: cleaned,
   });
 
   return res.data.data as IAnimeSearch;

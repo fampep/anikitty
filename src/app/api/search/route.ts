@@ -19,7 +19,6 @@ const QUERY = `
     $isAdult: Boolean
     $source: MediaSource
     $countryOfOrigin: CountryCode
-    $studios: [Int]
     $episodes_greater: Int
     $episodes_lesser: Int
     $duration_greater: Int
@@ -44,7 +43,6 @@ const QUERY = `
         isAdult: $isAdult
         source: $source
         countryOfOrigin: $countryOfOrigin
-        studios: $studios
         episodes_greater: $episodes_greater
         episodes_lesser: $episodes_lesser
         duration_greater: $duration_greater
@@ -62,6 +60,27 @@ const QUERY = `
         nextAiringEpisode { episode airingAt }
         averageScore
         seasonYear
+      }
+    }
+  }
+`;
+
+const STUDIO_MEDIA_QUERY = `
+  query ($id: Int, $page: Int, $perPage: Int, $sort: [MediaSort], $isAdult: Boolean) {
+    Studio(id: $id) {
+      media(page: $page, perPage: $perPage, sort: $sort, isMain: true, isAdult: $isAdult) {
+        pageInfo { total currentPage lastPage hasNextPage perPage }
+        nodes {
+          id
+          title { english romaji }
+          coverImage { extraLarge }
+          episodes
+          format
+          status
+          nextAiringEpisode { episode airingAt }
+          averageScore
+          seasonYear
+        }
       }
     }
   }
@@ -207,7 +226,7 @@ export async function GET(request: Request) {
 
   const source = SOURCE_MAP[sourceParam] ?? undefined;
   const countryOfOrigin = /^[A-Z]{2}$/.test(countryParam) ? countryParam : undefined;
-  const studioId = /^\d+$/.test(studioParam) ? [parseInt(studioParam, 10)] : undefined;
+  const studioId = /^\d+$/.test(studioParam) ? parseInt(studioParam, 10) : undefined;
 
   const epRange = parseRange(episodesPreset || null, episodeMin, episodeMax);
   const durRange = parseRange(runtimePreset || null, durationMin, durationMax);
@@ -227,45 +246,77 @@ export async function GET(request: Request) {
     startDate_lesser = bounds.lesser;
   }
 
-  const sortValue = SORT_MAP[sortParam];
-  const sortArr = sortValue
-    ? [sortValue]
-    : cleanQ
-      ? ["SEARCH_MATCH"]
-      : ["POPULARITY_DESC"];
-
-  // Language filter is applied client-side via audio enrichment metadata when possible;
-  // AniList has no native sub/dub filter.
-  void languageParam;
-
   try {
-    const raw = await queryAniList(QUERY, {
-      search: cleanQ || undefined,
-      page,
-      perPage: 20,
-      format,
-      status: aniStatus,
-      season: aniSeason,
-      seasonYear,
-      genre_in: genreList?.length ? genreList : undefined,
-      genre_not_in: excludeGenreList?.length ? excludeGenreList : undefined,
-      tag_in: tagList.length ? tagList : undefined,
-      sort: sortArr,
-      isAdult: allowAdult ? undefined : false,
-      source,
-      countryOfOrigin,
-      studios: studioId,
-      episodes_greater: epRange.greater,
-      episodes_lesser: epRange.lesser,
-      duration_greater: durRange.greater,
-      duration_lesser: durRange.lesser,
-      averageScore_greater,
-      startDate_greater,
-      startDate_lesser,
-    });
+    const sortValue = SORT_MAP[sortParam];
+    const sortArr = sortValue
+      ? [sortValue]
+      : cleanQ
+        ? ["SEARCH_MATCH"]
+        : ["POPULARITY_DESC"];
 
-    const pageInfo = raw.Page?.pageInfo ?? {};
-    const animes = (raw.Page?.media ?? []).map((m: any) => ({
+    // AniList Page.media has no studio-id filter — use Studio.media when filtered by studio.
+    const useStudioMedia =
+      studioId != null &&
+      !cleanQ &&
+      !format &&
+      !aniStatus &&
+      !aniSeason &&
+      !seasonYear &&
+      !genreList?.length &&
+      !excludeGenreList?.length &&
+      !tagList.length &&
+      !source &&
+      !countryOfOrigin &&
+      epRange.greater == null &&
+      epRange.lesser == null &&
+      durRange.greater == null &&
+      durRange.lesser == null &&
+      averageScore_greater == null &&
+      startDate_greater == null &&
+      startDate_lesser == null;
+
+    let pageInfo: Record<string, unknown> = {};
+    let mediaNodes: any[] = [];
+
+    if (useStudioMedia) {
+      const raw = await queryAniList(STUDIO_MEDIA_QUERY, {
+        id: studioId,
+        page,
+        perPage: 20,
+        sort: sortArr,
+        isAdult: allowAdult ? undefined : false,
+      });
+      pageInfo = raw.Studio?.media?.pageInfo ?? {};
+      mediaNodes = raw.Studio?.media?.nodes ?? [];
+    } else {
+      const raw = await queryAniList(QUERY, {
+        search: cleanQ || undefined,
+        page,
+        perPage: 20,
+        format,
+        status: aniStatus,
+        season: aniSeason,
+        seasonYear,
+        genre_in: genreList?.length ? genreList : undefined,
+        genre_not_in: excludeGenreList?.length ? excludeGenreList : undefined,
+        tag_in: tagList.length ? tagList : undefined,
+        sort: sortArr,
+        isAdult: allowAdult ? undefined : false,
+        source,
+        countryOfOrigin,
+        episodes_greater: epRange.greater,
+        episodes_lesser: epRange.lesser,
+        duration_greater: durRange.greater,
+        duration_lesser: durRange.lesser,
+        averageScore_greater,
+        startDate_greater,
+        startDate_lesser,
+      });
+      pageInfo = raw.Page?.pageInfo ?? {};
+      mediaNodes = raw.Page?.media ?? [];
+    }
+
+    const animes = mediaNodes.map((m: any) => ({
       id: String(m.id),
       name: toTitle(m.title),
       jname: m.title?.romaji ?? "",
@@ -288,10 +339,10 @@ export async function GET(request: Request) {
     return Response.json({
       data: {
         animes: enrichedAnimes,
-        totalPages: pageInfo.lastPage ?? 1,
-        totalResults: pageInfo.total ?? 0,
-        hasNextPage: pageInfo.hasNextPage ?? false,
-        currentPage: pageInfo.currentPage ?? page,
+        totalPages: (pageInfo.lastPage as number | undefined) ?? 1,
+        totalResults: (pageInfo.total as number | undefined) ?? 0,
+        hasNextPage: (pageInfo.hasNextPage as boolean | undefined) ?? false,
+        currentPage: (pageInfo.currentPage as number | undefined) ?? page,
       },
     });
   } catch (err) {
