@@ -360,10 +360,12 @@
   },
   "landing": {
     "browse": "Browse",
+    "browseAnime": "Browse Anime",
     "watchingNow": "{count} {people} watching right now",
     "person": "person",
     "people": "people",
-    "tagline": "Free anime streaming — no account needed.",
+    "headline": "Watch Anime Beautifully.",
+    "tagline": "Free anime streaming — no account needed. Sub & dub, ad-free player, community when you want it.",
     "socialHint": "More updates and emergency notices on Telegram · Discord for community chat.",
     "officialDomains": "Official domains",
     "telegramCta": "Telegram updates",
@@ -371,6 +373,9 @@
     "noSubscriptions": "No subscriptions",
     "subDub": "Sub & Dub",
     "startWatching": "Start Watching",
+    "exploreAnime": "Explore Anime",
+    "createAccount": "Create Account",
+    "learnMore": "Learn More",
     "signIn": "Sign in",
     "continueAs": "Continue as {username}",
     "zeroAds": "Ad-free",
@@ -383,6 +388,15 @@
     "statCatalog": "In catalog",
     "statFree": "Always",
     "statFreeValue": "Free",
+    "stats": {
+      "watchingNow": "Watching now",
+      "live": "Live on the site",
+      "catalog": "Titles",
+      "catalogHint": "Approximate catalog size",
+      "audio": "Audio",
+      "audioHint": "Where available",
+      "price": "Always"
+    },
     "spotlightLabel": "Featured pick",
     "spotlightWatch": "Watch now",
     "spotlightDetails": "Details",
@@ -395,8 +409,9 @@
       "watch": { "title": "Hit play", "desc": "Fast streams with resume and skip intro when available." },
       "join": { "title": "Optional extras", "desc": "Sign in to sync progress, comment, or watch together." }
     },
+    "scheduleTitle": "What's airing today",
     "finalCtaTitle": "Ready when you are",
-    "finalCtaDesc": "Jump into the catalog — no signup wall.",
+    "finalCtaDesc": "Jump into the catalog — no signup wall. Create an account anytime to sync progress.",
     "finalCtaButton": "Open catalog",
     "communityLabel": "Live from the community",
     "communityTitle": "Fans are talking right now",
@@ -411,14 +426,86 @@
     "previewTitle": "A player made for anime",
     "previewDesc": "Multi-source streams, resume playback, skip intro, theatre mode, and keyboard shortcuts — all in one place.",
     "preview": {
-      "mock": "Watch page",
+      "mock": "anikitty.moe/anime/watch",
       "player": { "title": "Multi-source player", "desc": "Switch providers without leaving the episode." },
       "skip": { "title": "Skip intro & outro", "desc": "Auto-detected chapter markers when available." },
       "theatre": { "title": "Theatre mode", "desc": "Expand the player and hide distractions." },
       "shortcuts": { "title": "Keyboard shortcuts", "desc": "Press ? on the watch page for the full list." }
     },
-    "featuresLabel": "Why AniKitty",
-    "featuresTitle": "The essentials",
+    "featuresLabel": "Features",
+    "featuresTitle": "Everything you need to watch",
+    "featuresIntro": "A focused player, optional sync, and community tools — without the clutter.",
+    "whyLabel": "Why AniKitty",
+    "whyTitle": "Built differently",
+    "whyDesc": "A free, ad-free experience with optional account extras — not a subscription funnel.",
+    "whyUs": "AniKitty",
+    "whyThem": "Typical streaming sites",
+    "whyPoints": {
+      "ads": {
+        "us": "No ads in the player or catalog",
+        "them": "Video ads, popups, and forced waits"
+      },
+      "paywall": {
+        "us": "Watching stays free — tips are optional",
+        "them": "Subscriptions or premium tiers to unlock HD"
+      },
+      "account": {
+        "us": "No account required to browse or watch",
+        "them": "Forced signup walls before playback"
+      },
+      "player": {
+        "us": "Multi-source anime player with skip & resume",
+        "them": "Generic embeds with limited controls"
+      },
+      "sync": {
+        "us": "Optional cross-device progress when signed in",
+        "them": "Progress locked to one browser or device"
+      },
+      "community": {
+        "us": "Comments, forum, chat, and watch-together",
+        "them": "Disconnected social features — or none"
+      }
+    },
+    "syncLabel": "Continue anywhere",
+    "syncTitle": "Pick up on any device",
+    "syncDesc": "Sign in once and your watch progress, lists, and history follow you — phone, tablet, or desktop.",
+    "syncBadge": "Cloud sync",
+    "syncPoints": {
+      "progress": "Episode resume across sessions",
+      "watchlist": "Watchlists and plan-to-watch",
+      "history": "History you can revisit anytime"
+    },
+    "personalLabel": "Personalized",
+    "personalTitle": "A catalog that learns your taste",
+    "personalDesc": "Optional account features shape recommendations, lists, and history around what you actually watch.",
+    "personalItems": {
+      "recs": { "title": "Recommendations", "desc": "Suggestions based on titles you've watched." },
+      "lists": { "title": "Watchlists", "desc": "Save shows and track what you plan to watch." },
+      "history": { "title": "History", "desc": "Jump back into anything you've started." },
+      "ratings": { "title": "Ratings & reviews", "desc": "Rate titles and read what others think." }
+    },
+    "searchLabel": "Search",
+    "searchTitle": "Find anything fast",
+    "searchDesc": "Try a sample query — live suggestions from the same search used across the site.",
+    "searchEmpty": "No suggestions for this query right now.",
+    "searchOpenFull": "Open full search →",
+    "faqLabel": "FAQ",
+    "faqTitle": "Quick answers",
+    "faqDesc": "Popular questions from the help center.",
+    "faqReadMore": "Read full answer",
+    "faqAll": "View all FAQ",
+    "feedbackLabel": "Community feedback",
+    "feedbackTitle": "What fans appreciate",
+    "feedbackDesc": "Short notes from community feedback — not attributed quotes from specific users.",
+    "feedbackAttribution": "Community feedback",
+    "feedbackQuotes": {
+      "q1": "Clean player, no ads, and I can just watch — that alone is rare.",
+      "q2": "Love that sync is optional. Guests can watch; accounts unlock the extras.",
+      "q3": "Skip intro and multi-source switching make binge sessions actually smooth."
+    },
+    "footerBrowse": "Browse",
+    "footerCommunity": "Community",
+    "footerHelp": "Help",
     "freeForever": "Free to use — Ko-fi support is optional",
     "supportLabel": "Optional support",
     "supportTitle": "Tip perks",

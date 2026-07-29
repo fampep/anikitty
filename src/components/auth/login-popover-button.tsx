@@ -14,11 +14,17 @@ import { RecoveryCodesReveal } from "@/components/auth/recovery-codes-reveal";
 
 type Tab = "login" | "signup" | "2fa" | "recover";
 
-function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode } = {}) {
+function LoginPopoverButton({
+  customTrigger,
+  defaultTab = "login",
+}: {
+  customTrigger?: React.ReactNode;
+  defaultTab?: "login" | "signup";
+} = {}) {
   const t = useT();
   const { setAuth } = useAuthStore();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("login");
+  const [tab, setTab] = useState<Tab>(defaultTab);
   const [loading, setLoading] = useState(false);
 
   const [identifier, setIdentifier] = useState("");
@@ -212,7 +218,14 @@ function LoginPopoverButton({ customTrigger }: { customTrigger?: React.ReactNode
   };
 
   return (
-    <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o) setTab(defaultTab);
+        else reset();
+      }}
+    >
       <PopoverTrigger asChild>
         {customTrigger ? (
           <span>{customTrigger}</span>
