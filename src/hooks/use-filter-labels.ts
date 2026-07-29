@@ -1,6 +1,23 @@
 import { useMemo } from "react";
 import { useT } from "@/providers/i18n-provider";
-import { genres, seasons, sort, statuses, types, years } from "@/constants/search-filters";
+import {
+  countries,
+  decades,
+  demographics,
+  episodeRanges,
+  genres,
+  ratings,
+  runtimeRanges,
+  scoreRanges,
+  seasons,
+  sort,
+  sources,
+  statuses,
+  themes,
+  types,
+  years,
+  languages,
+} from "@/constants/search-filters";
 
 export function useFilterLabels() {
   const t = useT();
@@ -13,13 +30,25 @@ export function useFilterLabels() {
       })),
       statuses: statuses.map((o) => ({
         value: o.value,
-        label: t(`search.filterStatus.${o.value === "currently-airing" ? "airing" : o.value === "finished-airing" ? "finished" : "upcoming"}`),
+        label: t(
+          `search.filterStatus.${
+            o.value === "currently-airing"
+              ? "airing"
+              : o.value === "finished-airing"
+                ? "finished"
+                : "upcoming"
+          }`,
+        ),
       })),
       seasons: seasons.map((o) => ({
         value: o.value,
         label: t(`search.filterSeasons.${o.value}`),
       })),
       years: years.map((o) => ({
+        value: o.value,
+        label: o.label,
+      })),
+      decades: decades.map((o) => ({
         value: o.value,
         label: o.label,
       })),
@@ -33,9 +62,11 @@ export function useFilterLabels() {
                 ? "score"
                 : o.value === "most-watched"
                   ? "popular"
-                  : o.value === "recently-added"
-                    ? "newest"
-                    : "az"
+                  : o.value === "trending"
+                    ? "trending"
+                    : o.value === "recently-added"
+                      ? "newest"
+                      : "az"
           }`,
         ),
       })),
@@ -51,6 +82,15 @@ export function useFilterLabels() {
           }`,
         ),
       })),
+      sources: sources.map((o) => ({ value: o.value, label: o.label })),
+      countries: countries.map((o) => ({ value: o.value, label: o.label })),
+      demographics: demographics.map((o) => ({ value: o.value, label: o.label })),
+      themes: themes.map((o) => ({ value: o.value, label: o.label })),
+      episodeRanges: episodeRanges.map((o) => ({ value: o.value, label: o.label })),
+      runtimeRanges: runtimeRanges.map((o) => ({ value: o.value, label: o.label })),
+      scoreRanges: scoreRanges.map((o) => ({ value: o.value, label: `${o.label}` })),
+      ratings: ratings.map((o) => ({ value: o.value, label: o.label })),
+      languages: languages.map((o) => ({ value: o.value, label: o.label })),
     }),
     [t],
   );

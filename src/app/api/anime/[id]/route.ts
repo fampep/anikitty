@@ -37,7 +37,7 @@ const CRITICAL_DETAIL_QUERY = `
       startDate { year month day }
       endDate { year month day }
       nextAiringEpisode { episode airingAt }
-      studios { nodes { name isAnimationStudio } }
+      studios { nodes { id name isAnimationStudio } }
       trailer { id site }
       rankings { rank type context allTime }
       tags {
@@ -107,9 +107,14 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
     episodes: m.episodes,
   });
 
-  const animationStudios = (m.studios?.nodes ?? [])
-    .filter((s: any) => s.isAnimationStudio)
-    .map((s: any) => s.name);
+  const animationStudioNodes = (m.studios?.nodes ?? []).filter(
+    (s: any) => s.isAnimationStudio && s.name,
+  );
+  const animationStudios = animationStudioNodes.map((s: any) => s.name);
+  const studioList = animationStudioNodes.map((s: any) => ({
+    id: String(s.id),
+    name: String(s.name),
+  }));
 
   const producers = (m.studios?.nodes ?? [])
     .filter((s: any) => !s.isAnimationStudio)
@@ -216,6 +221,7 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
         source: m.source ? (SOURCE_LABELS[m.source] ?? m.source) : null,
         genres: m.genres ?? [],
         studios: animationStudios.join(", "),
+        studioList,
         producers,
       },
     },
@@ -234,7 +240,7 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
 
 const getCachedCriticalAnime = unstable_cache(
   fetchCriticalAnimePayload,
-  ["anime-details-critical-v3"],
+  ["anime-details-critical-v4"],
   { revalidate: 3600 },
 );
 

@@ -141,4 +141,17 @@ export interface SearchAnimeParams {
   genres?: string; // Comma-separated include slugs: "romance,comedy"
   excludeGenres?: string; // Comma-separated exclude slugs: "horror,fantasy"
   year?: string;
+  decade?: string;
+  studio?: string; // AniList studio id
+  source?: string;
+  tags?: string; // Comma-separated AniList tag names / themes
+  demographic?: string;
+  country?: string;
+  episodeMin?: string;
+  episodeMax?: string;
+  durationMin?: string;
+  durationMax?: string;
+  scoreMin?: string;
+  episodes?: string; // preset range e.g. "13-26" or "51+"
+  runtime?: string; // preset range e.g. "61-120"
 }

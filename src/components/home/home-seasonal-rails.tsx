@@ -7,7 +7,6 @@ import { IAnime } from "@/types/anime";
 import { useT } from "@/providers/i18n-provider";
 import {
   seasonLabel,
-  seasonSearchParams,
   type AniListSeason,
 } from "@/lib/home/season";
 import HomeCompactPoster from "./home-compact-poster";
@@ -25,7 +24,7 @@ type Props = {
 
 function seasonHref(meta?: SeasonMeta) {
   if (!meta?.season || !meta?.year) return ROUTES.SEARCH;
-  return `${ROUTES.SEARCH}?${seasonSearchParams(meta.season as AniListSeason, meta.year)}`;
+  return ROUTES.season(meta.season, meta.year);
 }
 
 function seasonTitle(meta: SeasonMeta, fallback: string) {

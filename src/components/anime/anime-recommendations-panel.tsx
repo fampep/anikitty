@@ -99,7 +99,17 @@ export default function AnimeRecommendationsPanel({
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
             {bucket.items.map((item) => (
-              <RecCard key={`${bucket.key}-${item.id}`} item={item} />
+              <RecCard
+                key={`${bucket.key}-${item.id}`}
+                item={item}
+                reason={
+                  bucket.key === "studio"
+                    ? t("anime.recommendations.reasonStudio")
+                    : bucket.key === "genre"
+                      ? t("anime.recommendations.reasonGenre")
+                      : t("anime.recommendations.reasonFans")
+                }
+              />
             ))}
           </div>
         </section>
@@ -108,7 +118,7 @@ export default function AnimeRecommendationsPanel({
   );
 }
 
-function RecCard({ item }: { item: RecommendedAnime }) {
+function RecCard({ item, reason }: { item: RecommendedAnime; reason?: string }) {
   return (
     <Link
       href={`${ROUTES.ANIME_DETAILS}/${item.id}`}
@@ -138,6 +148,11 @@ function RecCard({ item }: { item: RecommendedAnime }) {
         <p className={cn("text-[10px] font-mono text-muted-foreground/70 dark:text-white/30 mt-0.5")}>
           {[item.type, item.rating ? `${item.rating}/10` : null].filter(Boolean).join(" · ")}
         </p>
+        {reason && (
+          <p className="text-[10px] text-muted-foreground dark:text-white/40 mt-1 line-clamp-2 leading-snug">
+            {reason}
+          </p>
+        )}
       </div>
     </Link>
   );

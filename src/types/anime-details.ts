@@ -159,6 +159,7 @@ export interface MoreInfo {
   source?: string | null;
   genres: string[];
   studios: string;
+  studioList?: Array<{ id: string; name: string }>;
   producers: string[];
 }
 

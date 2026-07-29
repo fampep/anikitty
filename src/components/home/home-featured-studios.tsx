@@ -44,7 +44,7 @@ export default function HomeFeaturedStudios({ studios, loading }: Props) {
           {studios.map((studio) => (
             <Link
               key={studio.id}
-              href={`${ROUTES.SEARCH}?q=${encodeURIComponent(studio.name)}`}
+              href={ROUTES.studio(studio.id)}
               className="home-glass-card shrink-0 w-[10.5rem] sm:w-[12rem] rounded-xl border border-border/50 dark:border-white/[0.08] px-4 py-4 transition-colors hover:border-border dark:hover:border-white/20"
             >
               <p className="text-sm font-semibold text-foreground dark:text-white/90 line-clamp-2 leading-snug">

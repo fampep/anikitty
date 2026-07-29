@@ -84,9 +84,19 @@ export default function AnimeRelationsGrouped({
     <div className="space-y-10">
       {franchise.length > 1 && (
         <section>
-          <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-4">
-            {t("anime.relations.franchise")}
-          </h3>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">
+              {t("anime.relations.franchise")}
+            </h3>
+            {currentId && (
+              <Link
+                href={ROUTES.franchise(currentId)}
+                className="text-[11px] font-medium text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/80 transition-colors"
+              >
+                {t("discovery.franchise.viewFull")}
+              </Link>
+            )}
+          </div>
           <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide scroll-momentum">
             {franchise.map((s, idx) => (
               <FranchiseCard key={s.id} season={s} index={idx} />

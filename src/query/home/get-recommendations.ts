@@ -2,7 +2,16 @@ import { withAuth } from "@/lib/auth/auth-fetch";
 import type { IAnime } from "@/types/anime";
 import { useQuery } from "@tanstack/react-query";
 
-export type RecommendationsPayload = { data: IAnime[]; hasHistory: boolean };
+export type RecommendedAnime = IAnime & {
+  reason?: string;
+  reasonKind?: string;
+  seedTitle?: string;
+};
+
+export type RecommendationsPayload = {
+  data: RecommendedAnime[];
+  hasHistory: boolean;
+};
 
 async function getRecommendations(): Promise<RecommendationsPayload> {
   const res = await fetch("/api/account/recommendations", withAuth());
@@ -13,7 +22,7 @@ async function getRecommendations(): Promise<RecommendationsPayload> {
 
 export const useGetRecommendations = (enabled: boolean) =>
   useQuery({
-    queryKey: ["home-recommendations"],
+    queryKey: ["home-recommendations-v2"],
     queryFn: getRecommendations,
     enabled,
     staleTime: 1000 * 60 * 10,

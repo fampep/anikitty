@@ -45,14 +45,28 @@ function normalizeFilterParam(value?: string) {
 }
 
 function filtersMatchParams(filters: SearchAnimeParams, params: SearchAnimeParams) {
-  return (
-    normalizeFilterParam(filters.type) === normalizeFilterParam(params.type) &&
-    normalizeFilterParam(filters.status) === normalizeFilterParam(params.status) &&
-    normalizeFilterParam(filters.season) === normalizeFilterParam(params.season) &&
-    normalizeFilterParam(filters.sort) === normalizeFilterParam(params.sort) &&
-    normalizeFilterParam(filters.genres) === normalizeFilterParam(params.genres) &&
-    normalizeFilterParam(filters.excludeGenres) === normalizeFilterParam(params.excludeGenres) &&
-    normalizeFilterParam(filters.year) === normalizeFilterParam(params.year)
+  const keys: (keyof SearchAnimeParams)[] = [
+    "type",
+    "status",
+    "season",
+    "sort",
+    "genres",
+    "excludeGenres",
+    "year",
+    "decade",
+    "source",
+    "country",
+    "demographic",
+    "tags",
+    "episodes",
+    "runtime",
+    "scoreMin",
+    "language",
+    "rated",
+    "studio",
+  ];
+  return keys.every(
+    (key) => normalizeFilterParam(filters[key] as string | undefined) === normalizeFilterParam(params[key] as string | undefined),
   );
 }
 
@@ -68,6 +82,19 @@ const EMPTY_FILTERS: SearchAnimeParams = {
   genres: "",
   excludeGenres: "",
   year: "",
+  decade: "",
+  studio: "",
+  source: "",
+  tags: "",
+  demographic: "",
+  country: "",
+  episodeMin: "",
+  episodeMax: "",
+  durationMin: "",
+  durationMax: "",
+  scoreMin: "",
+  episodes: "",
+  runtime: "",
 };
 
 const SearchResults = () => {
@@ -90,47 +117,15 @@ const SearchResults = () => {
 
   const [filters, setFilters] = React.useState<SearchAnimeParams>({
     ...EMPTY_FILTERS,
-    q: params.q,
-    page: params.page,
-    type: params.type,
-    status: params.status,
-    rated: params.rated,
-    season: params.season,
-    language: params.language,
-    sort: params.sort,
-    genres: params.genres,
-    excludeGenres: params.excludeGenres,
-    year: params.year,
+    ...params,
   });
 
   React.useEffect(() => {
     setFilters({
       ...EMPTY_FILTERS,
-      q: params.q,
-      page: params.page,
-      type: params.type,
-      status: params.status,
-      rated: params.rated,
-      season: params.season,
-      language: params.language,
-      sort: params.sort,
-      genres: params.genres,
-      excludeGenres: params.excludeGenres,
-      year: params.year,
+      ...params,
     });
-  }, [
-    params.q,
-    params.page,
-    params.type,
-    params.status,
-    params.rated,
-    params.season,
-    params.language,
-    params.sort,
-    params.genres,
-    params.excludeGenres,
-    params.year,
-  ]);
+  }, [params]);
 
   React.useEffect(() => {
     if (displayPhrase) addRecent(displayPhrase);
@@ -191,41 +186,13 @@ const SearchResults = () => {
   React.useEffect(() => {
     const id = window.setTimeout(() => setDebouncedFilters(filters), 400);
     return () => window.clearTimeout(id);
-  }, [
-    filters.type,
-    filters.status,
-    filters.season,
-    filters.sort,
-    filters.genres,
-    filters.excludeGenres,
-    filters.year,
-    filters,
-  ]);
+  }, [filters]);
 
   React.useEffect(() => {
     if (isMobile) return;
     if (filtersMatchParams(debouncedFilters, params)) return;
     applyFilters({ ...debouncedFilters, page: 1 });
-  }, [
-    debouncedFilters.type,
-    debouncedFilters.status,
-    debouncedFilters.season,
-    debouncedFilters.sort,
-    debouncedFilters.genres,
-    debouncedFilters.excludeGenres,
-    debouncedFilters.year,
-    debouncedFilters,
-    params.type,
-    params.status,
-    params.season,
-    params.sort,
-    params.genres,
-    params.excludeGenres,
-    params.year,
-    params,
-    applyFilters,
-    isMobile,
-  ]);
+  }, [debouncedFilters, params, applyFilters, isMobile]);
 
   const resetFilters = () => {
     setFilters(EMPTY_FILTERS);
@@ -237,9 +204,20 @@ const SearchResults = () => {
     filters.status,
     filters.season,
     filters.year,
+    filters.decade,
     filters.sort && filters.sort !== "default",
     filters.genres,
     filters.excludeGenres,
+    filters.source,
+    filters.country,
+    filters.demographic,
+    filters.tags,
+    filters.episodes,
+    filters.runtime,
+    filters.scoreMin,
+    filters.language,
+    filters.rated,
+    filters.studio,
   ].filter(Boolean).length;
 
   const genreModeLabel = (mode: GenreFilterMode | undefined, label: string) => {
@@ -283,8 +261,43 @@ const SearchResults = () => {
     activeChips.push({ id: "season", label: labelFor(filterLabels.seasons, filters.season), tone: "neutral", onRemove: () => clearFilterKey("season") });
   if (filters.year)
     activeChips.push({ id: "year", label: labelFor(filterLabels.years, filters.year), tone: "neutral", onRemove: () => clearFilterKey("year") });
+  if (filters.decade)
+    activeChips.push({ id: "decade", label: labelFor(filterLabels.decades, filters.decade), tone: "neutral", onRemove: () => clearFilterKey("decade") });
   if (filters.sort && filters.sort !== "default")
     activeChips.push({ id: "sort", label: labelFor(filterLabels.sort, filters.sort), tone: "neutral", onRemove: () => clearFilterKey("sort") });
+  if (filters.source)
+    activeChips.push({ id: "source", label: labelFor(filterLabels.sources, filters.source), tone: "neutral", onRemove: () => clearFilterKey("source") });
+  if (filters.country)
+    activeChips.push({ id: "country", label: labelFor(filterLabels.countries, filters.country), tone: "neutral", onRemove: () => clearFilterKey("country") });
+  if (filters.demographic)
+    activeChips.push({ id: "demographic", label: labelFor(filterLabels.demographics, filters.demographic), tone: "neutral", onRemove: () => clearFilterKey("demographic") });
+  if (filters.episodes)
+    activeChips.push({ id: "episodes", label: labelFor(filterLabels.episodeRanges, filters.episodes), tone: "neutral", onRemove: () => clearFilterKey("episodes") });
+  if (filters.runtime)
+    activeChips.push({ id: "runtime", label: labelFor(filterLabels.runtimeRanges, filters.runtime), tone: "neutral", onRemove: () => clearFilterKey("runtime") });
+  if (filters.scoreMin)
+    activeChips.push({ id: "scoreMin", label: `${filters.scoreMin}+`, tone: "neutral", onRemove: () => clearFilterKey("scoreMin") });
+  if (filters.language)
+    activeChips.push({ id: "language", label: labelFor(filterLabels.languages, filters.language), tone: "neutral", onRemove: () => clearFilterKey("language") });
+  if (filters.rated)
+    activeChips.push({ id: "rated", label: labelFor(filterLabels.ratings, filters.rated), tone: "neutral", onRemove: () => clearFilterKey("rated") });
+  if (filters.studio)
+    activeChips.push({ id: "studio", label: `Studio #${filters.studio}`, tone: "neutral", onRemove: () => clearFilterKey("studio") });
+  if (filters.tags) {
+    filters.tags.split(",").filter(Boolean).forEach((tag) => {
+      activeChips.push({
+        id: `tag-${tag}`,
+        label: tag,
+        tone: "include",
+        onRemove: () => {
+          const next = filters.tags!.split(",").filter((t) => t !== tag).join(",");
+          const updated = { ...filters, tags: next, page: 1 };
+          setFilters(updated);
+          applyFilters(updated);
+        },
+      });
+    });
+  }
   Object.entries(genreModes).forEach(([slug, mode]) => {
     activeChips.push({
       id: `genre-${slug}`,
@@ -408,7 +421,57 @@ const SearchResults = () => {
           <Select options={filterLabels.statuses} placeholder={t("search.placeholders.status")} value={filters.status || ""} onChange={(val) => onChange("status", val)} />
           <Select options={filterLabels.seasons} placeholder={t("search.placeholders.season")} value={filters.season || ""} onChange={(val) => onChange("season", val)} />
           <Select options={filterLabels.years} placeholder={t("search.placeholders.year")} value={filters.year || ""} onChange={(val) => onChange("year", val)} />
+          <Select options={filterLabels.decades} placeholder={t("search.placeholders.decade")} value={filters.decade || ""} onChange={(val) => onChange("decade", val)} />
           <Select options={filterLabels.sort} placeholder={t("search.placeholders.sort")} value={filters.sort || ""} onChange={(val) => onChange("sort", val)} />
+          <Select options={filterLabels.sources} placeholder={t("search.placeholders.source")} value={filters.source || ""} onChange={(val) => onChange("source", val)} />
+          <Select options={filterLabels.countries} placeholder={t("search.placeholders.country")} value={filters.country || ""} onChange={(val) => onChange("country", val)} />
+          <Select options={filterLabels.demographics} placeholder={t("search.placeholders.demographic")} value={filters.demographic || ""} onChange={(val) => onChange("demographic", val)} />
+          <Select options={filterLabels.episodeRanges} placeholder={t("search.placeholders.episodes")} value={filters.episodes || ""} onChange={(val) => onChange("episodes", val)} />
+          <Select options={filterLabels.runtimeRanges} placeholder={t("search.placeholders.runtime")} value={filters.runtime || ""} onChange={(val) => onChange("runtime", val)} />
+          <Select
+            options={filterLabels.scoreRanges.map((o) => ({ value: o.value, label: o.label }))}
+            placeholder={t("search.placeholders.rating")}
+            value={filters.scoreMin || ""}
+            onChange={(val) => onChange("scoreMin", val)}
+          />
+          <Select options={filterLabels.languages} placeholder={t("search.placeholders.language")} value={filters.language || ""} onChange={(val) => onChange("language", val)} />
+        </div>
+
+        <div>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <p className="text-xs font-semibold text-muted-foreground dark:text-white/40 uppercase tracking-widest">{t("search.themes")}</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {filterLabels.themes.map((theme) => {
+              const active = (filters.tags || "")
+                .split(",")
+                .map((x) => x.trim())
+                .includes(theme.value);
+              return (
+                <button
+                  key={theme.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => {
+                    const current = (filters.tags || "").split(",").map((x) => x.trim()).filter(Boolean);
+                    const next = active
+                      ? current.filter((x) => x !== theme.value)
+                      : [...current, theme.value];
+                    onChange("tags", next.join(","));
+                  }}
+                  className={cn(
+                    "inline-flex items-center border text-xs h-7 px-2.5 rounded-full transition-colors",
+                    !active &&
+                      "border-border dark:border-white/15 text-muted-foreground dark:text-white/35 hover:border-border dark:hover:border-white/30 hover:text-muted-foreground dark:hover:text-white/60",
+                    active &&
+                      "border-emerald-500/50 text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15",
+                  )}
+                >
+                  {theme.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div>

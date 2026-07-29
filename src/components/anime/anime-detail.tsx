@@ -521,10 +521,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const englishAlt =
     titles?.english && titles.english !== info.name ? titles.english : null;
 
-  const studioList = String(moreInfo.studios || "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const studioList = moreInfo.studioList?.length
+    ? moreInfo.studioList.map((s) => s.name)
+    : String(moreInfo.studios || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+  const studioLinks =
+    moreInfo.studioList?.length
+      ? moreInfo.studioList
+      : studioList.map((name) => ({ id: "", name }));
 
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (info.anilistId)           externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(info.anilistId) });
@@ -762,7 +769,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   const className =
                     "px-2.5 sm:px-3 py-1 text-[10px] sm:text-[11px] rounded-lg border border-primary/15 text-zinc-200/55 bg-primary/[0.06] hover:bg-primary/10 hover:text-zinc-100/80 transition-colors";
                   return slug ? (
-                    <Link key={g} href={`${ROUTES.SEARCH}?genres=${slug}`} className={className}>
+                    <Link key={g} href={ROUTES.genre(slug)} className={className}>
                       {g}
                     </Link>
                   ) : (
@@ -994,9 +1001,24 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             {moreInfo.studios && (
               <OverviewPanel title={t("anime.studios")}>
                 <div className="flex flex-wrap gap-2">
-                  {String(moreInfo.studios).split(",").map((s) => s.trim()).filter(Boolean).map((s) => (
-                    <span key={s} className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/12 text-muted-foreground dark:text-white/65 bg-muted/50 dark:bg-white/5 font-medium">{s}</span>
-                  ))}
+                  {studioLinks.map((s) =>
+                    s.id ? (
+                      <Link
+                        key={s.id}
+                        href={ROUTES.studio(s.id)}
+                        className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/12 text-muted-foreground dark:text-white/65 bg-muted/50 dark:bg-white/5 font-medium hover:border-white/25 hover:text-foreground dark:hover:text-white transition-colors"
+                      >
+                        {s.name}
+                      </Link>
+                    ) : (
+                      <span
+                        key={s.name}
+                        className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/12 text-muted-foreground dark:text-white/65 bg-muted/50 dark:bg-white/5 font-medium"
+                      >
+                        {s.name}
+                      </span>
+                    ),
+                  )}
                   {moreInfo.producers?.map((p) => (
                     <span key={p} className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/8 text-muted-foreground dark:text-white/35 bg-muted/30 dark:bg-white/[0.02]">{p}</span>
                   ))}

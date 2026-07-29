@@ -4,7 +4,10 @@
     "schedule": "Schedule",
     "voiceActors": "Voice Actors",
     "trending": "Trending",
+    "seasonal": "Seasonal",
     "newReleases": "New",
+    "collections": "Collections",
+    "recommendations": "For You",
     "community": "Community",
     "subtitles": "Subtitles",
     "timestamps": "Skip Timestamps",
@@ -33,7 +36,10 @@
       "home": "Home",
       "schedule": "Schedule",
       "trending": "Trending",
+      "seasonal": "Season",
       "newReleases": "New",
+      "collections": "Lists",
+      "recommendations": "For You",
       "community": "Community",
       "subtitles": "Subs",
       "timestamps": "Times",
@@ -703,7 +709,7 @@
   },
   "search": {
     "title": "Search",
-    "placeholder": "Search anime & voice actors...",
+    "placeholder": "Search anime, movies, characters, VAs, studios…",
     "clear": "Clear search",
     "filters": "Filters",
     "reset": "Reset",
@@ -717,7 +723,13 @@
     "resultsCount": "{count} results",
     "vaResultsCount": "{count} shown",
     "sectionAnime": "Anime",
+    "sectionMovies": "Movies",
+    "sectionCharacters": "Characters",
     "sectionVoiceActors": "Voice Actors",
+    "sectionStudios": "Studios",
+    "sectionUsers": "Users",
+    "sectionGenres": "Genres",
+    "themes": "Themes",
     "voiceActor": "Voice actor",
     "noVoiceActors": "No voice actors found for \"{query}\"",
     "recentSearches": "Recent searches",
@@ -739,7 +751,15 @@
       "status": "Status",
       "season": "Season",
       "year": "Year",
-      "sort": "Sort"
+      "decade": "Decade",
+      "sort": "Sort",
+      "source": "Source",
+      "country": "Country",
+      "demographic": "Demographic",
+      "episodes": "Episodes",
+      "runtime": "Runtime",
+      "rating": "Score",
+      "language": "Language"
     },
     "genreCycleHint": "Tap: include · tap again: exclude · tap again: clear",
     "genreIncludeLabel": "Include {genre}",
@@ -769,6 +789,7 @@
       "default": "Default",
       "score": "Top Rated",
       "popular": "Most Popular",
+      "trending": "Trending",
       "newest": "Newest",
       "az": "A → Z"
     },
@@ -1992,6 +2013,75 @@
     "selected": "{count} selected",
     "remove": "Remove ({count})"
   },
+  "discovery": {
+    "empty": "Nothing here yet",
+    "franchise": {
+      "subtitle": "Every season, OVA, movie, and special in this franchise — with watch order and total runtime.",
+      "entries": "{count} titles",
+      "episodes": "{count} episodes",
+      "runtime": "{time} total",
+      "openSeed": "Open title",
+      "chronological": "Chronological",
+      "releaseOrder": "Release order",
+      "timeline": "Timeline",
+      "seasons": "Seasons",
+      "ovas": "OVAs & ONAs",
+      "movies": "Movies",
+      "specials": "Specials",
+      "youAreHere": "You are here",
+      "viewFull": "Full franchise →",
+      "loadError": "Could not load this franchise."
+    },
+    "studio": {
+      "subtitle": "Productions, history, and upcoming releases from this studio.",
+      "founded": "Founded ~{year}",
+      "productions": "{count} productions",
+      "avgScore": "Avg {score}",
+      "website": "Official site",
+      "browseAll": "Browse all",
+      "logoHint": "Studio highlight",
+      "history": "Production history",
+      "popular": "Most popular",
+      "highestRated": "Highest rated",
+      "upcoming": "Upcoming",
+      "staff": "Staff",
+      "loadError": "Could not load this studio."
+    },
+    "genre": {
+      "browseAll": "Browse with filters",
+      "trending": "Trending",
+      "highestRated": "Highest rated",
+      "newReleases": "New releases",
+      "hiddenGems": "Hidden gems",
+      "upcoming": "Upcoming",
+      "loadError": "Could not load this genre."
+    },
+    "collections": {
+      "title": "Collections",
+      "subtitle": "Curated lists with descriptions and ready-made filters.",
+      "openFilters": "Open in search",
+      "titles": "Titles",
+      "all": "All collections",
+      "notFound": "Collection not found."
+    },
+    "season": {
+      "subtitle": "Currently airing, upcoming, completed, delayed, and the weekly schedule.",
+      "currentlyAiring": "Currently airing",
+      "upcoming": "Upcoming",
+      "completed": "Completed",
+      "delayed": "Delayed",
+      "weeklySchedule": "Weekly schedule",
+      "trending": "Trending this season",
+      "airingCount": "{count} airing",
+      "upcomingCount": "{count} upcoming"
+    },
+    "recommendations": {
+      "title": "Recommended for you",
+      "subtitle": "Based on genres, studios, and titles you've watched — with a short reason for each pick.",
+      "signIn": "Sign in to get personalized recommendations.",
+      "forYou": "Your picks"
+    }
+  },
   "common": {
     "seeAll": "See all",
     "viewAll": "View All",
@@ -2181,7 +2271,10 @@
       "sameStudio": "Same studio",
       "similarGenre": "Similar genres",
       "fansAlsoLiked": "Fans also liked",
-      "empty": "No recommendations yet."
+      "empty": "No recommendations yet.",
+      "reasonStudio": "Recommended because of shared studio.",
+      "reasonGenre": "Recommended because of shared genres.",
+      "reasonFans": "Recommended by the community."
     },
     "watchProgressPanel": {
       "title": "Your progress",

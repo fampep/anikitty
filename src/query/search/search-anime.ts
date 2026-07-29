@@ -7,7 +7,31 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 
 export type SearchSuggestions = {
   anime: ISuggestionAnime[];
+  movies: ISuggestionAnime[];
   voiceActors: VoiceActorSummary[];
+  characters: Array<{
+    id: string;
+    name: string;
+    native: string | null;
+    image: string | null;
+    favourites: number | null;
+    mediaId: string | null;
+    mediaTitle: string | null;
+  }>;
+  studios: Array<{
+    id: string;
+    name: string;
+    favourites: number | null;
+    isAnimationStudio: boolean;
+  }>;
+  users: Array<{
+    username: string;
+    avatarUrl: string | null;
+  }>;
+  genres: Array<{
+    slug: string;
+    name: string;
+  }>;
 };
 
 const searchSuggestions = async (
@@ -17,9 +41,15 @@ const searchSuggestions = async (
   const res = await api.get("/api/search/suggestion", {
     params: { q, ...(adult ? { adult: "1" } : {}) },
   });
+  const d = res.data.data ?? {};
   return {
-    anime: (res.data.data.suggestions ?? []) as ISuggestionAnime[],
-    voiceActors: (res.data.data.voiceActors ?? []) as VoiceActorSummary[],
+    anime: (d.suggestions ?? []) as ISuggestionAnime[],
+    movies: (d.movies ?? []) as ISuggestionAnime[],
+    voiceActors: (d.voiceActors ?? []) as VoiceActorSummary[],
+    characters: d.characters ?? [],
+    studios: d.studios ?? [],
+    users: d.users ?? [],
+    genres: d.genres ?? [],
   };
 };
 
@@ -38,7 +68,7 @@ export const useSearchAnime = (query: string) => {
 export const useSearchSuggestions = (query: string) => {
   const showAdultContent = useSettingsStore((s) => s.showAdultContent);
   return useQuery({
-    queryKey: [SEARCH_ANIME, "suggestions", query, showAdultContent ? "adult" : "sfw"],
+    queryKey: [SEARCH_ANIME, "suggestions-v2", query, showAdultContent ? "adult" : "sfw"],
     queryFn: () => searchSuggestions(query, showAdultContent),
     enabled: query.trim().length > 0,
     staleTime: 30 * 1000,

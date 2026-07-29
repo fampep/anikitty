@@ -20,6 +20,19 @@ export const useAnimeSearchParams = (): SearchAnimeParams => {
       genres: get("genres"),
       excludeGenres: get("excludeGenres"),
       year: get("year"),
+      decade: get("decade"),
+      studio: get("studio"),
+      source: get("source"),
+      tags: get("tags"),
+      demographic: get("demographic"),
+      country: get("country"),
+      episodeMin: get("episodeMin"),
+      episodeMax: get("episodeMax"),
+      durationMin: get("durationMin"),
+      durationMax: get("durationMax"),
+      scoreMin: get("scoreMin"),
+      episodes: get("episodes"),
+      runtime: get("runtime"),
     };
   }, [searchParams]);
 };

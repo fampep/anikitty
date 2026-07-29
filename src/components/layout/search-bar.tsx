@@ -1,9 +1,20 @@
 "use client";
 
 import React, { useId, useState, useRef, useEffect, useMemo } from "react";
-import { SearchIcon, X, ArrowRight, Mic } from "lucide-react";
+import {
+  SearchIcon,
+  X,
+  ArrowRight,
+  Mic,
+  Clapperboard,
+  Film,
+  UserRound,
+  Building2,
+  Users,
+  Tags,
+} from "lucide-react";
 import useDebounce from "@/hooks/use-debounce";
-import { useSearchSuggestions } from "@/query/search/search-anime";
+import { useSearchSuggestions, type SearchSuggestions } from "@/query/search/search-anime";
 import Image from "next/image";
 import Link from "next/link";
 import { ROUTES } from "@/constants/routes";
@@ -15,7 +26,12 @@ import type { ISuggestionAnime } from "@/types/anime";
 
 type NavOption =
   | { kind: "anime"; item: ISuggestionAnime }
+  | { kind: "movie"; item: ISuggestionAnime }
+  | { kind: "character"; item: SearchSuggestions["characters"][number] }
   | { kind: "va"; item: VoiceActorSummary }
+  | { kind: "studio"; item: SearchSuggestions["studios"][number] }
+  | { kind: "user"; item: SearchSuggestions["users"][number] }
+  | { kind: "genre"; item: SearchSuggestions["genres"][number] }
   | { kind: "viewAll" };
 
 const SearchBar = ({
@@ -44,18 +60,36 @@ const SearchBar = ({
 
   const { data, isLoading } = useSearchSuggestions(debouncedValue);
   const animeResults = data?.anime ?? [];
+  const movieResults = data?.movies ?? [];
+  const characterResults = data?.characters ?? [];
   const vaResults = data?.voiceActors ?? [];
+  const studioResults = data?.studios ?? [];
+  const userResults = data?.users ?? [];
+  const genreResults = data?.genres ?? [];
 
   const options: NavOption[] = useMemo(() => {
     const list: NavOption[] = [
       ...animeResults.map((item) => ({ kind: "anime" as const, item })),
+      ...movieResults.map((item) => ({ kind: "movie" as const, item })),
+      ...characterResults.map((item) => ({ kind: "character" as const, item })),
       ...vaResults.map((item) => ({ kind: "va" as const, item })),
+      ...studioResults.map((item) => ({ kind: "studio" as const, item })),
+      ...userResults.map((item) => ({ kind: "user" as const, item })),
+      ...genreResults.map((item) => ({ kind: "genre" as const, item })),
     ];
     if (list.length > 0) list.push({ kind: "viewAll" });
     return list;
-  }, [animeResults, vaResults]);
+  }, [
+    animeResults,
+    movieResults,
+    characterResults,
+    vaResults,
+    studioResults,
+    userResults,
+    genreResults,
+  ]);
 
-  const hasResults = animeResults.length > 0 || vaResults.length > 0;
+  const hasResults = options.some((o) => o.kind !== "viewAll");
   const optionCount = options.length;
 
   useEffect(() => {
@@ -110,17 +144,34 @@ const SearchBar = ({
   const navigateToOption = (index: number) => {
     const option = options[index];
     if (!option) return;
-    if (option.kind === "viewAll") {
-      router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`);
-      handleSelect();
-      return;
+    switch (option.kind) {
+      case "viewAll":
+        router.push(`${ROUTES.SEARCH}?q=${encodeURIComponent(searchValue.trim())}`);
+        break;
+      case "anime":
+      case "movie":
+        router.push(`${ROUTES.ANIME_DETAILS}/${option.item.id}`);
+        break;
+      case "character":
+        router.push(
+          option.item.mediaId
+            ? `${ROUTES.ANIME_DETAILS}/${option.item.mediaId}`
+            : `https://anilist.co/character/${option.item.id}`,
+        );
+        break;
+      case "va":
+        router.push(`${ROUTES.VOICE_ACTOR}/${option.item.id}`);
+        break;
+      case "studio":
+        router.push(ROUTES.studio(option.item.id));
+        break;
+      case "user":
+        router.push(ROUTES.profile(option.item.username));
+        break;
+      case "genre":
+        router.push(ROUTES.genre(option.item.slug));
+        break;
     }
-    if (option.kind === "anime") {
-      router.push(`${ROUTES.ANIME_DETAILS}/${option.item.id}`);
-      handleSelect();
-      return;
-    }
-    router.push(`${ROUTES.VOICE_ACTOR}/${option.item.id}`);
     handleSelect();
   };
 
@@ -164,6 +215,25 @@ const SearchBar = ({
   }, [activeIndex]);
 
   let runningIndex = 0;
+
+  const rowClass = (index: number) =>
+    cn(
+      "flex items-center gap-3 px-3 py-2 transition-colors group",
+      activeIndex === index
+        ? "bg-accent dark:bg-white/10"
+        : "hover:bg-accent dark:hover:bg-white/8",
+    );
+
+  const sectionLabel = (label: string, bordered = false) => (
+    <p
+      className={cn(
+        "px-3 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35",
+        bordered && "border-t border-border/60 dark:border-white/[0.06]",
+      )}
+    >
+      {label}
+    </p>
+  );
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
@@ -225,9 +295,7 @@ const SearchBar = ({
             <div className="flex flex-col">
               {animeResults.length > 0 && (
                 <>
-                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35">
-                    {t("search.sectionAnime")}
-                  </p>
+                  {sectionLabel(t("search.sectionAnime"))}
                   {animeResults.map((anime) => {
                     const index = runningIndex++;
                     return (
@@ -239,15 +307,10 @@ const SearchBar = ({
                         aria-selected={activeIndex === index}
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={handleSelect}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 transition-colors group",
-                          activeIndex === index
-                            ? "bg-accent dark:bg-white/10"
-                            : "hover:bg-accent dark:hover:bg-white/8",
-                        )}
+                        className={rowClass(index)}
                       >
-                        <div className="h-14 w-10 overflow-hidden rounded shrink-0 bg-accent dark:bg-white/8">
-                          {anime.poster && (
+                        <div className="h-14 w-10 overflow-hidden rounded shrink-0 bg-accent dark:bg-white/8 relative">
+                          {anime.poster ? (
                             <Image
                               src={anime.poster}
                               alt={anime.name}
@@ -256,10 +319,12 @@ const SearchBar = ({
                               sizes="40px"
                               className="h-full w-full object-cover"
                             />
+                          ) : (
+                            <Clapperboard className="absolute inset-0 m-auto h-4 w-4 text-white/30" />
                           )}
                         </div>
                         <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                          <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1 group-hover:text-foreground dark:hover:text-white transition-colors">
+                          <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1">
                             {anime.name || anime.jname}
                           </p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground dark:text-white/40">
@@ -277,11 +342,93 @@ const SearchBar = ({
                 </>
               )}
 
+              {movieResults.length > 0 && (
+                <>
+                  {sectionLabel(t("search.sectionMovies"), true)}
+                  {movieResults.map((movie) => {
+                    const index = runningIndex++;
+                    return (
+                      <Link
+                        key={`movie-${movie.id}`}
+                        id={optionId(index)}
+                        href={`${ROUTES.ANIME_DETAILS}/${movie.id}`}
+                        role="option"
+                        aria-selected={activeIndex === index}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={handleSelect}
+                        className={rowClass(index)}
+                      >
+                        <div className="h-14 w-10 overflow-hidden rounded shrink-0 bg-accent dark:bg-white/8 relative">
+                          {movie.poster ? (
+                            <Image
+                              src={movie.poster}
+                              alt={movie.name}
+                              height={56}
+                              width={40}
+                              sizes="40px"
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <Film className="absolute inset-0 m-auto h-4 w-4 text-white/30" />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1">
+                            {movie.name || movie.jname}
+                          </p>
+                          <p className="text-xs text-muted-foreground dark:text-white/40">
+                            {movie.moreInfo?.join(" · ")}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {characterResults.length > 0 && (
+                <>
+                  {sectionLabel(t("search.sectionCharacters"), true)}
+                  {characterResults.map((ch) => {
+                    const index = runningIndex++;
+                    const href = ch.mediaId
+                      ? `${ROUTES.ANIME_DETAILS}/${ch.mediaId}`
+                      : `https://anilist.co/character/${ch.id}`;
+                    return (
+                      <Link
+                        key={`ch-${ch.id}`}
+                        id={optionId(index)}
+                        href={href}
+                        role="option"
+                        aria-selected={activeIndex === index}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={handleSelect}
+                        className={rowClass(index)}
+                      >
+                        <div className="relative h-10 w-10 overflow-hidden rounded-full shrink-0 bg-accent dark:bg-white/8 ring-1 ring-white/10">
+                          {ch.image ? (
+                            <Image src={ch.image} alt={ch.name} fill sizes="40px" className="object-cover" unoptimized />
+                          ) : (
+                            <UserRound className="absolute inset-0 m-auto h-4 w-4 text-white/30" />
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1">
+                            {ch.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground dark:text-white/40 line-clamp-1">
+                            {[ch.native, ch.mediaTitle].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
               {vaResults.length > 0 && (
                 <>
-                  <p className="px-3 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35 border-t border-border/60 dark:border-white/[0.06]">
-                    {t("search.sectionVoiceActors")}
-                  </p>
+                  {sectionLabel(t("search.sectionVoiceActors"), true)}
                   {vaResults.map((va) => {
                     const index = runningIndex++;
                     return (
@@ -293,23 +440,11 @@ const SearchBar = ({
                         aria-selected={activeIndex === index}
                         onMouseEnter={() => setActiveIndex(index)}
                         onClick={handleSelect}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 transition-colors group",
-                          activeIndex === index
-                            ? "bg-accent dark:bg-white/10"
-                            : "hover:bg-accent dark:hover:bg-white/8",
-                        )}
+                        className={rowClass(index)}
                       >
                         <div className="relative h-10 w-10 overflow-hidden rounded-full shrink-0 bg-accent dark:bg-white/8 ring-1 ring-white/10">
                           {va.image ? (
-                            <Image
-                              src={va.image}
-                              alt={va.name}
-                              fill
-                              sizes="40px"
-                              className="object-cover"
-                              unoptimized
-                            />
+                            <Image src={va.image} alt={va.name} fill sizes="40px" className="object-cover" unoptimized />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-zinc-400">
                               <Mic className="h-4 w-4" />
@@ -324,6 +459,108 @@ const SearchBar = ({
                             {[va.native, va.language].filter(Boolean).join(" · ")}
                           </p>
                         </div>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {studioResults.length > 0 && (
+                <>
+                  {sectionLabel(t("search.sectionStudios"), true)}
+                  {studioResults.map((studio) => {
+                    const index = runningIndex++;
+                    return (
+                      <Link
+                        key={`studio-${studio.id}`}
+                        id={optionId(index)}
+                        href={ROUTES.studio(studio.id)}
+                        role="option"
+                        aria-selected={activeIndex === index}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={handleSelect}
+                        className={rowClass(index)}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0 bg-accent dark:bg-white/8 ring-1 ring-white/10">
+                          <Building2 className="h-4 w-4 text-white/50" />
+                        </div>
+                        <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                          <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1">
+                            {studio.name}
+                          </p>
+                          {studio.favourites != null && (
+                            <p className="text-xs text-muted-foreground dark:text-white/40">
+                              {studio.favourites.toLocaleString()} ★
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {userResults.length > 0 && (
+                <>
+                  {sectionLabel(t("search.sectionUsers"), true)}
+                  {userResults.map((user) => {
+                    const index = runningIndex++;
+                    return (
+                      <Link
+                        key={`user-${user.username}`}
+                        id={optionId(index)}
+                        href={ROUTES.profile(user.username)}
+                        role="option"
+                        aria-selected={activeIndex === index}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={handleSelect}
+                        className={rowClass(index)}
+                      >
+                        <div className="relative h-10 w-10 overflow-hidden rounded-full shrink-0 bg-accent dark:bg-white/8 ring-1 ring-white/10">
+                          {user.avatarUrl ? (
+                            <Image
+                              src={user.avatarUrl}
+                              alt={user.username}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <Users className="absolute inset-0 m-auto h-4 w-4 text-white/30" />
+                          )}
+                        </div>
+                        <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1">
+                          @{user.username}
+                        </p>
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
+
+              {genreResults.length > 0 && (
+                <>
+                  {sectionLabel(t("search.sectionGenres"), true)}
+                  {genreResults.map((genre) => {
+                    const index = runningIndex++;
+                    return (
+                      <Link
+                        key={`genre-${genre.slug}`}
+                        id={optionId(index)}
+                        href={ROUTES.genre(genre.slug)}
+                        role="option"
+                        aria-selected={activeIndex === index}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        onClick={handleSelect}
+                        className={rowClass(index)}
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg shrink-0 bg-accent dark:bg-white/8 ring-1 ring-white/10">
+                          <Tags className="h-4 w-4 text-white/50" />
+                        </div>
+                        <p className="text-sm text-foreground dark:text-white/85 font-medium line-clamp-1">
+                          {genre.name}
+                        </p>
                       </Link>
                     );
                   })}

@@ -13,12 +13,14 @@ import {
   HelpCircle,
   History,
   Home,
+  Layers,
   Mail,
   MessageCircle,
   MessageSquare,
   MessagesSquare,
   Scale,
   Search,
+  Sparkles,
   Timer,
   Tv2,
   Users,
@@ -33,8 +35,11 @@ export const MENU_GROUP_ORDER: MenuGroup[] = ["browse", "watch", "community", "s
 export const MENU_DEFS = [
   { href: ROUTES.HOME, icon: Home, titleKey: "nav.home", shortKey: "nav.short.home", group: "browse" as MenuGroup },
   { href: ROUTES.TRENDING, icon: Flame, titleKey: "nav.trending", shortKey: "nav.short.trending", group: "browse" as MenuGroup },
+  { href: ROUTES.SEASON, icon: CalendarDays, titleKey: "nav.seasonal", shortKey: "nav.short.seasonal", group: "browse" as MenuGroup },
   { href: ROUTES.SCHEDULE, icon: CalendarDays, titleKey: "nav.schedule", shortKey: "nav.short.schedule", group: "browse" as MenuGroup },
   { href: ROUTES.NEW, icon: Tv2, titleKey: "nav.newReleases", shortKey: "nav.short.newReleases", group: "browse" as MenuGroup },
+  { href: ROUTES.COLLECTIONS, icon: Layers, titleKey: "nav.collections", shortKey: "nav.short.collections", group: "browse" as MenuGroup },
+  { href: ROUTES.RECOMMENDATIONS, icon: Sparkles, titleKey: "nav.recommendations", shortKey: "nav.short.recommendations", group: "browse" as MenuGroup },
   { href: ROUTES.SEARCH, icon: Search, titleKey: "nav.search", shortKey: "nav.short.search", group: "browse" as MenuGroup },
   { href: ROUTES.COMMUNITY, icon: MessageSquare, titleKey: "nav.community", shortKey: "nav.short.community", group: "browse" as MenuGroup },
   { href: ROUTES.SUBTITLES, icon: Captions, titleKey: "nav.subtitles", shortKey: "nav.short.subtitles", group: "watch" as MenuGroup },
@@ -63,6 +68,9 @@ export function isNavActive(pathname: string, href: string): boolean {
   if (pathname === href) return true;
   if (href === ROUTES.HOME) return false;
   if (href === ROUTES.SEARCH) return pathname.startsWith("/search");
+  if (href === ROUTES.SEASON) return pathname.startsWith("/season");
+  if (href === ROUTES.COLLECTIONS) return pathname.startsWith("/collections");
+  if (href === ROUTES.RECOMMENDATIONS) return pathname.startsWith("/recommendations");
   if (href === ROUTES.FORUM) return pathname.startsWith("/forum");
   if (href === ROUTES.MESSAGES) return pathname.startsWith("/messages");
   if (href === ROUTES.TIMESTAMPS) return pathname.startsWith("/timestamps");

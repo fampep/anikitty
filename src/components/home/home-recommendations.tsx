@@ -56,6 +56,7 @@ export default function HomeRecommendations() {
       trendingAnime={items as IAnime[]}
       loading={isLoading}
       layout="row"
+      seeAllHref={ROUTES.RECOMMENDATIONS}
     />
   );
 }
