@@ -1977,6 +1977,7 @@ const VideoPlayerSection = () => {
         qualities={displayQualities}
         headers={displayHeaders}
         kittyNodeId={kittyProxyNode}
+        provider={provider}
         preferSubtitles={subtitlesEnabled}
         preferDubAudio={streamAudio === "dub"}
         onSelectQuality={handlePickQuality}

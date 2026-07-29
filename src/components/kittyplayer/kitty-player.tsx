@@ -182,10 +182,12 @@ import {
   captionPositionCss,
   captionSizeCss,
   clamp,
+  isEarnVidsLikeHeaders,
   KITTY_PLAYER_SPEEDS,
   formatPlayerTime,
   isAppleTouchDevice,
   loadKittyPlayerPrefs,
+  logPlayerDebug,
   nextKittyPlayerSpeed,
   prefersCoarsePointer,
   pulsePlayerHaptic,
@@ -255,6 +257,7 @@ export function KittyPlayer({
   w2g,
   playbackIssueHint,
   watchingHardSub = false,
+  provider,
 }: KittyPlayerProps) {
   const t = useT();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -276,6 +279,12 @@ export function KittyPlayer({
   const hlsRef = useRef<Hls | null>(null);
   /** Kick HLS when `waiting` sticks after resume / buffer stall. */
   const stallWatchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Soft reattach once when cold-start autoplay never leaves t≈0. */
+  const coldStartRecoverRef = useRef(false);
+  const providerRef = useRef(provider);
+  providerRef.current = provider;
+  const headersRef = useRef(headers);
+  headersRef.current = headers;
   const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gestureHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1281,6 +1290,7 @@ export function KittyPlayer({
     setSrcOverride(null);
     audioUserPickedRef.current = false;
     mediaRetryRef.current = false;
+    coldStartRecoverRef.current = false;
   }, [src]);
 
   // Avoid cast-poster flash when the episode image URL changes mid-session.
@@ -1690,21 +1700,60 @@ export function KittyPlayer({
       stallWatchRef.current = setTimeout(() => {
         stallWatchRef.current = null;
         const v = videoRef.current;
-        if (!v || v.paused || v.readyState >= 3) return;
+        if (!v) return;
+        const cold = v.currentTime < 0.35;
+        // Still have future data and advancing — leave alone.
+        if (v.readyState >= 3 && !v.paused && v.currentTime > 0.05) return;
+        // Mid-playback with enough buffer — not a stall we should force.
+        if (!cold && v.readyState >= 3) return;
+
         trackEvent("buffer_stall", {
           ready_state: v.readyState,
-          current_time: Math.round(v.currentTime),
+          current_time: Math.round(v.currentTime * 10) / 10,
+          paused: v.paused,
+          cold,
         });
+        logPlayerDebug("stall-recover", {
+          readyState: v.readyState,
+          currentTime: v.currentTime,
+          paused: v.paused,
+          cold,
+        });
+
+        // Mirror manual pause→play: resume loading + play.
+        // Do NOT recoverMediaError on cold start — that tears MSE and loops waiting.
         kickHlsLoad();
-        try {
-          hlsRef.current?.recoverMediaError();
-        } catch {
-          /* ignore */
+        if (!cold) {
+          try {
+            hlsRef.current?.recoverMediaError();
+          } catch {
+            /* ignore */
+          }
         }
         void v.play().catch(() => {});
-      }, 2500);
+
+        // EarnVids / AniVibe (and any HLS that never leaves t=0): soft reattach once.
+        if (cold && !coldStartRecoverRef.current) {
+          coldStartRecoverRef.current = true;
+          window.setTimeout(() => {
+            const again = videoRef.current;
+            if (!again || again.currentTime >= 0.35) return;
+            if (again.readyState >= 3 && !again.paused) return;
+            logPlayerDebug("stall-soft-reattach", {
+              readyState: again.readyState,
+              currentTime: again.currentTime,
+            });
+            mediaRetryRef.current = false;
+            setAttachNonce((n) => n + 1);
+          }, 2200);
+        }
+      }, 2200);
     };
     const onWaiting = () => {
+      setBuffering(true);
+      armStallWatch();
+    };
+    const onStalled = () => {
       setBuffering(true);
       armStallWatch();
     };
@@ -1859,6 +1908,7 @@ export function KittyPlayer({
     video.addEventListener("progress", onBufProgress);
     video.addEventListener("volumechange", onVolume);
     video.addEventListener("waiting", onWaiting);
+    video.addEventListener("stalled", onStalled);
     video.addEventListener("playing", onPlaying);
     video.addEventListener("canplay", onCanPlay);
     video.addEventListener("seeking", onSeeking);
@@ -1899,6 +1949,7 @@ export function KittyPlayer({
       video.removeEventListener("progress", onBufProgress);
       video.removeEventListener("volumechange", onVolume);
       video.removeEventListener("waiting", onWaiting);
+      video.removeEventListener("stalled", onStalled);
       video.removeEventListener("playing", onPlaying);
       video.removeEventListener("canplay", onCanPlay);
       video.removeEventListener("seeking", onSeeking);
@@ -1940,6 +1991,7 @@ export function KittyPlayer({
     let networkRecoveries = 0;
     let mediaRecoveries = 0;
     let progressiveFallbackTried = false;
+    let hlsAttachCleanup: (() => void) | null = null;
     const abortSniff = new AbortController();
     const savedRate = playbackRateRef.current || video.playbackRate || 1;
     const savedVolume = video.volume;
@@ -2013,9 +2065,31 @@ export function KittyPlayer({
         setSourceLoading(false);
         return;
       }
-      void video.play().catch(() => {
+      logPlayerDebug("tryAutoplay", {
+        readyState: video.readyState,
+        currentTime: video.currentTime,
+        paused: video.paused,
+      });
+      void video.play().catch((err) => {
+        logPlayerDebug("tryAutoplay-rejected", {
+          name: err instanceof Error ? err.name : "unknown",
+          message: err instanceof Error ? err.message : String(err),
+        });
         // Autoplay blocked — user must tap play (expected on mobile).
       });
+    };
+
+    const mediaHasStartupBuffer = () => {
+      if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) return true;
+      try {
+        if (video.buffered.length > 0) {
+          const end = video.buffered.end(0);
+          if (end > video.currentTime + 0.15) return true;
+        }
+      } catch {
+        /* ignore */
+      }
+      return false;
     };
 
     const attachProgressive = () => {
@@ -2025,6 +2099,7 @@ export function KittyPlayer({
       hlsRef.current = null;
       setHlsLevels([]);
       setHlsAudioOptions([]);
+      logPlayerDebug("attach-progressive", { src: activeSrc.slice(0, 120) });
       video.src = activeSrc;
       restorePlaybackPrefs();
       const onLoaded = () => {
@@ -2085,27 +2160,142 @@ export function KittyPlayer({
         fail("hls-unsupported", "Browser cannot play HLS");
         return;
       }
+      const earnVidsLike =
+        providerRef.current === "AniVibe" ||
+        isEarnVidsLikeHeaders(headersRef.current);
+      logPlayerDebug("attach-hls-js", {
+        src: activeSrc.slice(0, 120),
+        provider: providerRef.current ?? null,
+        earnVidsLike,
+      });
       hls = new Hls(createHlsConfig({ lite: liteMode }));
       // Softsubs are rendered by PlayerSubtitleOverlay — never let hls.js force
       // TextTrack.mode = "showing" (that is what made captions stick on).
       hls.subtitleDisplay = false;
       hls.subtitleTrack = -1;
       hlsRef.current = hls;
-      hls.loadSource(activeSrc);
-      hls.attachMedia(video);
-      restorePlaybackPrefs();
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (cancelled || !hls) return;
+
+      let autoplayArmed = false;
+      let manifestParsed = false;
+      let firstFragBuffered = false;
+      let coldWatchTimer: ReturnType<typeof setTimeout> | null = null;
+
+      const clearColdWatch = () => {
+        if (coldWatchTimer) {
+          clearTimeout(coldWatchTimer);
+          coldWatchTimer = null;
+        }
+      };
+
+      const kickStartupAutoplay = (reason: string) => {
+        if (cancelled || autoplayArmed) return;
+        // Wait for manifest + enough media before play(). Early play() on
+        // EarnVids/StreamHG (AniVibe) leaves the element in infinite waiting;
+        // pause→play (startLoad + play) recovers — avoid needing that.
+        if (!manifestParsed) return;
+        if (!firstFragBuffered && !mediaHasStartupBuffer()) {
+          logPlayerDebug("autoplay-defer", {
+            reason,
+            readyState: video.readyState,
+            firstFragBuffered,
+          });
+          return;
+        }
+        autoplayArmed = true;
+        clearColdWatch();
         setBuffering(false);
         setSourceLoading(false);
+        applyResumeTime();
+        logPlayerDebug("autoplay-ready", { reason, readyState: video.readyState });
+        tryAutoplay();
+      };
+
+      hls.attachMedia(video);
+      hls.loadSource(activeSrc);
+      restorePlaybackPrefs();
+
+      hls.on(Hls.Events.MEDIA_ATTACHED, () => {
+        logPlayerDebug("MEDIA_ATTACHED");
+      });
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        if (cancelled || !hls) return;
+        manifestParsed = true;
+        logPlayerDebug("MANIFEST_PARSED", {
+          levels: hls.levels.length,
+          audioTracks: hls.audioTracks.length,
+        });
         syncHlsMenus(hls);
         if (!audioUserPickedRef.current) {
           pickHlsAudioTrack(hls, preferDubAudioRef.current);
           setHlsAudioIndex(hls.audioTrack);
         }
-        applyResumeTime();
-        tryAutoplay();
+        // Keep loading UI until first fragment — clearing early looked "ready"
+        // then stuck forever on EarnVids CDNs.
+        kickStartupAutoplay("manifest-parsed");
       });
+      hls.on(Hls.Events.FRAG_BUFFERED, (_event, data) => {
+        if (cancelled) return;
+        const frag = data.frag;
+        if (frag?.type === "subtitle") return;
+        if (!firstFragBuffered) {
+          firstFragBuffered = true;
+          logPlayerDebug("FRAG_BUFFERED-first", {
+            sn: frag?.sn,
+            type: frag?.type,
+            readyState: video.readyState,
+          });
+        }
+        kickStartupAutoplay("frag-buffered");
+      });
+      const onCanPlayStartup = () => {
+        if (cancelled) return;
+        logPlayerDebug("canplay", { readyState: video.readyState });
+        kickStartupAutoplay("canplay");
+      };
+      video.addEventListener("canplay", onCanPlayStartup);
+
+      // Safety net: if first frag never arrives / play never sticks, force a try.
+      coldWatchTimer = setTimeout(() => {
+        coldWatchTimer = null;
+        if (cancelled) return;
+        if (autoplayArmed) {
+          // Autoplay ran but may still be stuck at t=0.
+          if (
+            video.currentTime < 0.35 &&
+            (video.paused || video.readyState < 3)
+          ) {
+            logPlayerDebug("cold-watch-kick", {
+              readyState: video.readyState,
+              paused: video.paused,
+              currentTime: video.currentTime,
+            });
+            try {
+              hls?.startLoad(-1);
+            } catch {
+              try {
+                hls?.startLoad();
+              } catch {
+                /* ignore */
+              }
+            }
+            void video.play().catch(() => {});
+          }
+          return;
+        }
+        logPlayerDebug("cold-watch-force-autoplay", {
+          manifestParsed,
+          firstFragBuffered,
+          readyState: video.readyState,
+        });
+        firstFragBuffered = true;
+        kickStartupAutoplay("cold-watch-timeout");
+      }, earnVidsLike ? 3500 : 5000);
+
+      hlsAttachCleanup = () => {
+        video.removeEventListener("canplay", onCanPlayStartup);
+        clearColdWatch();
+      };
+
       hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
         if (cancelled || !hls) return;
         setHlsLevelIndex(hls.autoLevelEnabled ? -1 : data.level);
@@ -2131,6 +2321,7 @@ export function KittyPlayer({
             data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE ||
             data.details === Hls.ErrorDetails.BUFFER_NUDGE_ON_STALL
           ) {
+            logPlayerDebug("hls-nonfatal-stall", { details: data.details });
             try {
               // Drop to a safer ladder step, then resume loading from live edge of buffer.
               if (hls && hls.levels.length > 1 && hls.currentLevel > 0) {
@@ -2300,6 +2491,8 @@ export function KittyPlayer({
     return () => {
       cancelled = true;
       abortSniff.abort();
+      hlsAttachCleanup?.();
+      hlsAttachCleanup = null;
       exitPictureInPictureSafe(video);
       hls?.destroy();
       hls = null;

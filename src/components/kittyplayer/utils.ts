@@ -191,3 +191,45 @@ export function resolveStreamAttachMode(opts: {
   if (canPlayNativeHls(video)) return "native-hls";
   return "progressive";
 }
+
+/**
+ * Temporary player pipeline logs. Enable with `?debugPlayer=1` or
+ * `localStorage.kittyDebugPlayer = "1"`. Never always-on in production.
+ */
+export function isPlayerDebugEnabled(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("debugPlayer") === "1") return true;
+    if (window.localStorage?.getItem("kittyDebugPlayer") === "1") return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
+export function logPlayerDebug(step: string, detail?: Record<string, unknown>): void {
+  if (!isPlayerDebugEnabled()) return;
+  if (detail) {
+    console.info(`[kitty-player] ${step}`, detail);
+  } else {
+    console.info(`[kitty-player] ${step}`);
+  }
+}
+
+/** EarnVids / StreamHG (AniVibe) embed origins — first autoplay is sensitive to early play(). */
+export function isEarnVidsLikeHeaders(
+  headers: Record<string, string> | null | undefined,
+): boolean {
+  if (!headers) return false;
+  const blob = [
+    headers.Referer,
+    headers.referer,
+    headers.Origin,
+    headers.origin,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /otakuvid|otakuhg|streamhg|earnvid/.test(blob);
+}

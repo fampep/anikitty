@@ -70,6 +70,8 @@ export type KittyPlayerProps = {
   playbackIssueHint?: string;
   /** Soft-sub overlay on hard-sub streams (watch settings). */
   watchingHardSub?: boolean;
+  /** Active Kitty provider id (e.g. AniVibe) — used for CDN-specific start/stall recovery. */
+  provider?: string;
 };
 
 /** @deprecated Use KittyPlayerProps */
