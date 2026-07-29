@@ -85,35 +85,41 @@ function mapContinueRows(
   data: ContinueWatchingRow[],
   getProgress: (animeId: string, episodeId: string) => { current: number; duration: number } | null,
 ): ContinueItem[] {
-  return data.map((r) => {
-    const animeData = r.anime ?? {};
-    const title =
-      animeData?.title?.english ??
-      animeData?.title?.user_preferred ??
-      animeData?.title?.romaji ??
-      r.animeId;
-    const poster =
-      animeData?.cover_image?.large ??
-      animeData?.cover_image?.extra_large ??
-      animeData?.poster ??
-      "";
-    const episodeNumber = parseInt((r.episodeId ?? "ep-0").replace("ep-", ""), 10) || 0;
-    const cached = getProgress(r.animeId, r.episodeId ?? "");
-    return {
-      id: r.animeId,
-      name: title,
-      poster,
-      episodeId: r.episodeId ?? "",
-      watchDetail: {
+  return data
+    .map((r) => {
+      const animeData = r.anime ?? {};
+      const title =
+        animeData?.title?.english ??
+        animeData?.title?.user_preferred ??
+        animeData?.title?.romaji ??
+        r.animeId;
+      const poster =
+        animeData?.cover_image?.large ??
+        animeData?.cover_image?.extra_large ??
+        animeData?.poster ??
+        "";
+      const episodeNumber = parseInt((r.episodeId ?? "ep-0").replace("ep-", ""), 10) || 0;
+      const cached = getProgress(r.animeId, r.episodeId ?? "");
+      return {
         id: r.animeId,
-        current: cached?.current ?? r.currentTime ?? 0,
-        timestamp: cached?.duration ?? r.duration ?? 0,
+        name: title,
+        poster,
         episodeId: r.episodeId ?? "",
-        episodeNumber,
-        created: r.lastUpdated ?? "",
-      },
-    };
-  });
+        watchDetail: {
+          id: r.animeId,
+          current: cached?.current ?? r.currentTime ?? 0,
+          timestamp: cached?.duration ?? r.duration ?? 0,
+          episodeId: r.episodeId ?? "",
+          episodeNumber,
+          created: r.lastUpdated ?? "",
+        },
+      };
+    })
+    .sort((a, b) => {
+      const aTime = Date.parse(a.watchDetail.created) || 0;
+      const bTime = Date.parse(b.watchDetail.created) || 0;
+      return bTime - aTime;
+    });
 }
 
 function ContinueCard({

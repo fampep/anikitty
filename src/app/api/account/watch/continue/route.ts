@@ -22,13 +22,18 @@ export async function GET(req: Request) {
   let items: Array<Record<string, unknown>>;
 
   if (latestPerAnime && !animeIdFilter) {
+    // DISTINCT ON requires ORDER BY anime_id first to pick the latest episode
+    // per title; wrap and re-sort so the rail is newest activity → oldest.
     const result = await db.execute(sql`
-      SELECT DISTINCT ON (anime_id)
-        id, user_id, anime_id, episode_id, current_time, duration,
-        language, server, anime_title, anime_thumbnail, anilist_id, updated_at
-      FROM watch_progress
-      WHERE user_id = ${payload.userId}
-      ORDER BY anime_id, updated_at DESC
+      SELECT * FROM (
+        SELECT DISTINCT ON (anime_id)
+          id, user_id, anime_id, episode_id, current_time, duration,
+          language, server, anime_title, anime_thumbnail, anilist_id, updated_at
+        FROM watch_progress
+        WHERE user_id = ${payload.userId}
+        ORDER BY anime_id, updated_at DESC
+      ) AS latest
+      ORDER BY updated_at DESC
       LIMIT ${limit}
       OFFSET ${offset}
     `);
