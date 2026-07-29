@@ -862,6 +862,75 @@ export async function migrateDb() {
         CONSTRAINT chat_reactions_message_user_emoji UNIQUE (message_id, user_id, emoji)
       )`,
       `CREATE INDEX IF NOT EXISTS chat_reactions_message_idx ON chat_reactions (message_id)`,
+      // ── Discord Webhooks ──
+      `CREATE TABLE IF NOT EXISTS discord_webhooks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name VARCHAR(100) NOT NULL,
+        webhook_url TEXT NOT NULL,
+        category VARCHAR(30) NOT NULL DEFAULT 'system',
+        description TEXT,
+        enabled BOOLEAN NOT NULL DEFAULT TRUE,
+        embed_color VARCHAR(7),
+        custom_avatar TEXT,
+        custom_username VARCHAR(80),
+        last_success_at TIMESTAMP,
+        last_failure_at TIMESTAMP,
+        total_sent INTEGER NOT NULL DEFAULT 0,
+        total_failed INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE TABLE IF NOT EXISTS discord_webhook_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        webhook_id UUID NOT NULL REFERENCES discord_webhooks(id) ON DELETE CASCADE,
+        event_type VARCHAR(60) NOT NULL,
+        payload JSONB,
+        http_status INTEGER,
+        response_body TEXT,
+        error TEXT,
+        retry_count INTEGER NOT NULL DEFAULT 0,
+        processing_ms INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS discord_webhook_logs_webhook_created_idx ON discord_webhook_logs (webhook_id, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS discord_webhook_logs_event_type_idx ON discord_webhook_logs (event_type)`,
+      // ── Analytics Events ──
+      `CREATE TABLE IF NOT EXISTS anime_view_events (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        anime_id VARCHAR(255) NOT NULL,
+        episode_id VARCHAR(100),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        event_type VARCHAR(30) NOT NULL,
+        watch_time_seconds INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS anime_view_events_anime_created_idx ON anime_view_events (anime_id, created_at)`,
+      `CREATE INDEX IF NOT EXISTS anime_view_events_anime_ep_event_idx ON anime_view_events (anime_id, episode_id, event_type)`,
+      `CREATE INDEX IF NOT EXISTS anime_view_events_created_idx ON anime_view_events (created_at)`,
+      // ── Provider Health Logs ──
+      `CREATE TABLE IF NOT EXISTS provider_health_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        provider VARCHAR(60) NOT NULL,
+        success BOOLEAN NOT NULL,
+        response_time_ms INTEGER,
+        error_message TEXT,
+        http_status INTEGER,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS provider_health_logs_provider_created_idx ON provider_health_logs (provider, created_at DESC)`,
+      // ── Daily Stats Rollup ──
+      `CREATE TABLE IF NOT EXISTS daily_stats (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        date VARCHAR(10) NOT NULL,
+        total_views INTEGER NOT NULL DEFAULT 0,
+        unique_viewers INTEGER NOT NULL DEFAULT 0,
+        episodes_completed INTEGER NOT NULL DEFAULT 0,
+        new_users INTEGER NOT NULL DEFAULT 0,
+        total_watch_minutes INTEGER NOT NULL DEFAULT 0,
+        active_users INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS daily_stats_date_unique ON daily_stats (date)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

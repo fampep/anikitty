@@ -15,6 +15,8 @@ type Props = {
   levelTierIcon?: string | null;
   /** Show Booster badge alongside a different primary role (e.g. donator + boost). */
   discordBoosting?: boolean | null;
+  completedEpisodes?: number | null;
+  username?: string | null;
   size?: "xs" | "sm";
 };
 
@@ -60,7 +62,7 @@ function LevelRoleBadge({
   );
 }
 
-/** Staff/custom role + computed level tier badge (+ Discord booster when stacked). */
+/** Staff/custom role + computed level tier badge (+ Discord booster when stacked) + episode count. */
 export function UserBadges({
   role,
   roleColor,
@@ -69,11 +71,14 @@ export function UserBadges({
   levelRoleColor,
   levelTierIcon,
   discordBoosting,
+  completedEpisodes,
+  username,
   size = "xs",
 }: Props) {
   const showRole = role && role !== "user";
   const showBooster =
     !!discordBoosting && role !== "booster";
+  const epCount = completedEpisodes ?? 0;
 
   return (
     <span className="inline-flex items-center gap-1 flex-wrap">
@@ -86,8 +91,28 @@ export function UserBadges({
       />
       {showRole && <RoleBadge role={role!} color={roleColor} size={size} />}
       {showBooster && <RoleBadge role="booster" size={size} />}
+      {epCount > 0 && (
+        <EpisodeCountInline count={epCount} username={username} size={size} />
+      )}
     </span>
   );
+}
+
+function EpisodeCountInline({ count, username, size }: { count: number; username?: string | null; size: "xs" | "sm" }) {
+  const formatted = count >= 1000 ? `${(count / 1000).toFixed(1)}k` : String(count);
+  const textSize = size === "sm" ? "text-[11px]" : "text-[10px]";
+  const inner = (
+    <span
+      className={`inline-flex items-center gap-0.5 px-1.5 py-px rounded font-medium ${textSize} leading-none text-white/50 bg-white/5 border border-white/8`}
+      title={`${count.toLocaleString()} episodes watched`}
+    >
+      📺 {formatted}
+    </span>
+  );
+  if (username) {
+    return <a href={`/profile/${username}?tab=stats`} className="inline-flex">{inner}</a>;
+  }
+  return inner;
 }
 
 export { LevelRoleBadge };

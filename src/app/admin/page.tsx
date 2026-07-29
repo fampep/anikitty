@@ -13,6 +13,7 @@ import {
   TrendingUp, Zap, BarChart2, Megaphone, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
   VolumeX, Ban, Clock, Coins, Sparkles, Calendar, Flag, ScrollText, SkipForward,
+  Globe, Heart, Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";
@@ -411,7 +412,7 @@ function RolePermissionEditor({
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const adminChatPollMs = usePollingIntervalMs("adminChat");
-  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat" | "reports" | "skipTimes" | "audit">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "chat" | "reports" | "skipTimes" | "audit" | "discord" | "analytics" | "providers">("overview");
 
   // Users
   const [users, setUsers]           = useState<AdminUser[]>([]);
@@ -1397,6 +1398,9 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             { value: "audit"          as const, label: "Audit Log",     icon: <ScrollText className="w-4 h-4" /> },
             { value: "chat"           as const, label: "Live Chat",     icon: <MessageCircle className="w-4 h-4" /> },
             { value: "announcements"  as const, label: "Announcements", icon: <Megaphone  className="w-4 h-4" /> },
+            { value: "discord"        as const, label: "Discord",       icon: <Globe      className="w-4 h-4" /> },
+            { value: "analytics"      as const, label: "Analytics",     icon: <TrendingUp className="w-4 h-4" /> },
+            { value: "providers"      as const, label: "Providers",     icon: <Wifi       className="w-4 h-4" /> },
           ]).map((t) => (
             <button
               key={t.value}
@@ -2855,6 +2859,15 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
           </div>
         )}
 
+        {/* ── DISCORD WEBHOOKS ─────────────────────────────────────── */}
+        {tab === "discord" && <DiscordTab />}
+
+        {/* ── ANALYTICS DASHBOARD ──────────────────────────────────── */}
+        {tab === "analytics" && <AnalyticsTab />}
+
+        {/* ── PROVIDER HEALTH ──────────────────────────────────────── */}
+        {tab === "providers" && <ProvidersTab />}
+
       </Container>
       <AdminConfirmDialog
         open={!!pendingConfirm}
@@ -2876,6 +2889,302 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             .finally(() => setConfirmBusy(false));
         }}
       />
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Discord Webhooks Tab
+// ─────────────────────────────────────────────────────────────────────────────
+type Webhook = {
+  id: string; name: string; webhookUrl: string; category: string; description: string | null;
+  enabled: boolean; embedColor: string | null; customUsername: string | null;
+  lastSuccessAt: string | null; lastFailureAt: string | null;
+  totalSent: number; totalFailed: number; createdAt: string;
+};
+type WebhookLog = {
+  id: string; eventType: string; httpStatus: number | null; error: string | null;
+  processingMs: number | null; createdAt: string;
+};
+
+const WEBHOOK_CATEGORIES = [
+  { value: "platform", label: "Platform" }, { value: "anime", label: "Anime" },
+  { value: "episode", label: "Episode" }, { value: "community", label: "Community" },
+  { value: "system", label: "System" }, { value: "moderation", label: "Moderation" },
+];
+
+function DiscordTab() {
+  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", webhookUrl: "", category: "system", description: "", enabled: true, embedColor: "#60a5fa", customUsername: "" });
+  const [saving, setSaving] = useState(false);
+  const [selectedLogs, setSelectedLogs] = useState<{ id: string; logs: WebhookLog[] } | null>(null);
+
+  const fetchWebhooks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/webhooks", { headers: adminHeaders() });
+      if (res.ok) setWebhooks(await res.json());
+    } catch {} finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { void fetchWebhooks(); }, [fetchWebhooks]);
+
+  const handleCreate = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/webhooks", { method: "POST", headers: { ...adminHeaders(), "Content-Type": "application/json" }, body: JSON.stringify(form) });
+      if (res.ok) { toast.success("Webhook created"); setShowForm(false); setForm({ name: "", webhookUrl: "", category: "system", description: "", enabled: true, embedColor: "#60a5fa", customUsername: "" }); void fetchWebhooks(); }
+      else toast.error("Failed to create webhook");
+    } catch { toast.error("Error creating webhook"); } finally { setSaving(false); }
+  };
+
+  const handleTest = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/webhooks/${id}/test`, { method: "POST", headers: adminHeaders() });
+      const data = await res.json();
+      if (data.ok) toast.success("Test message sent!"); else toast.error("Test failed");
+    } catch { toast.error("Test error"); }
+  };
+
+  const handleToggle = async (wh: Webhook) => {
+    try {
+      await fetch("/api/admin/webhooks", { method: "PATCH", headers: { ...adminHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ id: wh.id, enabled: !wh.enabled }) });
+      void fetchWebhooks();
+    } catch { toast.error("Toggle failed"); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this webhook?")) return;
+    try {
+      await fetch(`/api/admin/webhooks?id=${id}`, { method: "DELETE", headers: adminHeaders() });
+      toast.success("Deleted"); void fetchWebhooks();
+    } catch { toast.error("Delete failed"); }
+  };
+
+  const handleViewLogs = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/webhooks/${id}/logs`, { headers: adminHeaders() });
+      if (res.ok) setSelectedLogs({ id, logs: await res.json() });
+    } catch { toast.error("Failed to load logs"); }
+  };
+
+  if (loading) return <div className="text-center text-white/40 py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-white">Discord Webhooks</h2>
+        <button onClick={() => setShowForm(!showForm)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-white text-sm font-medium">
+          <Plus className="w-4 h-4" /> Add Webhook
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex flex-col gap-3">
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Webhook name" className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white" />
+          <input value={form.webhookUrl} onChange={(e) => setForm({ ...form, webhookUrl: e.target.value })} placeholder="Discord webhook URL" className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white" />
+          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white">
+            {WEBHOOK_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+          <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Description (optional)" className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white" />
+          <input value={form.customUsername} onChange={(e) => setForm({ ...form, customUsername: e.target.value })} placeholder="Custom username (optional)" className="px-3 py-2 rounded bg-white/5 border border-white/10 text-sm text-white" />
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-white/60">Color:</label>
+            <input type="color" value={form.embedColor} onChange={(e) => setForm({ ...form, embedColor: e.target.value })} className="w-8 h-8 rounded cursor-pointer" />
+          </div>
+          <button onClick={handleCreate} disabled={saving || !form.name || !form.webhookUrl} className="px-4 py-2 rounded bg-accent text-white text-sm font-medium disabled:opacity-50">
+            {saving ? "Creating..." : "Create Webhook"}
+          </button>
+        </div>
+      )}
+
+      {webhooks.length === 0 ? (
+        <p className="text-white/40 text-sm text-center py-8">No webhooks configured yet.</p>
+      ) : (
+        <div className="grid gap-3">
+          {webhooks.map((wh) => (
+            <div key={wh.id} className="p-4 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${wh.enabled ? "bg-green-400" : "bg-gray-500"}`} />
+                  <span className="font-medium text-white text-sm">{wh.name}</span>
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-white/50">{wh.category}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => handleTest(wh.id)} className="px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30">Test</button>
+                  <button onClick={() => handleViewLogs(wh.id)} className="px-2 py-1 text-xs rounded bg-white/10 text-white/60 hover:bg-white/15">Logs</button>
+                  <button onClick={() => handleToggle(wh)} className="px-2 py-1 text-xs rounded bg-white/10 text-white/60 hover:bg-white/15">{wh.enabled ? "Disable" : "Enable"}</button>
+                  <button onClick={() => handleDelete(wh.id)} className="px-2 py-1 text-xs rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"><Trash2 className="w-3 h-3" /></button>
+                </div>
+              </div>
+              {wh.description && <p className="text-xs text-white/40 mb-2">{wh.description}</p>}
+              <div className="flex items-center gap-4 text-xs text-white/40">
+                <span>Sent: {wh.totalSent}</span>
+                <span>Failed: {wh.totalFailed}</span>
+                <span>Success rate: {wh.totalSent + wh.totalFailed > 0 ? `${Math.round(100 * wh.totalSent / (wh.totalSent + wh.totalFailed))}%` : "N/A"}</span>
+                {wh.lastSuccessAt && <span>Last OK: {new Date(wh.lastSuccessAt).toLocaleString()}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedLogs && (
+        <div className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-medium text-white">Delivery Logs</h3>
+            <button onClick={() => setSelectedLogs(null)} className="text-white/40 hover:text-white/60"><X className="w-4 h-4" /></button>
+          </div>
+          {selectedLogs.logs.length === 0 ? (
+            <p className="text-white/40 text-xs">No logs yet.</p>
+          ) : (
+            <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+              {selectedLogs.logs.map((log) => (
+                <div key={log.id} className="flex items-center gap-3 text-xs py-1.5 border-b border-white/5 last:border-0">
+                  <span className={`w-1.5 h-1.5 rounded-full ${log.httpStatus && log.httpStatus < 300 ? "bg-green-400" : "bg-red-400"}`} />
+                  <span className="text-white/60 w-28 truncate">{log.eventType}</span>
+                  <span className="text-white/40 w-12">{log.httpStatus ?? "ERR"}</span>
+                  <span className="text-white/30 w-12">{log.processingMs ? `${log.processingMs}ms` : ""}</span>
+                  <span className="text-white/30 flex-1 truncate">{log.error ?? ""}</span>
+                  <span className="text-white/20">{new Date(log.createdAt).toLocaleTimeString()}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Analytics Dashboard Tab
+// ─────────────────────────────────────────────────────────────────────────────
+function AnalyticsTab() {
+  const [data, setData] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/stats", { headers: adminHeaders() });
+        if (res.ok) setData(await res.json());
+      } catch {} finally { setLoading(false); }
+    })();
+  }, []);
+
+  const handleRollup = async () => {
+    try {
+      const res = await fetch("/api/admin/daily-rollup", { method: "POST", headers: { ...adminHeaders(), "Content-Type": "application/json" }, body: "{}" });
+      if (res.ok) toast.success("Daily rollup completed");
+      else toast.error("Rollup failed");
+    } catch { toast.error("Rollup error"); }
+  };
+
+  if (loading) return <div className="text-center text-white/40 py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>;
+  if (!data) return <p className="text-white/40 text-center py-8">Failed to load stats.</p>;
+
+  const metrics: { label: string; value: string | number; icon: React.ReactNode }[] = [
+    { label: "Total Users", value: Number(data.totalUsers ?? 0).toLocaleString(), icon: <Users className="w-4 h-4 text-blue-400" /> },
+    { label: "Active Today", value: Number(data.activeToday ?? 0).toLocaleString(), icon: <Activity className="w-4 h-4 text-green-400" /> },
+    { label: "Active This Week", value: Number(data.activeWeek ?? 0).toLocaleString(), icon: <Calendar className="w-4 h-4 text-cyan-400" /> },
+    { label: "New Users (7d)", value: Number(data.newUsersWeek ?? 0).toLocaleString(), icon: <Plus className="w-4 h-4 text-emerald-400" /> },
+    { label: "Watch Sessions", value: Number(data.totalSessions ?? 0).toLocaleString(), icon: <Eye className="w-4 h-4 text-purple-400" /> },
+    { label: "Unique Anime", value: Number(data.uniqueAnime ?? 0).toLocaleString(), icon: <Sparkles className="w-4 h-4 text-amber-400" /> },
+    { label: "AniList Linked", value: Number(data.anilistLinked ?? 0).toLocaleString(), icon: <ExternalLink className="w-4 h-4 text-blue-300" /> },
+    { label: "Total Comments", value: Number(data.totalComments ?? 0).toLocaleString(), icon: <MessageCircle className="w-4 h-4 text-pink-400" /> },
+    { label: "Forum Threads", value: Number(data.totalThreads ?? 0).toLocaleString(), icon: <ScrollText className="w-4 h-4 text-orange-400" /> },
+    { label: "Chat Messages", value: Number(data.totalChatMessages ?? 0).toLocaleString(), icon: <Send className="w-4 h-4 text-indigo-400" /> },
+    { label: "Chat Today", value: Number(data.chatMessagesToday ?? 0).toLocaleString(), icon: <Clock className="w-4 h-4 text-teal-400" /> },
+    { label: "Chat Live", value: Number(data.chatMessagesLive ?? 0).toLocaleString(), icon: <Zap className="w-4 h-4 text-yellow-400" /> },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-white">Analytics Dashboard</h2>
+        <button onClick={handleRollup} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/60 text-sm hover:bg-white/15">
+          <RefreshCw className="w-3.5 h-3.5" /> Run Daily Rollup
+        </button>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        {metrics.map((m) => (
+          <div key={m.label} className="p-3 rounded-lg bg-white/5 border border-white/10">
+            <div className="flex items-center gap-2 mb-1">{m.icon}<span className="text-[11px] text-white/40">{m.label}</span></div>
+            <div className="text-lg font-bold text-white">{m.value}</div>
+          </div>
+        ))}
+      </div>
+      {Array.isArray(data.topAnime) && (data.topAnime as { animeTitle?: string; sessionCount: number; uniqueUsers: number }[]).length > 0 && (
+        <div>
+          <h3 className="text-sm font-medium text-white/60 mb-2">Top Anime (by sessions)</h3>
+          <div className="flex flex-col gap-1">
+            {(data.topAnime as { animeTitle?: string; sessionCount: number; uniqueUsers: number }[]).slice(0, 10).map((a, i) => (
+              <div key={i} className="flex items-center gap-3 py-1.5 text-sm">
+                <span className="w-6 text-right text-white/30 text-xs">{i + 1}</span>
+                <span className="flex-1 text-white/80 truncate">{a.animeTitle ?? "Unknown"}</span>
+                <span className="text-white/40 text-xs">{a.sessionCount} sessions</span>
+                <span className="text-white/30 text-xs">{a.uniqueUsers} users</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Provider Health Tab
+// ─────────────────────────────────────────────────────────────────────────────
+function ProvidersTab() {
+  const [providers, setProviders] = useState<{ provider: string; totalRequests: number; successCount: number; failedCount: number; uptimePercent: number; avgResponseMs: number; lastSuccessAt: string | null; lastFailureAt: string | null; status: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/provider-health", { headers: adminHeaders() });
+        if (res.ok) setProviders(await res.json());
+      } catch {} finally { setLoading(false); }
+    })();
+  }, []);
+
+  if (loading) return <div className="text-center text-white/40 py-8"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <h2 className="text-lg font-semibold text-white">Provider Health (24h)</h2>
+      {providers.length === 0 ? (
+        <p className="text-white/40 text-sm text-center py-8">No health data yet. Provider checks will be logged during streaming.</p>
+      ) : (
+        <div className="grid gap-3">
+          {providers.map((p) => (
+            <div key={p.provider} className="p-4 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${p.status === "healthy" ? "bg-green-400" : p.status === "degraded" ? "bg-yellow-400" : "bg-red-400"}`} />
+                  <span className="font-medium text-white text-sm">{p.provider}</span>
+                </div>
+                <span className={`text-xs font-medium px-2 py-0.5 rounded ${p.status === "healthy" ? "bg-green-500/20 text-green-400" : p.status === "degraded" ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"}`}>
+                  {p.status.toUpperCase()}
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-3 text-xs text-white/50">
+                <div><span className="block text-white/80 font-medium">{p.uptimePercent}%</span>Uptime</div>
+                <div><span className="block text-white/80 font-medium">{p.avgResponseMs}ms</span>Avg Response</div>
+                <div><span className="block text-white/80 font-medium">{p.successCount}</span>Success</div>
+                <div><span className="block text-white/80 font-medium">{p.failedCount}</span>Failed</div>
+              </div>
+              <div className="mt-2 flex gap-4 text-[11px] text-white/30">
+                {p.lastSuccessAt && <span>Last OK: {new Date(p.lastSuccessAt).toLocaleString()}</span>}
+                {p.lastFailureAt && <span>Last fail: {new Date(p.lastFailureAt).toLocaleString()}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

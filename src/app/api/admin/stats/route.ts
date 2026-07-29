@@ -10,6 +10,8 @@ const EMPTY_STATS = {
   newUsersWeek: 0, totalComments: 0, totalThreads: 0, anilistLinked: 0,
   totalChatMessages: 0, chatMessagesToday: 0, chatMessagesLive: 0,
   topAnime: [] as unknown[],
+  totalWatchHoursToday: 0, concurrentViewers: 0, episodesCompletedToday: 0,
+  newRegistrationsToday: 0,
 };
 
 export async function GET(req: Request) {
@@ -41,6 +43,7 @@ export async function GET(req: Request) {
     totalUsers, totalSessions, uniqueAnime, activeToday, activeWeek,
     newUsersWeek, totalComments, totalThreads, anilistLinked,
     totalChatMessages, chatMessagesToday, chatMessagesLive, topAnimeResult,
+    totalWatchHoursToday, concurrentViewers, episodesCompletedToday, newRegistrationsToday,
   ] = await Promise.all([
     count(sql`SELECT COUNT(*)::int AS n FROM users`),
     count(sql`SELECT COUNT(*)::int AS n FROM watch_progress`),
@@ -67,6 +70,10 @@ export async function GET(req: Request) {
       ORDER BY COUNT(*) DESC
       LIMIT 15
     `),
+    count(sql`SELECT COALESCE(SUM(LEAST(current_time, duration)) / 3600, 0)::int AS n FROM watch_progress WHERE updated_at > NOW() - INTERVAL '24 hours'`),
+    count(sql`SELECT COUNT(DISTINCT user_id)::int AS n FROM watch_progress WHERE updated_at > NOW() - INTERVAL '5 minutes'`),
+    count(sql`SELECT COUNT(*)::int AS n FROM watch_progress WHERE duration > 0 AND current_time >= GREATEST(FLOOR(duration * 0.9), 30) AND updated_at > NOW() - INTERVAL '24 hours'`),
+    count(sql`SELECT COUNT(*)::int AS n FROM users WHERE created_at > NOW() - INTERVAL '24 hours'`),
   ]);
 
   const security = getSecurityConfigStatus();
@@ -92,6 +99,10 @@ export async function GET(req: Request) {
       sessionCount:   Number(r.session_count),
       uniqueUsers:    Number(r.unique_users),
     })),
+    totalWatchHoursToday,
+    concurrentViewers,
+    episodesCompletedToday,
+    newRegistrationsToday,
   });
   } catch (e) {
     // Never hard-fail the overview — return a valid (zeroed) payload with the

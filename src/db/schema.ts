@@ -1226,3 +1226,99 @@ export const chatReactions = pgTable(
     messageIdx: index("chat_reactions_message_idx").on(t.messageId),
   }),
 );
+
+// ── Discord Webhooks (admin-managed channel webhooks) ─────────────────────
+export const discordWebhooks = pgTable("discord_webhooks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  webhookUrl: text("webhook_url").notNull(),
+  category: varchar("category", { length: 30 }).notNull().default("system"),
+  description: text("description"),
+  enabled: boolean("enabled").notNull().default(true),
+  embedColor: varchar("embed_color", { length: 7 }),
+  customAvatar: text("custom_avatar"),
+  customUsername: varchar("custom_username", { length: 80 }),
+  lastSuccessAt: timestamp("last_success_at"),
+  lastFailureAt: timestamp("last_failure_at"),
+  totalSent: integer("total_sent").notNull().default(0),
+  totalFailed: integer("total_failed").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const discordWebhookLogs = pgTable(
+  "discord_webhook_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    webhookId: uuid("webhook_id")
+      .notNull()
+      .references(() => discordWebhooks.id, { onDelete: "cascade" }),
+    eventType: varchar("event_type", { length: 60 }).notNull(),
+    payload: jsonb("payload"),
+    httpStatus: integer("http_status"),
+    responseBody: text("response_body"),
+    error: text("error"),
+    retryCount: integer("retry_count").notNull().default(0),
+    processingMs: integer("processing_ms"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    webhookCreatedIdx: index("discord_webhook_logs_webhook_created_idx").on(t.webhookId, t.createdAt),
+    eventTypeIdx: index("discord_webhook_logs_event_type_idx").on(t.eventType),
+  }),
+);
+
+// ── Analytics Events ──────────────────────────────────────────────────────
+export const animeViewEvents = pgTable(
+  "anime_view_events",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    animeId: varchar("anime_id", { length: 255 }).notNull(),
+    episodeId: varchar("episode_id", { length: 100 }),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    eventType: varchar("event_type", { length: 30 }).notNull(),
+    watchTimeSeconds: integer("watch_time_seconds"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    animeCreatedIdx: index("anime_view_events_anime_created_idx").on(t.animeId, t.createdAt),
+    animeEpEventIdx: index("anime_view_events_anime_ep_event_idx").on(t.animeId, t.episodeId, t.eventType),
+    createdIdx: index("anime_view_events_created_idx").on(t.createdAt),
+  }),
+);
+
+// ── Provider Health Logs ──────────────────────────────────────────────────
+export const providerHealthLogs = pgTable(
+  "provider_health_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    provider: varchar("provider", { length: 60 }).notNull(),
+    success: boolean("success").notNull(),
+    responseTimeMs: integer("response_time_ms"),
+    errorMessage: text("error_message"),
+    httpStatus: integer("http_status"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    providerCreatedIdx: index("provider_health_logs_provider_created_idx").on(t.provider, t.createdAt),
+  }),
+);
+
+// ── Daily Stats Rollup ────────────────────────────────────────────────────
+export const dailyStats = pgTable(
+  "daily_stats",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    date: varchar("date", { length: 10 }).notNull(),
+    totalViews: integer("total_views").notNull().default(0),
+    uniqueViewers: integer("unique_viewers").notNull().default(0),
+    episodesCompleted: integer("episodes_completed").notNull().default(0),
+    newUsers: integer("new_users").notNull().default(0),
+    totalWatchMinutes: integer("total_watch_minutes").notNull().default(0),
+    activeUsers: integer("active_users").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    dateUnique: uniqueIndex("daily_stats_date_unique").on(t.date),
+  }),
+);

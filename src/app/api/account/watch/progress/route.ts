@@ -72,6 +72,19 @@ export async function POST(req: Request) {
 
     const watchedEnough = isWatchedEnough(roundedCurrent, roundedDuration);
 
+    // Fire-and-forget analytics event
+    void (async () => {
+      try {
+        const { recordViewEvent } = await import("@/lib/analytics/record-event");
+        if (roundedCurrent <= 30) {
+          await recordViewEvent(animeId, episodeId, payload.userId, "view_start");
+        }
+        if (watchedEnough) {
+          await recordViewEvent(animeId, episodeId, payload.userId, "view_complete", roundedCurrent);
+        }
+      } catch {}
+    })();
+
     if (watchedEnough) {
       void grantEpisodeKittycoins(db, payload.userId, animeId, episodeId);
       void (async () => {

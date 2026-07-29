@@ -55,6 +55,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   // Loyalty
   { slug: "streak-7", name: "Regular", description: "Log in 7 days in a row.", icon: "CalendarCheck", color: "#fb923c", category: "loyalty", metric: "longestStreak", threshold: 7, reward: 40 },
   { slug: "streak-30", name: "Devoted", description: "Log in 30 days in a row.", icon: "CalendarHeart", color: "#f43f5e", category: "loyalty", metric: "longestStreak", threshold: 30, reward: 150 },
+  // High-tier episode milestones
+  { slug: "thousand-episodes", name: "Veteran", description: "Finish 1,000 episodes.", icon: "Swords", color: "#f97316", category: "watching", metric: "episodesCompleted", threshold: 1000, reward: 500 },
+  { slug: "five-thousand-episodes", name: "Marathoner", description: "Finish 5,000 episodes.", icon: "Rocket", color: "#e879f9", category: "watching", metric: "episodesCompleted", threshold: 5000, reward: 1500 },
+  { slug: "ten-thousand-episodes", name: "Transcendent", description: "Finish 10,000 episodes.", icon: "Atom", color: "#f43f5e", category: "watching", metric: "episodesCompleted", threshold: 10000, reward: 5000 },
 ];
 
 export const ACHIEVEMENTS_BY_SLUG = new Map(ACHIEVEMENTS.map((a) => [a.slug, a]));
