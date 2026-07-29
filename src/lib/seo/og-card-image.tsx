@@ -62,22 +62,36 @@ export async function loadNightTokyoFont(): Promise<ArrayBuffer> {
   );
 }
 
+function arrayBufferToDataUrl(buf: ArrayBuffer, mime: string): string {
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+  return `data:${mime};base64,${btoa(binary)}`;
+}
+
 /** Prefer bundled public icon so OG cards don't embed a stale remote mark. */
 export async function loadSiteIconSrc(): Promise<string> {
   try {
     const res = await fetch(new URL("../../../public/icon-192x192.png", import.meta.url));
     if (!res.ok) throw new Error(`icon fetch ${res.status}`);
-    const buf = await res.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let binary = "";
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
-    return `data:image/png;base64,${btoa(binary)}`;
+    return arrayBufferToDataUrl(await res.arrayBuffer(), "image/png");
   } catch {
     return siteIconAbsoluteUrl();
   }
 }
 
-export function renderOgCard(config: OgCardConfig, iconSrc: string) {
+/** Full-bleed share banner (cover-cropped source) for OG card backgrounds. */
+export async function loadOgBannerSrc(): Promise<string | null> {
+  try {
+    const res = await fetch(new URL("../../../public/og-share.png", import.meta.url));
+    if (!res.ok) throw new Error(`og banner fetch ${res.status}`);
+    return arrayBufferToDataUrl(await res.arrayBuffer(), "image/png");
+  } catch {
+    return null;
+  }
+}
+
+export function renderOgCard(config: OgCardConfig, iconSrc: string, bannerSrc?: string | null) {
   const accent = ACCENT_STYLES[config.accent ?? "violet"];
   const features = config.features ?? [];
 
@@ -94,22 +108,41 @@ export function renderOgCard(config: OgCardConfig, iconSrc: string) {
         overflow: "hidden",
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-        }}
-      />
+      {bannerSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={bannerSrc}
+          alt=""
+          width={OG_SIZE.width}
+          height={OG_SIZE.height}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center",
+          }}
+        />
+      ) : (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
+            backgroundSize: "64px 64px",
+          }}
+        />
+      )}
       <div style={{ position: "absolute", inset: 0, background: accent.glow }} />
       <div
         style={{
           position: "absolute",
           inset: 0,
-          background:
-            "linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.85) 70%, #000000)",
+          background: bannerSrc
+            ? "linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.82) 55%, rgba(0,0,0,0.94))"
+            : "linear-gradient(to bottom, rgba(0,0,0,0.35), rgba(0,0,0,0.85) 70%, #000000)",
         }}
       />
 
@@ -246,8 +279,12 @@ export function renderOgCard(config: OgCardConfig, iconSrc: string) {
 }
 
 export async function createOgImageResponse(config: OgCardConfig) {
-  const [fontData, iconSrc] = await Promise.all([loadNightTokyoFont(), loadSiteIconSrc()]);
-  return new ImageResponse(renderOgCard(config, iconSrc), {
+  const [fontData, iconSrc, bannerSrc] = await Promise.all([
+    loadNightTokyoFont(),
+    loadSiteIconSrc(),
+    loadOgBannerSrc(),
+  ]);
+  return new ImageResponse(renderOgCard(config, iconSrc, bannerSrc), {
     ...OG_SIZE,
     fonts: [{ name: "NightTokyo", data: fontData, style: "normal" }],
   });

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -40,4 +41,12 @@ export const useAuthStore = create<IAuthStore>()(
   ),
 );
 
-export const useAuthHydrated = () => useAuthStore.persist.hasHydrated();
+/** Subscribe so components re-render once persist finishes hydrating. */
+export function useAuthHydrated() {
+  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+  useEffect(() => {
+    setHydrated(useAuthStore.persist.hasHydrated());
+    return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+  return hydrated;
+}

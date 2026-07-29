@@ -52,6 +52,12 @@ export default function HomeQuickNav() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!window.location.hash) return;
+    window.history.replaceState(null, "", ROUTES.HOME);
+  }, []);
+
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     // Don't leave a sticky hash in the URL — remounts / soft nav re-apply it and yank scroll back.

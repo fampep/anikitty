@@ -3,6 +3,7 @@ import { getAnimeSeoData } from "@/lib/seo/anime-seo-data";
 import {
   loadNightTokyoFont,
   loadSiteIconSrc,
+  loadOgBannerSrc,
   OG_SIZE,
   OG_CONTENT_TYPE,
 } from "@/lib/seo/og-card-image";
@@ -37,7 +38,11 @@ export default async function Image({ params }: { params: { slug: string } }) {
     year ? String(year) : null,
   ].filter(Boolean) as string[];
 
-  const [fontData, iconSrc] = await Promise.all([loadNightTokyoFont(), loadSiteIconSrc()]);
+  const [fontData, iconSrc, bannerSrc] = await Promise.all([
+    loadNightTokyoFont(),
+    loadSiteIconSrc(),
+    loadOgBannerSrc(),
+  ]);
 
   return new ImageResponse(
     (
@@ -52,12 +57,40 @@ export default async function Image({ params }: { params: { slug: string } }) {
           overflow: "hidden",
         }}
       >
+        {bannerSrc && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={bannerSrc}
+            alt=""
+            width={OG_SIZE.width}
+            height={OG_SIZE.height}
+            style={{
+              position: "absolute",
+              inset: 0,
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+              opacity: poster ? 0.35 : 0.85,
+            }}
+          />
+        )}
+
         {/* Accent glow */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             background: `radial-gradient(ellipse 60% 60% at 30% 40%, ${accent}33, transparent)`,
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: poster
+              ? "linear-gradient(to right, rgba(0,0,0,0.15), rgba(0,0,0,0.92) 58%)"
+              : "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.88))",
           }}
         />
 

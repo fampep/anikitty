@@ -96,7 +96,7 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
       onMouseEnter={prefetch}
       onFocus={prefetch}
     >
-      <div className="relative flex w-full aspect-[1/1.4] bg-white/10 dark:bg-white/10 rounded-xl overflow-hidden [content-visibility:auto] [contain-intrinsic-size:auto_140px]">
+      <div className="relative flex w-full aspect-[1/1.4] bg-white/10 dark:bg-white/10 rounded-xl overflow-hidden">
         <Link href={primaryHref} className="absolute inset-0 z-0" draggable={false} aria-label={anime.name}>
           <LazyPosterImage
             src={anime.poster}

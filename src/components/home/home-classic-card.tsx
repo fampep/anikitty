@@ -27,7 +27,7 @@ const HomeClassicCard = memo(function HomeClassicCard({ anime, href, priority }:
       className="home-classic-card group flex flex-col gap-2 min-w-0"
       draggable={false}
     >
-      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-white/5 ring-1 ring-border/40 dark:ring-white/[0.06] [content-visibility:auto] [contain-intrinsic-size:auto_180px]">
+      <div className="relative w-full aspect-[2/3] rounded-lg overflow-hidden bg-white/5 ring-1 ring-border/40 dark:ring-white/[0.06]">
         <LazyPosterImage
           src={anime.poster}
           alt={anime.name}

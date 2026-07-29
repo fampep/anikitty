@@ -6,7 +6,7 @@ export const APP_DESCRIPTION = "Free anime streaming. Sub & dub. Ad-free.";
 export const APP_DEFAULT_TITLE = "AniKitty — Free Anime Streaming";
 
 /** Bump when brand assets change so browsers / Google / PWA / embeds refresh. */
-export const SITE_ICON_VERSION = "20260729a";
+export const SITE_ICON_VERSION = "20260729b";
 
 function brandAsset(path: string): string {
   return `${path}?v=${SITE_ICON_VERSION}`;

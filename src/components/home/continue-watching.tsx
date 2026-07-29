@@ -6,7 +6,7 @@ import { ROUTES } from "@/constants/routes";
 import { BulkSelectToolbar } from "@/components/common/bulk-select-toolbar";
 import { useBulkSelect } from "@/hooks/use-bulk-select";
 import { Check, ChevronLeft, ChevronRight, History, Pencil, Play, RefreshCw, X } from "lucide-react";
-import { useAuthStore } from "@/store/auth-store";
+import { useAuthHydrated, useAuthStore } from "@/store/auth-store";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { useProgressStore } from "@/store/progress-store";
@@ -312,6 +312,7 @@ function RemoveContinueDialog({
 const ContinueWatching = ({ loading = false }: Props) => {
   const t = useT();
   const { auth } = useAuthStore();
+  const authHydrated = useAuthHydrated();
   const lastSaved = useProgressStore((s) => s.lastSaved);
   const removeProgress = useProgressStore((s) => s.removeProgress);
   const [items, setItems] = useState<ContinueItem[]>(() => {
@@ -422,6 +423,9 @@ const ContinueWatching = ({ loading = false }: Props) => {
   };
 
   if (loading && !fetched) return <LoadingSkeleton />;
+
+  // Wait for persist hydration so we don't mount a tall skeleton then collapse to null.
+  if (!authHydrated) return null;
 
   // Keep home uncluttered: only show this rail when the user has something to resume.
   if (!auth) return null;

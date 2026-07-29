@@ -9,8 +9,8 @@ import { useMemo } from "react";
 const homeQueryDefaults = {
   refetchOnWindowFocus: false,
   refetchOnMount: false,
-  staleTime: 1000 * 60 * 5,
-  gcTime: 1000 * 60 * 6,
+  staleTime: 1000 * 60 * 8,
+  gcTime: 1000 * 60 * 30,
 } as const;
 
 function filterAdultList<T extends { isAdult?: boolean }>(

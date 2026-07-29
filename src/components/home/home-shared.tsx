@@ -224,16 +224,15 @@ export function HomeScrollRail({
     const el = ref.current;
     if (!el) return;
 
-    // Only redirect wheel when the user is clearly scrolling sideways (or Shift+wheel).
-    // Stealing pure vertical wheel was fighting page scroll and felt like bounce-back.
+    // Never call preventDefault on vertical page scroll. Trackpads often emit
+    // mixed deltaX/deltaY; hijacking those fights document scroll and feels like
+    // bounce-back. Native overflow-x + Shift+wheel still scrolls the rail.
     const onWheel = (e: WheelEvent) => {
       if (el.scrollWidth <= el.clientWidth) return;
-      const horizontalIntent = Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey;
-      if (!horizontalIntent) return;
-      const delta = e.shiftKey && Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
-      if (delta === 0) return;
+      if (!e.shiftKey) return;
+      if (e.deltaY === 0) return;
       e.preventDefault();
-      el.scrollLeft += delta;
+      el.scrollLeft += e.deltaY;
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
@@ -322,7 +321,7 @@ export function HomeScrollRail({
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
         onClickCapture={onClickCapture}
-        className="flex w-full overflow-x-auto scrollbar-hide scroll-momentum gap-3 sm:gap-4 cursor-grab active:cursor-grabbing select-none touch-pan-x"
+        className="flex w-full overflow-x-auto scrollbar-hide scroll-momentum gap-3 sm:gap-4 cursor-grab active:cursor-grabbing select-none touch-pan-x touch-pan-y"
       >
         {children}
       </div>

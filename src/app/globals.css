@@ -11,7 +11,9 @@ html.watch-theatre-active body {
 }
 
 html {
-  scroll-behavior: smooth;
+  /* Instant scrolling — global `smooth` fights wheel/trackpad and layout shifts
+     (LazyMount, sticky nav, images), which feels like bounce-back-up. */
+  scroll-behavior: auto;
   --nav-height: 4rem;
   --nav-total-height: calc(var(--nav-height) + env(safe-area-inset-top, 0px));
   --mobile-nav-height: 3.5rem;
@@ -213,7 +215,7 @@ body {
   .site-page {
     /* dvh: Chrome mobile 100vh includes URL-bar space and stretches the shell */
     @apply relative z-[1] min-h-dvh;
-    overflow-anchor: auto;
+    overflow-anchor: none;
   }
 
   /* Compact theme utilities — prefer these over long light/dark class pairs */
@@ -241,6 +243,7 @@ body {
   .home-cinema {
     --home-hero-max-h: 56lvh;
     --home-section-gap: 3.25rem;
+    overflow-anchor: none;
     @apply relative isolate;
   }
 

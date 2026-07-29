@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Compass, RefreshCw, WifiOff } from "lucide-react";
 import Link from "next/link";
 import ContinueWatching from "@/components/home/continue-watching";
+import HeroSection from "@/components/home/hero-section";
 import HomeAmbientBackdrop from "@/components/home/home-ambient-backdrop";
 import HomeRecentUpdates from "@/components/home/home-recent-updates";
 import HomeRecentlyAdded from "@/components/home/home-recently-added";
@@ -37,10 +38,9 @@ import {
 } from "@/lib/home/home-layout-prefs";
 import { cn } from "@/lib/core/utils";
 
-const HeroSection = dynamic(() => import("@/components/home/hero-section"));
 const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
-const HomeQuickNav = dynamic(() => import("@/components/home/home-quick-nav"));
-const HomeWelcomeBar = dynamic(() => import("@/components/home/home-welcome-bar"));
+const HomeQuickNav = dynamic(() => import("@/components/home/home-quick-nav"), { ssr: false });
+const HomeWelcomeBar = dynamic(() => import("@/components/home/home-welcome-bar"), { ssr: false });
 const HomeRecommendations = dynamic(() => import("@/components/home/home-recommendations"));
 const RecentlyViewed = dynamic(() => import("@/components/home/recently-viewed"));
 const HomeUpcomingRail = dynamic(() => import("@/components/home/home-upcoming-rail"));
@@ -75,7 +75,10 @@ const SECTION_GROUP: Partial<Record<HomeSectionId, HomeGroupId>> = {
 const GROUP_ORDER: HomeGroupId[] = ["whats-new", "top-anime", "more"];
 
 function useHomeLayoutPrefs() {
-  const [prefs, setPrefs] = useState<HomeLayoutPrefs>(DEFAULT_HOME_LAYOUT);
+  const [prefs, setPrefs] = useState<HomeLayoutPrefs>(() => {
+    if (typeof window === "undefined") return DEFAULT_HOME_LAYOUT;
+    return readHomeLayoutPrefs();
+  });
   useEffect(() => {
     setPrefs(readHomeLayoutPrefs());
     const sync = () => setPrefs(readHomeLayoutPrefs());
@@ -144,8 +147,34 @@ export default function Home() {
   const [discoveryEnabled, setDiscoveryEnabled] = useState(false);
   const { data: discovery, isLoading: discoveryLoading } = useGetHomeDiscoveryData(discoveryEnabled);
 
+  // Defer discovery until after first paint / idle so hero + continue stay snappy.
   useEffect(() => {
-    if (critical) setDiscoveryEnabled(true);
+    if (!critical) return;
+    let cancelled = false;
+    const enable = () => {
+      if (!cancelled) setDiscoveryEnabled(true);
+    };
+
+    const ric = (
+      window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+        cancelIdleCallback?: (id: number) => void;
+      }
+    ).requestIdleCallback;
+
+    if (typeof ric === "function") {
+      const id = ric(enable, { timeout: 1200 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback?.(id);
+      };
+    }
+
+    const timer = window.setTimeout(enable, 250);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [critical]);
 
   const discoveryLoadingState = discoveryEnabled && discoveryLoading && !discovery;
@@ -210,47 +239,41 @@ export default function Home() {
   }
 
   const sectionNodes: Partial<Record<HomeSectionId, ReactNode>> = {
-    "new-episodes": (
-      <LazyMount rootMargin="200px 0px" keepMounted minHeight={260}>
-        <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />
-      </LazyMount>
-    ),
+    // Above-fold / default rails: mount eagerly. LazyMount remounts were collapsing
+    // document height mid-scroll (~3400→1700) and yanking scrollY back up.
+    "new-episodes": <HomeRecentUpdates animes={latestEpisodes} loading={isLoading} />,
     "new-upcoming": (
-      <LazyMount rootMargin="280px 0px" keepMounted minHeight={260}>
-        <HomeNewUpcoming
-          recentlyAdded={recentlyAdded}
-          upcoming={upcoming}
-          loading={isLoading || discoveryLoadingState}
-        />
-      </LazyMount>
+      <HomeNewUpcoming
+        recentlyAdded={recentlyAdded}
+        upcoming={upcoming}
+        loading={isLoading || discoveryLoadingState}
+      />
     ),
     upcoming: (
-      <LazyMount rootMargin="280px 0px" keepMounted minHeight={260}>
+      <LazyMount rootMargin="160px 0px" keepMounted minHeight={260}>
         <HomeUpcomingRail animes={upcoming} loading={discoveryLoadingState} />
       </LazyMount>
     ),
     "recently-added": (
-      <LazyMount rootMargin="320px 0px" keepMounted minHeight={220}>
+      <LazyMount rootMargin="160px 0px" keepMounted minHeight={220}>
         <HomeRecentlyAdded animes={recentlyAdded} loading={isLoading} />
       </LazyMount>
     ),
     completed: (
-      <LazyMount rootMargin="360px 0px" keepMounted minHeight={260}>
+      <LazyMount rootMargin="200px 0px" keepMounted minHeight={260}>
         <HomeJustCompleted animes={completed} loading={discoveryLoadingState} />
       </LazyMount>
     ),
     rankings: (
-      <LazyMount rootMargin="400px 0px" keepMounted minHeight={260}>
-        <HomeRankings
-          trending={trending}
-          popular={popular}
-          rated={topRated}
-          loading={isLoading || discoveryLoadingState}
-        />
-      </LazyMount>
+      <HomeRankings
+        trending={trending}
+        popular={popular}
+        rated={topRated}
+        loading={isLoading || discoveryLoadingState}
+      />
     ),
     seasonal: (
-      <LazyMount rootMargin="450px 0px" keepMounted minHeight={280}>
+      <LazyMount rootMargin="240px 0px" keepMounted minHeight={280}>
         <HomeSeasonalRails
           currentAnimes={currentSeason.length ? currentSeason : recentlyAdded}
           nextAnimes={nextSeason}
@@ -261,7 +284,7 @@ export default function Home() {
       </LazyMount>
     ),
     discovery: (
-      <LazyMount rootMargin="500px 0px" keepMounted minHeight={240}>
+      <LazyMount rootMargin="280px 0px" keepMounted minHeight={240}>
         <HomeDiscoveryRows
           pool={discoveryPool}
           favorites={favorites}
@@ -272,29 +295,27 @@ export default function Home() {
       </LazyMount>
     ),
     recommended: (
-      <LazyMount rootMargin="520px 0px" minHeight={200}>
-        <div id="recommended">
-          <HomeRecommendations />
-        </div>
-      </LazyMount>
+      <div id="recommended">
+        <HomeRecommendations />
+      </div>
     ),
     "because-you-watched": (
-      <LazyMount rootMargin="540px 0px" minHeight={200}>
+      <LazyMount rootMargin="360px 0px" keepMounted minHeight={200}>
         <HomeBecauseYouWatched />
       </LazyMount>
     ),
     "recently-viewed": (
-      <LazyMount rootMargin="560px 0px" minHeight={180}>
+      <LazyMount rootMargin="400px 0px" keepMounted minHeight={180}>
         <RecentlyViewed />
       </LazyMount>
     ),
     collections: (
-      <LazyMount rootMargin="580px 0px" minHeight={160}>
+      <LazyMount rootMargin="420px 0px" keepMounted minHeight={160}>
         <HomeCollections />
       </LazyMount>
     ),
     "community-picks": (
-      <LazyMount rootMargin="600px 0px" minHeight={220}>
+      <LazyMount rootMargin="440px 0px" keepMounted minHeight={220}>
         <AnimeSections
           sectionId="community-picks"
           title={t("home.communityPicks")}
@@ -307,7 +328,7 @@ export default function Home() {
       </LazyMount>
     ),
     studios: (
-      <LazyMount rootMargin="620px 0px" minHeight={140}>
+      <LazyMount rootMargin="480px 0px" keepMounted minHeight={140}>
         <HomeFeaturedStudios
           studios={discovery?.featuredStudios ?? []}
           loading={discoveryLoadingState}
@@ -315,7 +336,7 @@ export default function Home() {
       </LazyMount>
     ),
     "voice-actors": (
-      <LazyMount rootMargin="640px 0px" minHeight={180}>
+      <LazyMount rootMargin="500px 0px" keepMounted minHeight={180}>
         <HomeFeaturedVas
           voiceActors={discovery?.featuredVoiceActors ?? []}
           loading={discoveryLoadingState}
@@ -323,7 +344,7 @@ export default function Home() {
       </LazyMount>
     ),
     schedule: (
-      <LazyMount rootMargin="500px 0px" keepMounted minHeight={280}>
+      <LazyMount rootMargin="280px 0px" keepMounted minHeight={280}>
         <Container className="grid w-full gap-4 sm:gap-6 lg:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div id="community" className="scroll-mt-[calc(var(--nav-total-height)+4.5rem)]">
             <LatestComments bare />
