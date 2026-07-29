@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 90,
+      version: 91,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1180,6 +1180,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 90) {
           // Recommended: Sierra → Vibe → Kilo → Juliet (AniZone) → Ya.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniSnatch", next.providerOrder);
+        }
+        if (version < 91) {
+          // Force-override local + block stale synced prefs (providerOrderVersion 91).
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniSnatch", next.providerOrder);
         }

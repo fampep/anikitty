@@ -9,9 +9,17 @@ import {
   sanitizeSyncedPreferences,
   type SyncedUserPreferences,
 } from "@/lib/account/user-preferences";
+import {
+  DEFAULT_PROVIDER_PRIORITY,
+  PROVIDER_ORDER_SYNC_VERSION,
+} from "@/lib/kitty/kitty-providers";
 import { sanitizeAnime4kMode } from "@/lib/player/anime4k";
 import { sanitizeSeekStepSeconds } from "@/lib/player/seek-step";
 import { ensureCustomSubtitleFontLoaded } from "@/lib/subtitles/custom-subtitle-font";
+import {
+  sanitizeDefaultProvider,
+  sanitizeProviderOrder,
+} from "@/lib/kitty/provider-order";
 
 const SYNC_DEBOUNCE_MS = 900;
 
@@ -29,6 +37,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     simpleProviderPicker: s.simpleProviderPicker,
     providerOrder: s.providerOrder,
     defaultProvider: s.defaultProvider,
+    providerOrderVersion: PROVIDER_ORDER_SYNC_VERSION,
     providerSectionHidden: s.providerSectionHidden,
     kittyProxyNode: s.kittyProxyNode,
     kittyProxyManual: s.kittyProxyManual,
@@ -72,8 +81,16 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.playerSettingsOpen !== undefined) patch.playerSettingsOpen = prefs.playerSettingsOpen;
   if (prefs.providerAutoFallback !== undefined) patch.providerAutoFallback = prefs.providerAutoFallback;
   if (prefs.simpleProviderPicker !== undefined) patch.simpleProviderPicker = prefs.simpleProviderPicker;
-  if (prefs.providerOrder !== undefined) patch.providerOrder = prefs.providerOrder;
-  if (prefs.defaultProvider !== undefined) patch.defaultProvider = prefs.defaultProvider;
+  // Older account prefs keep a stale Recommended order — ignore until they carry
+  // the current epoch, then push the site default (migrate already reset local).
+  const remoteOrderVersion = prefs.providerOrderVersion ?? 0;
+  if (remoteOrderVersion >= PROVIDER_ORDER_SYNC_VERSION) {
+    if (prefs.providerOrder !== undefined) patch.providerOrder = prefs.providerOrder;
+    if (prefs.defaultProvider !== undefined) patch.defaultProvider = prefs.defaultProvider;
+  } else {
+    patch.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+    patch.defaultProvider = sanitizeDefaultProvider("AniSnatch", patch.providerOrder);
+  }
   if (prefs.providerSectionHidden !== undefined) patch.providerSectionHidden = prefs.providerSectionHidden;
   if (prefs.kittyProxyNode !== undefined) patch.kittyProxyNode = prefs.kittyProxyNode;
   if (prefs.kittyProxyManual !== undefined) patch.kittyProxyManual = prefs.kittyProxyManual;

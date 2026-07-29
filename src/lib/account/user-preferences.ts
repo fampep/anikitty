@@ -7,6 +7,7 @@ import {
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { coerceKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-providers";
+import { PROVIDER_ORDER_SYNC_VERSION } from "@/lib/kitty/kitty-providers";
 import { sanitizeDefaultProvider, sanitizeProviderOrder } from "@/lib/kitty/provider-order";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
@@ -31,6 +32,11 @@ export type SyncedUserPreferences = {
   providerAutoFallback?: boolean;
   providerOrder?: KittyProvider[];
   defaultProvider?: KittyProvider;
+  /**
+   * Schema epoch for provider order / default. Older remote prefs are ignored
+   * so a site-wide Recommended reshuffle can override saved account settings.
+   */
+  providerOrderVersion?: number;
   simpleProviderPicker?: boolean;
   providerSectionHidden?: Partial<Record<ProviderAudioMode, boolean>>;
   kittyProxyNode?: KittyApiNodeId;
@@ -81,6 +87,12 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.playerSettingsOpen === "boolean") out.playerSettingsOpen = input.playerSettingsOpen;
   if (typeof input.providerAutoFallback === "boolean") out.providerAutoFallback = input.providerAutoFallback;
   if (typeof input.simpleProviderPicker === "boolean") out.simpleProviderPicker = input.simpleProviderPicker;
+  if (
+    typeof input.providerOrderVersion === "number" &&
+    Number.isFinite(input.providerOrderVersion)
+  ) {
+    out.providerOrderVersion = Math.max(0, Math.floor(input.providerOrderVersion));
+  }
   if (Array.isArray(input.providerOrder)) {
     out.providerOrder = sanitizeProviderOrder(input.providerOrder);
   }
