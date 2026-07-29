@@ -281,6 +281,8 @@ export function KittyPlayer({
   const stallWatchRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Soft reattach once when cold-start autoplay never leaves t≈0. */
   const coldStartRecoverRef = useRef(false);
+  /** True after first main FRAG_LOADED — blocks soft-reattach while EarnVids is still appending. */
+  const hlsStartupFragLoadedRef = useRef(false);
   const providerRef = useRef(provider);
   providerRef.current = provider;
   const headersRef = useRef(headers);
@@ -1291,6 +1293,7 @@ export function KittyPlayer({
     audioUserPickedRef.current = false;
     mediaRetryRef.current = false;
     coldStartRecoverRef.current = false;
+    hlsStartupFragLoadedRef.current = false;
   }, [src]);
 
   // Avoid cast-poster flash when the episode image URL changes mid-session.
@@ -1732,20 +1735,37 @@ export function KittyPlayer({
         }
         void v.play().catch(() => {});
 
-        // EarnVids / AniVibe (and any HLS that never leaves t=0): soft reattach once.
+        // Soft reattach once if still stuck at t≈0. EarnVids first segments are
+        // ~2MB via double proxy — reattaching mid-fetch aborts play() and loops
+        // "Loading stream…". Wait much longer and skip if a frag already arrived.
         if (cold && !coldStartRecoverRef.current) {
           coldStartRecoverRef.current = true;
+          const earnVidsCold =
+            providerRef.current === "AniVibe" ||
+            isEarnVidsLikeHeaders(headersRef.current);
+          const reattachDelay = earnVidsCold ? 14_000 : 2200;
           window.setTimeout(() => {
             const again = videoRef.current;
             if (!again || again.currentTime >= 0.35) return;
             if (again.readyState >= 3 && !again.paused) return;
+            if (earnVidsCold && hlsStartupFragLoadedRef.current) {
+              // Frag downloaded — keep MSE; nudge load/play instead of teardown.
+              logPlayerDebug("stall-skip-reattach-frag-loaded", {
+                readyState: again.readyState,
+                currentTime: again.currentTime,
+              });
+              kickHlsLoad();
+              void again.play().catch(() => {});
+              return;
+            }
             logPlayerDebug("stall-soft-reattach", {
               readyState: again.readyState,
               currentTime: again.currentTime,
+              earnVidsCold,
             });
             mediaRetryRef.current = false;
             setAttachNonce((n) => n + 1);
-          }, 2200);
+          }, reattachDelay);
         }
       }, 2200);
     };
@@ -2200,7 +2220,9 @@ export function KittyPlayer({
       let autoplayArmed = false;
       let manifestParsed = false;
       let firstFragBuffered = false;
+      let firstFragLoaded = false;
       let coldWatchTimer: ReturnType<typeof setTimeout> | null = null;
+      hlsStartupFragLoadedRef.current = false;
 
       const clearColdWatch = () => {
         if (coldWatchTimer) {
@@ -2220,6 +2242,7 @@ export function KittyPlayer({
             reason,
             readyState: video.readyState,
             firstFragBuffered,
+            firstFragLoaded,
           });
           return;
         }
@@ -2230,6 +2253,74 @@ export function KittyPlayer({
         applyResumeTime();
         logPlayerDebug("autoplay-ready", { reason, readyState: video.readyState });
         tryAutoplay();
+      };
+
+      const armColdWatch = (ms: number, pass: number) => {
+        clearColdWatch();
+        coldWatchTimer = setTimeout(() => {
+          coldWatchTimer = null;
+          if (cancelled) return;
+          if (autoplayArmed) {
+            if (
+              video.currentTime < 0.35 &&
+              (video.paused || video.readyState < 3)
+            ) {
+              logPlayerDebug("cold-watch-kick", {
+                readyState: video.readyState,
+                paused: video.paused,
+                currentTime: video.currentTime,
+                pass,
+              });
+              try {
+                hls?.startLoad(-1);
+              } catch {
+                try {
+                  hls?.startLoad();
+                } catch {
+                  /* ignore */
+                }
+              }
+              void video.play().catch(() => {});
+            }
+            return;
+          }
+
+          // EarnVids: first .ts is often 1.5–2.5MB through /api/kitty/hls →
+          // KittyAPI /proxy. Forcing play() at readyState 0 triggers waiting →
+          // soft-reattach → AbortError. Wait for frag/canplay instead.
+          if (
+            earnVidsLike &&
+            pass < 2 &&
+            !firstFragLoaded &&
+            video.readyState < 2
+          ) {
+            logPlayerDebug("cold-watch-wait-frag", {
+              readyState: video.readyState,
+              pass,
+            });
+            try {
+              hls?.startLoad(0);
+            } catch {
+              try {
+                hls?.startLoad();
+              } catch {
+                /* ignore */
+              }
+            }
+            armColdWatch(10_000, pass + 1);
+            return;
+          }
+
+          logPlayerDebug("cold-watch-force-autoplay", {
+            manifestParsed,
+            firstFragBuffered,
+            firstFragLoaded,
+            readyState: video.readyState,
+            pass,
+          });
+          firstFragBuffered = true;
+          kickStartupAutoplay("cold-watch-timeout");
+        }, ms);
       };
 
       hls.attachMedia(video);
@@ -2268,6 +2359,10 @@ export function KittyPlayer({
         if (cancelled) return;
         const frag = data.frag;
         if (frag?.type === "subtitle") return;
+        if (!firstFragLoaded) {
+          firstFragLoaded = true;
+          hlsStartupFragLoadedRef.current = true;
+        }
         // Progress only — do not autoplay yet. Early play() before MSE append
         // is what left AniVibe stuck buffering; wait for FRAG_BUFFERED/canplay.
         logPlayerDebug("FRAG_LOADED", {
@@ -2294,46 +2389,13 @@ export function KittyPlayer({
       const onCanPlayStartup = () => {
         if (cancelled) return;
         logPlayerDebug("canplay", { readyState: video.readyState });
+        firstFragBuffered = true;
         kickStartupAutoplay("canplay");
       };
       video.addEventListener("canplay", onCanPlayStartup);
 
-      // Safety net: if first frag never arrives / play never sticks, force a try.
-      coldWatchTimer = setTimeout(() => {
-        coldWatchTimer = null;
-        if (cancelled) return;
-        if (autoplayArmed) {
-          // Autoplay ran but may still be stuck at t=0.
-          if (
-            video.currentTime < 0.35 &&
-            (video.paused || video.readyState < 3)
-          ) {
-            logPlayerDebug("cold-watch-kick", {
-              readyState: video.readyState,
-              paused: video.paused,
-              currentTime: video.currentTime,
-            });
-            try {
-              hls?.startLoad(-1);
-            } catch {
-              try {
-                hls?.startLoad();
-              } catch {
-                /* ignore */
-              }
-            }
-            void video.play().catch(() => {});
-          }
-          return;
-        }
-        logPlayerDebug("cold-watch-force-autoplay", {
-          manifestParsed,
-          firstFragBuffered,
-          readyState: video.readyState,
-        });
-        firstFragBuffered = true;
-        kickStartupAutoplay("cold-watch-timeout");
-      }, earnVidsLike ? 2000 : 5000);
+      // EarnVids needs a long first-hop budget; others keep the shorter net.
+      armColdWatch(earnVidsLike ? 8_000 : 5_000, 0);
 
       hlsAttachCleanup = () => {
         video.removeEventListener("canplay", onCanPlayStartup);
