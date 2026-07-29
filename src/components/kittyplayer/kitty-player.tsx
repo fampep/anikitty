@@ -2352,7 +2352,7 @@ export function KittyPlayer({
                 /* ignore */
               }
             }
-            armColdWatch(10_000, pass + 1);
+            armColdWatch(6_000, pass + 1);
             return;
           }
 
@@ -2408,14 +2408,18 @@ export function KittyPlayer({
           firstFragLoaded = true;
           hlsStartupFragLoadedRef.current = true;
         }
-        // Progress only — do not autoplay yet. Early play() before MSE append
-        // is what left AniVibe stuck buffering; wait for FRAG_BUFFERED/canplay.
         logPlayerDebug("FRAG_LOADED", {
           sn: frag?.sn,
           type: frag?.type,
           readyState: video.readyState,
           firstFragBuffered,
         });
+        // EarnVids: start as soon as the first segment is downloaded. Waiting
+        // only for FRAG_BUFFERED adds a visible gap after a ~2MB proxy hop.
+        if (earnVidsLike && !firstFragBuffered) {
+          firstFragBuffered = true;
+          kickStartupAutoplay("frag-loaded");
+        }
       });
       hls.on(Hls.Events.FRAG_BUFFERED, (_event, data) => {
         if (cancelled) return;
@@ -2439,8 +2443,9 @@ export function KittyPlayer({
       };
       video.addEventListener("canplay", onCanPlayStartup);
 
-      // EarnVids needs a long first-hop budget; others keep the shorter net.
-      armColdWatch(earnVidsLike ? 8_000 : 5_000, 0);
+      // EarnVids needs a longer first-hop budget; keep it modest so failed
+      // loads recover without sitting on "Loading stream…" for ages.
+      armColdWatch(earnVidsLike ? 5_000 : 5_000, 0);
 
       hlsAttachCleanup = () => {
         video.removeEventListener("canplay", onCanPlayStartup);

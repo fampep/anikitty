@@ -191,7 +191,10 @@ export async function raceKittyProviderStream(
   if (opts.signal?.aborted) return null;
 
   // Drop obviously dead peers before hammering stream-direct.
-  if (candidates.length > 1) {
+  // AniVibe resolves in ~1–3s on a healthy node — skip the health RTT tax.
+  const skipHealth =
+    provider?.toLowerCase() === "anivibe" || provider?.toLowerCase() === "anisnatch";
+  if (candidates.length > 1 && !skipHealth) {
     candidates = orderKittyNodesForRace(
       await prefilterHealthyKittyNodes(candidates, { signal: opts.signal }),
       provider,
@@ -309,7 +312,11 @@ export async function raceKittyProviderStream(
         }
       }
 
-      if (index === 0) {
+      // Fast providers (AniVibe / AniSnatch): launch all nodes immediately.
+      const noStagger =
+        provider?.toLowerCase() === "anivibe" ||
+        provider?.toLowerCase() === "anisnatch";
+      if (index === 0 || noStagger) {
         launch(nodeId, index);
         return;
       }
