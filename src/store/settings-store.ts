@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 89,
+      version: 90,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1177,6 +1177,11 @@ export const useSettingsStore = create<ISettingsStore>()(
             next.defaultProvider ?? "AniSnatch",
             next.providerOrder,
           );
+        }
+        if (version < 90) {
+          // Recommended: Sierra → Vibe → Kilo → Juliet (AniZone) → Ya.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniSnatch", next.providerOrder);
         }
         return next as ISettingsStore;
       },

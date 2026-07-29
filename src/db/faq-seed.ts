@@ -368,7 +368,7 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "sources"
     ],
     "title": "What are the stream sources?",
-    "answer": "AniKitty does not host video — streams come through KittyAPI from third-party providers, shown only by site labels (1 Sierra, 2 Kilo, 3 Juliet, 4 Vibe, 5 Ya, then BD, Taku, Megu, Uniform, Alpha, Gamma, Guard, GG, and Heaven).\n\n- The top five appear under **Recommended**\n- Soft Subs defaults to BD when available\n- Hard-sub only source is Heaven (Japanese audio only)\n\nNew watches use your Settings default source and fallback order; you can switch anytime while watching.",
+    "answer": "AniKitty does not host video — streams come through KittyAPI from third-party providers, shown only by site labels (1 Sierra, 2 Vibe, 3 Kilo, 4 Juliet, 5 Ya, then BD, Taku, Megu, Uniform, Alpha, Gamma, Guard, GG, and Heaven).\n\n- The top five appear under **Recommended**\n- Soft Subs defaults to BD when available\n- Hard-sub only source is Heaven (Japanese audio only)\n\nNew watches use your Settings default source and fallback order; you can switch anytime while watching.",
     "updatedAt": "2026-07-25",
     "order": 20,
     "popularity": 75,

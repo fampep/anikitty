@@ -58,9 +58,9 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniSnatch",
+  "AniVibe",
   "Anikoto",
   "AniWatch",
-  "AniVibe",
   "Animeya",
   "AniBD",
   "Anitaku",
@@ -117,6 +117,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
+    id: "AniVibe",
+    label: "Vibe",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs · EarnVids/StreamHG",
+  },
+  {
     id: "Anikoto",
     label: "Kilo",
     group: "featured",
@@ -140,18 +152,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: true,
     supportsMulti: true,
     hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "AniVibe",
-    label: "Vibe",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs · EarnVids/StreamHG",
   },
   {
     id: "Animeya",
@@ -277,13 +277,13 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. Top 5 Recommended:
- * 1 Sierra (AniSnatch), 2 Kilo, 3 Juliet, 4 Vibe (AniVibe), 5 Ya.
+ * 1 Sierra (AniSnatch), 2 Vibe (AniVibe), 3 Kilo, 4 Juliet (AniZone), 5 Ya.
  * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniSnatch",
+  "AniVibe",
   "Anikoto",
   "AniWatch",
-  "AniVibe",
   "Animeya",
   "AniBD",
   "Anitaku",
