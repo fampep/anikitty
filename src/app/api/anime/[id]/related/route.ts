@@ -9,10 +9,18 @@ const RELATED_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
       id
-      recommendations(page: 1, perPage: 12) {
+      recommendations(page: 1, perPage: 16) {
         nodes {
+          rating
           mediaRecommendation {
-            id title { english romaji } coverImage { extraLarge } episodes format
+            id
+            title { english romaji }
+            coverImage { extraLarge }
+            episodes
+            format
+            genres
+            averageScore
+            studios { nodes { name isAnimationStudio } }
           }
         }
       }
@@ -20,22 +28,72 @@ const RELATED_QUERY = `
         edges {
           relationType(version: 2)
           node {
-            id title { english romaji } coverImage { extraLarge } type episodes format
+            id
+            title { english romaji native }
+            coverImage { extraLarge }
+            type
+            episodes
+            format
+            status
+            season
+            seasonYear
+            startDate { year month day }
           }
         }
       }
-      characters(sort: ROLE, page: 1, perPage: 12) {
+      characters(sort: ROLE, page: 1, perPage: 25) {
         edges {
           role
-          node { id name { full } image { large } }
-          voiceActors(language: JAPANESE) { id name { full } image { large } }
+          node {
+            id
+            name { full native }
+            image { large }
+            favourites
+          }
+          voiceActors {
+            id
+            name { full native }
+            image { large }
+            languageV2
+          }
+        }
+      }
+      staff(sort: RELEVANCE, page: 1, perPage: 30) {
+        edges {
+          role
+          node {
+            id
+            name { full native }
+            image { large }
+            primaryOccupations
+          }
         }
       }
     }
   }
 `;
 
-function mapAnime(node: any) {
+type MappedAnime = {
+  id: string;
+  name: string;
+  jname: string;
+  poster: string;
+  episodes: { sub: number; dub: number };
+  type: string;
+  duration: string;
+  rating: string | null;
+  relationType?: string;
+  status?: string | null;
+  season?: string | null;
+  seasonYear?: number | null;
+  startDateKey?: number;
+  isCurrent?: boolean;
+  recommendationRating?: number;
+  genres?: string[];
+  studios?: string[];
+};
+
+function mapAnime(node: any, extra?: Partial<MappedAnime>): MappedAnime | null {
   if (!node?.id) return null;
   return {
     id: String(node.id),
@@ -45,8 +103,16 @@ function mapAnime(node: any) {
     episodes: { sub: node.episodes ?? 0, dub: 0 },
     type: toFormat(node.format),
     duration: "",
-    rating: null,
+    rating: node.averageScore != null ? String((node.averageScore / 10).toFixed(1)) : null,
+    ...extra,
   };
+}
+
+function startDateSortKey(node: any): number {
+  const y = node?.startDate?.year ?? 0;
+  const m = node?.startDate?.month ?? 0;
+  const d = node?.startDate?.day ?? 0;
+  return y * 10_000 + m * 100 + d;
 }
 
 async function fetchRelatedPayload(numId: number) {
@@ -54,47 +120,155 @@ async function fetchRelatedPayload(numId: number) {
   const m = raw.Media;
   if (!m) return null;
 
-  const charactersVoiceActors = (m.characters?.edges ?? []).map((edge: any) => ({
-    character: {
+  const charactersVoiceActors = (m.characters?.edges ?? []).flatMap((edge: any) => {
+    const character = {
       id: String(edge.node?.id ?? ""),
       poster: edge.node?.image?.large ?? "",
       name: edge.node?.name?.full ?? "Unknown",
-      cast: edge.role === "MAIN" ? "Main" : "Supporting",
-    },
-    voiceActor: {
-      id: String(edge.voiceActors?.[0]?.id ?? ""),
-      poster: edge.voiceActors?.[0]?.image?.large ?? "",
-      name: edge.voiceActors?.[0]?.name?.full ?? "",
-      cast: "Japanese",
-    },
-  }));
+      native: edge.node?.name?.native ?? null,
+      cast: edge.role === "MAIN" ? "Main" : edge.role === "SUPPORTING" ? "Supporting" : "Background",
+      favourites: typeof edge.node?.favourites === "number" ? edge.node.favourites : null,
+    };
+    const vas = edge.voiceActors?.length
+      ? edge.voiceActors
+      : [{ id: "", name: { full: "" }, image: { large: "" }, languageV2: "Japanese" }];
 
-  const relatedAnimes = (m.relations?.edges ?? [])
-    .filter((e: any) => e?.node?.type === "ANIME")
-    .map((e: any) => mapAnime(e.node))
-    .filter(Boolean);
+    return vas.map((va: any) => ({
+      character,
+      voiceActor: {
+        id: String(va?.id ?? ""),
+        poster: va?.image?.large ?? "",
+        name: va?.name?.full ?? "",
+        native: va?.name?.native ?? null,
+        cast: va?.languageV2 ?? "Japanese",
+        language: va?.languageV2 ?? "Japanese",
+      },
+    }));
+  });
+
+  const relationEdges = (m.relations?.edges ?? []).filter(
+    (e: any) => e?.node?.type === "ANIME" && e?.node?.id,
+  );
+
+  const relatedAnimes = relationEdges
+    .map((e: any) =>
+      mapAnime(e.node, {
+        relationType: String(e.relationType ?? "OTHER"),
+        status: e.node.status ?? null,
+        season: e.node.season ?? null,
+        seasonYear: e.node.seasonYear ?? null,
+        startDateKey: startDateSortKey(e.node),
+        isCurrent: false,
+      }),
+    )
+    .filter((a: MappedAnime | null): a is MappedAnime => a != null);
+
+  // Chronological franchise chain from prequel/sequel links + current title.
+  const chainTypes = new Set(["PREQUEL", "SEQUEL", "PARENT", "SIDE_STORY", "ALTERNATIVE"]);
+  const franchiseNodes = new Map<string, any>();
+  for (const e of relationEdges) {
+    if (!chainTypes.has(String(e.relationType))) continue;
+    franchiseNodes.set(String(e.node.id), e.node);
+  }
+  let seasons: MappedAnime[] = [...franchiseNodes.values()]
+    .map((node) =>
+      mapAnime(node, {
+        relationType: String(
+          relationEdges.find((e: any) => String(e.node.id) === String(node.id))?.relationType ??
+            "OTHER",
+        ),
+        season: node.season ?? null,
+        seasonYear: node.seasonYear ?? null,
+        startDateKey: startDateSortKey(node),
+        isCurrent: String(node.id) === String(numId),
+      }),
+    )
+    .filter((a: MappedAnime | null): a is MappedAnime => a != null)
+    .sort(
+      (a, b) =>
+        Number(a.startDateKey ?? 0) - Number(b.startDateKey ?? 0) ||
+        String(a.seasonYear ?? 0).localeCompare(String(b.seasonYear ?? 0)),
+    );
+
+  // Ensure current anime appears in the franchise strip even with no prequel/sequel peers.
+  if (!seasons.some((s) => s.isCurrent)) {
+    seasons = [
+      ...seasons,
+      {
+        id: String(numId),
+        name: "",
+        jname: "",
+        poster: "",
+        episodes: { sub: 0, dub: 0 },
+        type: "",
+        duration: "",
+        rating: null,
+        relationType: "CURRENT",
+        isCurrent: true,
+        startDateKey: Number.MAX_SAFE_INTEGER / 4,
+      },
+    ].sort(
+      (a, b) =>
+        Number(a.startDateKey ?? 0) - Number(b.startDateKey ?? 0) ||
+        String(a.seasonYear ?? 0).localeCompare(String(b.seasonYear ?? 0)),
+    );
+  }
 
   const mostPopularAnimes = relatedAnimes.slice(0, 5);
 
   const recommendedAnimes = (m.recommendations?.nodes ?? [])
     .filter((n: any) => n?.mediaRecommendation)
-    .map((n: any) => mapAnime(n.mediaRecommendation))
-    .filter(Boolean);
+    .map((n: any) => {
+      const rec = n.mediaRecommendation;
+      const studios = (rec.studios?.nodes ?? [])
+        .filter((s: any) => s.isAnimationStudio)
+        .map((s: any) => s.name as string);
+      return mapAnime(rec, {
+        recommendationRating: typeof n.rating === "number" ? n.rating : 0,
+        genres: Array.isArray(rec.genres) ? rec.genres : [],
+        studios,
+      });
+    })
+    .filter((a: MappedAnime | null): a is MappedAnime => a != null)
+    .sort(
+      (a: MappedAnime, b: MappedAnime) =>
+        Number(b.recommendationRating ?? 0) - Number(a.recommendationRating ?? 0),
+    );
+
+  const staff = (m.staff?.edges ?? [])
+    .filter((e: any) => e?.node?.id)
+    .map((e: any) => ({
+      id: String(e.node.id),
+      name: e.node.name?.full ?? "Unknown",
+      native: e.node.name?.native ?? null,
+      poster: e.node.image?.large ?? "",
+      role: String(e.role ?? ""),
+      occupations: Array.isArray(e.node.primaryOccupations)
+        ? e.node.primaryOccupations.filter(Boolean)
+        : [],
+    }));
 
   let enrichedRelated = relatedAnimes;
   let enrichedPopular = mostPopularAnimes;
   let enrichedRecommended = recommendedAnimes;
+  let enrichedSeasons = seasons;
 
   try {
-    const combined = [...mostPopularAnimes, ...relatedAnimes, ...recommendedAnimes];
+    const combined = [
+      ...mostPopularAnimes,
+      ...relatedAnimes,
+      ...recommendedAnimes,
+      ...seasons.filter((s) => s.id && s.poster),
+    ];
     const uniqueById = new Map(combined.map((a) => [a.id, a]));
     const enriched = await enrichAnimeListWithAudio([...uniqueById.values()]);
     const byId = new Map(enriched.map((a) => [a.id, a]));
     const pick = <T extends { id: string }>(list: T[]) =>
-      list.map((a) => byId.get(a.id) ?? a);
+      list.map((a) => ({ ...a, ...(byId.get(a.id) ?? {}) }));
     enrichedPopular = pick(mostPopularAnimes);
     enrichedRelated = pick(relatedAnimes);
     enrichedRecommended = pick(recommendedAnimes);
+    enrichedSeasons = pick(seasons);
   } catch (enrichErr) {
     console.error("Related audio enrich failed:", enrichErr);
   }
@@ -104,12 +278,14 @@ async function fetchRelatedPayload(numId: number) {
     mostPopularAnimes: enrichedPopular,
     relatedAnimes: enrichedRelated,
     recommendedAnimes: enrichedRecommended,
+    seasons: enrichedSeasons,
+    staff,
   };
 }
 
 const getCachedRelated = unstable_cache(
   fetchRelatedPayload,
-  ["anime-details-related-v1"],
+  ["anime-details-related-v2"],
   { revalidate: 3600 },
 );
 

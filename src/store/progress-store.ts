@@ -6,8 +6,22 @@ const SAVE_DEBOUNCE_MS = 3000;
 /** Cap local progress entries so long-lived tabs don't grow unbounded. */
 const MAX_PROGRESS_ENTRIES = 150;
 
-type ProgressEntry = { current: number; duration: number; updatedAt?: number };
+type ProgressEntry = {
+  current: number;
+  duration: number;
+  updatedAt?: number;
+  /** Snapshot of player prefs at last save (local resume fidelity). */
+  playbackRate?: number;
+  qualityHeight?: number | null;
+  captionLabel?: string | null;
+};
 type ProgressCache = Record<string, ProgressEntry>;
+
+export type ProgressPlaybackSnapshot = {
+  playbackRate?: number;
+  qualityHeight?: number | null;
+  captionLabel?: string | null;
+};
 
 let memoryCache: ProgressCache | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -90,7 +104,13 @@ interface ProgressStore {
   /** Bumped after local cache writes — refreshes episode bar without network. */
   localVersion: number;
   notify: () => void;
-  setProgress: (animeId: string, episodeId: string, current: number, duration: number) => void;
+  setProgress: (
+    animeId: string,
+    episodeId: string,
+    current: number,
+    duration: number,
+    extras?: ProgressPlaybackSnapshot,
+  ) => void;
   getProgress: (animeId: string, episodeId: string) => ProgressEntry | null;
   removeProgress: (animeId: string, episodeId: string) => void;
   flush: () => void;
@@ -104,18 +124,32 @@ export const useProgressStore = create<ProgressStore>((set) => ({
     invalidateUserLevel();
   },
 
-  setProgress: (animeId, episodeId, current, duration) => {
+  setProgress: (animeId, episodeId, current, duration, extras) => {
     const cache = loadCache();
     const key = `${animeId}:${episodeId}`;
     const prev = cache[key];
     if (
       prev &&
       prev.duration === duration &&
-      Math.abs(prev.current - current) < 2
+      Math.abs(prev.current - current) < 2 &&
+      !extras
     ) {
       return;
     }
-    cache[key] = { current, duration, updatedAt: Date.now() };
+    cache[key] = {
+      current,
+      duration,
+      updatedAt: Date.now(),
+      playbackRate: extras?.playbackRate ?? prev?.playbackRate,
+      qualityHeight:
+        extras && "qualityHeight" in extras
+          ? extras.qualityHeight
+          : prev?.qualityHeight,
+      captionLabel:
+        extras && "captionLabel" in extras
+          ? extras.captionLabel
+          : prev?.captionLabel,
+    };
     pruneCache(cache);
     scheduleSave();
     scheduleLocalBump(set);

@@ -9,9 +9,16 @@ export interface IAnimeDetails {
 export interface Season {
   id: string;
   name: string;
-  title: string;
+  title?: string;
   poster: string;
   isCurrent: boolean;
+  jname?: string;
+  type?: string;
+  relationType?: string;
+  season?: string | null;
+  seasonYear?: number | null;
+  startDateKey?: number;
+  episodes?: Episodes2;
 }
 
 export interface Anime {
@@ -26,14 +33,63 @@ export interface Info {
   /** AniList adult flag — gate UI when settings hide 18+. */
   isAdult?: boolean;
   name: string;
+  titles?: AnimeTitles;
   poster: string;
   banner: string;
   description: string;
+  popularity?: number | null;
+  favourites?: number | null;
+  meanScore?: number | null;
+  rankings?: AnimeRanking[];
+  tags?: AnimeTag[];
+  themes?: string[];
+  demographics?: string[];
+  externalLinks?: AnimeExternalLink[];
+  statusDistribution?: StatusDistribution[];
+  scoreDistribution?: ScoreDistribution[];
+  countryOfOrigin?: string | null;
   stats: Stats;
   promotionalVideos: PromotionalVideo[];
   charactersVoiceActors: CharactersVoiceActor[];
   /** Next airing episode countdown (AniList). `airingAt` is a unix timestamp in seconds. */
   nextAiringEpisode?: NextAiringEpisode | null;
+}
+
+export interface AnimeTitles {
+  english?: string | null;
+  romaji?: string | null;
+  native?: string | null;
+}
+
+export interface AnimeRanking {
+  rank: number;
+  type: string;
+  context: string;
+  allTime: boolean;
+}
+
+export interface AnimeTag {
+  name: string;
+  category: string;
+  rank: number;
+}
+
+export interface AnimeExternalLink {
+  site: string;
+  url: string;
+  type?: string | null;
+  color?: string | null;
+  icon?: string | null;
+}
+
+export interface StatusDistribution {
+  status: string;
+  amount: number;
+}
+
+export interface ScoreDistribution {
+  score: number;
+  amount: number;
 }
 
 export interface NextAiringEpisode {
@@ -69,14 +125,27 @@ export interface Character {
   id: string;
   poster: string;
   name: string;
+  native?: string | null;
   cast: string;
+  favourites?: number | null;
 }
 
 export interface VoiceActor {
   id: string;
   poster: string;
   name: string;
+  native?: string | null;
   cast: string;
+  language?: string;
+}
+
+export interface AnimeStaffMember {
+  id: string;
+  name: string;
+  native?: string | null;
+  poster: string;
+  role: string;
+  occupations: string[];
 }
 
 export interface MoreInfo {
@@ -114,6 +183,12 @@ export interface RelatedAnime {
   poster: string;
   episodes: Episodes3;
   type: string;
+  relationType?: string;
+  status?: string | null;
+  season?: string | null;
+  seasonYear?: number | null;
+  startDateKey?: number;
+  isCurrent?: boolean;
 }
 
 export interface Episodes3 {
@@ -130,6 +205,9 @@ export interface RecommendedAnime {
   type: string;
   rating?: string;
   episodes: Episodes4;
+  recommendationRating?: number;
+  genres?: string[];
+  studios?: string[];
 }
 
 export interface Episodes4 {

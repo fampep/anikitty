@@ -82,6 +82,8 @@ export type HlsLevelOption = {
   index: number;
   label: string;
   height?: number;
+  /** Approximate stream bitrate in bits/sec when the HLS level exposes it. */
+  bitrate?: number;
 };
 
 export type HlsAudioOption = {

@@ -53,6 +53,11 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     hardSubSoftSubs: s.hardSubSoftSubs,
     anime4kEnabled: s.anime4kEnabled,
     anime4kMode: s.anime4kMode,
+    theatreMode: s.theatreMode,
+    defaultQualityHeight: s.defaultQualityHeight,
+    episodeSort: s.episodeSort,
+    watchSidebarCollapsed: s.watchSidebarCollapsed,
+    watchSidebarWidth: s.watchSidebarWidth,
   });
 }
 
@@ -95,6 +100,17 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.hardSubSoftSubs !== undefined) patch.hardSubSoftSubs = prefs.hardSubSoftSubs;
   if (prefs.anime4kEnabled !== undefined) patch.anime4kEnabled = prefs.anime4kEnabled;
   if (prefs.anime4kMode !== undefined) patch.anime4kMode = sanitizeAnime4kMode(prefs.anime4kMode);
+  if (prefs.theatreMode !== undefined) patch.theatreMode = prefs.theatreMode;
+  if (prefs.defaultQualityHeight !== undefined) {
+    patch.defaultQualityHeight = prefs.defaultQualityHeight;
+  }
+  if (prefs.episodeSort !== undefined) patch.episodeSort = prefs.episodeSort;
+  if (prefs.watchSidebarCollapsed !== undefined) {
+    patch.watchSidebarCollapsed = prefs.watchSidebarCollapsed;
+  }
+  if (prefs.watchSidebarWidth !== undefined) {
+    patch.watchSidebarWidth = prefs.watchSidebarWidth;
+  }
 
   if (Object.keys(patch).length > 0) {
     useSettingsStore.setState(patch);

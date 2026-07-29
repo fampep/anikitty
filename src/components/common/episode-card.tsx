@@ -143,9 +143,11 @@ const EpisodeCard = memo(function EpisodeCard({
                 src={episodeImage}
                 alt={`Episode ${props.episode.number}`}
                 fill
-                className="object-cover"
+                className="object-cover transition-opacity duration-300"
                 unoptimized
                 sizes="(max-width: 640px) 50vw, 200px"
+                placeholder="blur"
+                blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjMiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjMiIGZpbGw9IiMxNDEyMTAiLz48L3N2Zz4="
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-white/[0.04] to-transparent">
@@ -169,11 +171,15 @@ const EpisodeCard = memo(function EpisodeCard({
               <span className="text-[10px] font-mono font-bold text-foreground dark:text-white/85 bg-black/70 px-1.5 py-0.5 rounded">
                 EP {props.episode.number}
               </span>
-              {props.episode.isFiller && (
+              {props.episode.isRecap ? (
+                <span className="text-[9px] font-mono text-sky-300/90 bg-black/70 px-1 py-0.5 rounded">
+                  RECAP
+                </span>
+              ) : props.episode.isFiller ? (
                 <span className="text-[9px] font-mono text-amber-400/80 bg-black/70 px-1 py-0.5 rounded">
                   FILLER
                 </span>
-              )}
+              ) : null}
             </div>
 
             <div className="absolute top-1.5 right-1.5 flex items-center gap-1">
@@ -263,9 +269,11 @@ const EpisodeCard = memo(function EpisodeCard({
                 src={props.episode.image}
                 alt={`EP ${props.episode.number}`}
                 fill
-                className="object-cover"
+                className="object-cover transition-opacity duration-300"
                 unoptimized
                 sizes="96px"
+                placeholder="blur"
+                blurDataURL="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjMiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjMiIGZpbGw9IiMxNDEyMTAiLz48L3N2Zz4="
               />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.06] to-white/[0.02] flex items-center justify-center">
@@ -309,11 +317,15 @@ const EpisodeCard = memo(function EpisodeCard({
             </p>
           )}
           <div className="flex items-center gap-1.5 flex-wrap">
-            {props.episode.isFiller && (
+            {props.episode.isRecap ? (
+              <span className="inline-flex items-center rounded border border-sky-500/25 bg-sky-500/10 px-1.5 py-px text-[9px] font-mono font-bold uppercase tracking-wide text-sky-300/90">
+                Recap
+              </span>
+            ) : props.episode.isFiller ? (
               <span className="inline-flex items-center rounded border border-amber-500/25 bg-amber-500/10 px-1.5 py-px text-[9px] font-mono font-bold uppercase tracking-wide text-amber-300/90">
                 Filler
               </span>
-            )}
+            ) : null}
             <EpisodeAudioMarks episodeNumber={props.episode.number} subOrDub={props.subOrDub} />
             {listInProgress && listCurrent > 0 && (
               <span className="text-[9px] font-mono text-amber-300/60 ml-auto">

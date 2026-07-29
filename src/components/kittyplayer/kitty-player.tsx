@@ -2041,12 +2041,32 @@ export function KittyPlayer({
       if (cancelled) return;
       const levels: HlsLevelOption[] = instance.levels.map((level, index) => {
         const height = level.height || undefined;
-        const label = height
+        const bitrate =
+          typeof level.bitrate === "number" && level.bitrate > 0
+            ? level.bitrate
+            : undefined;
+        const base = height
           ? formatStreamQualityLabel(`${height}p`)
           : level.name || `Level ${index + 1}`;
-        return { index, label, height };
+        const label =
+          bitrate != null
+            ? `${base} · ${bitrate >= 1_000_000 ? `${(bitrate / 1_000_000).toFixed(1)} Mbps` : `${Math.round(bitrate / 1000)} kbps`}`
+            : base;
+        return { index, label, height, bitrate };
       });
       setHlsLevels(levels);
+      // Cap ABR to the preferred max height when set; keep Auto enabled.
+      const preferred = useSettingsStore.getState().defaultQualityHeight;
+      if (preferred != null && preferred > 0 && levels.length > 0) {
+        let cap = -1;
+        for (let i = 0; i < instance.levels.length; i++) {
+          const h = instance.levels[i]?.height ?? 0;
+          if (h > 0 && h <= preferred) cap = i;
+        }
+        instance.autoLevelCapping = cap >= 0 ? cap : -1;
+      } else {
+        instance.autoLevelCapping = -1;
+      }
       setHlsLevelIndex(instance.autoLevelEnabled ? -1 : instance.currentLevel);
 
       const audioOpts: HlsAudioOption[] = instance.audioTracks.map(
@@ -2773,6 +2793,17 @@ export function KittyPlayer({
         video.currentTime = t;
       }
       setHlsLevelIndex(index);
+      if (index < 0) {
+        useSettingsStore.getState().setDefaultQualityHeight(null);
+        hls.autoLevelCapping = -1;
+      } else {
+        const height = hls.levels[index]?.height;
+        useSettingsStore
+          .getState()
+          .setDefaultQualityHeight(
+            typeof height === "number" && height > 0 ? height : null,
+          );
+      }
       setQualityOpen(false);
       bumpControls();
     },

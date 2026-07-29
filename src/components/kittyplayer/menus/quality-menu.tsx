@@ -59,7 +59,7 @@ export function QualityMenuContent({
             active={hlsLevelIndex < 0}
             onClick={() => onSelectHls(-1)}
           >
-            Auto
+            Auto · Adaptive
           </MenuItem>
           {[...hlsLevels]
             .sort((a, b) => (b.height ?? 0) - (a.height ?? 0))

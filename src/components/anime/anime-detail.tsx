@@ -16,17 +16,28 @@ import AnimeCarousel from "@/components/anime/anime-carousel";
 import AnimeEpisodes from "@/components/anime/anime-episodes";
 import CharacterCard from "@/components/common/character-card";
 import VoiceActorsPanel from "@/components/anime/voice-actors-panel";
+import AnimeStaffPanel from "@/components/anime/anime-staff-panel";
+import AnimeRelationsGrouped from "@/components/anime/anime-relations-grouped";
+import AnimeRecommendationsPanel from "@/components/anime/anime-recommendations-panel";
+import AnimeDetailSidePanel from "@/components/anime/anime-detail-side-panel";
+import AnimeStatsCharts from "@/components/anime/anime-stats-charts";
+import AnimeGallery from "@/components/anime/anime-gallery";
+import AnimeWatchProgressPanel from "@/components/anime/anime-watch-progress-panel";
+import AnimeBackToTop from "@/components/anime/anime-back-to-top";
 import AniListRichText, { cleanAniListText } from "@/components/anime/anilist-rich-text";
 import { recordRecentlyViewed } from "@/lib/core/recently-viewed";
 import { ROUTES } from "@/constants/routes";
 import Select from "@/components/common/select";
 import {
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Film,
   Flame,
   Heart,
   Radio,
   Star,
+  TrendingUp,
 } from "lucide-react";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import QueryRetryPanel from "@/components/shared/query-retry-panel";
@@ -38,6 +49,7 @@ import useBookMarks from "@/hooks/use-get-bookmark";
 import { useGetAnimeRelated } from "@/query/anime/get-anime-related";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
+import { useGetLastEpisodeWatched } from "@/hooks/use-get-last-episode-watched";
 import { cn } from "@/lib/core/utils";
 import dynamic from "next/dynamic";
 import { useT } from "@/providers/i18n-provider";
@@ -54,6 +66,26 @@ import RewatchStepper from "@/components/anime/rewatch-stepper";
 import MarkWatchedButton from "@/components/anime/mark-watched-button";
 import AnilistRateButton from "@/components/anime/anilist-rate-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
+
+const TAB_STORAGE_KEY = "anikitty:anime-detail-tab";
+
+const VALID_TABS = new Set([
+  "overview",
+  "episodes",
+  "subtitles",
+  "themes",
+  "media",
+  "art",
+  "gallery",
+  "characters",
+  "voices",
+  "staff",
+  "relations",
+  "recommendations",
+  "reviews",
+  "comments",
+]);
+
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
 });
@@ -131,30 +163,33 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const anilistId = anime?.anime.info.anilistId;
 
   const defaultTab = useMemo(() => {
-    const tab = searchParams.get("tab");
-    const valid = new Set([
-      "overview",
-      "episodes",
-      "subtitles",
-      "themes",
-      "media",
-      "art",
-      "characters",
-      "voices",
-      "relations",
-      "reviews",
-      "comments",
-    ]);
-    return tab && valid.has(tab) ? tab : "overview";
+    const fromQuery = searchParams.get("tab");
+    if (fromQuery && VALID_TABS.has(fromQuery)) {
+      return fromQuery === "art" ? "gallery" : fromQuery;
+    }
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.replace(/^#/, "");
+      if (hash && VALID_TABS.has(hash)) return hash === "art" ? "gallery" : hash;
+      try {
+        const stored = localStorage.getItem(TAB_STORAGE_KEY);
+        if (stored && VALID_TABS.has(stored)) {
+          return stored === "art" ? "gallery" : stored;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return "overview";
   }, [searchParams]);
 
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [synopsisExpanded, setSynopsisExpanded] = useState(false);
 
   useEffect(() => {
     setActiveTab(defaultTab);
   }, [defaultTab]);
 
-  // Defer heavy mappings until idle (or immediately for art/media tabs).
+  // Defer heavy mappings until idle (or immediately for gallery/media tabs).
   const [deferMappings, setDeferMappings] = useState(false);
   useEffect(() => {
     if (!anilistId) return;
@@ -171,13 +206,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   }, [anilistId]);
 
   const needsMappings =
-    deferMappings || activeTab === "art" || activeTab === "media";
-  const needsEpisodes = activeTab === "episodes" || activeTab === "comments";
+    deferMappings || activeTab === "art" || activeTab === "gallery" || activeTab === "media";
+  const needsEpisodes =
+    activeTab === "episodes" ||
+    activeTab === "comments" ||
+    activeTab === "overview";
 
   const { data: relatedData } = useGetAnimeRelated(anilistId ?? slug, Boolean(anime));
   const { data: mappingData } = useGetAnimeMappings(anilistId, needsMappings);
   const { data: episodesData } = useGetAllEpisodes(slug, needsEpisodes);
   const watchedEpisodes = useEpisodeProgress(slug);
+  const lastEpisodeWatched = useGetLastEpisodeWatched(slug);
 
   const rawEpisodeCount =
     episodesData?.episodes?.length ?? episodesData?.totalEpisodes ?? 0;
@@ -189,6 +228,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       return w.current > 10;
     }).length;
   }, [watchedEpisodes]);
+
+  const continueEpisodeNumber = useMemo(() => {
+    if (!lastEpisodeWatched || !episodesData?.episodes) return null;
+    return (
+      episodesData.episodes.find((e) => e.episodeId === lastEpisodeWatched)?.number ?? null
+    );
+  }, [lastEpisodeWatched, episodesData?.episodes]);
 
   // Record this anime for the home "Recently viewed" rail.
   const viewedInfo = anime?.anime?.info;
@@ -203,12 +249,23 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   }, [viewedInfo?.id, viewedInfo?.name, viewedInfo?.poster]);
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value);
+    const next = value === "art" ? "gallery" : value;
+    setActiveTab(next);
+    try {
+      localStorage.setItem(TAB_STORAGE_KEY, next);
+    } catch {
+      /* ignore */
+    }
     const params = new URLSearchParams(searchParams.toString());
-    if (value === "overview") params.delete("tab");
-    else params.set("tab", value);
+    if (next === "overview") params.delete("tab");
+    else params.set("tab", next);
     const qs = params.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.hash = next === "overview" ? "" : next;
+      window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    }
     requestAnimationFrame(() => {
       document.getElementById("anime-tabs-panel")?.scrollIntoView({
         behavior: "smooth",
@@ -301,6 +358,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const relatedAnimes = relatedData?.relatedAnimes ?? anime.relatedAnimes ?? [];
   const recommendedAnimes =
     relatedData?.recommendedAnimes ?? anime.recommendedAnimes ?? [];
+  const staffMembers = relatedData?.staff ?? [];
+  const franchiseSeasons = relatedData?.seasons ?? anime.seasons ?? [];
 
   // Adult titles stay on the normal anime page — hide unless setting is on.
   if (info.isAdult && !showAdultContent) {
@@ -354,7 +413,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const clearLogo = pickAnimeClearLogo(mapImages);
 
-  const hasArtTab =
+  const hasGalleryTab =
     Boolean(mapImages?.fanart || mapImages?.banner || mapImages?.poster) ||
     Boolean(
       mapImages?.artworks &&
@@ -365,6 +424,97 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const tvdbFanartItems = fanartItems.filter((item) => item.title === "TVDB");
   const communityFanartItems = fanartItems.filter((item) => item.title !== "TVDB");
 
+  const gallerySections: {
+    label: string;
+    items: { image: string; thumbnail?: string; title?: string; sourceUrl?: string }[];
+    wide?: boolean;
+    transparent?: boolean;
+  }[] = [
+    {
+      label: t("anime.artSections.communityFanart"),
+      items: communityFanartItems,
+      wide: true,
+    },
+    {
+      label: t("anime.artSections.tvdbFanart"),
+      items: tvdbFanartItems,
+      wide: true,
+    },
+    {
+      label: t("anime.artSections.backgrounds"),
+      items: mapImages?.artworks?.backgrounds ?? [],
+      wide: true,
+    },
+    {
+      label: t("anime.artSections.posters"),
+      items: mapImages?.artworks?.posters ?? [],
+    },
+    {
+      label: t("anime.artSections.banners"),
+      items: mapImages?.artworks?.banners ?? [],
+      wide: true,
+    },
+    {
+      label: t("anime.artSections.clearArt"),
+      items: mapImages?.artworks?.clearArt ?? [],
+      wide: true,
+      transparent: true,
+    },
+    {
+      label: t("anime.artSections.clearLogo"),
+      items: mapImages?.artworks?.clearLogo ?? [],
+      wide: true,
+      transparent: true,
+    },
+  ];
+
+  const hasArtworkArrays = Boolean(
+    mapImages?.artworks?.backgrounds?.length ||
+      mapImages?.artworks?.posters?.length ||
+      mapImages?.artworks?.banners?.length ||
+      communityFanartItems.length ||
+      tvdbFanartItems.length,
+  );
+
+  if (!hasArtworkArrays && mapImages) {
+    if (mapImages.fanart) {
+      gallerySections.push({
+        label: t("anime.artSections.fanart"),
+        items: [{ image: mapImages.fanart }],
+        wide: true,
+      });
+    }
+    if (mapImages.banner) {
+      gallerySections.push({
+        label: t("anime.artSections.banner"),
+        items: [{ image: mapImages.banner }],
+        wide: true,
+      });
+    }
+    if (mapImages.poster) {
+      gallerySections.push({
+        label: t("anime.artSections.poster"),
+        items: [{ image: mapImages.poster }],
+      });
+    }
+  }
+
+  const ratedRank = info.rankings?.find((r) => r.type === "RATED" && r.allTime)
+    ?? info.rankings?.find((r) => r.type === "RATED");
+  const popularRank = info.rankings?.find((r) => r.type === "POPULAR" && r.allTime)
+    ?? info.rankings?.find((r) => r.type === "POPULAR");
+
+  const titles = info.titles;
+  const romajiTitle =
+    titles?.romaji && titles.romaji !== info.name ? titles.romaji : null;
+  const englishAlt =
+    titles?.english && titles.english !== info.name ? titles.english : null;
+
+  const studioList = String(moreInfo.studios || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (info.anilistId)           externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(info.anilistId) });
   if (mappings?.mal_id)         externalLinks.push({ ...DB_LINKS[1], url: DB_LINKS[1].url(mappings.mal_id) });
@@ -374,6 +524,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   if (mappings?.kitsu_id)       externalLinks.push({ ...DB_LINKS[5], url: DB_LINKS[5].url(mappings.kitsu_id) });
   if (mappings?.animeplanet_id) externalLinks.push({ ...DB_LINKS[6], url: DB_LINKS[6].url(mappings.animeplanet_id) });
   if (mappings?.imdb_id)        externalLinks.push({ ...DB_LINKS[7], url: DB_LINKS[7].url(mappings.imdb_id) });
+
+  const anilistStreaming = (info.externalLinks ?? []).filter(
+    (l) => l.type === "STREAMING" || !l.type,
+  );
 
   const tabItems = [
     { value: "overview", label: t("anime.tabs.overview") },
@@ -387,19 +541,32 @@ export default function AnimeDetail({ slug }: { slug: string }) {
       ? [{ value: "themes", label: t("anime.tabs.themes") }]
       : []),
     { value: "media", label: t("anime.tabs.media") },
-    ...(hasArtTab ? [{ value: "art", label: t("anime.tabs.art") }] : []),
+    ...(hasGalleryTab ? [{ value: "gallery", label: t("anime.tabs.gallery") }] : []),
     ...(charactersVoiceActors.length > 0
       ? [
-          { value: "characters", label: t("anime.tabs.characters") },
+          {
+            value: "characters",
+            label: t("anime.tabs.characters"),
+            badge: new Set(charactersVoiceActors.map((c) => c.character.id || c.character.name)).size,
+          },
           { value: "voices", label: t("anime.tabs.voiceActors") },
         ]
       : []),
-    ...(relatedAnimes.length > 0
+    ...(staffMembers.length > 0
+      ? [{ value: "staff", label: t("anime.tabs.staff"), badge: staffMembers.length }]
+      : []),
+    ...(relatedAnimes.length > 0 || franchiseSeasons.length > 1
       ? [{ value: "relations", label: t("anime.tabs.relations") }]
+      : []),
+    ...(recommendedAnimes.length > 0
+      ? [{ value: "recommendations", label: t("anime.tabs.recommendations") }]
       : []),
     { value: "reviews", label: t("anime.tabs.reviews") },
     { value: "comments", label: t("anime.tabs.comments") },
   ];
+
+  const tabValues = new Set(tabItems.map((item) => item.value));
+  const safeActiveTab = tabValues.has(activeTab) ? activeTab : "overview";
 
   return (
     <div className="relative w-full min-h-screen">
@@ -463,16 +630,47 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 logoUrl={clearLogo}
                 size="lg"
               />
-              {moreInfo.japanese && (
-                <p className="text-xs sm:text-sm text-muted-foreground dark:text-white/35 mt-1.5 font-mono tracking-wide">
-                  {moreInfo.japanese}
-                </p>
-              )}
+              <div className="mt-1.5 flex flex-col gap-0.5">
+                {romajiTitle && (
+                  <p className="text-xs sm:text-sm text-muted-foreground dark:text-white/40 font-mono tracking-wide">
+                    {romajiTitle}
+                  </p>
+                )}
+                {(moreInfo.japanese || titles?.native) && (
+                  <p className="text-xs sm:text-sm text-muted-foreground dark:text-white/35 font-mono tracking-wide">
+                    {titles?.native || moreInfo.japanese}
+                  </p>
+                )}
+                {englishAlt && (
+                  <p className="text-[11px] text-muted-foreground/80 dark:text-white/30">
+                    {englishAlt}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {stats?.rating && (
+              {stats?.rating && stats.rating !== "N/A" && (
                 <StatPill icon={<Star className="w-3 h-3 fill-current" />} label={stats.rating} gold />
+              )}
+              {ratedRank && (
+                <StatPill
+                  icon={<TrendingUp className="w-3 h-3" />}
+                  label={`#${ratedRank.rank}`}
+                  gold
+                />
+              )}
+              {popularRank && (
+                <StatPill
+                  icon={<Flame className="w-3 h-3" />}
+                  label={`${t("anime.sidePanel.popularity")} #${popularRank.rank}`}
+                />
+              )}
+              {info.favourites != null && info.favourites > 0 && (
+                <StatPill
+                  icon={<Heart className="w-3 h-3" />}
+                  label={info.favourites.toLocaleString()}
+                />
               )}
               {stats?.type && <StatPill icon={<Film className="w-3 h-3" />} label={stats.type} />}
               {stats?.episodes?.sub !== undefined && (
@@ -485,18 +683,11 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   teal
                 />
               )}
-              {stats?.episodes?.sub !== undefined && stats.episodes.sub > 0 && (
-                <StatPill
-                  icon={<Flame className="w-3 h-3" />}
-                  label={`${stats.episodes.sub} ${t("watch.hardSubsShort")}`}
-                  amber
-                />
-              )}
               {hasDub && (
                 <StatPill label={`${stats!.episodes!.dub} ${t("card.dub")}`} purple />
               )}
-              {(moreInfo as any)?.duration && (
-                <StatPill label={(moreInfo as any).duration} />
+              {moreInfo?.duration && moreInfo.duration !== "N/A" && (
+                <StatPill label={moreInfo.duration} />
               )}
               {watchedEpisodeCount > 0 && totalEpisodeCount > 0 && (
                 <StatPill
@@ -508,7 +699,17 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 />
               )}
               {moreInfo?.status && !isAiring && <StatPill label={moreInfo.status} />}
-              {moreInfo?.premiered && <StatPill label={moreInfo.premiered} />}
+              {isAiring && (
+                <StatPill icon={<Radio className="w-3 h-3" />} label={t("anime.airing")} teal />
+              )}
+              {moreInfo?.premiered && moreInfo.premiered !== "N/A" && (
+                <StatPill label={moreInfo.premiered} />
+              )}
+              {moreInfo?.source && <StatPill label={moreInfo.source} />}
+              {extMeta?.mal?.contentRating && (
+                <StatPill label={extMeta.mal.contentRating} />
+              )}
+              {studioList[0] && <StatPill label={studioList[0]} />}
             </div>
 
             {providerRatings.length > 0 && (
@@ -564,25 +765,51 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
             {info.description && (
               <div className="max-w-2xl">
-                <p className="text-sm text-muted-foreground dark:text-white/50 leading-relaxed line-clamp-3 md:line-clamp-4">
+                <p
+                  className={cn(
+                    "text-sm text-muted-foreground dark:text-white/50 leading-relaxed",
+                    !synopsisExpanded && "line-clamp-3 md:line-clamp-4",
+                  )}
+                >
                   {cleanAniListText(info.description as string)}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => handleTabChange("overview")}
-                  className="site-focus mt-1.5 text-[11px] font-semibold text-zinc-300/80 hover:text-zinc-200 transition-colors rounded-md"
-                >
-                  {t("anime.readMore")}
-                </button>
-                {totalEpisodeCount > 0 && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => handleTabChange("episodes")}
-                    className="site-focus mt-1.5 ml-3 text-[11px] font-semibold text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors rounded-md"
+                    onClick={() => setSynopsisExpanded((v) => !v)}
+                    className="site-focus inline-flex items-center gap-1 text-[11px] font-semibold text-zinc-300/80 hover:text-zinc-200 transition-colors rounded-md"
                   >
-                    {t("anime.browseEpisodes")}
+                    {synopsisExpanded ? (
+                      <>
+                        {t("anime.readLess")}
+                        <ChevronUp className="w-3 h-3" />
+                      </>
+                    ) : (
+                      <>
+                        {t("anime.readMore")}
+                        <ChevronDown className="w-3 h-3" />
+                      </>
+                    )}
                   </button>
-                )}
+                  {!synopsisExpanded && (
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange("overview")}
+                      className="site-focus text-[11px] font-semibold text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors rounded-md"
+                    >
+                      {t("anime.fullOverview")}
+                    </button>
+                  )}
+                  {totalEpisodeCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange("episodes")}
+                      className="site-focus text-[11px] font-semibold text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors rounded-md"
+                    >
+                      {t("anime.browseEpisodes")}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
@@ -635,19 +862,74 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           </div>
         </div>
 
-        {/* ── Tabs ── */}
-        <div id="anime-tabs-panel" className="scroll-mt-[calc(var(--nav-total-height)+0.75rem)] mt-6 sm:mt-10">
+        {/* ── Tabs + side panel ── */}
+        <div className="mt-6 sm:mt-10 grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_17.5rem] gap-6 xl:gap-8">
+          <div id="anime-tabs-panel" className="scroll-mt-[calc(var(--nav-total-height)+0.75rem)] min-w-0">
           <div className="anime-sticky-chrome sticky top-[var(--nav-total-height)] z-30 -mx-4 px-4 py-2 mb-3 bg-background/95 backdrop-blur-md border-b border-border/80 dark:border-white/10 sm:mx-0 sm:px-0 sm:mb-4">
             <AnimeQuickNav
               tabs={tabItems}
-              activeTab={activeTab}
+              activeTab={safeActiveTab}
               onTabChange={handleTabChange}
             />
           </div>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <Tabs value={safeActiveTab} onValueChange={handleTabChange} className="w-full">
           {/* ── Overview ── */}
           <TabsContent value="overview" className="mt-8 space-y-5">
+            {(auth || watchedEpisodeCount > 0) && totalEpisodeCount > 0 && (
+              <AnimeWatchProgressPanel
+                animeId={slug}
+                watchedCount={watchedEpisodeCount}
+                totalCount={totalEpisodeCount}
+                continueEpisodeId={lastEpisodeWatched}
+                continueEpisodeNumber={continueEpisodeNumber}
+                listStatus={bookmarks?.[0]?.status || selected || null}
+              />
+            )}
+
+            {info.nextAiringEpisode?.airingAt &&
+              info.nextAiringEpisode.airingAt * 1000 > Date.now() && (
+                <div className="site-panel p-4 sm:p-5 border-primary/20 bg-primary/[0.04]">
+                  <NextEpisodeCountdown
+                    airingAt={info.nextAiringEpisode.airingAt}
+                    episode={info.nextAiringEpisode.episode}
+                    variant="banner"
+                  />
+                </div>
+              )}
+
+            {(stats?.episodes?.sub ?? 0) > 0 && (
+              <OverviewPanel title={t("anime.sidePanel.streaming")}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1.5 text-[12px] rounded-lg border border-teal-500/25 bg-teal-500/10 text-teal-300/90 font-mono">
+                    {stats.episodes.sub} {t("card.sub")}
+                  </span>
+                  {(stats.episodes.dub ?? 0) > 0 && (
+                    <span className="px-3 py-1.5 text-[12px] rounded-lg border border-sky-500/25 bg-sky-500/10 text-sky-300/90 font-mono">
+                      {stats.episodes.dub} {t("card.dub")}
+                    </span>
+                  )}
+                  <WatchButton />
+                </div>
+                {anilistStreaming.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {anilistStreaming.slice(0, 8).map((link) => (
+                      <a
+                        key={`${link.site}-${link.url}`}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border border-border dark:border-white/10 text-muted-foreground dark:text-white/55 hover:text-foreground dark:hover:text-white/80 transition-colors"
+                      >
+                        {link.site}
+                        <ExternalLink className="w-3 h-3 opacity-60" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </OverviewPanel>
+            )}
+
             <OverviewPanel title={t("anime.synopsis")}>
               {tmdb?.tagline ? (
                 <p className="text-sm italic text-sky-300/75 mb-4 leading-relaxed">
@@ -659,6 +941,29 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 className="text-sm text-muted-foreground dark:text-white/65 leading-8"
               />
             </OverviewPanel>
+
+            {(info.themes?.length || info.demographics?.length) ? (
+              <OverviewPanel title={t("anime.themesAndDemographics")}>
+                <div className="flex flex-wrap gap-2">
+                  {info.demographics?.map((d) => (
+                    <span
+                      key={`demo-${d}`}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-amber-500/20 text-amber-200/85 bg-amber-500/8 font-medium"
+                    >
+                      {d}
+                    </span>
+                  ))}
+                  {info.themes?.map((theme) => (
+                    <span
+                      key={`theme-${theme}`}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/10 text-muted-foreground dark:text-white/55 bg-muted/40 dark:bg-white/4 font-medium"
+                    >
+                      {theme}
+                    </span>
+                  ))}
+                </div>
+              </OverviewPanel>
+            ) : null}
 
             {moreInfo.synonyms && (
               <OverviewPanel title={t("anime.alternativeTitles")}>
@@ -789,7 +1094,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             )}
 
-            {extMeta?.mal?.themes && extMeta.mal.themes.length > 0 && (
+            {extMeta?.mal?.themes && extMeta.mal.themes.length > 0 && !info.themes?.length && (
               <OverviewPanel title={t("anime.detailFields.malThemes")}>
                 <div className="flex flex-wrap gap-2">
                   {extMeta.mal.themes.map((theme) => (
@@ -804,20 +1109,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             )}
 
-            {tmdb?.genres && tmdb.genres.length > 0 && (
-              <OverviewPanel title={t("anime.detailFields.tmdbGenres")}>
-                <div className="flex flex-wrap gap-2">
-                  {tmdb.genres.map((genre) => (
-                    <span
-                      key={genre}
-                      className="px-3 py-1.5 text-[12px] rounded-lg border border-sky-500/20 text-sky-300/90 bg-sky-500/8 font-medium"
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                </div>
-              </OverviewPanel>
-            )}
+            <AnimeStatsCharts
+              statusDistribution={info.statusDistribution}
+              scoreDistribution={info.scoreDistribution}
+            />
 
             {(tmdb?.production?.length || tmdb?.creators?.length) ? (
               <OverviewPanel title={t("anime.detailFields.tmdbProduction")}>
@@ -960,49 +1255,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             <AnimeMediaDownloads anilistId={info.anilistId} hasDub={hasDub} />
           </TabsContent>
 
-          {/* ── Art ── */}
-          {hasArtTab && mapImages && (
-            <TabsContent value="art" className="mt-6">
-              <div className="space-y-10">
-                {communityFanartItems.length > 0 && (
-                  <ArtSection
-                    label={t("anime.artSections.communityFanart")}
-                    items={communityFanartItems}
-                    wide
-                  />
-                )}
-                {tvdbFanartItems.length > 0 && (
-                  <ArtSection
-                    label={t("anime.artSections.tvdbFanart")}
-                    items={tvdbFanartItems}
-                    wide
-                  />
-                )}
-                {(mapImages.artworks?.backgrounds?.length ?? 0) > 0 && (
-                  <ArtSection label={t("anime.artSections.backgrounds")} items={mapImages.artworks!.backgrounds} wide />
-                )}
-                {(mapImages.artworks?.posters?.length ?? 0) > 0 && (
-                  <ArtSection label={t("anime.artSections.posters")} items={mapImages.artworks!.posters} />
-                )}
-                {(mapImages.artworks?.banners?.length ?? 0) > 0 && (
-                  <ArtSection label={t("anime.artSections.banners")} items={mapImages.artworks!.banners} wide />
-                )}
-                {(mapImages.artworks?.clearArt?.length ?? 0) > 0 && (
-                  <ArtSection label={t("anime.artSections.clearArt")} items={mapImages.artworks!.clearArt} wide transparent />
-                )}
-                {(mapImages.artworks?.clearLogo?.length ?? 0) > 0 && (
-                  <ArtSection label={t("anime.artSections.clearLogo")} items={mapImages.artworks!.clearLogo} wide transparent />
-                )}
-                {!(mapImages.artworks?.backgrounds?.length) &&
-                  !(mapImages.artworks?.posters?.length) &&
-                  !(mapImages.artworks?.banners?.length) && (
-                    <div className="space-y-8">
-                      {mapImages.fanart && <ArtSection label={t("anime.artSections.fanart")} items={[{ image: mapImages.fanart }]} wide />}
-                      {mapImages.banner && <ArtSection label={t("anime.artSections.banner")} items={[{ image: mapImages.banner }]} wide />}
-                      {mapImages.poster && <ArtSection label={t("anime.artSections.poster")} items={[{ image: mapImages.poster }]} />}
-                    </div>
-                  )}
-              </div>
+          {/* ── Gallery ── */}
+          {hasGalleryTab && mapImages && (
+            <TabsContent value="gallery" className="mt-6">
+              <AnimeGallery sections={gallerySections} />
             </TabsContent>
           )}
 
@@ -1010,9 +1266,13 @@ export default function AnimeDetail({ slug }: { slug: string }) {
           {charactersVoiceActors.length > 0 && (
             <TabsContent value="characters" className="mt-6">
               <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-5">{t("anime.charactersAndVa")}</h3>
-              <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                {charactersVoiceActors.map((character, idx) => (
-                  <CharacterCard key={idx} character={character} className="self-center justify-self-center" />
+              <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+                {Array.from(
+                  new Map(
+                    charactersVoiceActors.map((c) => [c.character.id || c.character.name, c]),
+                  ).values(),
+                ).map((character) => (
+                  <CharacterCard key={character.character.id || character.character.name} character={character} className="self-center justify-self-center" />
                 ))}
               </div>
             </TabsContent>
@@ -1026,22 +1286,34 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             </TabsContent>
           )}
 
+          {/* ── Staff ── */}
+          {staffMembers.length > 0 && (
+            <TabsContent value="staff" className="mt-6">
+              <AnimeStaffPanel staff={staffMembers} />
+            </TabsContent>
+          )}
+
           {/* ── Relations ── */}
-          {relatedAnimes.length > 0 && (
+          {(relatedAnimes.length > 0 || franchiseSeasons.length > 1) && (
             <TabsContent value="relations" className="mt-6">
-              <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest mb-5">{t("anime.relatedSeries")}</h3>
-              <div className="grid lg:grid-cols-5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-7 gap-5">
-                {relatedAnimes.map((relation) => (
-                  <AnimeCard
-                    key={relation.id}
-                    title={relation.name}
-                    subTitle={relation.jname}
-                    poster={relation.poster}
-                    className="self-center justify-self-center"
-                    href={`${ROUTES.ANIME_DETAILS}/${relation.id}`}
-                  />
-                ))}
-              </div>
+              <AnimeRelationsGrouped
+                related={relatedAnimes}
+                seasons={franchiseSeasons}
+                currentId={info.id}
+                currentName={info.name}
+                currentPoster={info.poster}
+              />
+            </TabsContent>
+          )}
+
+          {/* ── Recommendations ── */}
+          {recommendedAnimes.length > 0 && (
+            <TabsContent value="recommendations" className="mt-6">
+              <AnimeRecommendationsPanel
+                recommendations={recommendedAnimes}
+                sourceGenres={moreInfo.genres}
+                sourceStudios={studioList}
+              />
             </TabsContent>
           )}
 
@@ -1073,10 +1345,20 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         </Tabs>
         </div>
 
-        {recommendedAnimes.length > 0 && (
+          <AnimeDetailSidePanel
+            info={info}
+            moreInfo={moreInfo}
+            episodeCountLabel={episodeCountLabel}
+            malContentRating={extMeta?.mal?.contentRating}
+            malBroadcast={extMeta?.mal?.broadcast}
+          />
+        </div>
+
+        {recommendedAnimes.length > 0 && safeActiveTab !== "recommendations" && (
           <AnimeCarousel anime={recommendedAnimes as IAnime[]} title={t("common.recommended")} className="mt-16" />
         )}
       </Container>
+      <AnimeBackToTop />
     </div>
   );
 }
@@ -1151,51 +1433,6 @@ const OverviewPanel = ({ title, children }: { title: string; children: React.Rea
     {children}
   </section>
 );
-
-const ArtSection = ({
-  label, items, wide = false, transparent = false,
-}: {
-  label: string;
-  items: { image: string; thumbnail?: string; title?: string; sourceUrl?: string }[];
-  wide?: boolean;
-  transparent?: boolean;
-}) => {
-  const t = useT();
-  return (
-  <div>
-    <div className="flex items-center gap-3 mb-4">
-      <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest">{label}</h3>
-      <span className="text-[10px] font-mono text-muted-foreground/50 dark:text-white/15">{items.length}</span>
-    </div>
-    <div className={cn("grid gap-3", wide ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5")}>
-      {items.map((item, i) => (
-        <a
-          key={i}
-          href={item.sourceUrl ?? item.image}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn("group relative rounded-xl overflow-hidden ring-1 ring-white/8 hover:ring-white/25 transition-all block", wide ? "aspect-[16/9]" : "aspect-[2/3]", transparent && "bg-muted/50 dark:bg-white/5")}
-        >
-          <Image
-            src={item.thumbnail ?? item.image}
-            alt={item.title ?? `${label} ${i + 1}`}
-            fill
-            unoptimized
-            loading="lazy"
-            sizes={wide ? "(max-width: 640px) 100vw, 33vw" : "(max-width: 640px) 50vw, 20vw"}
-            className={cn("object-cover transition-transform duration-300 group-hover:scale-105", transparent && "object-contain p-4")}
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-muted dark:bg-black/30 transition-colors flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100">
-            <span className="text-[11px] font-mono text-foreground/90 dark:text-white/80 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-full border border-border dark:border-white/15 max-w-[90%] truncate">
-              {item.title ?? t("anime.fullSize")}
-            </span>
-          </div>
-        </a>
-      ))}
-    </div>
-  </div>
-  );
-};
 
 function AnimeDetailSkeleton() {
   return (

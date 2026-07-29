@@ -11,9 +11,12 @@ import {
   ListMusic,
   MessageSquare,
   Sparkles,
+  Star,
   Subtitles,
   Tv,
   Users,
+  UserCog,
+  Mic2,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
@@ -25,8 +28,13 @@ const TAB_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   themes: ListMusic,
   media: Sparkles,
   art: ImageIcon,
+  gallery: ImageIcon,
   characters: Users,
-  relations: Film,
+  voices: Mic2,
+  staff: UserCog,
+  relations: Clapperboard,
+  recommendations: Star,
+  reviews: Star,
   comments: MessageSquare,
   // Voice-actor filmography
   all: LayoutGrid,

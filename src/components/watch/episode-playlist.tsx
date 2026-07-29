@@ -8,7 +8,18 @@ import { useAnimeStore } from "@/store/anime-store";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
-import { Eye, EyeOff, Grid2x2, LayoutGrid, LayoutList, Search, SkipForward } from "lucide-react";
+import {
+  ArrowDownAZ,
+  ArrowUpAZ,
+  Eye,
+  EyeOff,
+  Grid2x2,
+  LayoutGrid,
+  LayoutList,
+  LocateFixed,
+  Search,
+  SkipForward,
+} from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 import {
@@ -19,6 +30,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ROUTES } from "@/constants/routes";
+import { useRouter } from "next/navigation";
 
 type Props = {
   animeId: string;
@@ -49,6 +62,7 @@ const EpisodePlaylist = ({
   variant = "sidebar",
 }: Props) => {
   const t = useT();
+  const router = useRouter();
   const isWatch = variant === "watch";
   const searchParams = useSearchParams();
   const episodeId = searchParams.get("episode");
@@ -58,6 +72,8 @@ const EpisodePlaylist = ({
   const setEpisodeLayout = useSettingsStore((s) => s.setEpisodeLayout);
   const hideFillers = useSettingsStore((s) => s.hideFillers);
   const setHideFillers = useSettingsStore((s) => s.setHideFillers);
+  const episodeSort = useSettingsStore((s) => s.episodeSort);
+  const setEpisodeSort = useSettingsStore((s) => s.setEpisodeSort);
   const watchedEpisodes = useEpisodeProgress(animeId);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -69,7 +85,6 @@ const EpisodePlaylist = ({
       : episodes?.totalEpisodes ?? 0;
   const [currentGroup, setCurrentGroup] = useState(`1-${Math.min(50, total)}`);
   const [search, setSearch] = useState("");
-  // Debounced value drives filtering so typing doesn't refilter on every keystroke.
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 180);
@@ -88,10 +103,7 @@ const EpisodePlaylist = ({
     return opts;
   }, [total]);
 
-  const [start, end] = currentGroup.split("-").map(Number);
-
-  const baseFiltered = episodes.episodes.filter((_, i) => i >= start - 1 && i <= end - 1);
-  const [filteredEpisodes, setFilteredEpisodes] = useState<Episode[]>(baseFiltered);
+  const [filteredEpisodes, setFilteredEpisodes] = useState<Episode[]>([]);
 
   useEffect(() => {
     if (!episodeId || !episodes?.episodes.length || total <= 0) return;
@@ -105,8 +117,9 @@ const EpisodePlaylist = ({
     query: string,
     watchedOnly: boolean,
     skipFillers: boolean,
+    sort: "asc" | "desc",
   ) => {
-    let list = episodes.episodes;
+    let list = [...episodes.episodes];
 
     if (query.trim()) {
       const v = query.toLowerCase();
@@ -127,20 +140,37 @@ const EpisodePlaylist = ({
       list = list.filter((ep) => !ep.isFiller);
     }
 
+    if (sort === "desc") {
+      list = list.reverse();
+    }
+
     setFilteredEpisodes(list);
   };
 
-  /** Whether this title has any filler episodes at all (to show the toggle). */
   const hasFillers = useMemo(
     () => episodes.episodes.some((ep) => ep.isFiller),
     [episodes],
   );
 
+  const latestWatched = useMemo(() => {
+    if (!watchedEpisodes.length) return null;
+    let best: { episodeId: string; number: number; current: number } | null = null;
+    for (const w of watchedEpisodes) {
+      const ep = episodes.episodes.find((e) => e.episodeId === w.episodeId);
+      if (!ep) continue;
+      const score = ep.number * 1_000_000 + (w.current ?? 0);
+      if (!best || score > best.number * 1_000_000 + best.current) {
+        best = { episodeId: ep.episodeId, number: ep.number, current: w.current ?? 0 };
+      }
+    }
+    return best;
+  }, [watchedEpisodes, episodes.episodes]);
+
   useEffect(() => {
     if (!episodes) return;
-    applyFilters(currentGroup, debouncedSearch, hideWatched, hideFillers);
+    applyFilters(currentGroup, debouncedSearch, hideWatched, hideFillers, episodeSort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodes, currentGroup, debouncedSearch, hideWatched, hideFillers, watchedEpisodes]);
+  }, [episodes, currentGroup, debouncedSearch, hideWatched, hideFillers, watchedEpisodes, episodeSort]);
 
   useEffect(() => {
     if (!episodeId || !episodes?.episodes.length) return;
@@ -170,6 +200,16 @@ const EpisodePlaylist = ({
     if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
   };
 
+  const jumpToLatestWatched = () => {
+    if (!latestWatched) return;
+    const idx = episodes.episodes.findIndex((ep) => ep.episodeId === latestWatched.episodeId);
+    if (idx >= 0) setCurrentGroup(groupForEpisodeNumber(idx + 1, total));
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("anime", animeId);
+    params.set("episode", latestWatched.episodeId);
+    router.push(`${ROUTES.WATCH}?${params.toString()}`, { scroll: false });
+  };
+
   if (!episodes) return null;
 
   const ranges = groupRanges;
@@ -189,11 +229,76 @@ const EpisodePlaylist = ({
     watchedEpisodes,
   });
 
+  const filterToolbar = (
+    <>
+      <button
+        type="button"
+        onClick={() => setHideWatched((v) => !v)}
+        aria-label={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
+        title={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
+        className={cn(
+          "touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors",
+          hideWatched
+            ? "border-primary/35 bg-primary/15 text-zinc-200"
+            : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:hover:text-white/65",
+        )}
+      >
+        {hideWatched ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+      </button>
+
+      {hasFillers && (
+        <button
+          type="button"
+          onClick={() => setHideFillers(!hideFillers)}
+          aria-label={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
+          title={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
+          className={cn(
+            "touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border transition-colors",
+            hideFillers
+              ? "border-amber-500/35 bg-amber-500/15 text-amber-200"
+              : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:hover:text-white/65",
+          )}
+        >
+          <SkipForward className="w-3.5 h-3.5" />
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setEpisodeSort(episodeSort === "asc" ? "desc" : "asc")}
+        aria-label={t("watch.playlist.sort")}
+        title={
+          episodeSort === "asc"
+            ? t("watch.playlist.sortDesc")
+            : t("watch.playlist.sortAsc")
+        }
+        className="touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:hover:text-white/65 transition-colors"
+      >
+        {episodeSort === "asc" ? (
+          <ArrowUpAZ className="w-3.5 h-3.5" />
+        ) : (
+          <ArrowDownAZ className="w-3.5 h-3.5" />
+        )}
+      </button>
+
+      {latestWatched && latestWatched.episodeId !== episodeId && (
+        <button
+          type="button"
+          onClick={jumpToLatestWatched}
+          aria-label={t("watch.playlist.jumpLatest")}
+          title={t("watch.playlist.jumpLatestEp", { n: latestWatched.number })}
+          className="touch-target flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-teal-500/30 bg-teal-500/10 text-teal-200/90 hover:bg-teal-500/15 transition-colors"
+        >
+          <LocateFixed className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </>
+  );
+
   return (
     <div
       className={cn(
         "col-span-1 flex flex-col w-full overflow-hidden",
-        // Sidebar sits inside the watch aside shell — no second panel frame.
         isWatch
           ? "site-panel min-h-0"
           : "min-h-0 flex-1 border-0 bg-transparent rounded-none shadow-none",
@@ -218,71 +323,43 @@ const EpisodePlaylist = ({
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-momentum pb-0.5">
-            {hasMultipleGroups && (
-              <select
-                value={currentGroup}
-                onChange={(e) => handleGroupChange(e.target.value)}
-                disabled={Boolean(search.trim())}
-                className="h-11 min-w-[6.5rem] shrink-0 rounded-xl bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 px-2.5 text-[11px] font-mono text-muted-foreground dark:text-white/70 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 disabled:opacity-40"
-              >
-                {ranges.map((r) => (
-                  <option key={r.value} value={r.value} className="bg-[#111]">
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            )}
-
-            <button
-              type="button"
-              onClick={() => setHideWatched((v) => !v)}
-              aria-label={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
-              title={hideWatched ? t("watch.playlist.showAll") : t("watch.playlist.hideWatched")}
-              className={cn(
-                "touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors",
-                hideWatched
-                  ? "border-primary/35 bg-primary/15 text-zinc-200"
-                  : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65",
-              )}
-            >
-              {hideWatched ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-
-            {hasFillers && (
-              <button
-                type="button"
-                onClick={() => setHideFillers(!hideFillers)}
-                aria-label={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
-                title={hideFillers ? t("watch.playlist.showFillers") : t("watch.playlist.skipFillers")}
-                className={cn(
-                  "touch-target flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors",
-                  hideFillers
-                    ? "border-amber-500/35 bg-amber-500/15 text-amber-200"
-                    : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.04] text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/65",
-                )}
-              >
-                <SkipForward className="w-4 h-4" />
-              </button>
-            )}
-
-            <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-xl p-1 border border-border dark:border-white/8 shrink-0">
-              {LAYOUT_OPTIONS.filter((o) => o.value !== "list").map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setEpisodeLayout(opt.value)}
-                  title={t(opt.labelKey)}
-                  className={cn(
-                    "touch-target p-2 rounded-lg transition-all duration-150",
-                    layout === opt.value
-                      ? "bg-muted dark:bg-white/15 text-foreground dark:text-white"
-                      : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55",
-                  )}
+              {hasMultipleGroups && (
+                <select
+                  value={currentGroup}
+                  onChange={(e) => handleGroupChange(e.target.value)}
+                  disabled={Boolean(search.trim())}
+                  className="h-11 min-w-[6.5rem] shrink-0 rounded-xl bg-muted/60 dark:bg-white/[0.05] border border-border dark:border-white/10 px-2.5 text-[11px] font-mono text-muted-foreground dark:text-white/70 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 disabled:opacity-40"
                 >
-                  {opt.icon}
-                </button>
-              ))}
-            </div>
+                  {ranges.map((r) => (
+                    <option key={r.value} value={r.value} className="bg-[#111]">
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <div className="flex items-center gap-1.5 [&_button]:h-11 [&_button]:w-11 [&_button]:rounded-xl">
+                {filterToolbar}
+              </div>
+
+              <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-xl p-1 border border-border dark:border-white/8 shrink-0">
+                {LAYOUT_OPTIONS.filter((o) => o.value !== "list").map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setEpisodeLayout(opt.value)}
+                    title={t(opt.labelKey)}
+                    className={cn(
+                      "touch-target p-2 rounded-lg transition-all duration-150",
+                      layout === opt.value
+                        ? "bg-muted dark:bg-white/15 text-foreground dark:text-white"
+                        : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/55",
+                    )}
+                  >
+                    {opt.icon}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
@@ -308,7 +385,7 @@ const EpisodePlaylist = ({
                       "p-1.5 rounded-md transition-all duration-150",
                       episodeLayout === opt.value
                         ? "bg-teal-500/20 text-teal-100"
-                        : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:text-white/55",
+                        : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/55",
                     )}
                   >
                     {opt.icon}
@@ -317,7 +394,7 @@ const EpisodePlaylist = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               {hasMultipleGroups && (
                 <Select
                   value={currentGroup}
@@ -355,6 +432,10 @@ const EpisodePlaylist = ({
                   className="w-full h-8 pl-7 pr-3 rounded-md bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-[12px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
                 />
               </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+              {filterToolbar}
             </div>
           </>
         )}

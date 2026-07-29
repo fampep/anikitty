@@ -12,6 +12,8 @@ export interface Episode {
   episodeId: string;
   number: number;
   isFiller: boolean;
+  /** True when MAL marks the episode as a recap (also counted as skippable filler). */
+  isRecap?: boolean;
   image?: string | null;
   overview?: string | null;
   airDate?: string | null;

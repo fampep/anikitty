@@ -56,6 +56,12 @@ export type SyncedUserPreferences = {
   hardSubSoftSubs?: boolean;
   anime4kEnabled?: boolean;
   anime4kMode?: Anime4kMode;
+  theatreMode?: boolean;
+  /** Preferred HLS max height; null = Auto. */
+  defaultQualityHeight?: number | null;
+  episodeSort?: "asc" | "desc";
+  watchSidebarCollapsed?: boolean;
+  watchSidebarWidth?: number;
 };
 
 export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
@@ -132,6 +138,28 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   }
   if (typeof input.kittyProxyManual === "boolean") {
     out.kittyProxyManual = input.kittyProxyManual;
+  }
+  if (typeof input.theatreMode === "boolean") out.theatreMode = input.theatreMode;
+  if (input.defaultQualityHeight === null) {
+    out.defaultQualityHeight = null;
+  } else if (
+    typeof input.defaultQualityHeight === "number" &&
+    Number.isFinite(input.defaultQualityHeight) &&
+    input.defaultQualityHeight > 0
+  ) {
+    out.defaultQualityHeight = Math.round(input.defaultQualityHeight);
+  }
+  if (input.episodeSort === "asc" || input.episodeSort === "desc") {
+    out.episodeSort = input.episodeSort;
+  }
+  if (typeof input.watchSidebarCollapsed === "boolean") {
+    out.watchSidebarCollapsed = input.watchSidebarCollapsed;
+  }
+  if (
+    typeof input.watchSidebarWidth === "number" &&
+    Number.isFinite(input.watchSidebarWidth)
+  ) {
+    out.watchSidebarWidth = Math.min(440, Math.max(260, Math.round(input.watchSidebarWidth)));
   }
 
   return out;

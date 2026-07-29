@@ -13,6 +13,8 @@ import WatchCommentsSheet from "@/components/watch/watch-comments-sheet";
 import WatchPlaylistSheet from "@/components/watch/watch-playlist-sheet";
 import WatchPanelSheet from "@/components/watch/watch-panel-sheet";
 import WatchQuickNav from "@/components/watch/watch-quick-nav";
+import WatchStatsPanel from "@/components/watch/watch-stats-panel";
+import WatchEpisodeInfo from "@/components/watch/watch-episode-info";
 import { WatchPageProvider } from "@/components/watch/watch-page-context";
 import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
@@ -29,11 +31,13 @@ import {
   MessageSquare,
   ExternalLink,
   Info,
+  PanelRightClose,
+  PanelRightOpen,
   Tv2,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
-import React, { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IAnime } from "@/types/anime";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { anisurgeContinue } from "@/lib/oauth/anisurge";
@@ -54,6 +58,8 @@ import { useT } from "@/providers/i18n-provider";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
 import { useSettingsStore } from "@/store/settings-store";
 import { useTheatreModeEffects } from "@/hooks/use-theatre-mode-effects";
+import { useEpisodeProgress } from "@/hooks/use-episode-progress";
+import { useProgressStore } from "@/store/progress-store";
 
 const CommentSection = dynamic(() => import("@/components/comments/comment-section"), {
   loading: () => <div className="h-32 animate-pulse rounded-xl bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8" />,
@@ -84,6 +90,10 @@ const Layout = (props: Props) => {
   const theatreMode = useSettingsStore((s) => s.theatreMode);
   const watchLayout = useSettingsStore((s) => s.watchLayout);
   const watchPosterTheme = useSettingsStore((s) => s.watchPosterTheme);
+  const watchSidebarCollapsed = useSettingsStore((s) => s.watchSidebarCollapsed);
+  const setWatchSidebarCollapsed = useSettingsStore((s) => s.setWatchSidebarCollapsed);
+  const watchSidebarWidth = useSettingsStore((s) => s.watchSidebarWidth);
+  const setWatchSidebarWidth = useSettingsStore((s) => s.setWatchSidebarWidth);
   useTheatreModeEffects(theatreMode);
 
   const isTheaterLayout = !theatreMode && watchLayout === "theater";
@@ -92,6 +102,7 @@ const Layout = (props: Props) => {
   const isDefaultLayout = !theatreMode && watchLayout === "default";
   const showSideSidebar = !theatreMode && (watchLayout === "default" || watchLayout === "compact");
   const showTheaterPlaylist = isTheaterLayout;
+  const sidebarCollapsed = showSideSidebar && watchSidebarCollapsed;
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
   const episodeId = searchParams.get("episode");
@@ -131,6 +142,33 @@ const Layout = (props: Props) => {
   const [mobilePlaylistOpen, setMobilePlaylistOpen] = useState(false);
   const [mobileInfoOpen, setMobileInfoOpen] = useState(false);
   const [mobileRelatedOpen, setMobileRelatedOpen] = useState(false);
+  const sidebarResizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  const onSidebarResizeStart = useCallback(
+    (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      sidebarResizeRef.current = { startX: e.clientX, startWidth: watchSidebarWidth };
+      const target = e.currentTarget;
+      target.setPointerCapture(e.pointerId);
+
+      const onMove = (ev: PointerEvent) => {
+        const start = sidebarResizeRef.current;
+        if (!start) return;
+        // Dragging left grows the sidebar (handle is on the left edge).
+        const next = start.startWidth + (start.startX - ev.clientX);
+        setWatchSidebarWidth(next);
+      };
+      const onUp = (ev: PointerEvent) => {
+        sidebarResizeRef.current = null;
+        target.releasePointerCapture(ev.pointerId);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    },
+    [setWatchSidebarWidth, watchSidebarWidth],
+  );
 
   useEffect(() => {
     setMobilePlaylistOpen(false);
@@ -231,6 +269,25 @@ const Layout = (props: Props) => {
     if (!episodes || !selectedEpisode) return null;
     return episodes.episodes.find((ep) => ep.episodeId === selectedEpisode) ?? null;
   }, [episodes, selectedEpisode]);
+
+  const watchedEpisodes = useEpisodeProgress(animeId);
+  const localProgressVersion = useProgressStore((s) => s.localVersion);
+  const liveProgress = useMemo(() => {
+    if (!animeId || !selectedEpisode) return { current: 0, duration: 0 };
+    void localProgressVersion;
+    const row = useProgressStore.getState().getProgress(animeId, selectedEpisode);
+    return { current: row?.current ?? 0, duration: row?.duration ?? 0 };
+  }, [animeId, selectedEpisode, localProgressVersion]);
+
+  const castLine = useMemo(() => {
+    const cast = anime?.anime?.info?.charactersVoiceActors;
+    if (!cast?.length) return null;
+    return cast
+      .slice(0, 4)
+      .map((c) => c.character?.name)
+      .filter(Boolean)
+      .join(" · ");
+  }, [anime?.anime?.info?.charactersVoiceActors]);
 
   const watchTab = useMemo(() => {
     const tab = searchParams.get("tab");
@@ -497,17 +554,25 @@ const Layout = (props: Props) => {
         className={cn(
           "grid grid-cols-1 gap-3 sm:gap-4",
           isCompactLayout && "gap-2 sm:gap-2.5",
-          showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] xl:grid-cols-[minmax(0,1fr)_minmax(300px,340px)] lg:gap-5 xl:gap-6",
-          // AniDap-like: ~2/3 player column + ~1/3 episode rail.
-          isDefaultLayout &&
-            "lg:grid-cols-3 lg:gap-4 xl:gap-6",
-          isCompactLayout && showSideSidebar && "lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)] lg:gap-3 xl:gap-4",
+          showSideSidebar &&
+            !sidebarCollapsed &&
+            "lg:grid-cols-[minmax(0,1fr)_var(--watch-sidebar-w,320px)] lg:gap-5 xl:gap-6",
+          showSideSidebar &&
+            sidebarCollapsed &&
+            "lg:grid-cols-[minmax(0,1fr)_2.75rem] lg:gap-3",
+          // AniDap-like: ~2/3 player column + ~1/3 episode rail — overridden by CSS var width.
+          isDefaultLayout && !sidebarCollapsed && "lg:gap-4 xl:gap-6",
+          isCompactLayout && showSideSidebar && !sidebarCollapsed && "lg:gap-3 xl:gap-4",
         )}
+        style={
+          showSideSidebar && !sidebarCollapsed
+            ? ({ ["--watch-sidebar-w" as string]: `${watchSidebarWidth}px` } as React.CSSProperties)
+            : undefined
+        }
       >
         {/* Left: player + episode info + tabs (AniDap: span 2 of 3) */}
         <div className={cn(
           "flex flex-col gap-2.5 sm:gap-3.5 min-w-0",
-          isDefaultLayout && "lg:col-span-2",
           isCompactLayout && "gap-1.5 sm:gap-2",
         )}>
           <div
@@ -564,6 +629,20 @@ const Layout = (props: Props) => {
                 episodeId={episodeId}
                 episodeNumber={currentEpisode.number}
                 onOpen={() => openComments("episode")}
+              />
+            </div>
+          )}
+
+          {!theatreMode && currentEpisode && (
+            <div className="space-y-2.5">
+              <WatchEpisodeInfo episode={currentEpisode} castLine={castLine} />
+              <WatchStatsPanel
+                currentEpisode={currentEpisode}
+                totalEpisodes={totalEps}
+                watchedEpisodes={watchedEpisodes}
+                liveCurrent={liveProgress.current}
+                liveDuration={liveProgress.duration}
+                compact={isCompactLayout}
               />
             </div>
           )}
@@ -668,37 +747,75 @@ const Layout = (props: Props) => {
 
         {/* Right sidebar: episodes (desktop) — Default & Compact */}
         {showSideSidebar && (
-          <aside className={cn(
-            "watch-sidebar hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
-            isCompactLayout && "watch-sidebar--compact",
-            // AniDap: episode rail fills the third column; now-playing lives under the player.
-            isDefaultLayout && "rounded-xl border-border/50 dark:border-white/[0.07] lg:col-span-1",
-          )}>
-            {!isDefaultLayout && (
-              <WatchNowPlayingCard
-                info={info}
-                currentEpisode={currentEpisode}
-                totalEps={totalEps}
-                audioLabel={audioLabel}
-                prevEp={prevEp}
-                nextEp={nextEp}
-                buildEpUrl={buildEpUrl}
-                t={t}
-                compact={isCompactLayout}
-              />
+          <aside
+            className={cn(
+              "watch-sidebar relative hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
+              isCompactLayout && "watch-sidebar--compact",
+              isDefaultLayout && "rounded-xl border-border/50 dark:border-white/[0.07]",
+              sidebarCollapsed && "items-center px-1 py-2",
+            )}
+          >
+            {!sidebarCollapsed && (
+              <button
+                type="button"
+                aria-label={t("watch.sidebar.resize")}
+                title={t("watch.sidebar.resize")}
+                onPointerDown={onSidebarResizeStart}
+                className="absolute left-0 top-0 bottom-0 z-20 w-1.5 cursor-col-resize touch-none group"
+              >
+                <span className="absolute inset-y-8 left-0 w-px bg-transparent group-hover:bg-teal-400/50 group-active:bg-teal-300/70 transition-colors" />
+              </button>
             )}
 
-            {episodes && (
-              <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
-                <EpisodePlaylist
-                  variant="sidebar"
-                  animeId={animeId as string}
-                  title={info.name ?? (moreInfo?.japanese as string)}
-                  subOrDub={stats?.episodes}
-                  episodes={episodes}
-                  isLoading={episodeLoading}
-                />
-              </div>
+            <div className={cn("flex items-center shrink-0", sidebarCollapsed ? "justify-center" : "justify-end px-2 pt-2")}>
+              <button
+                type="button"
+                onClick={() => setWatchSidebarCollapsed(!watchSidebarCollapsed)}
+                aria-label={
+                  sidebarCollapsed ? t("watch.sidebar.expand") : t("watch.sidebar.collapse")
+                }
+                title={
+                  sidebarCollapsed ? t("watch.sidebar.expand") : t("watch.sidebar.collapse")
+                }
+                className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 dark:border-white/10 bg-muted/40 dark:bg-white/[0.04] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors"
+              >
+                {sidebarCollapsed ? (
+                  <PanelRightOpen className="h-3.5 w-3.5" />
+                ) : (
+                  <PanelRightClose className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </div>
+
+            {!sidebarCollapsed && (
+              <>
+                {!isDefaultLayout && (
+                  <WatchNowPlayingCard
+                    info={info}
+                    currentEpisode={currentEpisode}
+                    totalEps={totalEps}
+                    audioLabel={audioLabel}
+                    prevEp={prevEp}
+                    nextEp={nextEp}
+                    buildEpUrl={buildEpUrl}
+                    t={t}
+                    compact={isCompactLayout}
+                  />
+                )}
+
+                {episodes && (
+                  <div className="min-h-0 flex-1 overflow-hidden flex flex-col">
+                    <EpisodePlaylist
+                      variant="sidebar"
+                      animeId={animeId as string}
+                      title={info.name ?? (moreInfo?.japanese as string)}
+                      subOrDub={stats?.episodes}
+                      episodes={episodes}
+                      isLoading={episodeLoading}
+                    />
+                  </div>
+                )}
+              </>
             )}
           </aside>
         )}
@@ -809,7 +926,7 @@ function WatchInfoDetails({
   t,
 }: {
   info: { id: string; name: string; description?: string | null };
-  moreInfo?: Record<string, unknown> | null;
+  moreInfo?: import("@/types/anime-details").MoreInfo | null;
   stats?: { type?: string; episodes?: { sub?: number; dub?: number } } | null;
   malMeta?: {
     rank?: number | null;

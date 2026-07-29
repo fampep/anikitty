@@ -1,7 +1,7 @@
 import { clamp } from "./clamp";
 
 /** Playback rates offered in the KittyPlayer speed control / play long-press. */
-export const KITTY_PLAYER_SPEEDS = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+export const KITTY_PLAYER_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
 /** @deprecated Use KITTY_PLAYER_SPEEDS */
 export const CUSTOM_PLAYER_SPEEDS = KITTY_PLAYER_SPEEDS;

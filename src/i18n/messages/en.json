@@ -1952,14 +1952,21 @@
       "themes": "Themes",
       "media": "Media",
       "art": "Art",
+      "gallery": "Gallery",
       "characters": "Characters",
       "voiceActors": "Voice Actors",
+      "staff": "Staff",
       "relations": "Relations",
+      "recommendations": "Recommendations",
       "reviews": "Reviews",
       "comments": "Comments"
     },
     "quickNavHint": "Jump to section",
     "synopsis": "Synopsis",
+    "readLess": "Show less",
+    "fullOverview": "Full overview",
+    "backToTop": "Back to top",
+    "themesAndDemographics": "Themes & Demographics",
     "alternativeTitles": "Alternative Titles",
     "studios": "Studios",
     "details": "Details",
@@ -1969,6 +1976,58 @@
     "noVoiceActors": "No voice actor information available.",
     "relatedSeries": "Related Series",
     "fullSize": "Full size",
+    "sidePanel": {
+      "quickFacts": "Quick facts",
+      "scores": "Scores",
+      "rank": "Rank",
+      "popularityRank": "Popularity rank",
+      "popularity": "Popularity",
+      "favourites": "Favourites",
+      "genres": "Genres",
+      "links": "Links",
+      "streaming": "Streaming"
+    },
+    "stats": {
+      "title": "Statistics",
+      "statusDistribution": "Status distribution",
+      "scoreDistribution": "Score distribution"
+    },
+    "gallery": {
+      "empty": "No artwork available for this title.",
+      "viewer": "Artwork viewer",
+      "prev": "Previous image",
+      "next": "Next image"
+    },
+    "staff": {
+      "empty": "No staff credits available.",
+      "other": "Other"
+    },
+    "relations": {
+      "franchise": "Seasons & sequels",
+      "current": "Current",
+      "types": {
+        "PREQUEL": "Prequel",
+        "SEQUEL": "Sequel",
+        "PARENT": "Parent",
+        "SIDE_STORY": "Side story",
+        "ALTERNATIVE": "Alternative",
+        "SPIN_OFF": "Spin-off",
+        "SUMMARY": "Summary",
+        "ADAPTATION": "Adaptation",
+        "CHARACTER": "Character",
+        "OTHER": "Other"
+      }
+    },
+    "recommendations": {
+      "sameStudio": "Same studio",
+      "similarGenre": "Similar genres",
+      "fansAlsoLiked": "Fans also liked",
+      "empty": "No recommendations yet."
+    },
+    "watchProgressPanel": {
+      "title": "Your progress",
+      "complete": "Complete"
+    },
     "artSections": {
       "backgrounds": "Backgrounds",
       "posters": "Posters",
@@ -2048,7 +2107,12 @@
       "range": "Range",
       "searchPlaceholder": "Search episode…",
       "noEpisodes": "No episodes found",
-      "noSearchResults": "No episodes match your search"
+      "noSearchResults": "No episodes match your search",
+      "jump": "Jump",
+      "jumpPlaceholder": "Ep #",
+      "sortAsc": "Sort ascending",
+      "sortDesc": "Sort descending",
+      "showMore": "Show more ({shown}/{total})"
     },
     "subtitles": {
       "heading": "Download Subtitles",
@@ -2483,7 +2547,42 @@
       "showFillers": "Show filler episodes",
       "noEpisodes": "No episodes found",
       "focusSheetTitle": "Episodes",
-      "focusSheetDesc": "Pick an episode without leaving the player"
+      "focusSheetDesc": "Pick an episode without leaving the player",
+      "sort": "Sort episodes",
+      "sortAsc": "Oldest first",
+      "sortDesc": "Newest first",
+      "jumpLatest": "Jump to latest watched",
+      "jumpLatestEp": "Jump to episode {n}"
+    },
+    "stats": {
+      "title": "Watch stats",
+      "current": "Current",
+      "watched": "Watched",
+      "timeWatched": "Time watched",
+      "remaining": "Remaining"
+    },
+    "episodeInfo": {
+      "title": "Episode {n}",
+      "recap": "Recap",
+      "showMore": "Show more",
+      "showLess": "Show less"
+    },
+    "miniPlayer": {
+      "label": "Mini player",
+      "play": "Play",
+      "pause": "Pause",
+      "expand": "Back to player",
+      "dismiss": "Dismiss mini player"
+    },
+    "partySlot": {
+      "title": "Watch Together",
+      "hint": "Invite friends — synced playback when you start a room",
+      "start": "Start"
+    },
+    "sidebar": {
+      "collapse": "Collapse episode list",
+      "expand": "Expand episode list",
+      "resize": "Resize sidebar"
     },
     "commentsPreview": "EP {ep} · {count} comments",
     "commentsPreviewEmpty": "EP {ep} · Be the first to comment",

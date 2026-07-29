@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/core/utils";
-import { Eye, EyeOff, Search } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Eye, EyeOff, Search } from "lucide-react";
 import EpisodeCard from "@/components/common/episode-card";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
 import { Episode } from "@/types/episodes";
@@ -23,6 +23,8 @@ type Props = {
   subOrDub?: { sub: number; dub: number };
 };
 
+const PAGE_SIZE = 60;
+
 function filterEpisodes(
   source: Episode[],
   opts: {
@@ -31,6 +33,7 @@ function filterEpisodes(
     hideWatched: boolean;
     hideFillers: boolean;
     watchedIds: Set<string>;
+    sort: "asc" | "desc";
   },
 ): Episode[] {
   let list = source;
@@ -55,6 +58,10 @@ function filterEpisodes(
     list = list.filter((ep) => !ep.isFiller);
   }
 
+  if (opts.sort === "desc") {
+    list = [...list].reverse();
+  }
+
   return list;
 }
 
@@ -68,6 +75,10 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
   const [query, setQuery] = useState("");
   const [hideWatched, setHideWatched] = useState(false);
   const [hideFillers, setHideFillers] = useState(false);
+  const [sort, setSort] = useState<"asc" | "desc">("asc");
+  const [jumpValue, setJumpValue] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const { data, isLoading } = useGetAllEpisodes(animeId);
 
@@ -107,9 +118,36 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
         hideWatched,
         hideFillers,
         watchedIds,
+        sort,
       }),
-    [allEpisodes, query, selectedRange, hideWatched, hideFillers, watchedIds],
+    [allEpisodes, query, selectedRange, hideWatched, hideFillers, watchedIds, sort],
   );
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [query, selectedRange, hideWatched, hideFillers, sort]);
+
+  const visibleEpisodes = useMemo(
+    () => episodes.slice(0, visibleCount),
+    [episodes, visibleCount],
+  );
+
+  const hasMore = visibleCount < episodes.length;
+
+  useEffect(() => {
+    if (!hasMore || !loadMoreRef.current) return;
+    const el = loadMoreRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((n) => Math.min(n + PAGE_SIZE, episodes.length));
+        }
+      },
+      { rootMargin: "240px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, episodes.length, visibleCount]);
 
   const emptyMessage = query.trim()
     ? t("anime.episodes.noSearchResults")
@@ -124,12 +162,27 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
     setQuery(e.target.value);
   };
 
+  const handleJump = () => {
+    const n = parseInt(jumpValue, 10);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const ep = allEpisodes.find((e) => e.number === n);
+    if (!ep) return;
+    setQuery(String(n));
+    setHideWatched(false);
+    requestAnimationFrame(() => {
+      document
+        .getElementById(`episode-${ep.episodeId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  };
+
   return (
     <div className="flex flex-col gap-5">
-      {/* Controls */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-widest shrink-0">
-          {allEpisodes.length > 0 ? t("anime.episodes.count", { count: allEpisodes.length }) : t("anime.episodes.title")}
+          {allEpisodes.length > 0
+            ? t("anime.episodes.count", { count: allEpisodes.length })
+            : t("anime.episodes.title")}
         </h3>
 
         <div className="relative w-full sm:w-auto sm:max-w-xs">
@@ -143,6 +196,37 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
         </div>
 
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide scroll-momentum pb-0.5 sm:pb-0 sm:flex-wrap sm:overflow-visible">
+          <div className="flex items-center gap-1 shrink-0">
+            <input
+              type="number"
+              min={1}
+              value={jumpValue}
+              onChange={(e) => setJumpValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleJump();
+              }}
+              placeholder={t("anime.episodes.jumpPlaceholder")}
+              className="h-11 w-[4.5rem] px-2 text-sm rounded-xl bg-muted/40 dark:bg-white/4 border border-border dark:border-white/10 text-foreground/85 dark:text-white/75 placeholder:text-muted-foreground/80 dark:placeholder:text-white/25 outline-none focus:border-primary/40 tabular-nums"
+            />
+            <button
+              type="button"
+              onClick={handleJump}
+              className="h-11 px-3 rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-[10px] font-mono font-bold uppercase tracking-wide text-muted-foreground dark:text-white/50 hover:bg-muted/60 dark:hover:bg-white/8 transition-colors shrink-0"
+            >
+              {t("anime.episodes.jump")}
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setSort((s) => (s === "asc" ? "desc" : "asc"))}
+            aria-label={sort === "asc" ? t("anime.episodes.sortDesc") : t("anime.episodes.sortAsc")}
+            title={sort === "asc" ? t("anime.episodes.sortDesc") : t("anime.episodes.sortAsc")}
+            className="touch-target h-11 w-11 flex items-center justify-center rounded-xl border border-border dark:border-white/10 bg-muted/40 dark:bg-white/4 text-muted-foreground dark:text-white/50 hover:bg-muted/60 dark:hover:bg-white/8 transition-colors"
+          >
+            {sort === "asc" ? <ArrowDownAZ className="w-3.5 h-3.5" /> : <ArrowUpAZ className="w-3.5 h-3.5" />}
+          </button>
+
           {watchedEpisodes.length > 0 && (
             <button
               type="button"
@@ -193,56 +277,74 @@ const AnimeEpisodes = ({ animeId, subOrDub }: Props) => {
               </SelectContent>
             </Select>
           )}
-
         </div>
       </div>
 
-      {/* Episode grid / list — layout follows Settings → Episode layout */}
       {episodeLayout === "compact" ? (
         <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-1.5">
-          {episodes.map((episode) => (
-            <EpisodeCard
-              key={episode.episodeId}
-              episode={episode}
-              animeId={animeId}
-              variant="card"
-              showCard={false}
-              watchedEpisodes={watchedEpisodes}
-              subOrDub={subOrDub}
-            />
+          {visibleEpisodes.map((episode) => (
+            <div key={episode.episodeId} id={`episode-${episode.episodeId}`}>
+              <EpisodeCard
+                episode={episode}
+                animeId={animeId}
+                variant="card"
+                showCard={false}
+                watchedEpisodes={watchedEpisodes}
+                subOrDub={subOrDub}
+              />
+            </div>
           ))}
           {!episodes.length && !isLoading && <EmptyState colSpan="col-span-full" message={emptyMessage} />}
           {isLoading && <CompactSkeletons />}
         </div>
       ) : episodeLayout === "thumbnail" ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3">
-          {episodes.map((episode) => (
-            <EpisodeCard
-              key={episode.episodeId}
-              episode={episode}
-              animeId={animeId}
-              variant="thumbnail"
-              watchedEpisodes={watchedEpisodes}
-              subOrDub={subOrDub}
-            />
+          {visibleEpisodes.map((episode) => (
+            <div key={episode.episodeId} id={`episode-${episode.episodeId}`}>
+              <EpisodeCard
+                episode={episode}
+                animeId={animeId}
+                variant="thumbnail"
+                watchedEpisodes={watchedEpisodes}
+                subOrDub={subOrDub}
+              />
+            </div>
           ))}
-          {!episodes.length && !isLoading && <EmptyState colSpan="col-span-2 sm:col-span-3 md:col-span-4 xl:col-span-5" message={emptyMessage} />}
+          {!episodes.length && !isLoading && (
+            <EmptyState colSpan="col-span-2 sm:col-span-3 md:col-span-4 xl:col-span-5" message={emptyMessage} />
+          )}
           {isLoading && <ThumbnailSkeletons />}
         </div>
       ) : (
         <div className="flex flex-col gap-0.5">
-          {episodes.map((episode) => (
-            <EpisodeCard
-              key={episode.episodeId}
-              episode={episode}
-              animeId={animeId}
-              variant="list"
-              watchedEpisodes={watchedEpisodes}
-              subOrDub={subOrDub}
-            />
+          {visibleEpisodes.map((episode) => (
+            <div key={episode.episodeId} id={`episode-${episode.episodeId}`}>
+              <EpisodeCard
+                episode={episode}
+                animeId={animeId}
+                variant="list"
+                watchedEpisodes={watchedEpisodes}
+                subOrDub={subOrDub}
+              />
+            </div>
           ))}
           {!episodes.length && !isLoading && <EmptyState colSpan="" message={emptyMessage} />}
           {isLoading && <ListSkeletons />}
+        </div>
+      )}
+
+      {hasMore && (
+        <div ref={loadMoreRef} className="flex justify-center py-3">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((n) => Math.min(n + PAGE_SIZE, episodes.length))}
+            className="px-4 py-2 rounded-xl text-[11px] font-mono border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/50 hover:bg-muted/50 transition-colors"
+          >
+            {t("anime.episodes.showMore", {
+              shown: visibleEpisodes.length,
+              total: episodes.length,
+            })}
+          </button>
         </div>
       )}
     </div>

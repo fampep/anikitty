@@ -159,6 +159,7 @@ export async function GET(
         episodeId: `ep-${num}`,
         number: num,
         isFiller: isSkippableEpisode(fillerFlags[num]),
+        isRecap: fillerFlags[num]?.recap === true,
         image: resolveEpisodeImage(num, sources),
         overview: resolveEpisodeOverview(num, sources),
         airDate,

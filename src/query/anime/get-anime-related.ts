@@ -1,10 +1,12 @@
 import { GET_ANIME_RELATED } from "@/constants/query-keys";
 import { api } from "@/lib/core/api";
 import type {
+  AnimeStaffMember,
   CharactersVoiceActor,
   MostPopularAnime,
   RecommendedAnime,
   RelatedAnime,
+  Season,
 } from "@/types/anime-details";
 import { useQuery } from "@tanstack/react-query";
 
@@ -13,6 +15,8 @@ export type AnimeRelatedPayload = {
   mostPopularAnimes: MostPopularAnime[];
   relatedAnimes: RelatedAnime[];
   recommendedAnimes: RecommendedAnime[];
+  seasons?: Season[];
+  staff?: AnimeStaffMember[];
 };
 
 const getAnimeRelated = async (animeId: string | number) => {

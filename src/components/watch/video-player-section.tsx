@@ -80,8 +80,11 @@ import { trackEvent } from "@/lib/analytics";
 import LoadingGirl from "@/components/common/loading-girl";
 import WatchErrorPanel from "@/components/watch/watch-error-panel";
 import WatchEpisodeBar from "@/components/watch/watch-episode-bar";
+import WatchMiniPlayer from "@/components/watch/watch-mini-player";
+import WatchPartySlot from "@/components/watch/watch-party-slot";
 import { useWatchPage } from "@/components/watch/watch-page-context";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
+import { loadKittyPlayerPrefs, saveKittyPlayerPrefs } from "@/components/kittyplayer/prefs";
 import { useGetStreamCapabilities } from "@/query/stream/get-stream-capabilities";
 import { useWatchSwipeNav } from "@/hooks/use-watch-swipe-nav";
 import { useStreamLoadingStuck } from "@/hooks/use-stream-loading-stuck";
@@ -650,6 +653,19 @@ const VideoPlayerSection = () => {
     const localCurrent = Math.max(urlTime, cached?.current ?? 0);
     const localDuration = cached?.duration ?? 0;
 
+    // Restore per-episode playback snapshot (speed / caption / quality) when present.
+    if (cached) {
+      if (typeof cached.playbackRate === "number" && cached.playbackRate > 0) {
+        saveKittyPlayerPrefs({ playbackRate: cached.playbackRate });
+      }
+      if (cached.captionLabel) {
+        saveKittyPlayerPrefs({ captionLabel: cached.captionLabel, captionsOn: true });
+      }
+      if (cached.qualityHeight !== undefined) {
+        useSettingsStore.getState().setDefaultQualityHeight(cached.qualityHeight ?? null);
+      }
+    }
+
     if (isResumableProgress(localCurrent, localDuration)) {
       setSavedResumeTime(localCurrent);
       setResumeReady(true);
@@ -837,7 +853,13 @@ const VideoPlayerSection = () => {
     if (!animeSlug || !activeEpisodeId || t <= 5 || dur <= 0) return;
     if (now - lastLocalProgressTsRef.current >= 5000) {
       lastLocalProgressTsRef.current = now;
-      useProgressStore.getState().setProgress(animeSlug, activeEpisodeId, t, dur);
+      const prefs = loadKittyPlayerPrefs();
+      const qualityHeight = useSettingsStore.getState().defaultQualityHeight;
+      useProgressStore.getState().setProgress(animeSlug, activeEpisodeId, t, dur, {
+        playbackRate: prefs.playbackRate,
+        qualityHeight,
+        captionLabel: prefs.captionLabel,
+      });
     }
   }, [animeSlug]);
 
@@ -2190,6 +2212,13 @@ const VideoPlayerSection = () => {
 
     {episodeBar}
 
+    {!theatreMode && (
+      <WatchPartySlot
+        active={Boolean(w2gCode && w2g.isMember)}
+        onStart={auth ? handleCreateW2g : undefined}
+      />
+    )}
+
     {w2gCode && w2g.isMember && (
       <W2gPanel
         code={w2gCode}
@@ -2200,6 +2229,16 @@ const VideoPlayerSection = () => {
         loading={w2g.loading}
         onSendMessage={w2g.sendMessage}
         onLeave={handleLeaveW2g}
+      />
+    )}
+
+    {!theatreMode && currentEpisodeInfo && (
+      <WatchMiniPlayer
+        playerRef={playerRef}
+        title={animeName ?? ""}
+        episodeLabel={t("watch.episode", { n: currentEpisodeInfo.number })}
+        poster={currentEpisodeInfo.image || animePoster}
+        enabled={!w2gCode}
       />
     )}
     </div>

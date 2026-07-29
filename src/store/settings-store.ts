@@ -218,6 +218,25 @@ interface ISettingsStore {
   setAnime4kEnabled: (val: boolean) => void;
   anime4kMode: Anime4kMode;
   setAnime4kMode: (mode: Anime4kMode) => void;
+
+  /**
+   * Preferred HLS max height (e.g. 1080). `null` = Auto / ABR.
+   * Applied when a stream's level ladder is parsed.
+   */
+  defaultQualityHeight: number | null;
+  setDefaultQualityHeight: (height: number | null) => void;
+
+  /** Episode playlist sort order. */
+  episodeSort: "asc" | "desc";
+  setEpisodeSort: (sort: "asc" | "desc") => void;
+
+  /** Collapse the desktop episode sidebar into a slim rail. */
+  watchSidebarCollapsed: boolean;
+  setWatchSidebarCollapsed: (val: boolean) => void;
+
+  /** Desktop episode sidebar width in px (resizable). */
+  watchSidebarWidth: number;
+  setWatchSidebarWidth: (width: number) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -435,10 +454,32 @@ export const useSettingsStore = create<ISettingsStore>()(
       setAnime4kEnabled: (anime4kEnabled) => set({ anime4kEnabled }),
       anime4kMode: DEFAULT_ANIME4K_MODE,
       setAnime4kMode: (anime4kMode) => set({ anime4kMode: sanitizeAnime4kMode(anime4kMode) }),
+
+      defaultQualityHeight: null,
+      setDefaultQualityHeight: (height) =>
+        set({
+          defaultQualityHeight:
+            typeof height === "number" && Number.isFinite(height) && height > 0
+              ? Math.round(height)
+              : null,
+        }),
+
+      episodeSort: "asc",
+      setEpisodeSort: (episodeSort) =>
+        set({ episodeSort: episodeSort === "desc" ? "desc" : "asc" }),
+
+      watchSidebarCollapsed: false,
+      setWatchSidebarCollapsed: (watchSidebarCollapsed) => set({ watchSidebarCollapsed }),
+
+      watchSidebarWidth: 320,
+      setWatchSidebarWidth: (width) =>
+        set({
+          watchSidebarWidth: Math.min(440, Math.max(260, Math.round(width))),
+        }),
     }),
     {
       name: "kitty-settings",
-      version: 85,
+      version: 86,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -478,6 +519,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         hardSubSoftSubs: state.hardSubSoftSubs,
         anime4kEnabled: state.anime4kEnabled,
         anime4kMode: state.anime4kMode,
+        defaultQualityHeight: state.defaultQualityHeight,
+        episodeSort: state.episodeSort,
+        watchSidebarCollapsed: state.watchSidebarCollapsed,
+        watchSidebarWidth: state.watchSidebarWidth,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -1104,6 +1149,16 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Animeya #4 recommended, Anitaku #5; reset to site priority for numbers/sections.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniWatch", next.providerOrder);
+        }
+        if (version < 86) {
+          next.defaultQualityHeight = next.defaultQualityHeight ?? null;
+          next.episodeSort = next.episodeSort === "desc" ? "desc" : "asc";
+          next.watchSidebarCollapsed = next.watchSidebarCollapsed ?? false;
+          const w = next.watchSidebarWidth;
+          next.watchSidebarWidth =
+            typeof w === "number" && Number.isFinite(w)
+              ? Math.min(440, Math.max(260, Math.round(w)))
+              : 320;
         }
         return next as ISettingsStore;
       },

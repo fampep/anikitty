@@ -9,7 +9,7 @@ import { publicErrorMessage } from "@/lib/security/public-error";
 
 export const revalidate = 3600;
 
-/** Hero + overview only — characters/relations/recs load via /related. */
+/** Hero + overview only — characters/relations/recs/staff load via /related. */
 const CRITICAL_DETAIL_QUERY = `
   query ($id: Int) {
     Media(id: $id, type: ANIME) {
@@ -25,16 +25,39 @@ const CRITICAL_DETAIL_QUERY = `
       status
       duration
       averageScore
+      meanScore
+      popularity
+      favourites
       genres
       synonyms
       season
       seasonYear
       source
+      countryOfOrigin
       startDate { year month day }
       endDate { year month day }
       nextAiringEpisode { episode airingAt }
       studios { nodes { name isAnimationStudio } }
       trailer { id site }
+      rankings { rank type context allTime }
+      tags(page: 1, perPage: 30) {
+        name
+        category
+        rank
+        isGeneralSpoiler
+        isMediaSpoiler
+      }
+      externalLinks {
+        site
+        url
+        type
+        color
+        icon
+      }
+      stats {
+        statusDistribution { status amount }
+        scoreDistribution { score amount }
+      }
     }
   }
 `;
@@ -92,6 +115,49 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
     .filter((s: any) => !s.isAnimationStudio)
     .map((s: any) => s.name);
 
+  const tags = (m.tags ?? [])
+    .filter((t: any) => t && !t.isGeneralSpoiler && !t.isMediaSpoiler)
+    .map((t: any) => ({
+      name: String(t.name ?? ""),
+      category: String(t.category ?? ""),
+      rank: typeof t.rank === "number" ? t.rank : 0,
+    }))
+    .filter((t: { name: string }) => t.name);
+
+  const themes = tags
+    .filter((t: { category: string }) => /theme/i.test(t.category))
+    .map((t: { name: string }) => t.name);
+  const demographics = tags
+    .filter((t: { category: string }) => /demographic/i.test(t.category))
+    .map((t: { name: string }) => t.name);
+
+  const rankings = (m.rankings ?? [])
+    .filter((r: any) => r?.rank != null)
+    .map((r: any) => ({
+      rank: r.rank as number,
+      type: String(r.type ?? ""),
+      context: String(r.context ?? ""),
+      allTime: Boolean(r.allTime),
+    }));
+
+  const externalLinks = (m.externalLinks ?? [])
+    .filter((l: any) => l?.url && l?.site)
+    .map((l: any) => ({
+      site: String(l.site),
+      url: String(l.url),
+      type: l.type ? String(l.type) : null,
+      color: l.color ? String(l.color) : null,
+      icon: l.icon ? String(l.icon) : null,
+    }));
+
+  const statusDistribution = (m.stats?.statusDistribution ?? [])
+    .filter((s: any) => s?.status && typeof s.amount === "number")
+    .map((s: any) => ({ status: String(s.status), amount: s.amount as number }));
+
+  const scoreDistribution = (m.stats?.scoreDistribution ?? [])
+    .filter((s: any) => typeof s.score === "number" && typeof s.amount === "number")
+    .map((s: any) => ({ score: s.score as number, amount: s.amount as number }));
+
   return {
     anime: {
       info: {
@@ -100,9 +166,25 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
         malId: m.idMal ?? 0,
         isAdult: Boolean(m.isAdult),
         name: toTitle(m.title),
+        titles: {
+          english: m.title?.english ?? null,
+          romaji: m.title?.romaji ?? null,
+          native: m.title?.native ?? null,
+        },
         poster: m.coverImage?.extraLarge ?? "",
         banner: m.bannerImage ?? m.coverImage?.extraLarge ?? "",
         description: (m.description ?? "").replace(/<[^>]*>/g, ""),
+        popularity: typeof m.popularity === "number" ? m.popularity : null,
+        favourites: typeof m.favourites === "number" ? m.favourites : null,
+        meanScore: typeof m.meanScore === "number" ? m.meanScore : null,
+        rankings,
+        tags,
+        themes,
+        demographics,
+        externalLinks,
+        statusDistribution,
+        scoreDistribution,
+        countryOfOrigin: m.countryOfOrigin ? String(m.countryOfOrigin) : null,
         stats: {
           rating: m.averageScore ? `${(m.averageScore / 10).toFixed(1)}/10` : "N/A",
           quality: "HD",
@@ -150,7 +232,7 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
 
 const getCachedCriticalAnime = unstable_cache(
   fetchCriticalAnimePayload,
-  ["anime-details-critical-v1"],
+  ["anime-details-critical-v2"],
   { revalidate: 3600 },
 );
 
