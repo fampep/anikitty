@@ -24,8 +24,8 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Senshi",
   "AnimeGG",
   "AnimeHeaven",
-  // Normalize-only aliases / legacy (retired from picker)
   "AniHQ",
+  // Normalize-only aliases / legacy (retired from picker)
   "VidNest",
   "Miruro",
   "AniWaves",
@@ -64,6 +64,7 @@ export const KITTY_PROVIDERS = [
   "Anikoto",
   "AniSnatch",
   "AniWatch",
+  "AniHQ",
   "Animeya",
   "AniBD",
   "Anitaku",
@@ -83,7 +84,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 6;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 94;
+export const PROVIDER_ORDER_SYNC_VERSION = 95;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -294,11 +295,23 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     kittySubs: false,
     hint: "SUB · hard subs",
   },
+  {
+    id: "AniHQ",
+    label: "HQ",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · hard subs",
+  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
  * tries these before anything else. Top 6 Recommended:
- * 1 Delta, 2 Vibe, 3 Kilo, 4 Sierra, 5 Juliet, 6 Ya.
+ * 1 Delta, 2 Vibe, 3 Kilo, 4 Sierra, 5 Juliet, 6 HQ.
  * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
@@ -306,8 +319,9 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "Anikoto",
   "AniSnatch",
   "AniWatch",
-  "Animeya",
+  "AniHQ",
   "AniBD",
+  "Animeya",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -406,8 +420,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   ) {
     return "AniDelta";
   }
-  // HQ retired — map legacy saves to Juliet (AniZone).
-  if (value === "HQ" || value === "AniHQ") return "AniWatch";
+  if (value === "HQ" || value === "AniHQ") return "AniHQ";
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "AniBD";
   if (
     value === "Luna" ||

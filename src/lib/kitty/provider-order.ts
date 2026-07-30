@@ -43,7 +43,7 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         continue;
       }
       if (item === "HQ" || item === "AniHQ") {
-        push("AniWatch");
+        push("AniHQ");
         continue;
       }
       if (item === "Zenkai") {
