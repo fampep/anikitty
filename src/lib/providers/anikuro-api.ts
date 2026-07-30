@@ -196,6 +196,8 @@ async function fetchAnikuroStreamDirect(opts: {
   audio: "sub" | "dub";
   title?: string | null;
   refresh?: boolean;
+  /** Dedicated site source = `animepower` (API label AniKuro). */
+  backend?: AnikuroServerId | string | null;
 }): Promise<AnikuroStreamResult | null> {
   const params = new URLSearchParams({
     anilistId: String(opts.anilistId),
@@ -204,6 +206,8 @@ async function fetchAnikuroStreamDirect(opts: {
   });
   if (opts.title?.trim()) params.set("title", opts.title.trim());
   if (opts.refresh) params.set("refresh", "1");
+  const backend = opts.backend?.trim();
+  if (backend) params.set("backend", backend);
 
   const res = await kittyApiFetch(
     `/provider/AniKuro/stream-direct?${params.toString()}`,
@@ -255,6 +259,11 @@ async function streamAnikuroViaServers(opts: {
   return null;
 }
 
+/**
+ * Resolve Alpha (AniKuro). Prefers KittyAPI stream-direct with `backend`
+ * (`animepower` = dedicated anikuro.to source → freevideoupload HLS).
+ * Legacy linkId / servers list remain as fallbacks.
+ */
 export async function fetchAnikuroVideoStream(opts: {
   anilistId: number;
   episode: number;
@@ -266,30 +275,21 @@ export async function fetchAnikuroVideoStream(opts: {
   const serverId = opts.serverId ?? DEFAULT_ANIKURO_SERVER;
   const linkId = buildAnikuroLinkId({ ...opts, serverId });
 
-  const linkedPromise = fetchAnikuroStreamByLinkId(linkId).catch(() => null);
-  const directPromise = fetchAnikuroStreamDirect(opts).catch(() => null);
-
-  const linked = await linkedPromise;
-
-  // Fast path: linkId with soft subs already present.
-  if (linked?.file && countAnikuroSubtitleTracks(linked.tracks) > 0) {
-    return withServerLabel(linked, serverId);
-  }
-
-  if (linked?.file) {
-    // Video works — wait for stream-direct tracks, never stall forever on it.
-    const direct = await Promise.race([
-      directPromise,
-      new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 8_000);
-      }),
-    ]);
-    return pickAnikuroStream(linked, direct, serverId);
-  }
-
-  // linkId failed — fall back to stream-direct, then servers list.
-  const direct = await directPromise;
+  // Fast path: stream-direct with explicit backend (matches API dedicated preference).
+  const direct = await fetchAnikuroStreamDirect({
+    anilistId: opts.anilistId,
+    episode: opts.episode,
+    audio: opts.audio,
+    title: opts.title,
+    refresh: opts.refresh,
+    backend: serverId,
+  }).catch(() => null);
   if (direct?.file) return withServerLabel(direct, serverId);
+
+  const linked = await fetchAnikuroStreamByLinkId(linkId).catch(() => null);
+  if (linked?.file) {
+    return pickAnikuroStream(linked, null, serverId);
+  }
 
   const listed = await streamAnikuroViaServers({ ...opts, serverId });
   if (listed?.file) return withServerLabel(listed, serverId);
@@ -297,7 +297,15 @@ export async function fetchAnikuroVideoStream(opts: {
   const result = await resolveKittyNamedStream({
     builtLinkId: linkId,
     streamByLinkId: fetchAnikuroStreamByLinkId,
-    streamDirect: () => fetchAnikuroStreamDirect(opts),
+    streamDirect: () =>
+      fetchAnikuroStreamDirect({
+        anilistId: opts.anilistId,
+        episode: opts.episode,
+        audio: opts.audio,
+        title: opts.title,
+        refresh: opts.refresh,
+        backend: serverId,
+      }),
     streamViaServers: () => streamAnikuroViaServers({ ...opts, serverId }),
   });
 

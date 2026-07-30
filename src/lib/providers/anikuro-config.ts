@@ -2,7 +2,7 @@ import type { ProviderAudioMode } from "@/lib/kitty/kitty-providers";
 import type { StreamTrack } from "@/lib/subtitles/subtitle-track-utils";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-types";
 
-/** Backend ids match Kitty `linkId.backend` ? never shown in the UI. */
+/** Backend ids match Kitty `backend=` — site shows codenames only. */
 export const ANIKURO_SERVERS = [
   { id: "animepower", label: "Prime", names: ["AniKuro", "AnimePower", "Prime"] },
   { id: "anikoto", label: "Relay", names: ["Anikoto", "Relay"] },
@@ -19,6 +19,7 @@ export const ANIKURO_SERVERS = [
 
 export type AnikuroServerId = (typeof ANIKURO_SERVERS)[number]["id"];
 
+/** Dedicated anikuro.to source (`animepower` → freevideoupload HLS). */
 export const DEFAULT_ANIKURO_SERVER: AnikuroServerId = "animepower";
 
 export type AnikuroKittyServer = {

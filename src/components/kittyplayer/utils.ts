@@ -235,3 +235,20 @@ export function isEarnVidsLikeHeaders(
     .toLowerCase();
   return /otakuvid|otakuhg|streamhg|earnvid/.test(blob);
 }
+
+/** AniKuro dedicated CDN (freevideoupload) — needs anikuro referer through HLS proxy. */
+export function isAniKuroDedicatedHeaders(
+  headers: Record<string, string> | null | undefined,
+): boolean {
+  if (!headers) return false;
+  const blob = [
+    headers.Referer,
+    headers.referer,
+    headers.Origin,
+    headers.origin,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /anikuro\.to|anikuro\.ru|freevideoupload/.test(blob);
+}

@@ -43,6 +43,8 @@ export type FetchKittyStreamOpts = {
   preferHardSub?: boolean;
   /** Bust KittyAPI persistent stream_links and re-resolve. */
   refresh?: boolean;
+  /** AniKuro backend id (`animepower` = dedicated site source), etc. */
+  backend?: string | null;
   /** Pin to one cluster node (disables cross-node sequential failover when set with failover false). */
   nodeId?: KittyApiNodeId;
   /** Default true. Race probes set false so each attempt stays on one node. */
@@ -120,6 +122,7 @@ export async function fetchKittyStreamDirect(
     audio: opts.audio,
     title: opts.title,
     refresh: opts.refresh,
+    backend: opts.backend,
   });
 
   return fetchKittyStreamPath(path, timeoutMs, fetchOpts);
@@ -191,9 +194,11 @@ export async function raceKittyProviderStream(
   if (opts.signal?.aborted) return null;
 
   // Drop obviously dead peers before hammering stream-direct.
-  // AniVibe resolves in ~1–3s on a healthy node — skip the health RTT tax.
+  // Fast providers resolve in ~1–3s on a healthy node — skip the health RTT tax.
   const skipHealth =
-    provider?.toLowerCase() === "anivibe" || provider?.toLowerCase() === "anisnatch";
+    provider?.toLowerCase() === "anivibe" ||
+    provider?.toLowerCase() === "anisnatch" ||
+    provider?.toLowerCase() === "anikuro";
   if (candidates.length > 1 && !skipHealth) {
     candidates = orderKittyNodesForRace(
       await prefilterHealthyKittyNodes(candidates, { signal: opts.signal }),
@@ -312,10 +317,11 @@ export async function raceKittyProviderStream(
         }
       }
 
-      // Fast providers (AniVibe / AniSnatch): launch all nodes immediately.
+      // Fast providers (AniVibe / AniSnatch / AniKuro): launch all nodes immediately.
       const noStagger =
         provider?.toLowerCase() === "anivibe" ||
-        provider?.toLowerCase() === "anisnatch";
+        provider?.toLowerCase() === "anisnatch" ||
+        provider?.toLowerCase() === "anikuro";
       if (index === 0 || noStagger) {
         launch(nodeId, index);
         return;

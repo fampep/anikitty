@@ -374,7 +374,7 @@ export function buildKittyStreamDirectPath(opts: {
   title?: string | null;
   /** Bust persistent stream_links row and re-resolve. */
   refresh?: boolean;
-  /** Provider-specific backend hint (e.g. HentaiHaven `title:…`). */
+  /** Provider-specific backend hint (e.g. HentaiHaven `title:…`, AniKuro `animepower`). */
   backend?: string | null;
 }): string {
   const params = new URLSearchParams({

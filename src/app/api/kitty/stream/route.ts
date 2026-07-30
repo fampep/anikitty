@@ -400,6 +400,8 @@ export async function GET(req: Request) {
     let wonNode: KittyApiNodeId | undefined;
     let raceMs: number | undefined;
     const attempt = await fetchWithSubAudioFallback(subtitleCtx.audio, async (streamAudio) => {
+      const backendHint =
+        providerName === "AniKuro" && anikuroServer ? anikuroServer : undefined;
       if (raceMode) {
         const raced = await raceKittyProviderStream(
           {
@@ -411,6 +413,7 @@ export async function GET(req: Request) {
             directOnly: true,
             preferHardSub,
             refresh: refreshStream,
+            backend: backendHint,
           },
           raceCandidates,
         );
@@ -436,6 +439,7 @@ export async function GET(req: Request) {
         directOnly: true,
         preferHardSub,
         refresh: refreshStream,
+        backend: backendHint,
       });
 
       if (!streamResult?.file) return null;
@@ -454,8 +458,8 @@ export async function GET(req: Request) {
 
   // kittyNode=auto: race stream-direct across healthy static-IP nodes first.
   // Dedicated handlers below are fallbacks (linkId / servers / mirrors).
-  // For Alpha (AniKuro), a track-less race hit is deferred so soft-sub linkId
-  // resolution can run; race result is kept as last-resort video.
+  // Alpha dedicated (`animepower`) often has empty soft-sub tracks — do not defer
+  // a working freevideoupload race hit waiting for legacy linkId soft-subs.
   let deferredRaceAttempt: Awaited<
     ReturnType<typeof fetchStreamDirectPlayback>
   > | null = null;
@@ -465,6 +469,7 @@ export async function GET(req: Request) {
     const racedNativeSubs = (racedAttempt.result?.tracks ?? []).filter(isSubtitleTrack);
     const deferForSoftSubs =
       provider === "AniKuro" &&
+      anikuroServer !== "animepower" &&
       Boolean(racedAttempt.result?.file) &&
       racedNativeSubs.length === 0 &&
       STREAM_DEDICATED_AFTER_RACE.has(provider);

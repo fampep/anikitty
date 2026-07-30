@@ -184,6 +184,7 @@ import {
   captionPositionCss,
   captionSizeCss,
   clamp,
+  isAniKuroDedicatedHeaders,
   isEarnVidsLikeHeaders,
   KITTY_PLAYER_SPEEDS,
   formatPlayerTime,
@@ -1551,7 +1552,9 @@ export function KittyPlayer({
       if (!(t > 0.5 && Number.isFinite(t))) return;
       const earnVids =
         providerRef.current === "AniVibe" ||
-        isEarnVidsLikeHeaders(headersRef.current);
+        providerRef.current === "AniKuro" ||
+        isEarnVidsLikeHeaders(headersRef.current) ||
+        isAniKuroDedicatedHeaders(headersRef.current);
       // Same EarnVids rule as applyResumeTime — don't seek into an empty buffer.
       if (earnVids && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
         return;
@@ -1720,7 +1723,9 @@ export function KittyPlayer({
         if (!v) return;
         const earnVidsStall =
           providerRef.current === "AniVibe" ||
-          isEarnVidsLikeHeaders(headersRef.current);
+          providerRef.current === "AniKuro" ||
+          isEarnVidsLikeHeaders(headersRef.current) ||
+          isAniKuroDedicatedHeaders(headersRef.current);
         // Resume seek before first buffer makes currentTime>0.35 while still
         // starting — treat that as cold/startup so we never recoverMediaError.
         const startupPhase =
@@ -2091,7 +2096,9 @@ export function KittyPlayer({
 
       const earnVids =
         providerRef.current === "AniVibe" ||
-        isEarnVidsLikeHeaders(headersRef.current);
+        providerRef.current === "AniKuro" ||
+        isEarnVidsLikeHeaders(headersRef.current) ||
+        isAniKuroDedicatedHeaders(headersRef.current);
       // EarnVids: seeking before the first fragment is buffered leaves currentTime
       // in a hole (e.g. 8s/90s) → waiting → recoverMediaError → endless buffer.
       // Start at 0, then seek once we actually have media.
@@ -2252,7 +2259,9 @@ export function KittyPlayer({
       }
       const earnVidsLike =
         providerRef.current === "AniVibe" ||
-        isEarnVidsLikeHeaders(headersRef.current);
+        providerRef.current === "AniKuro" ||
+        isEarnVidsLikeHeaders(headersRef.current) ||
+        isAniKuroDedicatedHeaders(headersRef.current);
       logPlayerDebug("attach-hls-js", {
         src: activeSrc.slice(0, 120),
         provider: providerRef.current ?? null,
