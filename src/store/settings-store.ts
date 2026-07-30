@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 91,
+      version: 94,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1187,6 +1187,21 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Force-override local + block stale synced prefs (providerOrderVersion 91).
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniSnatch", next.providerOrder);
+        }
+        if (version < 92) {
+          // AniDbApp joins Recommended; expand featured top 6 (legacy id, now AniDelta).
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniSnatch", next.providerOrder);
+        }
+        if (version < 93) {
+          // Delta (AniDelta) becomes Recommended #1 / site default.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 94) {
+          // Rename AniDbApp → AniDelta; reset order + default to site priority.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }
         return next as ISettingsStore;
       },

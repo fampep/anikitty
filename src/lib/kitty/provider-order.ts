@@ -4,6 +4,7 @@ import {
   KITTY_PROVIDERS,
   KITTY_PROVIDER_META,
   isActiveKittyProvider,
+  normalizeKittyProvider,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
 
@@ -46,6 +47,16 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         continue;
       }
       if (item === "Zenkai") {
+        continue;
+      }
+      if (
+        item === "Delta" ||
+        item === "DB" ||
+        item === "AniDbApp" ||
+        item === "AniDb" ||
+        item === "AniDelta"
+      ) {
+        push("AniDelta");
         continue;
       }
       if (item === "Sierra" || item === "Snatch") {
@@ -111,7 +122,10 @@ export function sanitizeDefaultProvider(
   order?: KittyProvider[] | null,
 ): KittyProvider {
   const resolved = resolveProviderOrder(order);
-  if (typeof value === "string" && isActiveKittyProvider(value)) return value;
+  if (typeof value === "string") {
+    const normalized = normalizeKittyProvider(value);
+    if (isActiveKittyProvider(normalized)) return normalized;
+  }
   return resolved[0] ?? DEFAULT_KITTY_PROVIDER;
 }
 

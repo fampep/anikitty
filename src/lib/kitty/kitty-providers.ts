@@ -15,6 +15,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Anikoto",
   "Animeya",
   "AniVibe",
+  "AniDelta",
   "Anitaku",
   "MeguAnime",
   "KickAssAnime",
@@ -33,6 +34,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AnimeLok",
   "Yenime",
   "AniSnatch",
+  "AniDbApp",
   "KuroHost",
   "HentaiHaven",
   "Lunar",
@@ -57,9 +59,10 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  * select; the API paths (`/provider/{id}/…`) use these exact names.
  */
 export const KITTY_PROVIDERS = [
-  "AniSnatch",
+  "AniDelta",
   "AniVibe",
   "Anikoto",
+  "AniSnatch",
   "AniWatch",
   "Animeya",
   "AniBD",
@@ -74,13 +77,13 @@ export const KITTY_PROVIDERS = [
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 5;
+export const RECOMMENDED_PROVIDER_COUNT = 6;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 91;
+export const PROVIDER_ORDER_SYNC_VERSION = 94;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -145,6 +148,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "AniDelta",
+    label: "Delta",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: false,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · HLS",
   },
   {
     id: "AniWatch",
@@ -282,13 +297,14 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. Top 5 Recommended:
- * 1 Sierra (AniSnatch), 2 Vibe (AniVibe), 3 Kilo, 4 Juliet (AniZone), 5 Ya.
+ * tries these before anything else. Top 6 Recommended:
+ * 1 Delta, 2 Vibe, 3 Kilo, 4 Sierra, 5 Juliet, 6 Ya.
  * AniBD remains the Soft Subs section default. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
-  "AniSnatch",
+  "AniDelta",
   "AniVibe",
   "Anikoto",
+  "AniSnatch",
   "AniWatch",
   "Animeya",
   "AniBD",
@@ -322,7 +338,7 @@ export function isRecommendedKittyProvider(
 
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
 
-/** Soft-sub row / Soft Subs section default (overall playback default is Juliet). */
+/** Soft-sub row / Soft Subs section default (overall playback default is Delta). */
 export const DEFAULT_SOFT_SUB_PROVIDER: KittyProvider = "AniBD";
 
 /** KittyAPI unified MegaPlay provider. */
@@ -381,6 +397,15 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
   if (value === "Sierra" || value === "Snatch") return "AniSnatch";
   if (value === "Vibe" || value === "AniVibeLive") return "AniVibe";
+  if (
+    value === "Delta" ||
+    value === "DB" ||
+    value === "AniDbApp" ||
+    value === "AniDb" ||
+    value === "AniDelta"
+  ) {
+    return "AniDelta";
+  }
   // HQ retired — map legacy saves to Juliet (AniZone).
   if (value === "HQ" || value === "AniHQ") return "AniWatch";
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "AniBD";

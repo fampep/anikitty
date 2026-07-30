@@ -89,7 +89,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
     if (prefs.defaultProvider !== undefined) patch.defaultProvider = prefs.defaultProvider;
   } else {
     patch.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
-    patch.defaultProvider = sanitizeDefaultProvider("AniSnatch", patch.providerOrder);
+    patch.defaultProvider = sanitizeDefaultProvider("AniDelta", patch.providerOrder);
   }
   if (prefs.providerSectionHidden !== undefined) patch.providerSectionHidden = prefs.providerSectionHidden;
   if (prefs.kittyProxyNode !== undefined) patch.kittyProxyNode = prefs.kittyProxyNode;

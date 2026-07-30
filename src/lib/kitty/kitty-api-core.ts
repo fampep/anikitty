@@ -103,7 +103,7 @@ function isKittyNoApiKeyPath(path: string): boolean {
 /**
  * True when a media URL is routed through the KittyAPI media proxy — either a
  * signed `/proxy?…` URL or an absolute URL on a KittyAPI cluster node. Raw
- * origin URLs (e.g. `https://hls.anidb.app/…`) return false: those bypass the
+ * raw upstream HLS URLs return false: those bypass the
  * proxy (missing signed token + upstream Referer) and won't play.
  */
 export function isKittyProxiedUrl(pathOrUrl: string): boolean {
