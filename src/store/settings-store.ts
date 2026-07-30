@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 95,
+      version: 96,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1205,6 +1205,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 95) {
           // HQ (AniHQ) joins Recommended as #6; Ya moves to More.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 96) {
+          // 6-only roster: Delta → Vibe → Kilo → HQ → Sierra → Juliet.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }

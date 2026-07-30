@@ -13,6 +13,7 @@ import { ProviderDefaultBadge, ProviderCapabilityBadge } from "@/components/play
 import {
   KITTY_PROVIDER_META,
   getKittyProviderLabel,
+  isActiveKittyProvider,
   kittyProvidersByGroup,
   providerHasHardSub,
   providerSupportsDub,
@@ -96,7 +97,9 @@ export default function WatchSimpleProviderRow({
   const providerOrder = useSettingsStore((s) => s.providerOrder);
   const defaultProvider = useSettingsStore((s) => s.defaultProvider);
   const showAdultContent = useSettingsStore((s) => s.showAdultContent);
-  const serverCount = KITTY_PROVIDER_META.filter((p) => showAdultContent || !p.adultOnly).length;
+  const serverCount = KITTY_PROVIDER_META.filter(
+    (p) => isActiveKittyProvider(p.id) && (showAdultContent || !p.adultOnly),
+  ).length;
   const dubEnabled = providerSupportsDub(provider);
   const hardEnabled = providerHasHardSub(provider);
   const activeMode: ProviderAudioMode =

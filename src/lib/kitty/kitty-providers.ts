@@ -62,19 +62,9 @@ export const KITTY_PROVIDERS = [
   "AniDelta",
   "AniVibe",
   "Anikoto",
+  "AniHQ",
   "AniSnatch",
   "AniWatch",
-  "AniHQ",
-  "Animeya",
-  "AniBD",
-  "Anitaku",
-  "MeguAnime",
-  "KickAssAnime",
-  "AniKuro",
-  "AniNeko",
-  "Senshi",
-  "AnimeGG",
-  "AnimeHeaven",
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
@@ -84,7 +74,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 6;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 95;
+export const PROVIDER_ORDER_SYNC_VERSION = 96;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -115,16 +105,16 @@ export type ProviderAudioMode = "sub" | "dub" | "hardsub" | "multi";
 
 export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   {
-    id: "AniSnatch",
-    label: "Sierra",
+    id: "AniDelta",
+    label: "Delta",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
-    softSub: true,
+    softSub: false,
     hardSub: false,
-    nativeSubs: true,
+    nativeSubs: false,
     kittySubs: false,
-    hint: "SUB · DUB · soft subs",
+    hint: "SUB · DUB · HLS",
   },
   {
     id: "AniVibe",
@@ -151,16 +141,28 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "AniDelta",
-    label: "Delta",
+    id: "AniHQ",
+    label: "HQ",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: false,
-    hardSub: false,
+    hardSub: true,
     nativeSubs: false,
     kittySubs: false,
-    hint: "SUB · DUB · HLS",
+    hint: "SUB · DUB · hard subs",
+  },
+  {
+    id: "AniSnatch",
+    label: "Sierra",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "AniWatch",
@@ -175,161 +177,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsMulti: true,
     hint: "SUB · DUB · soft subs",
   },
-  {
-    id: "Animeya",
-    label: "Ya",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs · VidNest",
-  },
-  {
-    id: "AniBD",
-    label: "BD",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · soft subs",
-  },
-  {
-    id: "Anitaku",
-    label: "Taku",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "MeguAnime",
-    label: "Megu",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "KickAssAnime",
-    label: "Uniform",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "AniKuro",
-    label: "Alpha",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: false,
-    hint: "SUB · DUB · soft subs · mirrors",
-  },
-  {
-    id: "AniNeko",
-    label: "Gamma",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "Senshi",
-    label: "Guard",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
-    id: "AnimeGG",
-    label: "GG",
-    group: "other",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: false,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · DUB",
-  },
-  {
-    id: "AnimeHeaven",
-    label: "Heaven",
-    group: "other",
-    supportsSub: true,
-    supportsDub: false,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · hard subs",
-  },
-  {
-    id: "AniHQ",
-    label: "HQ",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: false,
-    hardSub: true,
-    nativeSubs: false,
-    kittySubs: false,
-    hint: "SUB · DUB · hard subs",
-  },
 ];
 
 /** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. Top 6 Recommended:
- * 1 Delta, 2 Vibe, 3 Kilo, 4 Sierra, 5 Juliet, 6 HQ.
- * AniBD remains the Soft Subs section default. */
+ * tries these before anything else. All six are Recommended:
+ * 1 Delta, 2 Vibe, 3 Kilo, 4 HQ, 5 Sierra, 6 Juliet. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "AniVibe",
   "Anikoto",
+  "AniHQ",
   "AniSnatch",
   "AniWatch",
-  "AniHQ",
-  "AniBD",
-  "Animeya",
-  "Anitaku",
-  "MeguAnime",
-  "KickAssAnime",
-  "AniKuro",
-  "AniNeko",
-  "Senshi",
-  "AnimeGG",
-  "AnimeHeaven",
 ];
 
 /** 1-based rank in the given order (0 if missing). */
@@ -353,7 +212,7 @@ export function isRecommendedKittyProvider(
 export const DEFAULT_KITTY_PROVIDER: KittyProvider = DEFAULT_PROVIDER_PRIORITY[0];
 
 /** Soft-sub row / Soft Subs section default (overall playback default is Delta). */
-export const DEFAULT_SOFT_SUB_PROVIDER: KittyProvider = "AniBD";
+export const DEFAULT_SOFT_SUB_PROVIDER: KittyProvider = "Anikoto";
 
 /** KittyAPI unified MegaPlay provider. */
 export const KITTY_MEGAPLAY_PROVIDERS = new Set<KittyProvider>([MEGAPLAY_PROVIDER_ID]);
@@ -371,15 +230,7 @@ export {
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniWatch",
-  "AniBD",
-  "AniKuro",
   "Anikoto",
-  "Senshi",
-  "AniNeko",
-  "KickAssAnime",
-  "MeguAnime",
-  "Anitaku",
-  "Animeya",
   "AniSnatch",
   "AniVibe",
 ]);
@@ -397,16 +248,16 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   // UI labels / retired ids → active keep-list.
   if (value === "AniZone" || value === "Juliet") return "AniWatch";
-  if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
-  if (value === "AllAnime" || value === "Bravo" || value === "MKissa") return "AnimeGG";
-  if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return "AniKuro";
+  if (value === "AnimeStream" || value === "KaaLt") return DEFAULT_KITTY_PROVIDER;
+  if (value === "AllAnime" || value === "Bravo" || value === "MKissa") return DEFAULT_KITTY_PROVIDER;
+  if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return DEFAULT_KITTY_PROVIDER;
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
-  if (value === "Heaven") return "AnimeHeaven";
-  if (value === "Megu" || value === "MeguAnimes") return "MeguAnime";
+  if (value === "Heaven" || value === "AnimeHeaven") return DEFAULT_KITTY_PROVIDER;
+  if (value === "Megu" || value === "MeguAnimes" || value === "MeguAnime") return DEFAULT_KITTY_PROVIDER;
   if (value === "Ya" || value === "VidNest" || value === "Mp4Upload" || value === "MP4Upload") {
-    return "Animeya";
+    return DEFAULT_KITTY_PROVIDER;
   }
-  if (value === "Taku") return "Anitaku";
+  if (value === "Taku") return DEFAULT_KITTY_PROVIDER;
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
   if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
   if (value === "Sierra" || value === "Snatch") return "AniSnatch";
@@ -421,7 +272,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
     return "AniDelta";
   }
   if (value === "HQ" || value === "AniHQ") return "AniHQ";
-  if (value === "BD" || value === "AniBd" || value === "Anibd") return "AniBD";
+  if (value === "BD" || value === "AniBd" || value === "Anibd") return "Anikoto";
   if (
     value === "Luna" ||
     value === "Lunar" ||
@@ -466,7 +317,7 @@ export function isAdultOnlyKittyProvider(id: string | null | undefined): boolean
 }
 
 export function kittyProvidersByGroup(group: KittyProviderGroup): KittyProviderMeta[] {
-  return KITTY_PROVIDER_META.filter((p) => p.group === group);
+  return KITTY_PROVIDER_META.filter((p) => p.group === group && isActiveKittyProvider(p.id));
 }
 
 export function providerHasNativeSubs(provider: KittyProvider): boolean {
@@ -525,6 +376,7 @@ export function kittyProvidersForAudioMode(
 ): KittyProviderMeta[] {
   const normalized = normalizeProviderAudioMode(mode);
   return KITTY_PROVIDER_META.filter((p) => {
+    if (!isActiveKittyProvider(p.id)) return false;
     if (!opts?.includeAdult && p.adultOnly) return false;
     if (normalized === "dub") return p.supportsDub === true;
     if (normalized === "hardsub") {
