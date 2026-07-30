@@ -61,20 +61,21 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
 export const KITTY_PROVIDERS = [
   "AniDelta",
   "AniVibe",
-  "Anikoto",
   "AniHQ",
+  "AniKuro",
+  "Anikoto",
   "AniSnatch",
   "AniWatch",
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 6;
+export const RECOMMENDED_PROVIDER_COUNT = 7;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 96;
+export const PROVIDER_ORDER_SYNC_VERSION = 98;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -129,18 +130,6 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs · EarnVids/StreamHG",
   },
   {
-    id: "Anikoto",
-    label: "Kilo",
-    group: "featured",
-    supportsSub: true,
-    supportsDub: true,
-    softSub: true,
-    hardSub: false,
-    nativeSubs: true,
-    kittySubs: true,
-    hint: "SUB · DUB · soft subs",
-  },
-  {
     id: "AniHQ",
     label: "HQ",
     group: "featured",
@@ -151,6 +140,30 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: false,
     kittySubs: false,
     hint: "SUB · DUB · hard subs",
+  },
+  {
+    id: "AniKuro",
+    label: "Alpha",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "Anikoto",
+    label: "Kilo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: true,
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "AniSnatch",
@@ -179,14 +192,15 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
 ];
 
-/** Preferred providers — the first is what loads by default, and auto-fallback
- * tries these before anything else. All six are Recommended:
- * 1 Delta, 2 Vibe, 3 Kilo, 4 HQ, 5 Sierra, 6 Juliet. */
+/** Preferred providers - the first is what loads by default, and auto-fallback
+ * tries these before anything else. All seven are Recommended:
+ * 1 Delta, 2 Vibe, 3 HQ, 4 Alpha (AniKuro), 5 Kilo, 6 Sierra, 7 Juliet. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "AniVibe",
-  "Anikoto",
   "AniHQ",
+  "AniKuro",
+  "Anikoto",
   "AniSnatch",
   "AniWatch",
 ];
@@ -230,6 +244,7 @@ export {
 /** Providers whose stream-direct embed tracks are kept in the player (soft subs in `tracks[]`). */
 export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniWatch",
+  "AniKuro",
   "Anikoto",
   "AniSnatch",
   "AniVibe",
@@ -262,6 +277,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
   if (value === "Sierra" || value === "Snatch") return "AniSnatch";
   if (value === "Vibe" || value === "AniVibeLive") return "AniVibe";
+  if (value === "Alpha") return "AniKuro";
   if (
     value === "Delta" ||
     value === "DB" ||

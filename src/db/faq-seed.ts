@@ -347,7 +347,7 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "episode"
     ],
     "title": "How does streaming work?",
-    "answer": "When you open an episode, AniKitty asks KittyAPI for a stream using the anime's AniList ID, episode number, and your audio mode (Sub, Hard Subs, or Dub).\n\nSources appear as site codenames only — never the real host names. Default order starts with Juliet, then BD, Kilo, Taku, Megu, Uniform, Alpha, Gamma, Guard, GG, and Heaven.\n\nUse the compact picker or the full Sub / Hard Subs / Dub grid (**Settings → Playback → Simple source picker**). Turn on auto-fallback in player settings to try the next source when playback fails. Progress saves to your account when logged in.",
+    "answer": "When you open an episode, AniKitty asks KittyAPI for a stream using the anime's AniList ID, episode number, and your audio mode (Sub, Hard Subs, or Dub).\n\nSources appear as site codenames only — never the real host names. Default order starts with Delta, then Vibe, HQ, Alpha, Kilo, Sierra, and Juliet.\n\nUse the compact picker or the full Sub / Hard Subs / Dub grid (**Settings → Playback → Simple source picker**). Turn on auto-fallback in player settings to try the next source when playback fails. Progress saves to your account when logged in.",
     "updatedAt": "2026-07-25",
     "order": 10,
     "popularity": 98,
@@ -368,7 +368,7 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "sources"
     ],
     "title": "What are the stream sources?",
-    "answer": "AniKitty does not host video — streams come through KittyAPI from third-party providers, shown only by site labels (1 Delta, 2 Vibe, 3 Kilo, 4 Sierra, 5 Juliet, 6 HQ, then BD, Ya, Taku, Megu, Uniform, Alpha, Gamma, Guard, GG, and Heaven).\n\n- The top six appear under **Recommended**\n- Soft Subs defaults to BD when available\n- Hard-sub only source is Heaven (Japanese audio only)\n\nNew watches use your Settings default source and fallback order; you can switch anytime while watching.",
+    "answer": "AniKitty does not host video — streams come through KittyAPI from third-party providers, shown only by site labels (1 Delta, 2 Vibe, 3 HQ, 4 Alpha, 5 Kilo, 6 Sierra, 7 Juliet).\n\n- The top seven appear under **Recommended**\n- Soft Subs defaults to Kilo when available\n- HQ is the hard-sub source\n\nNew watches use your Settings default source and fallback order; you can switch anytime while watching.",
     "updatedAt": "2026-07-29",
     "order": 20,
     "popularity": 75,

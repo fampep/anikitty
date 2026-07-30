@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 96,
+      version: 98,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1210,6 +1210,16 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 96) {
           // 6-only roster: Delta → Vibe → Kilo → HQ → Sierra → Juliet.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 97) {
+          // 7-source roster: Delta -> Vibe -> Alpha -> Kilo -> HQ -> Sierra -> Juliet.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 98) {
+          // Alpha (AniKuro) at #4; HQ before it; Kilo after Alpha.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }
