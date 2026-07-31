@@ -129,7 +129,11 @@ function episodeNumbers(body: ProviderStreamsResponse | null): Set<number> {
   return out;
 }
 
-/** Cached sub/dub episode sets from bulk `/streams` (embed map, no HLS resolve). */
+/**
+ * Bulk `/streams` episode-number sets (optional admin/debug).
+ * Do **not** use this for watch-page caps — it pulls the whole series catalog.
+ * Site caps use KittyAPI `/audio` counts; playback uses per-episode stream-direct.
+ */
 export async function fetchProviderEpisodeAvailability(
   provider: KittyProvider | string,
   anilistId: number,

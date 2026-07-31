@@ -95,7 +95,6 @@ export async function probeAnisnatchEpisodeCapabilities(
   provider: AnisnatchServerCapabilities;
   servers: Record<string, AnisnatchServerCapabilities>;
 }> {
-  void episode;
   const params = new URLSearchParams({
     anilistId: String(anilistId),
     provider: "AniSnatch",
@@ -112,8 +111,10 @@ export async function probeAnisnatchEpisodeCapabilities(
       return { provider: EMPTY_CAPS, servers: {} };
     }
     const data = await res.json();
-    const sub = Number(data?.sub ?? data?.subCount ?? 0) > 0;
-    const dub = Number(data?.dub ?? data?.dubCount ?? 0) > 0;
+    const subCount = Math.max(0, Math.floor(Number(data?.sub ?? data?.subCount ?? 0)) || 0);
+    const dubCount = Math.max(0, Math.floor(Number(data?.dub ?? data?.dubCount ?? 0)) || 0);
+    const sub = episode >= 1 && episode <= subCount;
+    const dub = episode >= 1 && episode <= dubCount;
     return {
       provider: {
         sub,

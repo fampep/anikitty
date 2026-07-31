@@ -35,7 +35,7 @@ export async function GET(req: Request) {
 
   try {
     if (scope === "episode") {
-      // Never run featured+rest together — that peaks ~10 full stream JSON bodies.
+      // Featured then rest (client-deferred). Caps use /audio counts, not bulk /streams.
       const capabilities =
         tier === "rest"
           ? await fetchRestEpisodeStreamCapabilities(anilistId, episode, title)

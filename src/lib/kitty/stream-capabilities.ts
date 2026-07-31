@@ -1,5 +1,5 @@
 import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamAudio, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
-import { fetchProviderEpisodeAvailability } from "@/lib/kitty/provider-streams";
+import { fetchKittyAudio } from "@/lib/kitty/kitty-audio-api";
 import {
   EMPTY_STREAM_CAPABILITIES,
   capabilitiesFromProbes,
@@ -76,10 +76,12 @@ const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>([
 ]);
 
 /**
- * Prefer bulk `/streams` for series availability (cheap catalog) over dual stream-direct.
- * Falls back to stream-direct probes when the catalog call fails.
+ * In-memory SUB/DUB episode totals from KittyAPI `/audio` (not full stream catalogs).
+ * Key: provider:anilistId
  */
-const BULK_STREAMS_CAPABILITY_PROVIDERS = new Set<KittyProvider>([...KITTY_PROVIDERS]);
+type AudioCountCacheEntry = { exp: number; sub: number; dub: number };
+const AUDIO_COUNT_TTL_MS = 10 * 60_000;
+const audioCountCache = new Map<string, AudioCountCacheEntry>();
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -190,32 +192,60 @@ function mergeProviderCapabilityMaps(
   return out;
 }
 
+/**
+ * Episode availability from `/audio` counts only — never pulls whole-series `/streams`.
+ * `episode <= sub|dub` is the same heuristic AniSnatch caps already use for totals.
+ */
+async function capsFromAudioCounts(
+  provider: KittyProvider,
+  anilistId: number,
+  episode: number,
+  title?: string | null,
+): Promise<StreamCapabilities | null> {
+  const key = `${provider}:${anilistId}`;
+  const hit = audioCountCache.get(key);
+  let sub = 0;
+  let dub = 0;
+  if (hit && hit.exp > Date.now()) {
+    sub = hit.sub;
+    dub = hit.dub;
+  } else {
+    const counts = await fetchKittyAudio({
+      anilistId,
+      provider,
+      title,
+      timeoutMs: 12_000,
+    });
+    if (!counts) return null;
+    sub = counts.sub;
+    dub = counts.dub;
+    audioCountCache.set(key, { exp: Date.now() + AUDIO_COUNT_TTL_MS, sub, dub });
+  }
+
+  return capabilitiesFromProbes(
+    {
+      hasFile: episode >= 1 && episode <= sub,
+      subtitleTracks: 0,
+    },
+    {
+      hasFile: episode >= 1 && episode <= dub,
+      subtitleTracks: 0,
+    },
+    providerMetaForCaps(provider),
+  );
+}
+
 async function probeDirectProviderCapabilities(
   provider: KittyProvider,
   anilistId: number,
   episode: number,
   title?: string | null,
 ): Promise<StreamCapabilities> {
-  // Bulk `/streams` covers the whole series — far cheaper than two stream-direct
-  // probes per episode, and peers failover where wired (Delta / Vibe / HQ).
-  if (BULK_STREAMS_CAPABILITY_PROVIDERS.has(provider)) {
-    const avail = await fetchProviderEpisodeAvailability(provider, anilistId, title, 15_000);
-    if (avail) {
-      return capabilitiesFromProbes(
-        {
-          hasFile: avail.sub.has(episode),
-          subtitleTracks: 0,
-        },
-        {
-          hasFile: avail.dub.has(episode),
-          subtitleTracks: 0,
-        },
-        providerMetaForCaps(provider),
-      );
-    }
-  }
+  // Prefer lightweight `/audio` totals — no full-show embed/file catalog.
+  const fromAudio = await capsFromAudioCounts(provider, anilistId, episode, title);
+  if (fromAudio) return fromAudio;
 
-  // Sequential sub→dub cuts peak concurrent stream JSON (was Promise.all).
+  // Last resort: probe only this episode via stream-direct (caches that episode only).
   const subProbe = await probeStreamDirect(provider, anilistId, episode, "sub", title);
   const dubProbe = await probeStreamDirect(provider, anilistId, episode, "dub", title);
   return capabilitiesFromProbes(subProbe, dubProbe, providerMetaForCaps(provider));
