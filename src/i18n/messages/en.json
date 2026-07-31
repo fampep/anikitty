@@ -93,6 +93,10 @@
     "cta": "Tip on Ko-fi",
     "learn": "Details"
   },
+  "fundingBanner": {
+    "title": "Proxy servers downscaled",
+    "body": "We had to reduce proxy capacity so we can keep affording to run AniKitty. Thanks for understanding — ads and tips help a lot."
+  },
   "adult": {
     "title": "18+",
     "gateDesc": "Turn on Show adult content (18+) in Settings to include adult titles on the site.",
@@ -1005,14 +1009,14 @@
     "notifyFollowsDesc": "When someone follows you",
     "ads": {
       "title": "Ads",
-      "desc": "Light click ads help cover hosting and streaming costs",
+      "desc": "Ads help us afford running the site after downscaling proxy servers",
       "showAds": "Show site ads",
       "showAdsDesc": "Turn off for your account only — guests still see ads",
       "signInHint": "Sign in to turn site ads off for your account. Guests always see ads.",
       "donationHint": "Love AniKitty?",
       "donationLink": "Tip on Ko-fi",
       "disableTitle": "Turn off ads?",
-      "disableBody": "Please consider keeping ads on so AniKitty can keep running — hosting and streaming are not cheap.",
+      "disableBody": "We had to downscale our proxy servers so we can keep affording to run the site. Ads help cover those costs — please consider keeping them on.",
       "disableWarning": "You can still turn them off. Tips on Ko-fi also help if you prefer not to see ads.",
       "keepAds": "Keep ads on",
       "disableConfirm": "Turn off anyway"
