@@ -11,6 +11,7 @@ const searchAnime = async (params: SearchAnimeParams & { adult?: "1" }) => {
 
   const res = await api.get("/api/search", {
     params: cleaned,
+    timeout: 12_000,
   });
 
   return res.data.data as IAnimeSearch;
@@ -24,5 +25,7 @@ export const useGetSearchAnimeResults = (params: SearchAnimeParams) => {
     queryKey: [SEARCH_ANIME, { ...params, adult: adult ?? "0" }],
     placeholderData: keepPreviousData,
     staleTime: 60_000,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 4000),
   });
 };

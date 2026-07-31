@@ -40,6 +40,7 @@ const searchSuggestions = async (
 ): Promise<SearchSuggestions> => {
   const res = await api.get("/api/search/suggestion", {
     params: { q, ...(adult ? { adult: "1" } : {}) },
+    timeout: 10_000,
   });
   const d = res.data.data ?? {};
   return {
@@ -61,6 +62,8 @@ export const useSearchAnime = (query: string) => {
     enabled: query.trim().length > 0,
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(800 * 2 ** attempt, 3000),
     select: (data) => data.anime,
   });
 };
@@ -73,6 +76,8 @@ export const useSearchSuggestions = (query: string) => {
     enabled: query.trim().length > 0,
     staleTime: 30 * 1000,
     placeholderData: keepPreviousData,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(800 * 2 ** attempt, 3000),
   });
 };
 
@@ -88,6 +93,7 @@ const searchVoiceActorsPage = async (
 ): Promise<VoiceActorSearchPage> => {
   const res = await api.get("/api/voice-actors/search", {
     params: { q, page, perPage: 18 },
+    timeout: 10_000,
   });
   return {
     results: (res.data.results ?? []) as VoiceActorSummary[],
@@ -104,5 +110,6 @@ export const useSearchVoiceActors = (query: string, page = 1, enabled = true) =>
     enabled: enabled && trimmed.length >= 2,
     staleTime: 60_000,
     placeholderData: keepPreviousData,
+    retry: 1,
   });
 };

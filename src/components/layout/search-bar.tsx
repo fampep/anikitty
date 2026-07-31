@@ -58,7 +58,7 @@ const SearchBar = ({
   const listboxId = useId();
   const optionId = (index: number) => `${listboxId}-option-${index}`;
 
-  const { data, isLoading } = useSearchSuggestions(debouncedValue);
+  const { data, isLoading, isError, isFetching, refetch } = useSearchSuggestions(debouncedValue);
   const animeResults = data?.anime ?? [];
   const movieResults = data?.movies ?? [];
   const characterResults = data?.characters ?? [];
@@ -291,7 +291,23 @@ const SearchBar = ({
             </div>
           )}
 
-          {!isLoading && hasResults && (
+          {!isLoading && isError && !hasResults && (
+            <div className="px-4 py-6 text-center flex flex-col items-center gap-2">
+              <p className="text-muted-foreground dark:text-white/35 text-sm">
+                {t("search.loadError")}
+              </p>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="text-xs text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                {t("common.tryAgain")}
+              </button>
+            </div>
+          )}
+
+          {!isLoading && !isError && hasResults && (
             <div className="flex flex-col">
               {animeResults.length > 0 && (
                 <>
@@ -592,7 +608,7 @@ const SearchBar = ({
             </div>
           )}
 
-          {!isLoading && !hasResults && debouncedValue && (
+          {!isLoading && !isError && !hasResults && debouncedValue && (
             <div className="px-4 py-6 text-center">
               <p className="text-muted-foreground dark:text-white/35 text-sm">
                 {t("search.noResultsFor", { query: debouncedValue })}

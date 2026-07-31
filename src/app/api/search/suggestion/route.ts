@@ -1,7 +1,6 @@
-import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
+import { queryAniListSearch, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
-import { searchVoiceActors, type VoiceActorSearchResult } from "@/lib/core/voice-actors";
 import { genres as GENRE_OPTIONS } from "@/constants/search-filters";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
@@ -54,13 +53,36 @@ const STUDIO_QUERY = `
   }
 `;
 
-const EMPTY_VA: VoiceActorSearchResult = {
-  results: [],
-  hasNextPage: false,
-  currentPage: 1,
+const STAFF_QUERY = `
+  query ($search: String) {
+    Page(page: 1, perPage: 8) {
+      staff(search: $search, sort: SEARCH_MATCH) {
+        id
+        name { full native }
+        image { large }
+        languageV2
+        primaryOccupations
+      }
+    }
+  }
+`;
+
+const EMPTY_PAYLOAD = {
+  suggestions: [] as unknown[],
+  movies: [] as unknown[],
+  voiceActors: [] as unknown[],
+  characters: [] as unknown[],
+  studios: [] as unknown[],
+  users: [] as unknown[],
+  genres: [] as unknown[],
 };
 
-const SUGGESTION_TIMEOUT_MS = 900;
+/** Absolute ceiling for the primary anime query (client-visible). */
+const ANIME_BUDGET_MS = 5_500;
+/** Secondary sections drop out rather than delaying anime. */
+const SECONDARY_BUDGET_MS = 2_200;
+const ENRICH_TIMEOUT_MS = 600;
+const USERS_TIMEOUT_MS = 700;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
   return new Promise((resolve) => {
@@ -84,8 +106,15 @@ function matchGenres(q: string) {
   ).slice(0, 4);
 }
 
+function isVoiceOccupation(occupations: string[] | null | undefined): boolean {
+  const occ = (occupations ?? []).map((o) => o.toLowerCase());
+  if (occ.length === 0) return true;
+  return occ.some((o) => o.includes("voice") || o.includes("actor") || o.includes("seiyuu"));
+}
+
 async function searchUsers(q: string) {
   try {
+    if (!process.env.DATABASE_URL) return [];
     const db = getDb();
     const cleaned = q.replace(/[%_]/g, "").replace(/^@/, "");
     if (cleaned.length < 1) return [];
@@ -100,82 +129,72 @@ async function searchUsers(q: string) {
   }
 }
 
+function cacheHeaders() {
+  return {
+    "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+  };
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") || "").trim();
   const allowAdult = searchParams.get("adult") === "1";
 
   if (!q) {
-    return Response.json(
-      {
-        data: {
-          suggestions: [],
-          movies: [],
-          voiceActors: [],
-          characters: [],
-          studios: [],
-          users: [],
-          genres: [],
-        },
-      },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } },
-    );
+    return Response.json({ data: EMPTY_PAYLOAD }, { headers: cacheHeaders() });
   }
 
   try {
-    const animePromise = queryAniList(ANIME_QUERY, {
-      search: q,
-      isAdult: allowAdult ? undefined : false,
-    });
+    // AniList Page accepts only ONE child field — start queries in parallel,
+    // but the response waits on anime first so secondary fields can't stall it.
+    // Every call uses the fast AniList client (6s / 2 attempts max).
+    const animePromise = queryAniListSearch<{ Page?: { media?: any[] | null } | null }>(
+      ANIME_QUERY,
+      {
+        search: q,
+        isAdult: allowAdult ? undefined : false,
+      },
+    ).catch(() => null);
 
-    const vaPromise =
-      q.length >= 2
-        ? withTimeout(
-            searchVoiceActors(q, "", 1, 5).catch(() => EMPTY_VA),
-            SUGGESTION_TIMEOUT_MS,
-            EMPTY_VA,
-          )
-        : Promise.resolve(EMPTY_VA);
+    const includeSecondary = q.length >= 2;
 
-    const characterPromise =
-      q.length >= 2
-        ? withTimeout(
-            queryAniList(CHARACTER_QUERY, { search: q }).catch(() => ({ Page: { characters: [] } })),
-            SUGGESTION_TIMEOUT_MS,
-            { Page: { characters: [] } },
-          )
-        : Promise.resolve({ Page: { characters: [] } });
+    const characterPromise = includeSecondary
+      ? queryAniListSearch<{ Page?: { characters?: any[] | null } | null }>(CHARACTER_QUERY, {
+          search: q,
+        }).catch(() => ({ Page: { characters: [] as any[] } }))
+      : Promise.resolve({ Page: { characters: [] as any[] } });
 
-    const studioPromise =
-      q.length >= 2
-        ? withTimeout(
-            queryAniList(STUDIO_QUERY, { search: q }).catch(() => ({ Page: { studios: [] } })),
-            SUGGESTION_TIMEOUT_MS,
-            { Page: { studios: [] } },
-          )
-        : Promise.resolve({ Page: { studios: [] } });
+    const studioPromise = includeSecondary
+      ? queryAniListSearch<{ Page?: { studios?: any[] | null } | null }>(STUDIO_QUERY, {
+          search: q,
+        }).catch(() => ({ Page: { studios: [] as any[] } }))
+      : Promise.resolve({ Page: { studios: [] as any[] } });
 
-    const usersPromise = withTimeout(searchUsers(q), SUGGESTION_TIMEOUT_MS, []);
+    const staffPromise = includeSecondary
+      ? queryAniListSearch<{ Page?: { staff?: any[] | null } | null }>(STAFF_QUERY, {
+          search: q,
+        }).catch(() => ({ Page: { staff: [] as any[] } }))
+      : Promise.resolve({ Page: { staff: [] as any[] } });
 
-    const [animeSettled, vaSettled, charSettled, studioSettled, usersSettled] =
-      await Promise.allSettled([
-        animePromise,
-        vaPromise,
-        characterPromise,
-        studioPromise,
-        usersPromise,
-      ]);
+    const usersPromise = searchUsers(q);
 
-    const raw =
-      animeSettled.status === "fulfilled" ? animeSettled.value : { Page: { media: [] } };
-    const vaSearch = vaSettled.status === "fulfilled" ? vaSettled.value : EMPTY_VA;
-    const charRaw =
-      charSettled.status === "fulfilled" ? charSettled.value : { Page: { characters: [] } };
-    const studioRaw =
-      studioSettled.status === "fulfilled" ? studioSettled.value : { Page: { studios: [] } };
-    const userRows = usersSettled.status === "fulfilled" ? usersSettled.value : [];
+    const startedAt = Date.now();
+    const raw = await withTimeout(animePromise, ANIME_BUDGET_MS, null);
 
-    const media = raw.Page?.media ?? [];
+    // Give secondaries whatever budget remains (they were already in flight).
+    const remaining = Math.max(
+      250,
+      SECONDARY_BUDGET_MS - (Date.now() - startedAt),
+    );
+
+    const [charRaw, studioRaw, staffRaw, userRows] = await Promise.all([
+      withTimeout(characterPromise, remaining, { Page: { characters: [] as any[] } }),
+      withTimeout(studioPromise, remaining, { Page: { studios: [] as any[] } }),
+      withTimeout(staffPromise, remaining, { Page: { staff: [] as any[] } }),
+      withTimeout(usersPromise, Math.min(remaining, USERS_TIMEOUT_MS), []),
+    ]);
+
+    const media = raw?.Page?.media ?? [];
 
     const mapSuggestion = (m: any) => ({
       id: String(m.id),
@@ -195,16 +214,18 @@ export async function GET(request: Request) {
         m.episodes ? `${m.episodes} eps` : null,
         m.averageScore ? `${(m.averageScore / 10).toFixed(1)}★` : null,
       ].filter(Boolean) as string[],
+      status: m.status ?? null,
     });
 
     const allSuggestions = media.map(mapSuggestion);
-    const movies = allSuggestions.filter((s: { type: string }) =>
-      /movie/i.test(s.type),
-    );
+    const movies = allSuggestions.filter((s: { type: string }) => /movie/i.test(s.type));
     const animeOnly = allSuggestions.filter((s: { type: string }) => !/movie/i.test(s.type));
 
-    const enrichedAnime = await enrichAnimeListWithAudio(animeOnly);
-    const enrichedMovies = await enrichAnimeListWithAudio(movies);
+    // Never block typeahead on Postgres / Kitty audio enrichment.
+    const [enrichedAnime, enrichedMovies] = await Promise.all([
+      withTimeout(enrichAnimeListWithAudio(animeOnly), ENRICH_TIMEOUT_MS, animeOnly),
+      withTimeout(enrichAnimeListWithAudio(movies), ENRICH_TIMEOUT_MS, movies),
+    ]);
 
     const characters = (charRaw.Page?.characters ?? []).map((c: any) => {
       const from = c.media?.nodes?.[0];
@@ -228,17 +249,40 @@ export async function GET(request: Request) {
         isAnimationStudio: s.isAnimationStudio !== false,
       }));
 
+    const voiceActors = (staffRaw.Page?.staff ?? [])
+      .filter((s: any) => isVoiceOccupation(s.primaryOccupations))
+      .slice(0, 5)
+      .map((s: any) => ({
+        id: s.id,
+        name: s.name?.full ?? "Unknown",
+        native: s.name?.native ?? null,
+        image: s.image?.large ?? null,
+        language: s.languageV2 ?? null,
+      }));
+
     const genreMatches = matchGenres(q).map((g) => ({
       slug: g.value,
       name: g.label,
     }));
+
+    // Complete AniList failure with nothing local → retryable so the client
+    // doesn't treat a blip as permanent "no results".
+    if (!raw && genreMatches.length === 0 && userRows.length === 0) {
+      return Response.json(
+        { error: "Search temporarily unavailable", data: EMPTY_PAYLOAD },
+        {
+          status: 503,
+          headers: { "Cache-Control": "no-store", "Retry-After": "1" },
+        },
+      );
+    }
 
     return Response.json(
       {
         data: {
           suggestions: enrichedAnime,
           movies: enrichedMovies,
-          voiceActors: vaSearch.results,
+          voiceActors,
           characters,
           studios,
           users: userRows.map((u) => ({
@@ -248,20 +292,16 @@ export async function GET(request: Request) {
           genres: genreMatches,
         },
       },
-      { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600" } },
+      { headers: cacheHeaders() },
     );
   } catch (err) {
     console.error("Suggestion search error:", err);
-    return Response.json({
-      data: {
-        suggestions: [],
-        movies: [],
-        voiceActors: [],
-        characters: [],
-        studios: [],
-        users: [],
-        genres: [],
+    return Response.json(
+      { error: "Search temporarily unavailable", data: EMPTY_PAYLOAD },
+      {
+        status: 503,
+        headers: { "Cache-Control": "no-store", "Retry-After": "1", "X-Search-Degraded": "1" },
       },
-    });
+    );
   }
 }

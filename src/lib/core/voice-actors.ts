@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
+import { queryAniList, queryAniListSearch, toTitle, toFormat } from "@/lib/oauth/anilist";
 
 export type VaRoleCharacter = { id: number; name: string; image: string | null };
 
@@ -432,7 +432,7 @@ async function fetchVoiceActorSearch(
     return { results: [], hasNextPage: false, currentPage: page };
   }
 
-  const data = await queryAniList<{
+  const data = await queryAniListSearch<{
     Page?: {
       pageInfo?: { hasNextPage?: boolean | null; currentPage?: number | null } | null;
       staff?: StaffSearchNode[] | null;

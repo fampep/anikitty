@@ -128,7 +128,7 @@ export async function getBatchStoredAudioAvailability(
 
   try {
     const db = getDb();
-    const rows = await db
+    const query = db
       .select({
         anilistId: animeAudioAvailability.anilistId,
         subCount: animeAudioAvailability.subCount,
@@ -140,6 +140,14 @@ export async function getBatchStoredAudioAvailability(
       })
       .from(animeAudioAvailability)
       .where(inArray(animeAudioAvailability.anilistId, unique));
+
+    // Bound DB waits so a hung Postgres pool cannot stall search/home lists.
+    const rows = await Promise.race([
+      query,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("audio batch timeout")), 1_500),
+      ),
+    ]);
 
     return new Map(rows.map((row) => [row.anilistId, row]));
   } catch {

@@ -1,7 +1,30 @@
-import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
+import { queryAniListSearch, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { slugsToAniListGenres } from "@/lib/search/genre-filters";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
+
+const ENRICH_TIMEOUT_MS = 800;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(fallback), ms);
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        resolve(fallback);
+      });
+  });
+}
+
+function searchCacheHeaders() {
+  return {
+    "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+  };
+}
 
 const QUERY = `
   query (
@@ -279,7 +302,7 @@ export async function GET(request: Request) {
     let mediaNodes: any[] = [];
 
     if (useStudioMedia) {
-      const raw = await queryAniList(STUDIO_MEDIA_QUERY, {
+      const raw = await queryAniListSearch(STUDIO_MEDIA_QUERY, {
         id: studioId,
         page,
         perPage: 20,
@@ -289,7 +312,7 @@ export async function GET(request: Request) {
       pageInfo = raw.Studio?.media?.pageInfo ?? {};
       mediaNodes = raw.Studio?.media?.nodes ?? [];
     } else {
-      const raw = await queryAniList(QUERY, {
+      const raw = await queryAniListSearch(QUERY, {
         search: cleanQ || undefined,
         page,
         perPage: 20,
@@ -334,19 +357,47 @@ export async function GET(request: Request) {
       status: m.status ?? null,
     }));
 
-    const enrichedAnimes = await enrichAnimeListWithAudio(animes);
+    // Postgres audio enrich is best-effort — never stall the search page on it.
+    const enrichedAnimes = await withTimeout(
+      enrichAnimeListWithAudio(animes),
+      ENRICH_TIMEOUT_MS,
+      animes,
+    );
 
-    return Response.json({
-      data: {
-        animes: enrichedAnimes,
-        totalPages: (pageInfo.lastPage as number | undefined) ?? 1,
-        totalResults: (pageInfo.total as number | undefined) ?? 0,
-        hasNextPage: (pageInfo.hasNextPage as boolean | undefined) ?? false,
-        currentPage: (pageInfo.currentPage as number | undefined) ?? page,
+    return Response.json(
+      {
+        data: {
+          animes: enrichedAnimes,
+          totalPages: (pageInfo.lastPage as number | undefined) ?? 1,
+          totalResults: (pageInfo.total as number | undefined) ?? 0,
+          hasNextPage: (pageInfo.hasNextPage as boolean | undefined) ?? false,
+          currentPage: (pageInfo.currentPage as number | undefined) ?? page,
+        },
       },
-    });
+      { headers: searchCacheHeaders() },
+    );
   } catch (err) {
     console.error("AniList search error:", err);
-    return Response.json({ error: "Search failed" }, { status: 500 });
+    // Fail fast with a retryable status so the client can retry instead of
+    // hanging ~80s then showing a permanent empty/error state.
+    return Response.json(
+      {
+        error: "Search temporarily unavailable",
+        data: {
+          animes: [],
+          totalPages: 1,
+          totalResults: 0,
+          hasNextPage: false,
+          currentPage: page,
+        },
+      },
+      {
+        status: 503,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": "2",
+        },
+      },
+    );
   }
 }
