@@ -1,14 +1,11 @@
 export type KittyApiNodeId =
   | "primary"
   | "third-choice"
-  | "fourth-choice"
-  | "fifth-choice"
-  | "sixth-choice"
   | "seventh-choice";
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
-  /** Display number in the DNS chooser (1 = Sweden, 2 = …). */
+  /** Display number in the DNS chooser (1 = Main, 2 = …). */
   index: number;
   label: string;
   /**
@@ -36,6 +33,14 @@ const REMOVED_KITTY_HOST_MARKERS = [
   "92.119.165.226",
   "176-125-240-251",
   "176.125.240.251",
+  "143-246-195-251",
+  "143.246.195.251",
+  "23-111-15-143",
+  "23.111.15.143",
+  "94-75-223-124",
+  "94.75.223.124",
+  "184-107-88-54",
+  "184.107.88.54",
 ] as const;
 
 /**
@@ -44,16 +49,13 @@ const REMOVED_KITTY_HOST_MARKERS = [
  */
 export const PUBLIC_KITTY_API_HOST = "vps.anikitty.online";
 export const PUBLIC_KITTY_API_ORIGIN = `https://${PUBLIC_KITTY_API_HOST}`;
-/** Zone for location DNS labels (`sweden.anikitty.online`, …). */
+/** Zone for location DNS labels (`main.anikitty.online`, …). */
 export const PUBLIC_KITTY_DNS_ZONE = "anikitty.online";
 
 /** Location DNS slug → node id (Cloudflare A → origin IP, proxied). */
 export const KITTY_API_NODE_DNS_SLUGS: Record<KittyApiNodeId, string> = {
-  primary: "sweden",
+  primary: "main",
   "third-choice": "bulgaria",
-  "fourth-choice": "singapore",
-  "fifth-choice": "netherlands",
-  "sixth-choice": "canada",
   "seventh-choice": "switzerland",
 };
 
@@ -121,21 +123,18 @@ export function extractKittyOriginIpv4(value: string | null | undefined): string
 
 const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "primary");
 const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "third-choice");
-const FOURTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FOURTH, "fourth-choice");
-const FIFTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_FIFTH, "fifth-choice");
-const SIXTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SIXTH, "sixth-choice");
 const SEVENTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SEVENTH, "seventh-choice");
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "primary",
     index: 1,
-    label: "Sweden",
+    label: "Main",
     dnsSlug: KITTY_API_NODE_DNS_SLUGS.primary,
     url: PRIMARY_URL,
     host: nodeHost(PRIMARY_URL),
-    location: "Sweden",
-    timezone: "Europe/Stockholm",
+    location: "Main",
+    timezone: "UTC",
   },
   {
     id: "third-choice",
@@ -148,38 +147,8 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
     timezone: "Europe/Sofia",
   },
   {
-    id: "fourth-choice",
-    index: 3,
-    label: "Singapore",
-    dnsSlug: KITTY_API_NODE_DNS_SLUGS["fourth-choice"],
-    url: FOURTH_URL,
-    host: nodeHost(FOURTH_URL),
-    location: "Singapore",
-    timezone: "Asia/Singapore",
-  },
-  {
-    id: "fifth-choice",
-    index: 4,
-    label: "Netherlands",
-    dnsSlug: KITTY_API_NODE_DNS_SLUGS["fifth-choice"],
-    url: FIFTH_URL,
-    host: nodeHost(FIFTH_URL),
-    location: "Netherlands",
-    timezone: "Europe/Amsterdam",
-  },
-  {
-    id: "sixth-choice",
-    index: 5,
-    label: "Canada",
-    dnsSlug: KITTY_API_NODE_DNS_SLUGS["sixth-choice"],
-    url: SIXTH_URL,
-    host: nodeHost(SIXTH_URL),
-    location: "Montreal, Canada",
-    timezone: "America/Toronto",
-  },
-  {
     id: "seventh-choice",
-    index: 6,
+    index: 3,
     label: "Switzerland",
     dnsSlug: KITTY_API_NODE_DNS_SLUGS["seventh-choice"],
     url: SEVENTH_URL,
@@ -189,7 +158,7 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   },
 ];
 
-/** Default preferred DNS node when the user has not picked one (Sweden). */
+/** Default preferred DNS node when the user has not picked one (Main). */
 export const DEFAULT_KITTY_API_NODE_ID: KittyApiNodeId = "primary";
 
 /** Legacy node ids that may still be stored in local settings / prefs. */
@@ -197,6 +166,13 @@ const LEGACY_KITTY_NODE_ALIASES: Record<string, KittyApiNodeId> = {
   secondary: "primary",
   fallback: "primary",
   main: "primary",
+  sweden: "primary",
+  "fourth-choice": "primary",
+  "fifth-choice": "primary",
+  "sixth-choice": "primary",
+  singapore: "primary",
+  netherlands: "primary",
+  canada: "primary",
 };
 
 export function getKittyApiNode(id: KittyApiNodeId): KittyApiNodeMeta {
@@ -216,15 +192,15 @@ function normalizeNodeOrigin(value: string): string {
     .replace(/\/+$/, "");
 }
 
-/** API registry id → site node id (retired Switzerland `secondary` → primary). */
+/** API registry id → site node id. */
 const API_NODE_ID_ALIASES: Record<string, KittyApiNodeId> = {
   primary: "primary",
   secondary: "primary",
   fallback: "primary",
   "third-choice": "third-choice",
-  "fourth-choice": "fourth-choice",
-  "fifth-choice": "fifth-choice",
-  "sixth-choice": "sixth-choice",
+  "fourth-choice": "primary",
+  "fifth-choice": "primary",
+  "sixth-choice": "primary",
   "seventh-choice": "seventh-choice",
 };
 
@@ -261,30 +237,29 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
     }
   }
 
-  if (normalized === "seventh-choice" || normalized === "seventhchoice" || normalized === "7") {
+  if (normalized === "seventh-choice" || normalized === "seventhchoice" || normalized === "3") {
     return "seventh-choice";
-  }
-  if (normalized === "sixth-choice" || normalized === "sixthchoice" || normalized === "6") {
-    return "sixth-choice";
-  }
-  if (normalized === "fifth-choice" || normalized === "fifthchoice" || normalized === "5") {
-    return "fifth-choice";
-  }
-  if (normalized === "fourth-choice" || normalized === "fourthchoice" || normalized === "4") {
-    return "fourth-choice";
   }
   if (
     normalized === "third-choice" ||
     normalized === "thirdchoice" ||
-    normalized === "3" ||
-    normalized === "2"
+    normalized === "2" ||
+    normalized === "bulgaria"
   ) {
     return "third-choice";
   }
-  if (normalized === "fallback" || normalized === "secondary") {
-    return "primary";
-  }
-  if (normalized === "primary" || normalized === "main" || normalized === "1" || normalized === "sweden") {
+  if (
+    normalized === "primary" ||
+    normalized === "main" ||
+    normalized === "1" ||
+    normalized === "sweden" ||
+    normalized === "fourth-choice" ||
+    normalized === "fifth-choice" ||
+    normalized === "sixth-choice" ||
+    normalized === "4" ||
+    normalized === "5" ||
+    normalized === "6"
+  ) {
     return "primary";
   }
   return DEFAULT_KITTY_API_NODE_ID;
