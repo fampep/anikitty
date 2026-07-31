@@ -56,6 +56,7 @@ export type SyncedUserPreferences = {
   notifyMentions?: boolean;
   notifyReplies?: boolean;
   notifyFollows?: boolean;
+  showAds?: boolean;
   seekStepSeconds?: PlayerSeekStep;
   playerTouchSeekEnabled?: boolean;
   autoEnableSubtitles?: boolean;
@@ -117,6 +118,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.notifyMentions === "boolean") out.notifyMentions = input.notifyMentions;
   if (typeof input.notifyReplies === "boolean") out.notifyReplies = input.notifyReplies;
   if (typeof input.notifyFollows === "boolean") out.notifyFollows = input.notifyFollows;
+  if (typeof input.showAds === "boolean") out.showAds = input.showAds;
   if (input.seekStepSeconds !== undefined) out.seekStepSeconds = sanitizeSeekStepSeconds(input.seekStepSeconds);
   if (typeof input.playerTouchSeekEnabled === "boolean") out.playerTouchSeekEnabled = input.playerTouchSeekEnabled;
   if (typeof input.autoEnableSubtitles === "boolean") out.autoEnableSubtitles = input.autoEnableSubtitles;

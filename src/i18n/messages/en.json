@@ -1003,6 +1003,21 @@
     "notifyRepliesDesc": "When someone replies to your comment",
     "notifyFollows": "New followers",
     "notifyFollowsDesc": "When someone follows you",
+    "ads": {
+      "title": "Ads",
+      "desc": "Light click ads help cover hosting and streaming costs",
+      "showAds": "Show site ads",
+      "showAdsDesc": "Turn off for your account only — guests still see ads",
+      "signInHint": "Sign in to turn site ads off for your account. Guests always see ads.",
+      "donationHint": "Love AniKitty?",
+      "donationLink": "Tip on Ko-fi",
+      "disableTitle": "Turn off ads?",
+      "disableBody": "Please consider keeping ads on so AniKitty can keep running — hosting and streaming are not cheap.",
+      "disableWarning": "You can still turn them off. Tips on Ko-fi also help if you prefer not to see ads.",
+      "keepAds": "Keep ads on",
+      "disableConfirm": "Turn off anyway"
+    },
+
     "privacy": "Privacy",
     "privacyDesc": "Control who can see your profile",
     "accountDeletion": "Account deletion",

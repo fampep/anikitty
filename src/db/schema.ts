@@ -26,7 +26,7 @@ export const users = pgTable("users", {
   themeColor: varchar("theme_color", { length: 7 }),
   role: varchar("role", { length: 20 }).notNull().default("user"),
   supporterUntil: timestamp("supporter_until"),
-  /** Legacy column — unused (site is ad-free). Kept for existing DB rows. */
+  /** Legacy column — ads preference now lives in preferences JSON / local settings. */
   showAds: boolean("show_ads").notNull().default(true),
   /** Cross-device synced kitty-settings subset (json). */
   preferences: jsonb("preferences").$type<Record<string, unknown>>().notNull().default({}),

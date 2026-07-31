@@ -197,6 +197,10 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
+  /** Monetag click ads — logged-in users may disable after confirmation. Guests always see ads. */
+  showAds: boolean;
+  setShowAds: (val: boolean) => void;
+
   /** Seconds to skip with keyboard shortcuts (← → / J L). */
   seekStepSeconds: PlayerSeekStep;
   setSeekStepSeconds: (seconds: PlayerSeekStep) => void;
@@ -438,6 +442,9 @@ export const useSettingsStore = create<ISettingsStore>()(
       notifyFollows: true,
       setNotifyFollows: (notifyFollows) => set({ notifyFollows }),
 
+      showAds: true,
+      setShowAds: (showAds) => set({ showAds }),
+
       seekStepSeconds: DEFAULT_PLAYER_SEEK_STEP,
       setSeekStepSeconds: (seekStepSeconds) => set({ seekStepSeconds: sanitizeSeekStepSeconds(seekStepSeconds) }),
 
@@ -479,7 +486,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 99,
+      version: 100,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -513,6 +520,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         notifyMentions: state.notifyMentions,
         notifyReplies: state.notifyReplies,
         notifyFollows: state.notifyFollows,
+        showAds: state.showAds,
         seekStepSeconds: state.seekStepSeconds,
         playerTouchSeekEnabled: state.playerTouchSeekEnabled,
         autoEnableSubtitles: state.autoEnableSubtitles,
@@ -986,9 +994,8 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.autoEnableSubtitles = true;
         }
         if (version < 69) {
-          // Site is ad-free — drop the old ads preference.
+          // Ads were removed site-wide; preference restored later (v100).
           delete (next as Record<string, unknown>).showBannerAds;
-          delete (next as Record<string, unknown>).showAds;
         }
         if (version < 70) {
           // Mirrored poster ambient on watch — on by default (dark look).
@@ -1227,6 +1234,11 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Senshi joins Recommended as #3; expand to 8 defaults.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 100) {
+          // Restore Monetag click ads; default on for everyone.
+          next.showAds = next.showAds ?? true;
+          delete (next as Record<string, unknown>).showBannerAds;
         }
         return next as ISettingsStore;
       },

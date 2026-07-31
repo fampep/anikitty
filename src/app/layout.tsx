@@ -23,6 +23,7 @@ import SettingsSync from "@/components/layout/settings-sync";
 import OnlinePresence from "@/components/common/online-presence";
 import { buildSurfaceFoucScript } from "@/lib/core/site-surface";
 import DisableDevtoolGuard from "@/components/security/disable-devtool-guard";
+import ClickAdsLoader from "@/components/ads/click-ads-loader";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -103,6 +104,9 @@ export const metadata: Metadata = {
     description: APP_DESCRIPTION,
     images: [SITE_LOGO_OG],
   },
+  other: {
+    monetag: "f3374b2b42202f0a62f67720001d46e8",
+  },
 };
 
 export const viewport = {
@@ -169,6 +173,7 @@ export default async function RootLayout({
       >
         <PwaRegister />
         <DisableDevtoolGuard />
+        <ClickAdsLoader />
         <I18nRoot initialLocale={locale}>
           <ThemeProvider
             attribute="class"

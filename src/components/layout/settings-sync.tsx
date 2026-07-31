@@ -56,6 +56,7 @@ function pickLocalSyncedPreferences(): SyncedUserPreferences {
     notifyMentions: s.notifyMentions,
     notifyReplies: s.notifyReplies,
     notifyFollows: s.notifyFollows,
+    showAds: s.showAds,
     seekStepSeconds: s.seekStepSeconds,
     playerTouchSeekEnabled: s.playerTouchSeekEnabled,
     autoEnableSubtitles: s.autoEnableSubtitles,
@@ -109,6 +110,7 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.notifyMentions !== undefined) patch.notifyMentions = prefs.notifyMentions;
   if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;
   if (prefs.notifyFollows !== undefined) patch.notifyFollows = prefs.notifyFollows;
+  if (prefs.showAds !== undefined) patch.showAds = prefs.showAds;
   if (prefs.seekStepSeconds !== undefined) {
     patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
   }
