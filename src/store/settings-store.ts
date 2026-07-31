@@ -486,7 +486,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 100,
+      version: 101,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1239,6 +1239,12 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Restore Monetag click ads; default on for everyone.
           next.showAds = next.showAds ?? true;
           delete (next as Record<string, unknown>).showBannerAds;
+        }
+        if (version < 101) {
+          // Switzerland removed; Netherlands is 3rd (seventh-choice) again.
+          next.kittyProxyNode = coerceKittyApiNodeId(
+            typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
+          );
         }
         return next as ISettingsStore;
       },

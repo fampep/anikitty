@@ -29,8 +29,8 @@ export type KittyApiNodeMeta = {
 const REMOVED_KITTY_HOST_MARKERS = [
   "45-150-111-153",
   "45.150.111.153",
-  "92-119-165-226",
-  "92.119.165.226",
+  "132-243-174-157",
+  "132.243.174.157",
   "176-125-240-251",
   "176.125.240.251",
   "143-246-195-251",
@@ -56,7 +56,7 @@ export const PUBLIC_KITTY_DNS_ZONE = "anikitty.online";
 export const KITTY_API_NODE_DNS_SLUGS: Record<KittyApiNodeId, string> = {
   primary: "main",
   "third-choice": "bulgaria",
-  "seventh-choice": "switzerland",
+  "seventh-choice": "netherlands",
 };
 
 export function kittyApiNodePublicHost(id: KittyApiNodeId): string {
@@ -149,12 +149,12 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "seventh-choice",
     index: 3,
-    label: "Switzerland",
+    label: "Netherlands",
     dnsSlug: KITTY_API_NODE_DNS_SLUGS["seventh-choice"],
     url: SEVENTH_URL,
     host: nodeHost(SEVENTH_URL),
-    location: "Switzerland",
-    timezone: "Europe/Zurich",
+    location: "Netherlands",
+    timezone: "Europe/Amsterdam",
   },
 ];
 
@@ -171,8 +171,9 @@ const LEGACY_KITTY_NODE_ALIASES: Record<string, KittyApiNodeId> = {
   "fifth-choice": "primary",
   "sixth-choice": "primary",
   singapore: "primary",
-  netherlands: "primary",
   canada: "primary",
+  switzerland: "primary",
+  netherlands: "seventh-choice",
 };
 
 export function getKittyApiNode(id: KittyApiNodeId): KittyApiNodeMeta {
@@ -237,7 +238,13 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
     }
   }
 
-  if (normalized === "seventh-choice" || normalized === "seventhchoice" || normalized === "3") {
+  if (
+    normalized === "seventh-choice" ||
+    normalized === "seventhchoice" ||
+    normalized === "3" ||
+    normalized === "netherlands" ||
+    normalized === "proxy"
+  ) {
     return "seventh-choice";
   }
   if (
@@ -253,6 +260,7 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
     normalized === "main" ||
     normalized === "1" ||
     normalized === "sweden" ||
+    normalized === "switzerland" ||
     normalized === "fourth-choice" ||
     normalized === "fifth-choice" ||
     normalized === "sixth-choice" ||

@@ -9,12 +9,12 @@ import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 export const KITTY_API_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
   primary: "91.208.206.177",
   "third-choice": "131.123.42.153",
-  "seventh-choice": "132.243.174.157",
+  "seventh-choice": "92.119.165.226",
 };
 
 const RETIRED_ORIGIN_IPS = new Set([
   "45.150.111.153",
-  "92.119.165.226",
+  "132.243.174.157",
   "176.125.240.251",
   "143.246.195.251",
   "23.111.15.143",
