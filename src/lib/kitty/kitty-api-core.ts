@@ -200,9 +200,9 @@ export function normalizeKittyApiUrl(url: string, nodeId?: KittyApiNodeId): stri
   try {
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase();
-    // With a known node, rewrite bare IPs / legacy hosts onto public DNS.
+    // Always rewrite bare IPv4 proxy origins onto public HTTPS DNS (mixed-content fix).
     const rewrite =
-      isKittyApiHost(host) || (Boolean(nodeId) && isBareIpv4Hostname(host));
+      isKittyApiHost(host) || isBareIpv4Hostname(host);
     if (!rewrite) return url;
 
     const baseUrl = new URL(kittyBase);
