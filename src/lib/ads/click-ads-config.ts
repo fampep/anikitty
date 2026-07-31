@@ -6,7 +6,7 @@ export const CLICK_AD_ZONE_ID_DEFAULT = 7275065;
 
 /** Default popunder script path (override via NEXT_PUBLIC_CLICK_AD_SCRIPT_SRC). */
 export const CLICK_AD_SCRIPT_SRC_DEFAULT =
-  `https://${CLICK_AD_DOMAIN}/c/Dn9G6.bi2x5/lRSAWsQL9oNJzcI-3/NyTfAG2qNZSR0y3uMNjscq1_MhDrYt5F`;
+  `https://${CLICK_AD_DOMAIN}/czDZ9.6ab/2a5Sl/SyWIQX9tNvzxIn3/N/TXAe2/N/SU0g3pM/jPcz1vMiDIYT5o`;
 
 type RuntimeEnvWindow = Window & { __ENV?: Record<string, string | undefined> };
 
