@@ -82,7 +82,7 @@ export async function POST(req: Request) {
 
     const authData = await buildAuthResponse(user, req);
     void grantDailyLoginKittycoins(getDb(), user.id);
-    return jsonWithAuthCookie(authData, authData.anisurgeToken);
+    return jsonWithAuthCookie(authData, authData.token);
   } catch (e) {
     console.error("[login]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

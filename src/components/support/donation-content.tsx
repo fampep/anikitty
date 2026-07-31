@@ -29,7 +29,7 @@ import {
 } from "@/lib/social/donation-config";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";
 import { useAuthStore } from "@/store/auth-store";
-import { authFromMeResponse } from "@/lib/oauth/anisurge";
+import { authFromMeResponse } from "@/lib/oauth/account";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { ROUTES } from "@/constants/routes";
 

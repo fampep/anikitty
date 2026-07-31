@@ -7,7 +7,7 @@ import { BulkSelectToolbar } from "@/components/common/bulk-select-toolbar";
 import { useBulkSelect } from "@/hooks/use-bulk-select";
 import { Check, ChevronLeft, ChevronRight, History, Pencil, Play, RefreshCw, X } from "lucide-react";
 import { useAuthHydrated, useAuthStore } from "@/store/auth-store";
-import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import { accountContinue } from "@/lib/oauth/account";
 import { WatchHistory } from "@/hooks/use-get-bookmark";
 import { useProgressStore } from "@/store/progress-store";
 import Link from "next/link";
@@ -354,7 +354,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
 
     setLoadError(false);
     const getProgress = useProgressStore.getState().getProgress;
-    anisurgeContinue
+    accountContinue
       .get(true, 14)
       .then((res) => {
         const data: any[] = res?.data ?? [];
@@ -398,7 +398,7 @@ const ContinueWatching = ({ loading = false }: Props) => {
     const prev = items;
     setItems((list) => list.filter((i) => !keys.has(itemKey(i))));
     try {
-      await Promise.all(toRemove.map((item) => anisurgeContinue.remove(item.id, item.episodeId)));
+      await Promise.all(toRemove.map((item) => accountContinue.remove(item.id, item.episodeId)));
       toRemove.forEach((item) => removeProgress(item.id, item.episodeId));
       if (auth?.id) {
         writeContinueCache(

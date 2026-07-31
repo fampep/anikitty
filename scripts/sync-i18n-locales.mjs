@@ -64,9 +64,6 @@ const forumChatPatch = {
       usernameRules: "Benutzername muss 3–25 Zeichen haben (Buchstaben, Zahlen, Unterstrich)",
     },
     settings: {
-      anisurgeLinkHint: "Verknüpfe dein Anisurge-Konto, um Listen und Fortschritt zu synchronisieren (optional).",
-      anisurgeTaken: "Dieses Anisurge-Konto ist bereits mit einem anderen Nutzer verknüpft",
-      anisurgeAlreadyLinked: "Du hast bereits ein Anisurge-Konto verknüpft",
     },
     forum: {
       title: "Forum",
@@ -170,9 +167,6 @@ const forumChatPatch = {
       usernameRules: "El usuario debe tener 3–25 caracteres (letras, números, guion bajo)",
     },
     settings: {
-      anisurgeLinkHint: "Vincula tu cuenta Anisurge para sincronizar listas y progreso (opcional).",
-      anisurgeTaken: "Esta cuenta Anisurge ya está vinculada a otro usuario",
-      anisurgeAlreadyLinked: "Ya tienes una cuenta Anisurge vinculada",
     },
     forum: {
       title: "Foro",
@@ -276,9 +270,6 @@ const forumChatPatch = {
       usernameRules: "O usuário deve ter 3–25 caracteres (letras, números, sublinhado)",
     },
     settings: {
-      anisurgeLinkHint: "Vincule sua conta Anisurge para sincronizar listas e progresso (opcional).",
-      anisurgeTaken: "Esta conta Anisurge já está vinculada a outro usuário",
-      anisurgeAlreadyLinked: "Você já tem uma conta Anisurge vinculada",
     },
     forum: {
       title: "Fórum",
@@ -382,9 +373,6 @@ const forumChatPatch = {
       usernameRules: "Brugernavn skal være 3–25 tegn (bogstaver, tal, understreg)",
     },
     settings: {
-      anisurgeLinkHint: "Tilknyt din Anisurge-konto for at synkronisere lister og fremskridt (valgfrit).",
-      anisurgeTaken: "Denne Anisurge-konto er allerede knyttet til en anden bruger",
-      anisurgeAlreadyLinked: "Du har allerede en Anisurge-konto tilknyttet",
     },
     forum: {
       title: "Forum",
@@ -488,9 +476,6 @@ const forumChatPatch = {
       usernameRules: "ユーザー名は3〜25文字（英数字、アンダースコア）",
     },
     settings: {
-      anisurgeLinkHint: "Anisurgeアカウントを連携してリストと進捗を同期（任意）。",
-      anisurgeTaken: "このAnisurgeアカウントは他のユーザーに連携済みです",
-      anisurgeAlreadyLinked: "Anisurgeアカウントは既に連携されています",
     },
     forum: {
       title: "フォーラム",
@@ -594,9 +579,6 @@ const forumChatPatch = {
       usernameRules: "사용자명은 3–25자(영문, 숫자, 밑줄)",
     },
     settings: {
-      anisurgeLinkHint: "Anisurge 계정을 연결해 목록과 진행 상황을 동기화하세요(선택).",
-      anisurgeTaken: "이 Anisurge 계정은 다른 사용자에 이미 연결되어 있습니다",
-      anisurgeAlreadyLinked: "이미 Anisurge 계정이 연결되어 있습니다",
     },
     forum: {
       title: "포럼",
@@ -700,9 +682,6 @@ const forumChatPatch = {
       usernameRules: "用户名须为 3–25 个字符（字母、数字、下划线）",
     },
     settings: {
-      anisurgeLinkHint: "关联 Anisurge 账户以同步列表和进度（可选）。",
-      anisurgeTaken: "该 Anisurge 账户已关联其他用户",
-      anisurgeAlreadyLinked: "您已关联 Anisurge 账户",
     },
     forum: {
       title: "论坛",
@@ -1095,7 +1074,7 @@ const inboxAlertsPatch = {
   },
 };
 
-const deprecatedAuthKeys = ["poweredBy", "signInAnisurge", "createAnisurge"];
+const deprecatedAuthKeys = ["poweredBy", "signInAnisurge", "createAnisurge", "anisurge", "anisurgeExternal", "anisurgeLinkHint", "anisurgeTaken", "anisurgeAlreadyLinked", "connectAnisurge", "anisurgePlaceholder", "anisurgePassword", "linkAnisurgeError", "linkSuccess", "unlinkSuccess"];
 
 const en = JSON.parse(fs.readFileSync(path.join(messagesDir, "en.json"), "utf8"));
 const enKeys = new Set(allKeys(en));

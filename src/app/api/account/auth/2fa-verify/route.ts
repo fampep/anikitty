@@ -56,13 +56,13 @@ export async function POST(req: Request) {
 
     if (!user.totpEnabled || !user.totpSecret) {
       const authData = await buildAuthResponse(user, req);
-      return jsonWithAuthCookie(authData, authData.anisurgeToken);
+      return jsonWithAuthCookie(authData, authData.token);
     }
 
     const decrypted = await decryptTotpSecretForUser(user.id, user.totpSecret);
     if (!decrypted.ok) {
       const authData = await buildAuthResponse(user, req);
-      return jsonWithAuthCookie(authData, authData.anisurgeToken);
+      return jsonWithAuthCookie(authData, authData.token);
     }
 
     if (!verifyTotpCode(decrypted.secret, String(code))) {
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     }
 
     const authData = await buildAuthResponse(user, req);
-    return jsonWithAuthCookie(authData, authData.anisurgeToken);
+    return jsonWithAuthCookie(authData, authData.token);
   } catch (e) {
     console.error("[2fa-verify]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

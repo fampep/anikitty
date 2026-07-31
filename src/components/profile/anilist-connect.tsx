@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
-import { anisurgeAuth, anilistSync } from "@/lib/oauth/anisurge";
+import { accountAuth, anilistSync } from "@/lib/oauth/account";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { Check, Link2, Link2Off, Loader2, RefreshCw } from "lucide-react";
@@ -35,7 +35,7 @@ function AnilistConnect() {
       return;
     }
     try {
-      const me = await anisurgeAuth.me();
+      const me = await accountAuth.me();
       setLinked(!!me.anilistLinked);
       setUsername(me.anilistUsername ?? null);
     } catch {

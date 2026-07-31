@@ -10,7 +10,7 @@ import {
   User, LogOut, BookMarked, Settings, Zap, Coins, History, Star,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
-import { anisurgeAuth, clearAnisurgeToken } from "@/lib/oauth/anisurge";
+import { accountAuth, clearAccountToken } from "@/lib/oauth/account";
 import { useUserLevel } from "@/hooks/use-user-level";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 import type { LevelTier } from "@/lib/user/user-level";
@@ -46,8 +46,8 @@ function NavbarAvatar({ auth }: Props) {
   const close = () => setOpen(false);
 
   const handleLogout = () => {
-    anisurgeAuth.logout();
-    clearAnisurgeToken();
+    accountAuth.logout();
+    clearAccountToken();
     auth.clearAuth();
     close();
   };
@@ -101,7 +101,7 @@ function NavbarAvatar({ auth }: Props) {
               </div>
               <div className="flex items-center gap-1 mt-0.5">
                 <Zap className="w-2.5 h-2.5 text-zinc-400/60 shrink-0" />
-                <p className="text-muted-foreground/80 dark:text-white/25 text-[10px] font-mono truncate">{t("nav.anisurge")}</p>
+                <p className="text-muted-foreground/80 dark:text-white/25 text-[10px] font-mono truncate">{t("nav.brand")}</p>
               </div>
             </div>
           </div>

@@ -3,11 +3,11 @@ import { useAnimeStore } from "@/store/anime-store";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  anisurgeWatchlist,
-  anisurgeProgress,
+  accountWatchlist,
+  accountProgress,
   statusToFolder,
   folderToStatus,
-} from "@/lib/oauth/anisurge";
+} from "@/lib/oauth/account";
 import { useProgressStore } from "@/store/progress-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
 
@@ -95,7 +95,7 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
     const fetch = async () => {
       try {
         if (initialLoadRef.current) setIsLoading(true);
-        const res = await anisurgeWatchlist.get(folder, per_page, offset);
+        const res = await accountWatchlist.get(folder, per_page, offset);
         const results: any[] = res?.results ?? [];
 
         // If filtering by animeID, narrow the results
@@ -136,7 +136,7 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
       const anilistId = meta?.anilistId ?? animeData?.anime?.info?.anilistId;
       const malId = meta?.malId ?? animeData?.anime?.info?.malId;
 
-      await anisurgeWatchlist.add({
+      await accountWatchlist.add({
         animeId,
         folder,
         ...(anilistId ? { anilistId } : {}),
@@ -179,7 +179,7 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
     const infoPoster = animeData?.anime?.info?.poster ?? undefined;
 
     try {
-      await anisurgeProgress.save(
+      await accountProgress.save(
         {
           animeId,
           ...(anilistId ? { anilistId } : {}),

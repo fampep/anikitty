@@ -98,14 +98,6 @@ const Footer = () => {
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">{t("footer.account")}</p>
             <NavLink href="/settings" label={t("footer.settings")} />
             <NavLink href={ROUTES.HISTORY} label={t("footer.history")} icon={<History className="w-3 h-3" />} />
-            <a
-              href="https://www.anisurge.lol/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-white/65"
-            >
-              {t("footer.anisurgeExternal")}
-            </a>
           </div>
 
           <div className="flex flex-col gap-3">

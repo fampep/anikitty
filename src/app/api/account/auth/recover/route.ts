@@ -92,7 +92,7 @@ export async function POST(req: Request) {
         recovered: true,
         message: "Password updated. Sign in with this password next time.",
       },
-      authData.anisurgeToken,
+      authData.token,
     );
   } catch (e) {
     console.error("[recover-with-code]", e);

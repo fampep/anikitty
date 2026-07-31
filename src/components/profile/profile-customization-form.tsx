@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Loader2, ImageIcon, Palette, Sparkles, Upload, Link2 } from "lucide-react";
 import { toast } from "sonner";
-import { anisurgeAuth } from "@/lib/oauth/anisurge";
+import { accountAuth } from "@/lib/oauth/account";
 import { THEME_COLOR_PRESETS, isValidThemeColor } from "@/lib/core/theme-color";
 import { MEDIA_URL_HINT } from "@/lib/core/media-url";
 import { withAuth } from "@/lib/auth/auth-fetch";
@@ -133,7 +133,7 @@ export default function ProfileCustomizationForm({
 
     setSaving(true);
     try {
-      await anisurgeAuth.updateProfile({
+      await accountAuth.updateProfile({
         avatarUrl: trimmedAvatar || null,
         bannerUrl: trimmedBanner || null,
         bio: bio.trim() || null,

@@ -11,7 +11,7 @@ import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
 import { useAuthStore } from "@/store/auth-store";
 import { useT } from "@/providers/i18n-provider";
-import { anisurgeAuth } from "@/lib/oauth/anisurge";
+import { accountAuth } from "@/lib/oauth/account";
 
 function scoreColor(score: number): string {
   if (score >= 9) return "#22d3ee";
@@ -63,7 +63,7 @@ export default function AnilistRateButton({
     }
     setLoading(true);
     try {
-      const me = await anisurgeAuth.me();
+      const me = await accountAuth.me();
       const isLinked = !!me.anilistLinked;
       setLinked(isLinked);
       if (!isLinked) return;

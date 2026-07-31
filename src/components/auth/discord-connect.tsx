@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
-import { anisurgeAuth } from "@/lib/oauth/anisurge";
+import { accountAuth } from "@/lib/oauth/account";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { CheckCircle2, LinkIcon, Loader2, Unlink } from "lucide-react";
 import { useT } from "@/providers/i18n-provider";
@@ -35,7 +35,7 @@ export default function DiscordConnect() {
       return;
     }
     try {
-      const me = await anisurgeAuth.me();
+      const me = await accountAuth.me();
       setLinked(!!me.discordLinked);
       setUsername(me.discordUsername ?? null);
     } catch {

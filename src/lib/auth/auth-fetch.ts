@@ -3,8 +3,8 @@ import { clientApiHeaders } from "@/lib/security/anti-scrape";
 /** Same-origin fetch with session cookie; optional legacy Bearer if an old localStorage token exists. */
 export function hasLikelyAuthSession(): boolean {
   if (typeof window === "undefined") return false;
-  // Legacy Anisurge localStorage token — cookie session is preferred.
-  if (localStorage.getItem("anisurgeToken") || localStorage.getItem("ak_token")) return true;
+  // Legacy localStorage tokens — cookie session is preferred.
+  if (localStorage.getItem("ak_token") || localStorage.getItem("anisurgeToken")) return true;
   // `ak_session` is HttpOnly (invisible here); kept for non-HttpOnly edge cases.
   return document.cookie.split(";").some((c) => {
     const trimmed = c.trim();

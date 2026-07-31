@@ -9,7 +9,7 @@ import { useProgressStore } from "@/store/progress-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { usePlayerSeekStore } from "@/store/player-seek-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
-import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import { accountContinue } from "@/lib/oauth/account";
 import dynamic from "next/dynamic";
 import {
   useGetKittyStream,
@@ -672,7 +672,7 @@ const VideoPlayerSection = () => {
       resumeReadyRef.current = true;
 
       if (auth) {
-        void anisurgeContinue
+        void accountContinue
           .getEpisode(animeSlug, episodeId)
           .then((r: { currentTime?: number; duration?: number }) => {
             if (cancelled) return;
@@ -720,7 +720,7 @@ const VideoPlayerSection = () => {
       };
     }
 
-    void anisurgeContinue
+    void accountContinue
       .getEpisode(animeSlug, episodeId)
       .then((r: { currentTime?: number; duration?: number }) => {
         if (cancelled) return;

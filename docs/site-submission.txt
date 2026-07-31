@@ -15,7 +15,7 @@ Ads: n — site is fully ad-free (no banners, popunders, or in-player ads). Opti
 Adjustable Player Speed: y
 Comments: y (per-anime comments, forum, live chat, DMs)
 Downloads: n (download UI exists but episode downloads are currently disabled)
-List Sync: AniList (OAuth connect + import/sync); optional Anisurge link for watchlist/progress — not MAL, Kitsu, or Simkl
+List Sync: AniList (OAuth connect + import/sync) — not MAL, Kitsu, or Simkl
 Picture-in-Picture: y
 Schedule: y (weekly airing schedule)
 Watermark: n (no branding burned into video streams)

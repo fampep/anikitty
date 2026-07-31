@@ -85,7 +85,7 @@ export async function POST(req: Request) {
     const authData = await buildAuthResponse(user, req);
     return jsonWithAuthCookie(
       { ...authData, recoveryCodes },
-      authData.anisurgeToken,
+      authData.token,
     );
   } catch (e) {
     console.error("[signup]", e);

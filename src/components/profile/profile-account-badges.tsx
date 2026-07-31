@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Fingerprint, ShieldCheck, Zap } from "lucide-react";
+import { Fingerprint, ShieldCheck } from "lucide-react";
 import AnilistIcon from "@/icons/anilist";
 import DiscordIcon from "@/icons/discord";
 import ProfileBadgePill from "@/components/profile/profile-badge-pill";
@@ -43,18 +43,6 @@ export default function ProfileAccountBadges({ badges }: { badges: AccountBadges
         : t("profile.badges.discord"),
       color: "#5865F2",
       icon: <DiscordIcon className={iconClass} />,
-    });
-  }
-
-  if (badges.anisurge) {
-    items.push({
-      key: "anisurge",
-      label: t("profile.badges.anisurge"),
-      title: badges.anisurgeUsername
-        ? `${t("profile.badges.anisurge")} · @${badges.anisurgeUsername}`
-        : t("profile.badges.anisurge"),
-      color: "#a1a1aa",
-      icon: <Zap className={iconClass} strokeWidth={2.25} />,
     });
   }
 

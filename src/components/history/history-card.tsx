@@ -21,7 +21,7 @@ import { formatWatchTime, progressPct, relativeTime, timeToFinishDays } from "@/
 import type { AnimeAggregate } from "@/lib/history/types";
 import { watchHref } from "@/hooks/use-history-dashboard";
 import { useBookmarkLabels } from "@/hooks/use-bookmark-labels";
-import { anisurgeContinue, anisurgeWatchlist, statusToFolder } from "@/lib/oauth/anisurge";
+import { accountContinue, accountWatchlist, statusToFolder } from "@/lib/oauth/account";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { toast } from "sonner";
 
@@ -49,7 +49,7 @@ export default function HistoryCard({ item, variant = "row", onNoteSave }: Props
   const finishDays = timeToFinishDays(item);
 
   const upsertList = async (status: string) => {
-    await anisurgeWatchlist.add({
+    await accountWatchlist.add({
       animeId: item.animeId,
       folder: statusToFolder(status),
       animeTitle: item.title,
@@ -87,7 +87,7 @@ export default function HistoryCard({ item, variant = "row", onNoteSave }: Props
     if (!ep?.episodeId) return;
     setBusy(true);
     try {
-      await anisurgeContinue.remove(item.animeId, ep.episodeId);
+      await accountContinue.remove(item.animeId, ep.episodeId);
       bump();
       toast.success(t("history.actions.removed"));
     } catch {

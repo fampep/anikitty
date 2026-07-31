@@ -5,7 +5,7 @@ import { Fingerprint, KeyRound, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { startRegistration } from "@simplewebauthn/browser";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { anisurgeAuth } from "@/lib/oauth/anisurge";
+import { accountAuth } from "@/lib/oauth/account";
 import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 
@@ -41,7 +41,7 @@ export default function PasskeysSection() {
   const loadPasskeys = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await anisurgeAuth.listPasskeys();
+      const data = await accountAuth.listPasskeys();
       setPasskeys(data.passkeys ?? []);
     } catch {
       toast.error(t("settings.passkeysLoadFailed"));
@@ -64,9 +64,9 @@ export default function PasskeysSection() {
 
     setBusy(true);
     try {
-      const { options, pendingToken } = await anisurgeAuth.passkeyRegisterOptions(name);
+      const { options, pendingToken } = await accountAuth.passkeyRegisterOptions(name);
       const response = await startRegistration({ optionsJSON: options });
-      await anisurgeAuth.passkeyRegisterVerify(pendingToken, response);
+      await accountAuth.passkeyRegisterVerify(pendingToken, response);
       toast.success(t("settings.passkeyAdded"));
       setDeviceName("");
       setShowAdd(false);
@@ -86,7 +86,7 @@ export default function PasskeysSection() {
   const handleRemove = async (id: string) => {
     setBusy(true);
     try {
-      await anisurgeAuth.deletePasskey(id);
+      await accountAuth.deletePasskey(id);
       toast.success(t("settings.passkeyRemoved"));
       setPasskeys((prev) => prev.filter((p) => p.id !== id));
     } catch (e: unknown) {

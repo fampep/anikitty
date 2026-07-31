@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Container from "@/components/layout/container";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { anisurgeAuth, authFromMeResponse } from "@/lib/oauth/anisurge";
+import { accountAuth, authFromMeResponse } from "@/lib/oauth/account";
 import { useAuthStore } from "@/store/auth-store";
 import { useT } from "@/providers/i18n-provider";
 
@@ -29,7 +29,7 @@ function TwoFactorForm() {
     }
     setLoading(true);
     try {
-      const data = await anisurgeAuth.verify2fa(token, totpCode);
+      const data = await accountAuth.verify2fa(token, totpCode);
       setAuth(authFromMeResponse(data));
       toast.success(t("auth.welcomeBack"));
       router.replace("/home");

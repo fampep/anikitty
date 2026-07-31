@@ -9,8 +9,6 @@ export type AccountBadges = {
   anilistUsername: string | null;
   discord: boolean;
   discordUsername: string | null;
-  anisurge: boolean;
-  anisurgeUsername: string | null;
   twoFactor: boolean;
   passkeys: boolean;
 };
@@ -26,7 +24,6 @@ export async function getAccountBadgesForUser(
         anilistUsername: users.anilistUsername,
         discordId: users.discordId,
         discordUsername: users.discordUsername,
-        anisurgeUsername: users.anisurgeUsername,
         totpEnabled: users.totpEnabled,
       })
       .from(users)
@@ -43,8 +40,6 @@ export async function getAccountBadgesForUser(
     anilistUsername: user?.anilistUsername ?? null,
     discord: !!user?.discordId,
     discordUsername: user?.discordUsername ?? null,
-    anisurge: !!user?.anisurgeUsername,
-    anisurgeUsername: user?.anisurgeUsername ?? null,
     twoFactor: user?.totpEnabled ?? false,
     passkeys: (passkeyCount?.count ?? 0) > 0,
   };

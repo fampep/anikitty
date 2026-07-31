@@ -310,7 +310,7 @@ export async function completeDiscordLogin(
     }
 
     const authData = await buildAuthResponse(user, req);
-    return { type: "success", token: authData.anisurgeToken };
+    return { type: "success", token: authData.token };
   } catch (e) {
     console.error("[discord oauth login]", e);
     return { type: "error", reason: "server" };

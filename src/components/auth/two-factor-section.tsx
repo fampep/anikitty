@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { Loader2, ShieldCheck, ShieldOff, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
-import { anisurgeAuth } from "@/lib/oauth/anisurge";
+import { accountAuth } from "@/lib/oauth/account";
 import { cn } from "@/lib/core/utils";
 
 type SetupData = {
@@ -24,7 +24,7 @@ export default function TwoFactorSection() {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await anisurgeAuth.get2faStatus();
+      const data = await accountAuth.get2faStatus();
       setEnabled(data.enabled);
     } catch {
       toast.error("Could not load 2FA status");
@@ -40,7 +40,7 @@ export default function TwoFactorSection() {
   const startSetup = async () => {
     setBusy(true);
     try {
-      const data = await anisurgeAuth.setup2fa();
+      const data = await accountAuth.setup2fa();
       setSetup(data);
       setCode("");
     } catch (e: unknown) {
@@ -58,7 +58,7 @@ export default function TwoFactorSection() {
     }
     setBusy(true);
     try {
-      await anisurgeAuth.enable2fa(code.trim());
+      await accountAuth.enable2fa(code.trim());
       toast.success("Two-factor authentication enabled");
       setSetup(null);
       setCode("");
@@ -78,7 +78,7 @@ export default function TwoFactorSection() {
     }
     setBusy(true);
     try {
-      await anisurgeAuth.disable2fa(code.trim());
+      await accountAuth.disable2fa(code.trim());
       toast.success("Two-factor authentication disabled");
       setCode("");
       setEnabled(false);

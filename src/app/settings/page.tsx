@@ -61,7 +61,6 @@ import AdsSettingsSection from "@/components/settings/ads-settings-section";
 import SeekStepSetting from "@/components/settings/seek-step-setting";
 import type { PlayerSeekStep } from "@/lib/player/seek-step";
 import DiscordConnect from "@/components/auth/discord-connect";
-import AnisurgeConnect from "@/components/auth/anisurge-connect";
 import { RoleBadge } from "@/components/profile/role-badge";
 import { useT } from "@/providers/i18n-provider";
 import { ROUTES } from "@/constants/routes";
@@ -1236,10 +1235,6 @@ export default function SettingsPage() {
                     <div>
                       <SubSectionTitle>{t("settings.anilist")}</SubSectionTitle>
                       <AnilistConnect />
-                    </div>
-                    <div className="border-t border-border dark:border-white/6 pt-6">
-                      <SubSectionTitle>{t("settings.anisurge")}</SubSectionTitle>
-                      <AnisurgeConnect />
                     </div>
                     <div className="border-t border-border dark:border-white/6 pt-6">
                       <SubSectionTitle>{t("settings.discord")}</SubSectionTitle>

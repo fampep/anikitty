@@ -30,8 +30,6 @@ export const users = pgTable("users", {
   showAds: boolean("show_ads").notNull().default(true),
   /** Cross-device synced kitty-settings subset (json). */
   preferences: jsonb("preferences").$type<Record<string, unknown>>().notNull().default({}),
-  anisurgeToken: text("anisurge_token"),
-  anisurgeUsername: varchar("anisurge_username", { length: 100 }),
   anilistAccessToken: text("anilist_access_token"),
   anilistUserId: integer("anilist_user_id"),
   anilistUsername: varchar("anilist_username", { length: 100 }),

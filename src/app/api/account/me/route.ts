@@ -31,7 +31,6 @@ export async function GET(req: Request) {
       role: users.role,
       supporterUntil: users.supporterUntil,
       discordBoosting: users.discordBoosting,
-      anisurgeUsername: users.anisurgeUsername,
       anilistUsername: users.anilistUsername,
       anilistAccessToken: users.anilistAccessToken,
       discordId: users.discordId,
@@ -66,13 +65,11 @@ export async function GET(req: Request) {
   const { anilistAccessToken: _token, ...safeUser } = user;
 
   return NextResponse.json({
-    anisurgeUserId: safeUser.id,
+    userId: safeUser.id,
     permissions,
     supporterUntil: user.supporterUntil?.toISOString() ?? null,
     discordBoosting: !!user.discordBoosting,
     kittycoinBalance: cosmetics.balance,
-    anisurgeLinked: !!safeUser.anisurgeUsername,
-    anisurgeUsername: safeUser.anisurgeUsername ?? null,
     anilistLinked: !!_token,
     anilistUsername: safeUser.anilistUsername ?? null,
     discordLinked: !!safeUser.discordId,
@@ -149,7 +146,7 @@ export async function PUT(req: Request) {
       });
 
     return NextResponse.json({
-      anisurgeUserId: user.id,
+      userId: user.id,
       user: {
         username: user.username,
         email: user.email,

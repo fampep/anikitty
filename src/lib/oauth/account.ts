@@ -3,23 +3,30 @@ const BFF = "/api/account";
 import { IAuth } from "@/store/auth-store";
 import { withAuth } from "@/lib/auth/auth-fetch";
 
+const LEGACY_TOKEN_KEYS = ["anisurgeToken", "ak_token"] as const;
+
 // ── Token management ────────────────────────────────────────────────
-export function getAnisurgeToken(): string | null {
+export function getAccountToken(): string | null {
   if (typeof window === "undefined") return null;
-  return localStorage.getItem("anisurgeToken");
+  for (const key of LEGACY_TOKEN_KEYS) {
+    const v = localStorage.getItem(key);
+    if (v) return v;
+  }
+  return null;
 }
-/** Legacy no-op: sessions use HttpOnly cookies; clears old localStorage tokens. */
-export function setAnisurgeToken() {
-  localStorage.removeItem("anisurgeToken");
-}
-export function clearAnisurgeToken() {
-  localStorage.removeItem("anisurgeToken");
+
+/** Sessions use HttpOnly cookies; clears old localStorage tokens. */
+export function clearAccountToken() {
+  if (typeof window === "undefined") return;
+  for (const key of LEGACY_TOKEN_KEYS) {
+    localStorage.removeItem(key);
+  }
 }
 
 export function authFromMeResponse(data: Record<string, unknown>): IAuth {
   const user = (data.user ?? data) as Record<string, unknown>;
   return {
-    id: String(data.anisurgeUserId ?? user.id ?? ""),
+    id: String(data.userId ?? user.id ?? ""),
     username: String(user.username ?? ""),
     email: String(user.email ?? ""),
     avatar: String(user.customPfpUrl ?? user.avatarUrl ?? ""),
@@ -101,12 +108,8 @@ export function folderToStatus(folder: string): string {
 }
 
 // ── Auth ─────────────────────────────────────────────────────────────
-export const anisurgeAuth = {
+export const accountAuth = {
   login: (identifier: string, password: string) =>
-    bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
-
-  /** @deprecated Use login() — kept for compatibility */
-  loginWithAnisurge: (identifier: string, password: string) =>
     bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
 
   verify2fa: (pendingToken: string, code: string) =>
@@ -182,10 +185,6 @@ export const anisurgeAuth = {
   signup: (username: string, email: string, password: string) =>
     bff("/auth/signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
 
-  /** @deprecated Use signup() — kept for compatibility */
-  signupWithAnisurge: (username: string, email: string, password: string) =>
-    bff("/auth/signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
-
   logout: () =>
     bff("/auth/logout", { method: "POST" }).catch(() => {}),
 
@@ -200,7 +199,7 @@ export const anisurgeAuth = {
 };
 
 // ── Watchlist ────────────────────────────────────────────────────────
-export const anisurgeWatchlist = {
+export const accountWatchlist = {
   get: (folder?: string, limit = 20, offset = 0) =>
     bff(`/watchlist?${folder ? `folder=${encodeURIComponent(folder)}&` : ""}limit=${limit}&offset=${offset}`),
 
@@ -236,7 +235,7 @@ export const anilistSync = {
 };
 
 // ── Progress ─────────────────────────────────────────────────────────
-export const anisurgeProgress = {
+export const accountProgress = {
   save: (
     body: {
       animeId: string;
@@ -263,7 +262,7 @@ export const anisurgeProgress = {
 };
 
 // ── Continue watching ────────────────────────────────────────────────
-export const anisurgeContinue = {
+export const accountContinue = {
   get: (latestPerAnime = false, limit = 50, offset = 0) =>
     bff(
       `/watch/continue?${latestPerAnime ? "latestPerAnime=true&" : ""}limit=${limit}&offset=${offset}`,

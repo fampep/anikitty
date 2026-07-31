@@ -40,7 +40,7 @@ import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IAnime } from "@/types/anime";
 import useBookMarks from "@/hooks/use-get-bookmark";
-import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import { accountContinue } from "@/lib/oauth/account";
 import { useAuthStore } from "@/store/auth-store";
 import { toast } from "sonner";
 import { useGetAllEpisodes } from "@/query/anime/get-all-episodes";
@@ -209,7 +209,7 @@ const Layout = (props: Props) => {
       if (!target) return;
       if (auth && !isLatest) {
         try {
-          const res = await anisurgeContinue.getByAnime(animeId, 1);
+          const res = await accountContinue.getByAnime(animeId, 1);
           const latest = res?.data?.[0];
           if (latest?.episodeId) {
             const resumeEp = findPlayableEpisode(episodes.episodes, latest.episodeId);

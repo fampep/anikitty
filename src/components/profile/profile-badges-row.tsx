@@ -25,7 +25,6 @@ export default function ProfileBadgesRow({
   const hasAccount = accountBadges && (
     accountBadges.anilist ||
     accountBadges.discord ||
-    accountBadges.anisurge ||
     accountBadges.twoFactor ||
     accountBadges.passkeys
   );

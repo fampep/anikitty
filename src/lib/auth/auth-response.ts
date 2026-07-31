@@ -41,8 +41,8 @@ export async function buildAuthResponse(user: UserRow, req: Request) {
   const permissions = await getRolePermissions(db, effectiveRole);
 
   return {
-    anisurgeToken: token,
-    anisurgeUserId: user.id,
+    token,
+    userId: user.id,
     permissions,
     supporterUntil: user.supporterUntil?.toISOString() ?? null,
     user: {

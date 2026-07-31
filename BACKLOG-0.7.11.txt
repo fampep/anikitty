@@ -69,8 +69,8 @@ H2  Guests always see ads — settings/FAQ unclear
 H3  Home rails dense after 0.7.9 — hierarchy/empty states
 H4  Schedule hooks ignore exhaustive-deps
 H5  Profile level progress bars need progressbar a11y
-H6  Legacy Anisurge link still in Connections
-H7  anisurgeToken naming still in auth paths
+H6  (done) Removed external account link in Connections
+H7  (done) Auth paths renamed off legacy affiliate naming
 
 ================================================================
 ADS / SECURITY / HLS
@@ -94,7 +94,7 @@ I1  Only en.json actually used — locale plumbing stub
 I2  Global scroll-behavior:smooth ignores prefers-reduced-motion
 I3  Voice-actors page hardcoded English errors
 I4  FAQ ad claims vs click-ads script scope — verify
-D1  Legacy Bearer anisurgeToken in auth-fetch
+D1  (done) Legacy Bearer localStorage keys only for migration
 D2  Deprecated supporter-access / subtitle legacy aliases cleanup
 D3  LEGACY_MEGAPLAY provider IDs still mapped
 D4  SUBTITLE_LEGACY_PROVIDERS still ranked

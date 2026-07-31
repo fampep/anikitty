@@ -72,7 +72,6 @@ const COMPONENT_MOVES = {
     "active-sessions-section.tsx",
     "account-deletion-section.tsx",
     "discord-connect.tsx",
-    "anisurge-connect.tsx",
   ],
   layout: [
     "navbar.tsx",
@@ -113,7 +112,7 @@ const LIB_MOVES = {
     "anilist-sync.ts",
     "anilist-import.ts",
     "anilist.ts",
-    "anisurge.ts",
+    "account.ts",
   ],
   kitty: [
     "kitty-api.ts",

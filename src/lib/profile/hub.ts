@@ -26,7 +26,7 @@ export const PROFILE_HUB_TABS = [
 
 export type ProfileHubTab = (typeof PROFILE_HUB_TABS)[number];
 
-/** Map hub list tabs → watchlist status strings used by AnimeLists / anisurge. */
+/** Map hub list tabs → watchlist status strings used by AnimeLists. */
 export const HUB_TAB_TO_STATUS: Record<
   Extract<ProfileHubTab, "watching" | "completed" | "planning" | "dropped">,
   string

@@ -967,7 +967,7 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "kittyapi"
     ],
     "title": "Analytics and third parties",
-    "answer": "Google Analytics for page views, KittyAPI for streams, AniList if you connect it, optional Anisurge if you link an account, and external Discord/GitHub/Ko-fi/Telegram links.",
+    "answer": "Google Analytics for page views, KittyAPI for streams, AniList if you connect it, and external Discord/GitHub/Ko-fi/Telegram links.",
     "updatedAt": "2026-07-25",
     "order": 30,
     "popularity": 27,

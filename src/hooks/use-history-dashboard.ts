@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { useProgressStore } from "@/store/progress-store";
-import { anisurgeContinue, anisurgeWatchlist, folderToStatus } from "@/lib/oauth/anisurge";
+import { accountContinue, accountWatchlist, folderToStatus } from "@/lib/oauth/account";
 import { getRecentlyViewed, type RecentlyViewedAnime } from "@/lib/core/recently-viewed";
 import { getHistoryNotes, loadHistoryNotes, setHistoryNote, type HistoryNotesMap } from "@/lib/history/notes";
 import {
@@ -122,7 +122,7 @@ async function fetchAllProgress(): Promise<ProgressEntry[]> {
   const all: ProgressEntry[] = [];
   let offset = 0;
   for (;;) {
-    const res = await anisurgeContinue.get(false, PROGRESS_PAGE, offset);
+    const res = await accountContinue.get(false, PROGRESS_PAGE, offset);
     const rows = (res?.data ?? []) as Record<string, unknown>[];
     for (const r of rows) {
       const mapped = mapProgressRow(r);
@@ -151,7 +151,7 @@ async function fetchAllWatchlist(): Promise<WatchlistMeta[]> {
   const all: WatchlistMeta[] = [];
   let offset = 0;
   for (;;) {
-    const res = await anisurgeWatchlist.get(undefined, LIST_PAGE, offset);
+    const res = await accountWatchlist.get(undefined, LIST_PAGE, offset);
     const rows = (res?.results ?? []) as Record<string, unknown>[];
     for (const r of rows) {
       const mapped = mapWatchlistRow(r);

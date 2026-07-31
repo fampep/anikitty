@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { getAnimeProgressEntries, useProgressStore } from "@/store/progress-store";
-import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import { accountContinue } from "@/lib/oauth/account";
 import type { WatchHistory } from "@/hooks/use-get-bookmark";
 
 function mergeEpisodeProgress(
@@ -51,7 +51,7 @@ export function useEpisodeProgress(animeId: string | null): WatchHistory[] {
       return;
     }
 
-    anisurgeContinue
+    accountContinue
       .getByAnime(animeId)
       .then((res: { data?: Array<Record<string, unknown>> }) => {
         const data = res?.data ?? [];

@@ -104,5 +104,5 @@ export async function POST(req: Request) {
   }
 
   const authData = await buildAuthResponse(user, req);
-  return jsonWithAuthCookie(authData, authData.anisurgeToken);
+  return jsonWithAuthCookie(authData, authData.token);
 }

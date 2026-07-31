@@ -6,7 +6,7 @@ import Container from "@/components/layout/container";
 import { ROUTES } from "@/constants/routes";
 import { getRecentlyViewed } from "@/lib/core/recently-viewed";
 import { useAuthStore } from "@/store/auth-store";
-import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import { accountContinue } from "@/lib/oauth/account";
 import { useT } from "@/providers/i18n-provider";
 import type { IAnime } from "@/types/anime";
 import HomeCompactPoster from "./home-compact-poster";
@@ -27,7 +27,7 @@ export default function HomeBecauseYouWatched() {
     async function resolveSeed(): Promise<Seed | null> {
       if (auth?.id) {
         try {
-          const res = await anisurgeContinue.get(true, 1);
+          const res = await accountContinue.get(true, 1);
           const row = res?.data?.[0];
           if (row?.animeId) {
             const title =

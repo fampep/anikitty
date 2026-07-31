@@ -6,7 +6,7 @@ import { BulkSelectToolbar } from "@/components/common/bulk-select-toolbar";
 import { ROUTES } from "@/constants/routes";
 import useBookMarks, { type Bookmark, type WatchHistory } from "@/hooks/use-get-bookmark";
 import { useBulkSelect } from "@/hooks/use-bulk-select";
-import { anisurgeContinue, anisurgeWatchlist, folderToStatus, statusToFolder } from "@/lib/oauth/anisurge";
+import { accountContinue, accountWatchlist, folderToStatus, statusToFolder } from "@/lib/oauth/account";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { useAuthStore } from "@/store/auth-store";
 import { useWatchlistStore } from "@/store/watchlist-store";
@@ -130,7 +130,7 @@ function AnimeLists({ status, username, isOwn }: Props) {
   const [progressMap, setProgressMap] = useState<Record<string, WatchHistory>>({});
   useEffect(() => {
     if (!isOwn || !auth) return;
-    anisurgeContinue.get(true, 100).then((res: any) => {
+    accountContinue.get(true, 100).then((res: any) => {
       const data: any[] = res?.data ?? [];
       const map: Record<string, WatchHistory> = {};
       data.forEach((r: any) => {
@@ -172,7 +172,7 @@ function AnimeLists({ status, username, isOwn }: Props) {
     setRemoving(true);
     setHiddenIds((prev) => new Set([...prev, ...animeIds]));
     try {
-      await Promise.all(animeIds.map((id) => anisurgeWatchlist.remove(id)));
+      await Promise.all(animeIds.map((id) => accountWatchlist.remove(id)));
       bumpWatchlist();
       bulk.exitEdit();
       setConfirmOpen(false);

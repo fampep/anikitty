@@ -73,7 +73,7 @@
     "watchHistory": "My List",
     "settings": "Settings",
     "signOut": "Sign out",
-    "anisurge": "Anisurge",
+    "brand": "AniKitty",
     "kittycoins": "Kittycoins"
   },
   "site": {
@@ -126,8 +126,7 @@
     "discord": "Discord",
     "telegram": "Telegram",
     "donate": "Support us",
-    "kittyApi": "KittyAPI ↗",
-    "anisurgeExternal": "Anisurge ↗"
+    "kittyApi": "KittyAPI ↗"
   },
   "history": {
     "title": "Watch History",
@@ -1074,7 +1073,6 @@
     "connectedAccounts": "Connected Accounts",
     "connectedDesc": "Sync your watchlist and history from other services",
     "anilist": "AniList",
-    "anisurge": "Anisurge",
     "discord": "Discord",
     "connectDiscord": "Connect Discord",
     "discordLinkSuccess": "Discord account connected!",
@@ -1145,17 +1143,6 @@
     "loading": "Loading…",
     "connected": "Connected",
     "disconnect": "Disconnect",
-    "anisurgeLinkHint": "Link your Anisurge account to sync watchlists and progress (optional).",
-    "anisurgeTaken": "This Anisurge account is already linked to another user",
-    "anisurgeAlreadyLinked": "You already have an Anisurge account linked",
-    "connectAnisurge": "Connect Anisurge",
-    "anisurgePlaceholder": "Anisurge username or email",
-    "anisurgePassword": "Anisurge password",
-    "linkAnisurgeError": "Enter your Anisurge username/email and password",
-    "linkSuccess": "Anisurge account linked!",
-    "linkFailed": "Link failed",
-    "unlinkSuccess": "Anisurge account unlinked",
-    "unlinkFailed": "Failed to unlink",
     "subtitleAppearance": "Subtitle Appearance",
     "subtitleAppearanceDesc": "Customize how subtitles look in the video player",
     "autoEnableSubtitles": "Auto-enable subtitles",
@@ -1295,7 +1282,6 @@
     "badges": {
       "anilist": "AniList",
       "discord": "Discord",
-      "anisurge": "Anisurge",
       "twoFactor": "2FA",
       "passkey": "Passkey",
       "ranksLabel": "Ranks",

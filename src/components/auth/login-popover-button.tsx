@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
 import { Loader2, LogIn, UserPlus, ShieldCheck, Fingerprint } from "lucide-react";
-import { anisurgeAuth, authFromMeResponse } from "@/lib/oauth/anisurge";
+import { accountAuth, authFromMeResponse } from "@/lib/oauth/account";
 import { useT } from "@/providers/i18n-provider";
 import { DiscordIcon } from "@/components/auth/discord-connect";
 import { useDiscordAuthEnabled } from "@/hooks/use-discord-auth-enabled";
@@ -70,7 +70,7 @@ function LoginPopoverButton({
     }
     setLoading(true);
     try {
-      const data = await anisurgeAuth.login(identifier.trim(), password);
+      const data = await accountAuth.login(identifier.trim(), password);
       if (data.requires2fa && data.pendingToken) {
         setPendingToken(data.pendingToken);
         setTab("2fa");
@@ -95,7 +95,7 @@ function LoginPopoverButton({
     }
     setLoading(true);
     try {
-      const data = await anisurgeAuth.verify2fa(pendingToken, totpCode);
+      const data = await accountAuth.verify2fa(pendingToken, totpCode);
       syncAuth(data);
       toast.success(t("auth.welcomeBack"));
       setOpen(false);
@@ -122,7 +122,7 @@ function LoginPopoverButton({
     }
     setLoading(true);
     try {
-      const data = await anisurgeAuth.signup(username.trim(), email.trim(), signupPassword);
+      const data = await accountAuth.signup(username.trim(), email.trim(), signupPassword);
       syncAuth(data);
       const codes = Array.isArray((data as { recoveryCodes?: string[] }).recoveryCodes)
         ? (data as { recoveryCodes: string[] }).recoveryCodes
@@ -192,9 +192,9 @@ function LoginPopoverButton({
   const handlePasskeyLogin = async () => {
     setLoading(true);
     try {
-      const { options, pendingToken } = await anisurgeAuth.passkeyLoginOptions();
+      const { options, pendingToken } = await accountAuth.passkeyLoginOptions();
       const response = await startAuthentication({ optionsJSON: options });
-      const data = await anisurgeAuth.passkeyLoginVerify(pendingToken, response);
+      const data = await accountAuth.passkeyLoginVerify(pendingToken, response);
       if (data.requires2fa && data.pendingToken) {
         setPendingToken(data.pendingToken);
         setTab("2fa");

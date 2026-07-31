@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { KeyRound, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
-import { anisurgeAuth, authFromMeResponse } from "@/lib/oauth/anisurge";
+import { accountAuth, authFromMeResponse } from "@/lib/oauth/account";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
@@ -29,7 +29,7 @@ export default function AccountRecoverySection() {
   const refresh = useCallback(async () => {
     try {
       const [me, codesRes] = await Promise.all([
-        anisurgeAuth.me(),
+        accountAuth.me(),
         fetch("/api/account/auth/recovery-codes", withAuth()).then((r) =>
           r.ok ? r.json() : { remaining: 0 },
         ),

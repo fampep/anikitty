@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, MonitorSmartphone, LogOut, CheckSquare, Square } from "lucide-react";
 import { toast } from "sonner";
-import { anisurgeAuth, clearAnisurgeToken } from "@/lib/oauth/anisurge";
+import { accountAuth, clearAccountToken } from "@/lib/oauth/account";
 import { useAuthStore } from "@/store/auth-store";
 import { cn } from "@/lib/core/utils";
 
@@ -40,7 +40,7 @@ export default function ActiveSessionsSection() {
   const loadSessions = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await anisurgeAuth.getSessions();
+      const data = await accountAuth.getSessions();
       setSessions(data.sessions);
       setSelected(new Set());
     } catch {
@@ -71,7 +71,7 @@ export default function ActiveSessionsSection() {
 
   const handleRevokedCurrent = (currentRevoked: boolean) => {
     if (currentRevoked) {
-      clearAnisurgeToken();
+      clearAccountToken();
       clearAuth();
       toast.success("Signed out on this device");
     }
@@ -84,7 +84,7 @@ export default function ActiveSessionsSection() {
     }
     setBusy(true);
     try {
-      const result = await anisurgeAuth.revokeSessions([...selected]);
+      const result = await accountAuth.revokeSessions([...selected]);
       toast.success(
         result.revoked.length === 1
           ? "Signed out 1 device"
@@ -103,7 +103,7 @@ export default function ActiveSessionsSection() {
   const revokeAllOthers = async () => {
     setBusy(true);
     try {
-      const result = await anisurgeAuth.revokeOtherSessions();
+      const result = await accountAuth.revokeOtherSessions();
       toast.success(
         result.revoked.length === 0
           ? "No other active sessions"

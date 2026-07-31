@@ -36,7 +36,7 @@ import { formatAnimeType } from "./home-shared";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
 import { pickAnimeClearLogo } from "@/lib/anime/anime-logo";
 import { useGetAnimeMappings } from "@/query/anime/get-anime-mappings";
-import { anisurgeContinue } from "@/lib/oauth/anisurge";
+import { accountContinue } from "@/lib/oauth/account";
 import { useProgressStore } from "@/store/progress-store";
 
 function stripHtml(html: string): string {
@@ -86,7 +86,7 @@ const HeroSection = ({ spotlightAnime, isDataLoading, onActivePosterChange }: IH
     if (!auth?.id || !spotlightAnime?.length) return;
     let cancelled = false;
     const getProgress = useProgressStore.getState().getProgress;
-    anisurgeContinue
+    accountContinue
       .get(true, 20)
       .then((res) => {
         if (cancelled) return;

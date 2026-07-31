@@ -203,9 +203,9 @@ export async function migrateDb() {
     // Add columns introduced after initial table creation — each isolated so one
     // failure does not prevent the rest from running.
     const alters = [
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_token TEXT`,
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS anisurge_username VARCHAR(100)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_access_token TEXT`,
+      `ALTER TABLE users DROP COLUMN IF EXISTS anisurge_token`,
+      `ALTER TABLE users DROP COLUMN IF EXISTS anisurge_username`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_user_id INTEGER`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS anilist_username VARCHAR(100)`,
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS mal_access_token TEXT`,

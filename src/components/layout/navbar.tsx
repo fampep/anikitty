@@ -11,7 +11,7 @@ import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
 import NavbarAvatar from "./navbar-avatar";
 import NotificationBell from "./notification-bell";
-import { anisurgeAuth, clearAnisurgeToken, authFromMeResponse } from "@/lib/oauth/anisurge";
+import { accountAuth, clearAccountToken, authFromMeResponse } from "@/lib/oauth/account";
 import { hasLikelyAuthSession } from "@/lib/auth/auth-fetch";
 import { usePathname } from "next/navigation";
 import { useT } from "@/providers/i18n-provider";
@@ -92,12 +92,12 @@ const NavBar = () => {
       void (async () => {
         // Always probe once — HttpOnly session cookies are invisible to JS.
         try {
-          const me = await anisurgeAuth.me();
+          const me = await accountAuth.me();
           if (!cancelled) setAuth(authFromMeResponse(me));
         } catch (e: unknown) {
           const status = (e as { status?: number })?.status;
           if (!cancelled && status === 401 && hasLikelyAuthSession()) {
-            clearAnisurgeToken();
+            clearAccountToken();
             clearAuth();
           }
         }
@@ -134,7 +134,7 @@ const NavBar = () => {
 
     if (discord === "welcome") {
       toast.success(t("auth.discordWelcome"));
-      void anisurgeAuth
+      void accountAuth
         .me()
         .then((me) => setAuth(authFromMeResponse(me)))
         .catch(() => {});
