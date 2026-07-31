@@ -1,6 +1,10 @@
 import { queryAniListSearch, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
+import {
+  searchLocalAnimeMetadata,
+  upsertAnimeMetadataHints,
+} from "@/lib/anime/anime-metadata-store";
 import { genres as GENRE_OPTIONS } from "@/constants/search-filters";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
@@ -196,6 +200,23 @@ export async function GET(request: Request) {
 
     const media = raw?.Page?.media ?? [];
 
+    if (media.length > 0) {
+      void upsertAnimeMetadataHints(
+        media.map((m: any) => ({
+          anilistId: Number(m.id),
+          title: toTitle(m.title),
+          titleEnglish: m.title?.english ?? null,
+          titleRomaji: m.title?.romaji ?? null,
+          coverImage: m.coverImage?.large ?? null,
+          episodes: typeof m.episodes === "number" ? m.episodes : null,
+          format: m.format ?? null,
+          status: m.status ?? null,
+          seasonYear: typeof m.seasonYear === "number" ? m.seasonYear : null,
+          averageScore: typeof m.averageScore === "number" ? m.averageScore : null,
+        })),
+      );
+    }
+
     const mapSuggestion = (m: any) => ({
       id: String(m.id),
       name: toTitle(m.title),
@@ -217,7 +238,27 @@ export async function GET(request: Request) {
       status: m.status ?? null,
     });
 
-    const allSuggestions = media.map(mapSuggestion);
+    let allSuggestions = media.map(mapSuggestion);
+
+    // AniList miss → local title cache for typeahead anime results.
+    if (!raw && allSuggestions.length === 0) {
+      const local = await searchLocalAnimeMetadata(q, 8).catch(() => []);
+      allSuggestions = local.map((m) => ({
+        id: String(m.anilistId),
+        name: m.title || m.titleEnglish || m.titleRomaji || "Unknown",
+        jname: m.titleRomaji ?? "",
+        poster: m.coverImage ?? "",
+        type: toFormat(m.format),
+        episodes: { sub: m.episodes ?? 0, dub: 0 },
+        moreInfo: [
+          m.seasonYear ? String(m.seasonYear) : null,
+          m.episodes ? `${m.episodes} eps` : null,
+          m.averageScore ? `${(m.averageScore / 10).toFixed(1)}★` : null,
+        ].filter(Boolean) as string[],
+        status: m.status ?? null,
+      }));
+    }
+
     const movies = allSuggestions.filter((s: { type: string }) => /movie/i.test(s.type));
     const animeOnly = allSuggestions.filter((s: { type: string }) => !/movie/i.test(s.type));
 
@@ -267,7 +308,13 @@ export async function GET(request: Request) {
 
     // Complete AniList failure with nothing local → retryable so the client
     // doesn't treat a blip as permanent "no results".
-    if (!raw && genreMatches.length === 0 && userRows.length === 0) {
+    if (
+      !raw &&
+      enrichedAnime.length === 0 &&
+      enrichedMovies.length === 0 &&
+      genreMatches.length === 0 &&
+      userRows.length === 0
+    ) {
       return Response.json(
         { error: "Search temporarily unavailable", data: EMPTY_PAYLOAD },
         {

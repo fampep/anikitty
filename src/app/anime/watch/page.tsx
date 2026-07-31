@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { queryAniList } from "@/lib/oauth/anilist";
+import { getBatchStoredAnimeMeta } from "@/lib/anime/anime-metadata-store";
 import { watchEpisodeDescription } from "@/lib/seo/site-seo";
 import VideoPlayerSection from "@/components/watch/video-player-section";
 
@@ -35,18 +36,37 @@ export async function generateMetadata({
   }
 
   try {
-    const data = await queryAniList(META_QUERY, { id: numId });
-    const m = data?.Media;
-    if (!m) return { title: "Watch | AniKitty" };
+    let animeName = "Anime";
+    let image: string | undefined;
+    let isBanner = false;
 
-    const animeName = m.title.english || m.title.romaji || "Anime";
+    const cached = (await getBatchStoredAnimeMeta([numId])).get(numId);
+    if (cached?.title || cached?.coverImage || cached?.bannerImage) {
+      animeName = cached.titleEnglish || cached.titleRomaji || cached.title || "Anime";
+      if (cached.bannerImage) {
+        image = cached.bannerImage;
+        isBanner = true;
+      } else {
+        image = cached.coverImage || undefined;
+      }
+    } else {
+      const data = await queryAniList(META_QUERY, { id: numId });
+      const m = data?.Media;
+      if (!m) return { title: "Watch | AniKitty" };
+      animeName = m.title.english || m.title.romaji || "Anime";
+      if (m.bannerImage) {
+        image = m.bannerImage;
+        isBanner = true;
+      } else {
+        image = m.coverImage?.extraLarge || undefined;
+      }
+    }
+
     const title = epNum
       ? `${animeName} — Episode ${epNum} | AniKitty`
       : `${animeName} | AniKitty`;
 
     const desc = watchEpisodeDescription(animeName, epNum);
-
-    const image = m.bannerImage || m.coverImage?.extraLarge;
 
     return {
       title,
@@ -59,8 +79,8 @@ export async function generateMetadata({
         ...(image && {
           images: [{
             url: image,
-            width: m.bannerImage ? 1920 : 460,
-            height: m.bannerImage ? 1080 : 650,
+            width: isBanner ? 1920 : 460,
+            height: isBanner ? 1080 : 650,
             alt: animeName,
           }],
         }),

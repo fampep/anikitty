@@ -2,6 +2,10 @@ import { queryAniListSearch, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { slugsToAniListGenres } from "@/lib/search/genre-filters";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
+import {
+  searchLocalAnimeMetadata,
+  upsertAnimeMetadataHints,
+} from "@/lib/anime/anime-metadata-store";
 
 const ENRICH_TIMEOUT_MS = 800;
 
@@ -357,6 +361,22 @@ export async function GET(request: Request) {
       status: m.status ?? null,
     }));
 
+    // Warm durable metadata cache from search hits (titles + cover URLs).
+    void upsertAnimeMetadataHints(
+      mediaNodes.map((m: any) => ({
+        anilistId: Number(m.id),
+        title: toTitle(m.title),
+        titleEnglish: m.title?.english ?? null,
+        titleRomaji: m.title?.romaji ?? null,
+        coverImage: m.coverImage?.extraLarge ?? null,
+        episodes: typeof m.episodes === "number" ? m.episodes : null,
+        format: m.format ?? null,
+        status: m.status ?? null,
+        seasonYear: typeof m.seasonYear === "number" ? m.seasonYear : null,
+        averageScore: typeof m.averageScore === "number" ? m.averageScore : null,
+      })),
+    );
+
     // Postgres audio enrich is best-effort — never stall the search page on it.
     const enrichedAnimes = await withTimeout(
       enrichAnimeListWithAudio(animes),
@@ -378,6 +398,43 @@ export async function GET(request: Request) {
     );
   } catch (err) {
     console.error("AniList search error:", err);
+
+    // Hybrid fallback: serve previously cached titles when AniList is down.
+    if (cleanQ) {
+      const local = await searchLocalAnimeMetadata(cleanQ, 20).catch(() => []);
+      if (local.length > 0) {
+        const animes = local.map((m) => ({
+          id: String(m.anilistId),
+          name: m.title || m.titleEnglish || m.titleRomaji || "Unknown",
+          jname: m.titleRomaji ?? "",
+          poster: m.coverImage ?? "",
+          episodes: { sub: m.episodes ?? 0, dub: 0 },
+          type: toFormat(m.format),
+          score: m.averageScore ?? null,
+          year: m.seasonYear ?? null,
+          status: m.status ?? null,
+        }));
+        const enrichedAnimes = await withTimeout(
+          enrichAnimeListWithAudio(animes),
+          ENRICH_TIMEOUT_MS,
+          animes,
+        );
+        return Response.json(
+          {
+            data: {
+              animes: enrichedAnimes,
+              totalPages: 1,
+              totalResults: enrichedAnimes.length,
+              hasNextPage: false,
+              currentPage: page,
+              fromCache: true,
+            },
+          },
+          { headers: searchCacheHeaders() },
+        );
+      }
+    }
+
     // Fail fast with a retryable status so the client can retry instead of
     // hanging ~80s then showing a permanent empty/error state.
     return Response.json(

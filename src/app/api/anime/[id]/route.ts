@@ -5,6 +5,10 @@ import {
   airedCountFromAnilist,
   resolveEffectiveNextAiringEpisode,
 } from "@/lib/anime/episode-availability";
+import {
+  getStoredAnimeDetail,
+  upsertAnimeMetadata,
+} from "@/lib/anime/anime-metadata-store";
 import { publicErrorMessage } from "@/lib/security/public-error";
 
 export const revalidate = 3600;
@@ -97,11 +101,7 @@ type CriticalAnimePayload = {
   };
 };
 
-async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePayload | null> {
-  const raw = await queryAniList<{ Media?: any }>(CRITICAL_DETAIL_QUERY, { id: numId });
-  const m = raw.Media;
-  if (!m) return null;
-
+function mapMediaToCriticalPayload(m: any): CriticalAnimePayload {
   const episodeCount = airedCountFromAnilist(m.nextAiringEpisode, {
     status: m.status,
     episodes: m.episodes,
@@ -238,9 +238,60 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
   };
 }
 
+async function fetchCriticalFromAniList(numId: number): Promise<CriticalAnimePayload | null> {
+  const raw = await queryAniList<{ Media?: any }>(CRITICAL_DETAIL_QUERY, { id: numId });
+  const m = raw.Media;
+  if (!m) return null;
+
+  const payload = mapMediaToCriticalPayload(m);
+  const studios = (m.studios?.nodes ?? [])
+    .filter((s: any) => s.isAnimationStudio && s.name)
+    .map((s: any) => String(s.name));
+
+  void upsertAnimeMetadata({
+    anilistId: numId,
+    malId: m.idMal ?? null,
+    title: toTitle(m.title),
+    titleEnglish: m.title?.english ?? null,
+    titleRomaji: m.title?.romaji ?? null,
+    titleNative: m.title?.native ?? null,
+    description: payload.anime.info.description as string,
+    coverImage: m.coverImage?.extraLarge ?? m.coverImage?.large ?? null,
+    bannerImage: m.bannerImage ?? null,
+    episodes: typeof m.episodes === "number" ? m.episodes : payload._meta.episodeCount,
+    format: m.format ?? null,
+    status: m.status ?? null,
+    season: m.season ?? null,
+    seasonYear: typeof m.seasonYear === "number" ? m.seasonYear : null,
+    averageScore: typeof m.averageScore === "number" ? m.averageScore : null,
+    genres: Array.isArray(m.genres) ? m.genres : [],
+    studios,
+    detailPayload: payload,
+  });
+
+  return payload;
+}
+
+async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePayload | null> {
+  const stored = await getStoredAnimeDetail<CriticalAnimePayload>(numId);
+  if (stored && !stored.stale) {
+    return stored.payload;
+  }
+
+  try {
+    return await fetchCriticalFromAniList(numId);
+  } catch (err) {
+    if (stored?.payload) {
+      console.warn("[anime-details] serving stale DB metadata after AniList error:", err);
+      return stored.payload;
+    }
+    throw err;
+  }
+}
+
 const getCachedCriticalAnime = unstable_cache(
   fetchCriticalAnimePayload,
-  ["anime-details-critical-v4"],
+  ["anime-details-critical-v5-db"],
   { revalidate: 3600 },
 );
 

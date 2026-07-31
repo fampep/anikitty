@@ -1,6 +1,11 @@
 import { unstable_cache } from "next/cache";
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
+import {
+  getStoredAnimeRelated,
+  upsertAnimeMetadata,
+  upsertAnimeMetadataHints,
+} from "@/lib/anime/anime-metadata-store";
 import { publicErrorMessage } from "@/lib/security/public-error";
 
 export const revalidate = 3600;
@@ -93,6 +98,15 @@ type MappedAnime = {
   studios?: string[];
 };
 
+type RelatedPayload = {
+  charactersVoiceActors: unknown[];
+  mostPopularAnimes: MappedAnime[];
+  relatedAnimes: MappedAnime[];
+  recommendedAnimes: MappedAnime[];
+  seasons: MappedAnime[];
+  staff: unknown[];
+};
+
 function mapAnime(node: any, extra?: Partial<MappedAnime>): MappedAnime | null {
   if (!node?.id) return null;
   return {
@@ -115,7 +129,32 @@ function startDateSortKey(node: any): number {
   return y * 10_000 + m * 100 + d;
 }
 
-async function fetchRelatedPayload(numId: number) {
+function warmRelatedHints(payload: RelatedPayload): void {
+  const hints = [
+    ...payload.relatedAnimes,
+    ...payload.recommendedAnimes,
+    ...payload.mostPopularAnimes,
+    ...payload.seasons.filter((s) => s.poster),
+  ]
+    .filter((a) => a.id && a.poster)
+    .map((a) => ({
+      anilistId: Number(a.id),
+      title: a.name || null,
+      titleRomaji: a.jname || null,
+      coverImage: a.poster || null,
+      episodes: a.episodes?.sub ?? null,
+      format: a.type || null,
+      status: a.status ?? null,
+      seasonYear: a.seasonYear ?? null,
+      averageScore: a.rating != null ? Math.round(Number(a.rating) * 10) : null,
+      genres: a.genres ?? null,
+    }))
+    .filter((h) => h.anilistId > 0);
+
+  if (hints.length) void upsertAnimeMetadataHints(hints);
+}
+
+async function fetchRelatedFromAniList(numId: number): Promise<RelatedPayload | null> {
   const raw = await queryAniList<{ Media?: any }>(RELATED_QUERY, { id: numId });
   const m = raw.Media;
   if (!m) return null;
@@ -273,7 +312,7 @@ async function fetchRelatedPayload(numId: number) {
     console.error("Related audio enrich failed:", enrichErr);
   }
 
-  return {
+  const payload: RelatedPayload = {
     charactersVoiceActors,
     mostPopularAnimes: enrichedPopular,
     relatedAnimes: enrichedRelated,
@@ -281,11 +320,36 @@ async function fetchRelatedPayload(numId: number) {
     seasons: enrichedSeasons,
     staff,
   };
+
+  void upsertAnimeMetadata({
+    anilistId: numId,
+    relatedPayload: payload,
+  });
+  warmRelatedHints(payload);
+
+  return payload;
+}
+
+async function fetchRelatedPayload(numId: number): Promise<RelatedPayload | null> {
+  const stored = await getStoredAnimeRelated<RelatedPayload>(numId);
+  if (stored && !stored.stale) {
+    return stored.payload;
+  }
+
+  try {
+    return await fetchRelatedFromAniList(numId);
+  } catch (err) {
+    if (stored?.payload) {
+      console.warn("[anime-related] serving stale DB metadata after AniList error:", err);
+      return stored.payload;
+    }
+    throw err;
+  }
 }
 
 const getCachedRelated = unstable_cache(
   fetchRelatedPayload,
-  ["anime-details-related-v2"],
+  ["anime-details-related-v3-db"],
   { revalidate: 3600 },
 );
 

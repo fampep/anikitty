@@ -563,6 +563,46 @@ export const subtitleLibraryAnime = pgTable(
   }),
 );
 
+/**
+ * Durable AniList anime metadata cache (titles, cover/banner URLs, detail payloads).
+ * Image URLs only — binary assets stay on AniList/CDN.
+ */
+export const animeMetadata = pgTable(
+  "anime_metadata",
+  {
+    anilistId: integer("anilist_id").primaryKey(),
+    malId: integer("mal_id"),
+    title: text("title"),
+    titleEnglish: text("title_english"),
+    titleRomaji: text("title_romaji"),
+    titleNative: text("title_native"),
+    description: text("description"),
+    coverImage: text("cover_image"),
+    bannerImage: text("banner_image"),
+    episodes: integer("episodes"),
+    format: varchar("format", { length: 30 }),
+    status: varchar("status", { length: 30 }),
+    season: varchar("season", { length: 20 }),
+    seasonYear: integer("season_year"),
+    averageScore: integer("average_score"),
+    genres: jsonb("genres").$type<string[]>().notNull().default([]),
+    studios: jsonb("studios").$type<string[]>().notNull().default([]),
+    /** Full `/api/anime/[id]` critical detail payload (info + moreInfo + _meta). */
+    detailPayload: jsonb("detail_payload"),
+    /** Full `/api/anime/[id]/related` payload when cached. */
+    relatedPayload: jsonb("related_payload"),
+    detailFetchedAt: timestamp("detail_fetched_at"),
+    relatedFetchedAt: timestamp("related_fetched_at"),
+    fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (t) => ({
+    titleIdx: index("anime_metadata_title_idx").on(t.title),
+    statusIdx: index("anime_metadata_status_idx").on(t.status),
+    fetchedIdx: index("anime_metadata_fetched_at_idx").on(t.fetchedAt),
+  }),
+);
+
 // ── Direct messages ────────────────────────────────────────────────────────
 export const dmConversations = pgTable(
   "dm_conversations",
