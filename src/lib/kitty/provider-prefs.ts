@@ -50,6 +50,23 @@ export function providerSuccessScore(provider: KittyProvider): number {
   return row.ok - row.fail * 2;
 }
 
+/** Local race/fail outcome when enough samples exist — no fake latency. */
+export type ProviderOutcomeStatus = "reliable" | "mixed" | "unreliable";
+
+export function getProviderOutcomeStatus(
+  provider: KittyProvider,
+): ProviderOutcomeStatus | null {
+  const scores = readJson<ProviderScores>(PROVIDER_SCORES_KEY, {});
+  const row = scores[provider];
+  if (!row) return null;
+  const total = row.ok + row.fail;
+  if (total < 3) return null;
+  const rate = row.ok / total;
+  if (rate >= 0.75) return "reliable";
+  if (rate >= 0.4) return "mixed";
+  return "unreliable";
+}
+
 /** Sort providers: capability-available first, then user/site priority. */
 export function sortProvidersForPicker<T extends { id: KittyProvider }>(
   items: T[],

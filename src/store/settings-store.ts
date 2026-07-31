@@ -486,7 +486,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 102,
+      version: 103,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1249,6 +1249,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 102) {
           // Ads can no longer be disabled.
           next.showAds = true;
+        }
+        if (version < 103) {
+          // Waves (AniWaves) joins Recommended as #3; expand to 9 defaults.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }
         return next as ISettingsStore;
       },

@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Captions,
-  ChevronDown,
-  ChevronRight,
-  Eye,
-  EyeOff,
+  Check,
   Flame,
   Mic,
+  Server,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -22,22 +20,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
   DEFAULT_KITTY_PROVIDER,
   getKittyProviderLabel,
   getKittyProviderNumber,
   kittyProvidersByGroup,
   kittyProvidersForAudioMode,
-  RECOMMENDED_PROVIDER_COUNT,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
 import { getPreferredDefaultProvider } from "@/lib/kitty/provider-order";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
 import {
+  buildAvailableProviderSet,
+  isProviderAvailableForMode,
   providerCapabilityBadges,
   resolveProviderBadgeCaps,
 } from "@/lib/kitty/provider-picker-utils";
-import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
+import {
+  getProviderOutcomeStatus,
+  sortProvidersForPicker,
+  type ProviderOutcomeStatus,
+} from "@/lib/kitty/provider-prefs";
 import { getProviderAccent, providerPillClass as providerPillAccentClass } from "@/lib/kitty/provider-ui-styles";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
@@ -79,13 +88,21 @@ export function ProviderCapabilityBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-0.5 font-mono font-bold tracking-tight",
+        "inline-flex items-center gap-1 font-mono font-bold tracking-tight",
         compact ? "text-[8px]" : "text-[9px]",
       )}
       title={[caps.sub ? "SUB" : null, caps.dub ? "DUB" : null].filter(Boolean).join(" · ")}
     >
-      {caps.sub && <span className="text-teal-300/90">S</span>}
-      {caps.dub && <span className="text-amber-300/90">D</span>}
+      {caps.sub && (
+        <span className="rounded px-1 py-px border border-teal-400/30 bg-teal-500/10 text-teal-200/90">
+          SUB
+        </span>
+      )}
+      {caps.dub && (
+        <span className="rounded px-1 py-px border border-amber-400/30 bg-amber-500/10 text-amber-200/90">
+          DUB
+        </span>
+      )}
     </span>
   );
 }
@@ -114,6 +131,54 @@ export function ProviderDefaultBadge({
       {t("watch.providerDefaultBadge")}
     </span>
   );
+}
+
+function ProviderSelectedBadge({ compact }: { compact?: boolean }) {
+  const t = useT();
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 font-mono font-bold uppercase rounded border shrink-0 border-emerald-400/40 bg-emerald-500/15 text-emerald-200/90",
+        compact ? "text-[8px] px-1 py-px leading-tight" : "text-[9px] px-1.5 py-0.5",
+      )}
+    >
+      <Check className={cn(compact ? "w-2 h-2" : "w-2.5 h-2.5")} />
+      {t("watch.providerSelectedBadge")}
+    </span>
+  );
+}
+
+function OutcomeDot({
+  status,
+  available,
+}: {
+  status: ProviderOutcomeStatus | null;
+  available: boolean;
+}) {
+  const t = useT();
+  if (!available) {
+    return (
+      <span
+        className="h-1.5 w-1.5 rounded-full shrink-0 bg-zinc-500/50"
+        title={t("watch.providerUnavailable")}
+      />
+    );
+  }
+  if (!status) {
+    return (
+      <span
+        className="h-1.5 w-1.5 rounded-full shrink-0 bg-teal-400/70"
+        title={t("watch.providerAvailable")}
+      />
+    );
+  }
+  const meta =
+    status === "reliable"
+      ? { className: "bg-emerald-400", title: t("watch.providerStatusReliable") }
+      : status === "mixed"
+        ? { className: "bg-amber-400", title: t("watch.providerStatusMixed") }
+        : { className: "bg-rose-400", title: t("watch.providerStatusUnreliable") };
+  return <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", meta.className)} title={meta.title} />;
 }
 
 export default function ProviderSelect({
@@ -224,6 +289,7 @@ export function ProviderQuickPick({
   compact,
   streamCaps,
   capsLoading,
+  sheetTrigger,
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
@@ -232,12 +298,64 @@ export function ProviderQuickPick({
   compact?: boolean;
   streamCaps?: EpisodeStreamCapabilities;
   capsLoading?: boolean;
+  /** When true, render a compact SOURCE button that opens a bottom sheet. */
+  sheetTrigger?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const t = useT();
+  const label = getKittyProviderLabel(value);
+
+  if (sheetTrigger || compact) {
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={cn(
+            "site-focus inline-flex items-center gap-2 h-10 w-full min-w-0 rounded-lg border px-3 text-[12px] font-mono",
+            "bg-muted/40 dark:bg-black/25 border-border dark:border-white/10 text-foreground/85 dark:text-white/75",
+            "hover:bg-accent dark:hover:bg-white/[0.06] shadow-sm transition-colors",
+            className,
+          )}
+        >
+          <Server className="w-3.5 h-3.5 shrink-0 opacity-60" />
+          <span className="truncate font-semibold tracking-wide">
+            {t("watch.providerSourceCompact", { label })}
+          </span>
+          <ProviderRankIcon rank={getKittyProviderNumber(value)} compact className="ml-auto" />
+        </button>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent
+            side="bottom"
+            className="max-h-[min(88vh,40rem)] rounded-t-2xl border-border dark:border-white/10 bg-[#0a0a0c] p-0 gap-0"
+          >
+            <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/60 dark:border-white/[0.06]">
+              <SheetTitle className="text-sm font-semibold tracking-tight text-foreground dark:text-white/90">
+                {t("watch.providerPickTitle")}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="overflow-y-auto overscroll-contain px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <ProviderGrid
+                provider={value}
+                audioMode={audioMode}
+                onSelect={(p, mode) => {
+                  onSelect(p, mode);
+                  setOpen(false);
+                }}
+                streamCaps={streamCaps}
+                capsLoading={capsLoading}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
   return (
     <ProviderGrid
       provider={value}
       audioMode={audioMode}
-      compact={compact}
       onSelect={onSelect}
       className={className}
       streamCaps={streamCaps}
@@ -246,31 +364,35 @@ export function ProviderQuickPick({
   );
 }
 
-const PROVIDER_GRID_ROWS: ProviderAudioMode[] = ["sub", "hardsub", "dub"];
+const PROVIDER_GRID_TABS: ProviderAudioMode[] = ["sub", "hardsub", "dub"];
 
-const PROVIDER_ROW_STYLES: Record<
+const TAB_STYLES: Record<
   ProviderAudioMode,
-  { active: string; idle: string; label: string }
+  { active: string; idle: string; label: string; icon: ReactNode }
 > = {
   sub: {
-    label: "text-teal-300/70",
-    active: "bg-teal-500/25 border-teal-400/45 text-teal-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-teal-500/30 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
-  },
-  dub: {
-    label: "text-amber-300/70",
-    active: "bg-amber-500/25 border-amber-400/45 text-amber-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-amber-500/30 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    label: "text-teal-300/80",
+    active: "bg-teal-500/20 border-teal-400/40 text-teal-50",
+    idle: "border-transparent text-muted-foreground dark:text-white/40 hover:text-teal-200/80 hover:bg-teal-500/[0.06]",
+    icon: <Captions className="w-3.5 h-3.5 shrink-0" />,
   },
   hardsub: {
-    label: "text-sky-300/70",
-    active: "bg-sky-500/25 border-sky-400/45 text-sky-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-sky-500/30 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
+    label: "text-sky-300/80",
+    active: "bg-sky-500/20 border-sky-400/40 text-sky-50",
+    idle: "border-transparent text-muted-foreground dark:text-white/40 hover:text-sky-200/80 hover:bg-sky-500/[0.06]",
+    icon: <Flame className="w-3.5 h-3.5 shrink-0" />,
+  },
+  dub: {
+    label: "text-amber-300/80",
+    active: "bg-amber-500/20 border-amber-400/40 text-amber-50",
+    idle: "border-transparent text-muted-foreground dark:text-white/40 hover:text-amber-200/80 hover:bg-amber-500/[0.06]",
+    icon: <Mic className="w-3.5 h-3.5 shrink-0" />,
   },
   multi: {
-    label: "text-zinc-300/70",
-    active: "bg-primary/25 border-primary/45 text-zinc-100",
-    idle: "border-border dark:border-white/10 text-muted-foreground dark:text-white/45 hover:border-primary/30 hover:text-zinc-200/80 hover:bg-primary/[0.06]",
+    label: "text-zinc-300/80",
+    active: "bg-primary/20 border-primary/40 text-zinc-50",
+    idle: "border-transparent text-muted-foreground dark:text-white/40",
+    icon: null,
   },
 };
 
@@ -286,43 +408,6 @@ type ProviderGridProps = {
   capsLoading?: boolean;
 };
 
-function ProviderScrollRow({
-  compact,
-  children,
-}: {
-  compact?: boolean;
-  children: ReactNode;
-}) {
-  if (!compact) {
-    return <div className="flex flex-wrap gap-1.5 min-w-0 flex-1">{children}</div>;
-  }
-  return (
-    <div className="relative">
-      <div className="overflow-x-auto overscroll-x-contain px-2.5 pb-2.5 pt-0.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex flex-nowrap gap-1.5 w-max min-w-full pr-6">{children}</div>
-      </div>
-      <div
-        className="pointer-events-none absolute inset-y-0.5 right-0 w-7 bg-gradient-to-l from-[#0c0c0c]/90 via-[#0c0c0c]/40 to-transparent dark:from-black/70"
-        aria-hidden
-      />
-    </div>
-  );
-}
-
-function providerPillClass(
-  compact: boolean | undefined,
-  isActive: boolean,
-  _styles: (typeof PROVIDER_ROW_STYLES)[ProviderAudioMode],
-  providerId: KittyProvider,
-) {
-  return cn(
-    providerPillAccentClass(providerId, isActive),
-    compact
-      ? "min-h-10 px-3.5 py-2 text-[13px] rounded-lg"
-      : "px-2.5 py-1.5 text-[12px] rounded-md",
-  );
-}
-
 export function ProviderGrid({
   provider,
   audioMode,
@@ -330,239 +415,210 @@ export function ProviderGrid({
   disabled,
   className,
   rows,
-  compact,
   streamCaps,
   capsLoading,
 }: ProviderGridProps) {
   const t = useT();
-  const { providerSectionHidden, toggleProviderSectionHidden, providerOrder, defaultProvider, showAdultContent } = useSettingsStore();
-  const visibleRows = rows ?? PROVIDER_GRID_ROWS;
-  const [expandedRows, setExpandedRows] = useState<Partial<Record<ProviderAudioMode, boolean>>>({});
+  const { providerOrder, defaultProvider, showAdultContent } = useSettingsStore();
+  const tabs = rows ?? PROVIDER_GRID_TABS;
+  const [activeTab, setActiveTab] = useState<ProviderAudioMode>(
+    tabs.includes(audioMode) ? audioMode : "sub",
+  );
 
-  const rowLabels: Partial<Record<ProviderAudioMode, string>> = {
-    sub: t("watch.softSubBadge"),
-    hardsub: t("watch.hardSubsShort"),
-    dub: t("card.dub"),
+  useEffect(() => {
+    if (tabs.includes(audioMode)) setActiveTab(audioMode);
+  }, [audioMode, tabs]);
+
+  const tab = activeTab;
+  const preferredDefault = getPreferredDefaultProvider(providerOrder, defaultProvider);
+
+  const tabCounts = useMemo(() => {
+    const out: Partial<Record<ProviderAudioMode, number>> = {};
+    for (const mode of tabs) {
+      const base = kittyProvidersForAudioMode(mode, { includeAdult: showAdultContent });
+      const available = buildAvailableProviderSet(streamCaps, mode);
+      const filtered = available
+        ? base.filter((p) => available.has(p.id))
+        : base;
+      out[mode] = filtered.length;
+    }
+    return out;
+  }, [tabs, showAdultContent, streamCaps]);
+
+  const items = useMemo(() => {
+    const base = kittyProvidersForAudioMode(tab, { includeAdult: showAdultContent });
+    const available = buildAvailableProviderSet(streamCaps, tab);
+    const filtered = available ? base.filter((p) => available.has(p.id)) : base;
+    return sortProvidersForPicker(filtered, {
+      priorityOrder: providerOrder,
+      defaultProvider,
+      availableIds: available,
+    });
+  }, [tab, showAdultContent, streamCaps, providerOrder, defaultProvider]);
+
+  const recommended = useMemo(() => {
+    if (items.length === 0) return null;
+    const preferred = items.find((p) => p.id === preferredDefault);
+    if (preferred) return preferred;
+    return items[0] ?? null;
+  }, [items, preferredDefault]);
+
+  const roster = useMemo(() => {
+    if (!recommended) return items;
+    return items.filter((p) => p.id !== recommended.id);
+  }, [items, recommended]);
+
+  const tabLabels: Partial<Record<ProviderAudioMode, string>> = {
+    sub: t("watch.providerTabSub"),
+    hardsub: t("watch.providerTabHSubs"),
+    dub: t("watch.providerTabDub"),
   };
 
-  const rowIcons: Partial<Record<ProviderAudioMode, ReactNode>> = {
-    sub: <Captions className="w-3 h-3 shrink-0" />,
-    hardsub: <Flame className="w-3 h-3 shrink-0" />,
-    dub: <Mic className="w-3 h-3 shrink-0" />,
+  const selectTab = (mode: ProviderAudioMode) => {
+    setActiveTab(mode);
+  };
+
+  const renderRow = (
+    p: (typeof items)[number],
+    opts?: { recommendedCard?: boolean },
+  ) => {
+    const isActive = provider === p.id && audioMode === tab;
+    const num = getKittyProviderNumber(p.id, providerOrder);
+    const rowCaps = resolveProviderBadgeCaps(streamCaps, p.id);
+    const badges = providerCapabilityBadges(rowCaps);
+    const available = isProviderAvailableForMode(p.id, tab, streamCaps);
+    const outcome = getProviderOutcomeStatus(p.id);
+    const accent = getProviderAccent(p.id);
+
+    if (opts?.recommendedCard) {
+      return (
+        <button
+          key={`rec-${tab}-${p.id}`}
+          type="button"
+          disabled={disabled}
+          onClick={() => onSelect(p.id, tab)}
+          aria-pressed={isActive}
+          className={cn(
+            "w-full text-left rounded-xl border px-3.5 py-3 transition-colors touch-manipulation",
+            "bg-gradient-to-br from-teal-500/[0.12] via-transparent to-transparent",
+            isActive
+              ? "border-teal-400/45 shadow-[0_0_0_1px_rgba(45,212,191,0.15)]"
+              : "border-border/80 dark:border-white/12 hover:border-teal-400/30",
+          )}
+        >
+          <div className="flex items-start gap-3">
+            <ProviderRankIcon rank={num} />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[11px] font-mono uppercase tracking-[0.14em] text-teal-300/70">
+                  {t("watch.providerGroupFeatured")}
+                </span>
+                <ProviderDefaultBadge id={p.id} />
+                {isActive && <ProviderSelectedBadge />}
+              </div>
+              <div className="flex items-center gap-2 min-w-0">
+                <OutcomeDot status={outcome} available={available} />
+                <span className="text-sm font-semibold tracking-wide text-foreground dark:text-white/90 truncate">
+                  {p.label}
+                </span>
+                <ProviderCapabilityBadge caps={badges} loading={capsLoading} />
+              </div>
+              {p.hint && (
+                <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 truncate">
+                  {p.hint}
+                </p>
+              )}
+            </div>
+          </div>
+        </button>
+      );
+    }
+
+    return (
+      <button
+        key={`${tab}-${p.id}`}
+        type="button"
+        disabled={disabled}
+        onClick={() => onSelect(p.id, tab)}
+        aria-pressed={isActive}
+        className={cn(
+          "w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 text-left transition-colors touch-manipulation",
+          isActive
+            ? cn(providerPillAccentClass(p.id, true), "border-opacity-100")
+            : "border-border/60 dark:border-white/[0.08] bg-muted/20 dark:bg-white/[0.02] hover:bg-muted/40 dark:hover:bg-white/[0.05]",
+        )}
+      >
+        <ProviderRankIcon rank={num} compact />
+        <OutcomeDot status={outcome} available={available} />
+        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent.dot)} />
+        <span className="min-w-0 flex-1 truncate text-[12px] font-semibold tracking-wide">
+          {p.label}
+        </span>
+        <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
+        <ProviderDefaultBadge id={p.id} compact />
+        {isActive && <ProviderSelectedBadge compact />}
+      </button>
+    );
   };
 
   return (
-    <div className={cn("flex flex-col w-full", compact ? "gap-2.5" : "gap-2", className)}>
-      {compact && (
-        <p className="text-[10px] font-mono text-muted-foreground dark:text-white/35 leading-relaxed px-0.5">
-          {t("watch.providerSectionsMobileHint")}
-        </p>
-      )}
-      {visibleRows.map((mode) => {
-        const baseItems = kittyProvidersForAudioMode(mode, { includeAdult: showAdultContent });
-        const items = sortProvidersForPicker(baseItems, {
-          priorityOrder: providerOrder,
-          defaultProvider,
-        });
-        if (items.length === 0) return null;
-        const styles = PROVIDER_ROW_STYLES[mode];
-        const isHidden = providerSectionHidden[mode] ?? false;
-        const activeItem = items.find((p) => provider === p.id && audioMode === mode);
-
-        const recommendedItems = items.filter((p) => {
-          const n = getKittyProviderNumber(p.id, providerOrder);
-          return n > 0 && n <= RECOMMENDED_PROVIDER_COUNT;
-        });
-        const moreItems = items.filter((p) => {
-          const n = getKittyProviderNumber(p.id, providerOrder);
-          return n === 0 || n > RECOMMENDED_PROVIDER_COUNT;
-        });
-
-        const renderPill = (p: (typeof items)[number]) => {
-          const isActive = provider === p.id && audioMode === mode;
-          const rowCaps = resolveProviderBadgeCaps(streamCaps, p.id);
-          const badges = providerCapabilityBadges(rowCaps);
-          const num = getKittyProviderNumber(p.id, providerOrder);
-
+    <div className={cn("flex flex-col w-full gap-3", className)}>
+      <div
+        className="inline-flex w-full rounded-xl border border-border/70 dark:border-white/[0.08] bg-muted/25 dark:bg-black/30 p-1 gap-1"
+        role="tablist"
+        aria-label={t("watch.providerSelect")}
+      >
+        {tabs.map((mode) => {
+          const styles = TAB_STYLES[mode];
+          const count = tabCounts[mode] ?? 0;
+          const isOn = tab === mode;
           return (
             <button
-              key={`${mode}-${p.id}`}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelect(p.id, mode)}
-              title={p.hint ? `${num}. ${p.label} — ${p.hint}` : `${num}. ${p.label}`}
-              aria-pressed={isActive}
-              className={cn(providerPillClass(compact, isActive, styles, p.id), "gap-1.5")}
-            >
-              <ProviderRankIcon rank={num} compact />
-              <span className="truncate max-w-[9.5rem] sm:max-w-none font-semibold tracking-wide">
-                {p.label}
-              </span>
-              <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
-              <ProviderDefaultBadge id={p.id} compact />
-            </button>
-          );
-        };
-
-        const rowExpanded = !!expandedRows[mode];
-        const defaultVisibleMore = compact ? 4 : 6;
-        const collapsible = moreItems.length > defaultVisibleMore + 1;
-        let visibleMore = moreItems;
-        if (collapsible && !rowExpanded) {
-          visibleMore = moreItems.slice(0, defaultVisibleMore);
-          if (activeItem && moreItems.some((p) => p.id === activeItem.id) && !visibleMore.some((p) => p.id === activeItem.id)) {
-            visibleMore = [...visibleMore, activeItem];
-          }
-        }
-        const hiddenCount = moreItems.length - visibleMore.length;
-
-        const moreToggle = collapsible ? (
-          <button
-            key={`${mode}-more`}
-            type="button"
-            onClick={() => setExpandedRows((s) => ({ ...s, [mode]: !rowExpanded }))}
-            className={cn(
-              "inline-flex items-center gap-1 font-mono font-semibold border border-dashed transition-colors shrink-0 touch-manipulation",
-              compact ? "min-h-9 px-3 py-2 text-xs rounded-lg" : "px-2 py-1 text-[11px] rounded-md",
-              "border-border dark:border-white/12 text-muted-foreground dark:text-white/40 hover:text-foreground/80 dark:hover:text-white/75 hover:border-white/25",
-            )}
-          >
-            {rowExpanded ? t("watch.showLess") : `+${hiddenCount} ${t("watch.more")}`}
-            <ChevronDown className={cn("w-3 h-3 opacity-60 transition-transform", rowExpanded && "rotate-180")} />
-          </button>
-        ) : null;
-
-        const providerPills = (
-          <>
-            {recommendedItems.length > 0 && (
-              <div className={cn("flex flex-col gap-1.5 min-w-0", compact ? "w-max" : "w-full")}>
-                <span className="inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest text-teal-300/55 px-0.5">
-                  <Sparkles className="w-3 h-3" />
-                  {t("watch.providerGroupFeatured")}
-                </span>
-                <div className="flex flex-wrap gap-1.5">{recommendedItems.map(renderPill)}</div>
-              </div>
-            )}
-            {moreItems.length > 0 && (
-              <div className={cn("flex flex-col gap-1.5 min-w-0", compact ? "w-max" : "w-full")}>
-                <span className="inline-flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-muted-foreground/70 dark:text-white/30 px-0.5">
-                  <span className="inline-block w-2.5 h-2.5 rounded-full border border-current opacity-60" />
-                  {t("watch.providerGroupOther")}
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {visibleMore.map(renderPill)}
-                  {moreToggle}
-                </div>
-              </div>
-            )}
-          </>
-        );
-
-        const sectionLabel = rowLabels[mode] ?? mode;
-        const sectionIcon = rowIcons[mode];
-
-        if (compact) {
-          return (
-            <div
               key={mode}
-              className="rounded-xl border border-border dark:border-white/[0.08] bg-gradient-to-b from-muted/30 to-transparent dark:from-white/[0.03] dark:to-transparent overflow-hidden shadow-sm"
+              type="button"
+              role="tab"
+              aria-selected={isOn}
+              onClick={() => selectTab(mode)}
+              className={cn(
+                "flex-1 inline-flex items-center justify-center gap-1.5 min-h-10 rounded-lg border text-[11px] font-mono font-bold uppercase tracking-wide transition-colors touch-manipulation",
+                isOn ? styles.active : styles.idle,
+              )}
             >
-              <button
-                type="button"
-                onClick={() => toggleProviderSectionHidden(mode)}
+              <span className={cn(!isOn && styles.label)}>{styles.icon}</span>
+              <span>{tabLabels[mode]}</span>
+              <span
                 className={cn(
-                  "w-full flex items-center justify-between gap-2 px-3 py-2.5 min-h-11 touch-manipulation transition-colors active:bg-muted/50 dark:bg-white/[0.04]",
-                  isHidden && "border-b border-border dark:border-white/[0.06]",
+                  "tabular-nums text-[10px] font-semibold rounded-md px-1.5 py-0.5",
+                  isOn ? "bg-black/20 text-inherit" : "bg-muted/50 dark:bg-white/[0.06] text-muted-foreground dark:text-white/35",
                 )}
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={cn("shrink-0", styles.label)}>{sectionIcon}</span>
-                  <span className={cn("text-[11px] font-bold font-mono uppercase tracking-wide", styles.label)}>
-                    {sectionLabel}
-                  </span>
-                  {!isHidden && (
-                    <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 tabular-nums">
-                      {items.length}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {isHidden && activeItem && (
-                    <span className={cn("inline-flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded-md border", styles.active)}>
-                      <ProviderRankIcon
-                        rank={getKittyProviderNumber(activeItem.id, providerOrder)}
-                        compact
-                      />
-                      {activeItem.label}
-                    </span>
-                  )}
-                  {isHidden ? (
-                    <EyeOff className="w-3.5 h-3.5 opacity-60" />
-                  ) : (
-                    <Eye className="w-3.5 h-3.5 opacity-40" />
-                  )}
-                  <ChevronDown
-                    className={cn(
-                      "w-3.5 h-3.5 opacity-40 transition-transform",
-                      !isHidden && "rotate-180",
-                    )}
-                  />
-                </div>
-              </button>
-              {!isHidden && (
-                <div className="px-2.5 pb-2.5 pt-0.5 flex flex-col gap-2.5">{providerPills}</div>
-              )}
-            </div>
-          );
-        }
-
-        return (
-          <div
-            key={mode}
-            className="flex min-w-0 items-start gap-2.5 px-0.5 py-0.5"
-          >
-            <button
-              type="button"
-              onClick={() => toggleProviderSectionHidden(mode)}
-              title={
-                isHidden
-                  ? t("watch.showProviderSection", { section: sectionLabel })
-                  : t("watch.hideProviderSection", { section: sectionLabel })
-              }
-              className={cn(
-                "flex w-[4.25rem] shrink-0 items-center gap-1 pt-1.5 text-[11px] font-bold font-mono uppercase tracking-wide transition-opacity hover:opacity-100 touch-manipulation",
-                styles.label,
-                isHidden && "opacity-60",
-              )}
-            >
-              {isHidden ? (
-                <ChevronRight className="w-3 h-3 shrink-0" />
-              ) : (
-                sectionIcon
-              )}
-              <span className="truncate">{sectionLabel}</span>
+                {count}
+              </span>
             </button>
-            {!isHidden ? (
-              <div className="flex min-w-0 flex-1 flex-col gap-2.5 pt-0.5">{providerPills}</div>
-            ) : activeItem ? (
-              <div className="flex min-w-0 flex-1 flex-wrap gap-1.5 pt-0.5">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold",
-                    styles.active,
-                  )}
-                >
-                  <ProviderRankIcon
-                    rank={getKittyProviderNumber(activeItem.id, providerOrder)}
-                    compact
-                  />
-                  {activeItem.label}
-                </span>
-              </div>
-            ) : null}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      {tab === "hardsub" && items.length === 1 && (
+        <p className="text-[11px] font-mono text-sky-200/70 px-0.5 leading-relaxed">
+          {t("watch.providerHSubsOnlyHint")}
+        </p>
+      )}
+
+      {items.length === 0 ? (
+        <p className="text-[12px] font-mono text-muted-foreground dark:text-white/40 px-1 py-6 text-center">
+          {capsLoading ? t("watch.episodeSourceChecking", { episode: "…" }) : t("watch.providerNoSourcesForTab")}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {recommended && renderRow(recommended, { recommendedCard: true })}
+          {roster.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              {roster.map((p) => renderRow(p))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

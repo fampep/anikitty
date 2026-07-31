@@ -77,7 +77,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Luna" ||
         item === "FlixCloud" ||
         item === "Flix" ||
-        item === "AniWaves" ||
         item === "MKissa" ||
         item === "Animex" ||
         item === "AnimeLok" ||
@@ -94,6 +93,10 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "EarnVids" ||
         item === "Miruro"
       ) {
+        continue;
+      }
+      if (item === "Waves" || item === "Whiskey" || item === "AniWaves") {
+        push("AniWaves");
         continue;
       }
       push(item);

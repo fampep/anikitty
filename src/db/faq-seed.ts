@@ -368,7 +368,7 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "sources"
     ],
     "title": "What are the stream sources?",
-    "answer": "AniKitty does not host video — streams come through KittyAPI from third-party providers, shown only by site labels (1 Delta, 2 Vibe, 3 HQ, 4 Alpha, 5 Kilo, 6 Sierra, 7 Juliet).\n\n- The top seven appear under **Recommended**\n- Soft Subs defaults to Kilo when available\n- HQ is the hard-sub source\n\nNew watches use your Settings default source and fallback order; you can switch anytime while watching.",
+    "answer": "AniKitty does not host video — streams come through KittyAPI from third-party providers, shown only by site labels (1 Delta, 2 Vibe, 3 Waves, 4 Senshi, 5 HQ, 6 Alpha, 7 Kilo, 8 Sierra, 9 Juliet).\n\n- The top nine appear under **Recommended**\n- Soft Subs defaults to Kilo when available\n- HQ is the hard-sub source\n\nNew watches use your Settings default source and fallback order; you can switch anytime while watching.",
     "updatedAt": "2026-07-29",
     "order": 20,
     "popularity": 75,

@@ -1356,14 +1356,6 @@ const VideoPlayerSection = () => {
     [preservePlaybackPosition, applyStreamAudio, resolveProviderAudioMode],
   );
 
-  const handleSimpleProviderChange = useCallback(
-    (p: KittyProvider) => {
-      const mode = normalizeProviderAudioMode(audioMode, streamAudio);
-      handleProviderGridSelect(p, mode);
-    },
-    [audioMode, streamAudio, handleProviderGridSelect],
-  );
-
   const copyShareLink = useCallback(() => {
     const params = new URLSearchParams(searchParamsKey);
     const sec = Math.floor(liveTimeRef.current);
@@ -1742,8 +1734,7 @@ const VideoPlayerSection = () => {
       provider={provider}
       streamAudio={streamAudio}
       audioMode={audioMode}
-      onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
-      onProviderChange={handleSimpleProviderChange}
+      onSelect={handleProviderGridSelect}
       streamCaps={streamCaps}
       capsLoading={capsFetching}
     />

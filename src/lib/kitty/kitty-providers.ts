@@ -61,6 +61,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
 export const KITTY_PROVIDERS = [
   "AniDelta",
   "AniVibe",
+  "AniWaves",
   "Senshi",
   "AniHQ",
   "AniKuro",
@@ -70,13 +71,13 @@ export const KITTY_PROVIDERS = [
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 8;
+export const RECOMMENDED_PROVIDER_COUNT = 9;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 99;
+export const PROVIDER_ORDER_SYNC_VERSION = 100;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -129,6 +130,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs · EarnVids/StreamHG",
+  },
+  {
+    id: "AniWaves",
+    label: "Waves",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "Senshi",
@@ -206,11 +219,12 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
- * tries these before anything else. All eight are Recommended:
- * 1 Delta, 2 Vibe, 3 Senshi, 4 HQ, 5 Alpha (AniKuro), 6 Kilo, 7 Sierra, 8 Juliet. */
+ * tries these before anything else. All nine are Recommended:
+ * 1 Delta, 2 Vibe, 3 Waves (AniWaves), 4 Senshi, 5 HQ, 6 Alpha, 7 Kilo, 8 Sierra, 9 Juliet. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "AniVibe",
+  "AniWaves",
   "Senshi",
   "AniHQ",
   "AniKuro",
@@ -262,6 +276,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Anikoto",
   "AniSnatch",
   "AniVibe",
+  "AniWaves",
   "Senshi",
 ]);
 
@@ -305,6 +320,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "HQ" || value === "AniHQ") return "AniHQ";
   if (value === "Guard" || value === "Senshi") return "Senshi";
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "Anikoto";
+  if (value === "Waves" || value === "Whiskey" || value === "AniWaves") return "AniWaves";
   if (
     value === "Luna" ||
     value === "Lunar" ||
@@ -313,8 +329,6 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
     value === "Zenkai" ||
     value === "Yenime" ||
     value === "Yen" ||
-    value === "AniWaves" ||
-    value === "Whiskey" ||
     value === "HentaiHaven" ||
     value === "Haven"
   ) {

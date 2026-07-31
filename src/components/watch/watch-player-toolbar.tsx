@@ -185,7 +185,9 @@ export default function WatchPlayerToolbar({
             title={t("watch.playerSettings.showProviders")}
           >
             <Server className="w-3 h-3 shrink-0 opacity-70" />
-            <span className="truncate max-w-[7rem]">{displayProvider}</span>
+            <span className="truncate max-w-[9rem] font-mono uppercase tracking-wide">
+              {t("watch.providerSourceCompact", { label: displayProvider })}
+            </span>
             {streamAudio && (
               <>
                 <span className="opacity-40">·</span>

@@ -1,220 +1,61 @@
 "use client";
 
+import { ProviderQuickPick } from "@/components/player/provider-select";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ProviderDefaultBadge, ProviderCapabilityBadge } from "@/components/player/provider-select";
-import {
-  KITTY_PROVIDER_META,
-  getKittyProviderLabel,
-  isActiveKittyProvider,
-  kittyProvidersByGroup,
-  providerHasHardSub,
-  providerSupportsDub,
-  providerSupportsSub,
   type KittyProvider,
   type ProviderAudioMode,
 } from "@/lib/kitty/kitty-providers";
 import type { EpisodeStreamCapabilities } from "@/lib/kitty/stream-capabilities-shared";
-import { providerCapabilityBadges, resolveProviderBadgeCaps } from "@/lib/kitty/provider-picker-utils";
-import { sortProvidersForPicker } from "@/lib/kitty/provider-prefs";
-import { AUDIO_SEGMENT } from "@/lib/kitty/provider-ui-styles";
-import { Captions, Flame, Mic, Server, Zap } from "lucide-react";
-import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
-import { useSettingsStore } from "@/store/settings-store";
 
 type Props = {
   provider: KittyProvider;
   streamAudio: "sub" | "dub";
   audioMode?: ProviderAudioMode;
+  /** Combined provider + mode select (preferred). */
+  onSelect?: (provider: KittyProvider, mode: ProviderAudioMode) => void;
   onAudioChange?: (audio: ProviderAudioMode) => void;
-  onProviderChange: (provider: KittyProvider) => void;
+  onProviderChange?: (provider: KittyProvider) => void;
   streamCaps?: EpisodeStreamCapabilities;
   capsLoading?: boolean;
   className?: string;
 };
 
-const TRIGGER_CLASS =
-  "h-10 w-full min-w-0 text-[12px] font-mono bg-muted/40 dark:bg-black/25 border-border dark:border-white/10 text-foreground/85 dark:text-white/75 hover:bg-accent dark:hover:bg-white/[0.06] shadow-sm";
-
-const CONTENT_CLASS = "bg-[#0a0a0a] border-border dark:border-white/10";
-
-function FieldLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <div className="mb-1.5 flex items-center gap-1.5 px-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-muted-foreground dark:text-white/35">
-      {icon}
-      {children}
-    </div>
-  );
-}
-
-function LangBadges({ id }: { id: KittyProvider }) {
-  const sub = providerSupportsSub(id);
-  const dub = providerSupportsDub(id);
-  const hard = providerHasHardSub(id);
-  return (
-    <span className="ml-auto flex items-center gap-1 pl-3 shrink-0">
-      {sub && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold text-teal-300/85">
-          <Captions className="w-2.5 h-2.5" />
-          SUB
-        </span>
-      )}
-      {hard && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold text-sky-300/85">
-          <Flame className="w-2.5 h-2.5" />
-          HS
-        </span>
-      )}
-      {dub && (
-        <span className="inline-flex items-center gap-0.5 text-[9px] font-mono font-bold text-amber-300/85">
-          <Mic className="w-2.5 h-2.5" />
-          DUB
-        </span>
-      )}
-    </span>
-  );
-}
-
+/**
+ * Compact watch-page source control — opens the shared tabbed picker in a sheet.
+ */
 export default function WatchSimpleProviderRow({
   provider,
   streamAudio,
   audioMode = "sub",
+  onSelect,
   onAudioChange,
   onProviderChange,
   streamCaps,
   capsLoading,
   className,
 }: Props) {
-  const t = useT();
-  const providerOrder = useSettingsStore((s) => s.providerOrder);
-  const defaultProvider = useSettingsStore((s) => s.defaultProvider);
-  const showAdultContent = useSettingsStore((s) => s.showAdultContent);
-  const serverCount = KITTY_PROVIDER_META.filter(
-    (p) => isActiveKittyProvider(p.id) && (showAdultContent || !p.adultOnly),
-  ).length;
-  const dubEnabled = providerSupportsDub(provider);
-  const hardEnabled = providerHasHardSub(provider);
-  const activeMode: ProviderAudioMode =
-    streamAudio === "dub" ? "dub" : audioMode === "hardsub" && hardEnabled ? "hardsub" : "sub";
+  const resolvedMode: ProviderAudioMode =
+    streamAudio === "dub" ? "dub" : audioMode === "hardsub" ? "hardsub" : "sub";
 
   return (
-    <div className={cn("min-w-0 grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end", className)}>
-      <div className="min-w-0">
-        <FieldLabel icon={<Server className="w-3 h-3" />}>
-          {t("watch.providerSelect")}
-          <span className="text-muted-foreground/60 dark:text-white/20">({serverCount})</span>
-        </FieldLabel>
-        <Select value={provider} onValueChange={(v) => onProviderChange(v as KittyProvider)}>
-          <SelectTrigger className={TRIGGER_CLASS}>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <Zap className="w-3.5 h-3.5 shrink-0 opacity-60" />
-              <SelectValue>{getKittyProviderLabel(provider)}</SelectValue>
-            </div>
-          </SelectTrigger>
-          <SelectContent className={cn(CONTENT_CLASS, "max-h-[min(22rem,60vh)]")}>
-            {(["featured", "other"] as const).map((group) => {
-              const items = sortProvidersForPicker(
-                kittyProvidersByGroup(group).filter((p) => showAdultContent || !p.adultOnly),
-                {
-                  priorityOrder: providerOrder,
-                  defaultProvider,
-                },
-              );
-              if (items.length === 0) return null;
-              return (
-                <SelectGroup key={group}>
-                  <SelectLabel className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/30 px-2 py-1.5">
-                    {group === "featured"
-                      ? t("watch.providerGroupFeatured")
-                      : t("watch.providerGroupOther")}
-                  </SelectLabel>
-                  {items.map((p) => {
-                    const badges = providerCapabilityBadges(
-                      resolveProviderBadgeCaps(streamCaps, p.id),
-                    );
-                    return (
-                      <SelectItem
-                        key={p.id}
-                        value={p.id}
-                        textValue={p.label}
-                        className="text-xs text-foreground/90 dark:text-white/80"
-                      >
-                        <span className="flex w-full items-center gap-2 min-w-0">
-                          <span className="font-semibold truncate">{p.label}</span>
-                          <ProviderDefaultBadge id={p.id} />
-                          {streamCaps || capsLoading ? (
-                            <ProviderCapabilityBadge caps={badges} loading={capsLoading} />
-                          ) : (
-                            <LangBadges id={p.id} />
-                          )}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectGroup>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {onAudioChange && (
-        <div className={cn("min-w-0", hardEnabled ? "sm:w-[14rem]" : "sm:w-[9.5rem]")}>
-          <FieldLabel icon={<Captions className="w-3 h-3" />}>
-            {t("watch.audioMode")}
-          </FieldLabel>
-          <div className={AUDIO_SEGMENT.track} role="group" aria-label={t("watch.audioMode")}>
-            <button
-              type="button"
-              aria-pressed={activeMode === "sub"}
-              onClick={() => onAudioChange("sub")}
-              className={cn(
-                AUDIO_SEGMENT.btn,
-                activeMode === "sub" ? AUDIO_SEGMENT.subActive : AUDIO_SEGMENT.subIdle,
-              )}
-            >
-              <Captions className="w-3 h-3 shrink-0 opacity-80" />
-              {t("card.sub")}
-            </button>
-            {hardEnabled ? (
-              <button
-                type="button"
-                aria-pressed={activeMode === "hardsub"}
-                onClick={() => onAudioChange("hardsub")}
-                className={cn(
-                  AUDIO_SEGMENT.btn,
-                  activeMode === "hardsub" ? AUDIO_SEGMENT.hardActive : AUDIO_SEGMENT.hardIdle,
-                )}
-              >
-                <Flame className="w-3 h-3 shrink-0 opacity-80" />
-                {t("watch.hardSubsShort")}
-              </button>
-            ) : null}
-            <button
-              type="button"
-              aria-pressed={activeMode === "dub"}
-              disabled={!dubEnabled}
-              onClick={() => dubEnabled && onAudioChange("dub")}
-              className={cn(
-                AUDIO_SEGMENT.btn,
-                activeMode === "dub" ? AUDIO_SEGMENT.dubActive : AUDIO_SEGMENT.dubIdle,
-                !dubEnabled && AUDIO_SEGMENT.dubDisabled,
-              )}
-            >
-              <Mic className="w-3 h-3 shrink-0 opacity-80" />
-              {t("card.dub")}
-            </button>
-          </div>
-        </div>
-      )}
+    <div className={cn("min-w-0", className)}>
+      <ProviderQuickPick
+        value={provider}
+        audioMode={resolvedMode}
+        compact
+        sheetTrigger
+        streamCaps={streamCaps}
+        capsLoading={capsLoading}
+        onSelect={(next, mode) => {
+          if (onSelect) {
+            onSelect(next, mode);
+            return;
+          }
+          onProviderChange?.(next);
+          onAudioChange?.(mode);
+        }}
+      />
     </div>
   );
 }
