@@ -8,7 +8,7 @@ import { isAdPlacementAllowed } from "@/lib/ads/ad-placement";
 import { loadClickAds, unloadClickAds } from "@/lib/ads/show-ads-preference";
 
 /**
- * Monetag (Clickadu) OnClick / popunder — loads only when placement + prefs allow.
+ * Popunder click ads (zone 7275065) — loads only when placement + prefs allow.
  * Guests always see ads; signed-in users may turn them off in Settings.
  */
 export default function ClickAdsLoader() {

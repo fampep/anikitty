@@ -197,7 +197,7 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** Monetag click ads — logged-in users may disable after confirmation. Guests always see ads. */
+  /** Click ads (popunder) — logged-in users may disable after confirmation. Guests always see ads. */
   showAds: boolean;
   setShowAds: (val: boolean) => void;
 
@@ -1236,7 +1236,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }
         if (version < 100) {
-          // Restore Monetag click ads; default on for everyone.
+          // Restore click ads preference; default on for everyone.
           next.showAds = next.showAds ?? true;
           delete (next as Record<string, unknown>).showBannerAds;
         }

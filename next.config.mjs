@@ -8,14 +8,15 @@ const csp = [
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://www.googletagmanager.com https://www.gstatic.com https://al5sm.com`,
+  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"} https://www.googletagmanager.com https://www.gstatic.com https://unfolded-uncle.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https:",
   isProd ? "connect-src 'self' https: wss:" : "connect-src 'self' https: http: wss: ws:",
   "media-src 'self' blob: https:",
   "frame-src 'self' https:",
-  "worker-src 'self' blob: https://al5sm.com",
+  "worker-src 'self' blob: https://unfolded-uncle.com",
+
   "manifest-src 'self'",
   ...(isProd ? ["upgrade-insecure-requests", "block-all-mixed-content"] : []),
 ].join("; ");

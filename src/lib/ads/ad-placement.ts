@@ -1,6 +1,6 @@
 import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
 
-/** Routes where Monetag click ads should never run. */
+/** Routes where click ads (popunder) should never run. */
 export const AD_EXCLUDED_PATH_PREFIXES = [
   "/profile",
   "/settings",
