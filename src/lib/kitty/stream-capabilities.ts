@@ -1,4 +1,5 @@
 import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamAudio, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
+import { fetchAniDeltaEpisodeAvailability } from "@/lib/kitty/anidelta-streams";
 import {
   EMPTY_STREAM_CAPABILITIES,
   capabilitiesFromProbes,
@@ -67,7 +68,7 @@ const FEATURED_PROBE_LIMIT = 5;
 const MULTI_SERVER_PROBE_PROVIDERS = new Set<KittyProvider>(["MKissa"]);
 
 /** Providers that often only succeed on non-primary KittyAPI nodes (sequential). */
-const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["Anikoto"]);
+const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["Anikoto", "AniDelta"]);
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -184,6 +185,25 @@ async function probeDirectProviderCapabilities(
   episode: number,
   title?: string | null,
 ): Promise<StreamCapabilities> {
+  // AniDelta: one bulk language map covers the whole series — far cheaper than
+  // two stream-direct probes per episode, and survives Main scrape failures via failover.
+  if (provider === "AniDelta") {
+    const avail = await fetchAniDeltaEpisodeAvailability(anilistId, title);
+    if (avail) {
+      return capabilitiesFromProbes(
+        {
+          hasFile: avail.sub.has(episode),
+          subtitleTracks: 0,
+        },
+        {
+          hasFile: avail.dub.has(episode),
+          subtitleTracks: 0,
+        },
+        providerMetaForCaps(provider),
+      );
+    }
+  }
+
   // Sequential sub→dub cuts peak concurrent stream JSON (was Promise.all).
   const subProbe = await probeStreamDirect(provider, anilistId, episode, "sub", title);
   const dubProbe = await probeStreamDirect(provider, anilistId, episode, "dub", title);
