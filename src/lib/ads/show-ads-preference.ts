@@ -5,6 +5,10 @@ import {
 
 export const CLICK_AD_SCRIPT_ID = "anikitty-click-ads";
 
+type AdScriptElement = HTMLScriptElement & {
+  settings?: Record<string, unknown>;
+};
+
 /** Remove popunder click-ad scripts injected by the loader. */
 export function unloadClickAds(): void {
   if (typeof document === "undefined") return;
@@ -17,20 +21,28 @@ export function unloadClickAds(): void {
 
 /**
  * Inject the popunder zone script once when ads should run.
- * Matches dashboard snippet: async script from unfolded-uncle.com (zone 7275065).
+ * Mirrors the publisher dashboard snippet (settings + insertBefore last script).
  */
 export function loadClickAds(): void {
   if (typeof document === "undefined") return;
   if (document.getElementById(CLICK_AD_SCRIPT_ID)) return;
 
-  const parent = [document.documentElement, document.body].filter(Boolean).pop();
+  const scripts = document.scripts;
+  const last = scripts.length > 0 ? scripts[scripts.length - 1] : null;
+  const parent = last?.parentNode ?? document.head ?? document.body;
   if (!parent) return;
 
-  const script = document.createElement("script");
+  const script = document.createElement("script") as AdScriptElement;
   script.id = CLICK_AD_SCRIPT_ID;
+  script.settings = {};
   script.src = getClickAdScriptSrc();
   script.async = true;
   script.type = "text/javascript";
   script.referrerPolicy = "no-referrer-when-downgrade";
-  parent.appendChild(script);
+
+  if (last?.parentNode === parent) {
+    parent.insertBefore(script, last);
+  } else {
+    parent.appendChild(script);
+  }
 }
