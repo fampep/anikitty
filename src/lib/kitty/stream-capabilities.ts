@@ -1,5 +1,5 @@
 import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamAudio, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
-import { fetchAniDeltaEpisodeAvailability } from "@/lib/kitty/anidelta-streams";
+import { fetchProviderEpisodeAvailability } from "@/lib/kitty/provider-streams";
 import {
   EMPTY_STREAM_CAPABILITIES,
   capabilitiesFromProbes,
@@ -68,7 +68,18 @@ const FEATURED_PROBE_LIMIT = 5;
 const MULTI_SERVER_PROBE_PROVIDERS = new Set<KittyProvider>(["MKissa"]);
 
 /** Providers that often only succeed on non-primary KittyAPI nodes (sequential). */
-const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>(["Anikoto", "AniDelta"]);
+const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>([
+  "Anikoto",
+  "AniDelta",
+  "AniVibe",
+  "AniHQ",
+]);
+
+/**
+ * Prefer bulk `/streams` for series availability (cheap catalog) over dual stream-direct.
+ * Falls back to stream-direct probes when the catalog call fails.
+ */
+const BULK_STREAMS_CAPABILITY_PROVIDERS = new Set<KittyProvider>([...KITTY_PROVIDERS]);
 
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
@@ -185,10 +196,10 @@ async function probeDirectProviderCapabilities(
   episode: number,
   title?: string | null,
 ): Promise<StreamCapabilities> {
-  // AniDelta: one bulk language map covers the whole series — far cheaper than
-  // two stream-direct probes per episode, and survives Main scrape failures via failover.
-  if (provider === "AniDelta") {
-    const avail = await fetchAniDeltaEpisodeAvailability(anilistId, title);
+  // Bulk `/streams` covers the whole series — far cheaper than two stream-direct
+  // probes per episode, and peers failover where wired (Delta / Vibe / HQ).
+  if (BULK_STREAMS_CAPABILITY_PROVIDERS.has(provider)) {
+    const avail = await fetchProviderEpisodeAvailability(provider, anilistId, title, 15_000);
     if (avail) {
       return capabilitiesFromProbes(
         {
