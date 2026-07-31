@@ -14,11 +14,9 @@ import { Heart } from "lucide-react";
 export function DisableAdsDialog({
   open,
   onOpenChange,
-  onConfirm,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
 }) {
   const t = useT();
 
@@ -49,17 +47,7 @@ export function DisableAdsDialog({
             onClick={() => onOpenChange(false)}
             className="site-brand-btn py-2.5 text-sm"
           >
-            {t("settings.ads.keepAds")}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onConfirm();
-              onOpenChange(false);
-            }}
-            className="site-ghost-btn py-2.5 text-sm"
-          >
-            {t("settings.ads.disableConfirm")}
+            {t("settings.ads.disableDismiss")}
           </button>
         </DialogFooter>
       </DialogContent>

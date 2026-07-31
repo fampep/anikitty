@@ -1010,15 +1010,16 @@
       "title": "Ads",
       "desc": "Ads help us afford running the site after downscaling proxy servers",
       "showAds": "Show site ads",
-      "showAdsDesc": "Turn off for your account only — guests still see ads",
-      "signInHint": "Sign in to turn site ads off for your account. Guests always see ads.",
+      "showAdsDesc": "Ads can’t be turned off — they only show 3 times per hour",
+      "signInHint": "Ads can’t be turned off. They only appear 3 times per hour to help cover server costs.",
       "donationHint": "Love AniKitty?",
       "donationLink": "Tip on Ko-fi",
-      "disableTitle": "Turn off ads?",
-      "disableBody": "We had to downscale our proxy servers so we can keep affording to run the site. Ads help cover those costs — please consider keeping them on.",
-      "disableWarning": "You can still turn them off. Tips on Ko-fi also help if you prefer not to see ads.",
-      "keepAds": "Keep ads on",
-      "disableConfirm": "Turn off anyway"
+      "disableTitle": "Ads can’t be turned off",
+      "disableBody": "Ads only show 3 times per hour — the bare minimum to help cover server costs.",
+      "disableWarning": "Tips on Ko-fi also help keep AniKitty running if you’d like to support us.",
+      "disableDismiss": "Got it",
+      "keepAds": "Got it",
+      "disableConfirm": "Got it"
     },
 
     "privacy": "Privacy",

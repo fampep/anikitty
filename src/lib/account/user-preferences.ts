@@ -118,7 +118,8 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
   if (typeof input.notifyMentions === "boolean") out.notifyMentions = input.notifyMentions;
   if (typeof input.notifyReplies === "boolean") out.notifyReplies = input.notifyReplies;
   if (typeof input.notifyFollows === "boolean") out.notifyFollows = input.notifyFollows;
-  if (typeof input.showAds === "boolean") out.showAds = input.showAds;
+  // Ads cannot be disabled — coerce any stored preference to on.
+  if (typeof input.showAds === "boolean") out.showAds = true;
   if (input.seekStepSeconds !== undefined) out.seekStepSeconds = sanitizeSeekStepSeconds(input.seekStepSeconds);
   if (typeof input.playerTouchSeekEnabled === "boolean") out.playerTouchSeekEnabled = input.playerTouchSeekEnabled;
   if (typeof input.autoEnableSubtitles === "boolean") out.autoEnableSubtitles = input.autoEnableSubtitles;

@@ -197,7 +197,7 @@ interface ISettingsStore {
   notifyFollows: boolean;
   setNotifyFollows: (val: boolean) => void;
 
-  /** Click ads (popunder) — logged-in users may disable after confirmation. Guests always see ads. */
+  /** Click ads (popunder) — always on; disabling is not allowed. */
   showAds: boolean;
   setShowAds: (val: boolean) => void;
 
@@ -443,7 +443,7 @@ export const useSettingsStore = create<ISettingsStore>()(
       setNotifyFollows: (notifyFollows) => set({ notifyFollows }),
 
       showAds: true,
-      setShowAds: (showAds) => set({ showAds }),
+      setShowAds: () => set({ showAds: true }),
 
       seekStepSeconds: DEFAULT_PLAYER_SEEK_STEP,
       setSeekStepSeconds: (seekStepSeconds) => set({ seekStepSeconds: sanitizeSeekStepSeconds(seekStepSeconds) }),
@@ -486,7 +486,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 101,
+      version: 102,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1245,6 +1245,10 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.kittyProxyNode = coerceKittyApiNodeId(
             typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
           );
+        }
+        if (version < 102) {
+          // Ads can no longer be disabled.
+          next.showAds = true;
         }
         return next as ISettingsStore;
       },

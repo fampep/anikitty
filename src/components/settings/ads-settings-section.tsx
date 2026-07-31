@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
-import { useAuthStore } from "@/store/auth-store";
-import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
 import { ROUTES } from "@/constants/routes";
@@ -93,18 +91,12 @@ function ToggleRow({
 
 export default function AdsSettingsSection() {
   const t = useT();
-  const auth = useAuthStore((s) => s.auth);
-  const showAds = useSettingsStore((s) => s.showAds);
-  const setShowAds = useSettingsStore((s) => s.setShowAds);
-  const [disableOpen, setDisableOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const handleToggle = (next: boolean) => {
-    if (!auth) return;
-    if (!next && showAds) {
-      setDisableOpen(true);
-      return;
+    if (!next) {
+      setInfoOpen(true);
     }
-    setShowAds(next);
   };
 
   return (
@@ -116,38 +108,26 @@ export default function AdsSettingsSection() {
           description={t("settings.ads.desc")}
         />
         <div className="px-5 py-4 space-y-3">
-          {auth ? (
-            <>
-              <ToggleRow
-                icon={<Megaphone className="w-4 h-4" />}
-                label={t("settings.ads.showAds")}
-                description={t("settings.ads.showAdsDesc")}
-                value={showAds}
-                onChange={handleToggle}
-              />
-              <p className="text-[11px] text-muted-foreground dark:text-white/40 leading-relaxed">
-                {t("settings.ads.donationHint")}{" "}
-                <Link
-                  href={ROUTES.DONATE}
-                  className="text-primary underline-offset-2 hover:underline"
-                >
-                  {t("settings.ads.donationLink")}
-                </Link>
-              </p>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground dark:text-white/45 leading-relaxed">
-              {t("settings.ads.signInHint")}
-            </p>
-          )}
+          <ToggleRow
+            icon={<Megaphone className="w-4 h-4" />}
+            label={t("settings.ads.showAds")}
+            description={t("settings.ads.showAdsDesc")}
+            value={true}
+            onChange={handleToggle}
+          />
+          <p className="text-[11px] text-muted-foreground dark:text-white/40 leading-relaxed">
+            {t("settings.ads.donationHint")}{" "}
+            <Link
+              href={ROUTES.DONATE}
+              className="text-primary underline-offset-2 hover:underline"
+            >
+              {t("settings.ads.donationLink")}
+            </Link>
+          </p>
         </div>
       </SectionCard>
 
-      <DisableAdsDialog
-        open={disableOpen}
-        onOpenChange={setDisableOpen}
-        onConfirm={() => setShowAds(false)}
-      />
+      <DisableAdsDialog open={infoOpen} onOpenChange={setInfoOpen} />
     </>
   );
 }

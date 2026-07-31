@@ -110,7 +110,8 @@ function applyRemotePreferences(prefs: SyncedUserPreferences) {
   if (prefs.notifyMentions !== undefined) patch.notifyMentions = prefs.notifyMentions;
   if (prefs.notifyReplies !== undefined) patch.notifyReplies = prefs.notifyReplies;
   if (prefs.notifyFollows !== undefined) patch.notifyFollows = prefs.notifyFollows;
-  if (prefs.showAds !== undefined) patch.showAds = prefs.showAds;
+  // Ads cannot be disabled — ignore remote false and keep preference on.
+  if (prefs.showAds !== undefined) patch.showAds = true;
   if (prefs.seekStepSeconds !== undefined) {
     patch.seekStepSeconds = sanitizeSeekStepSeconds(prefs.seekStepSeconds);
   }
