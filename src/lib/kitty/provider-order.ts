@@ -64,6 +64,14 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("AniVibe");
         continue;
       }
+      if (item === "Alpha") {
+        push("AniKuro");
+        continue;
+      }
+      if (item === "Guard") {
+        push("Senshi");
+        continue;
+      }
       if (
         item === "Lunar" ||
         item === "Luna" ||
@@ -80,9 +88,7 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Anitaku" ||
         item === "MeguAnime" ||
         item === "KickAssAnime" ||
-        item === "AniKuro" ||
         item === "AniNeko" ||
-        item === "Senshi" ||
         item === "AnimeGG" ||
         item === "AnimeHeaven" ||
         item === "EarnVids" ||

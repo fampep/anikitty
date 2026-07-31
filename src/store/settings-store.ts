@@ -479,7 +479,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 98,
+      version: 99,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1220,6 +1220,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 98) {
           // Alpha (AniKuro) at #4; HQ before it; Kilo after Alpha.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 99) {
+          // Senshi joins Recommended as #3; expand to 8 defaults.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }

@@ -61,6 +61,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
 export const KITTY_PROVIDERS = [
   "AniDelta",
   "AniVibe",
+  "Senshi",
   "AniHQ",
   "AniKuro",
   "Anikoto",
@@ -69,13 +70,13 @@ export const KITTY_PROVIDERS = [
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 7;
+export const RECOMMENDED_PROVIDER_COUNT = 8;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 98;
+export const PROVIDER_ORDER_SYNC_VERSION = 99;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -128,6 +129,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs · EarnVids/StreamHG",
+  },
+  {
+    id: "Senshi",
+    label: "Senshi",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · HardSub / SoftSub",
   },
   {
     id: "AniHQ",
@@ -193,11 +206,12 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
- * tries these before anything else. All seven are Recommended:
- * 1 Delta, 2 Vibe, 3 HQ, 4 Alpha (AniKuro), 5 Kilo, 6 Sierra, 7 Juliet. */
+ * tries these before anything else. All eight are Recommended:
+ * 1 Delta, 2 Vibe, 3 Senshi, 4 HQ, 5 Alpha (AniKuro), 6 Kilo, 7 Sierra, 8 Juliet. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "AniVibe",
+  "Senshi",
   "AniHQ",
   "AniKuro",
   "Anikoto",
@@ -248,6 +262,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Anikoto",
   "AniSnatch",
   "AniVibe",
+  "Senshi",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -288,6 +303,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
     return "AniDelta";
   }
   if (value === "HQ" || value === "AniHQ") return "AniHQ";
+  if (value === "Guard" || value === "Senshi") return "Senshi";
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "Anikoto";
   if (
     value === "Luna" ||
