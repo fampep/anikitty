@@ -67,7 +67,7 @@ export const KITTY_PROVIDERS = [
   "AniKuro",
   "Anikoto",
   "AniSnatch",
-  "AniWatch",
+  "KickAssAnime",
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
@@ -77,7 +77,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 9;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 104;
+export const PROVIDER_ORDER_SYNC_VERSION = 105;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -216,9 +216,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
+    // Juliet retired from Recommended/active roster — kept in repo (same treatment as AniHQ).
     id: "AniWatch",
     label: "Juliet",
-    group: "featured",
+    group: "other",
     supportsSub: true,
     supportsDub: true,
     softSub: true,
@@ -228,21 +229,35 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsMulti: true,
     hint: "SUB · DUB · soft subs",
   },
+  {
+    id: "KickAssAnime",
+    label: "Uniform",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    supportsMulti: true,
+    hint: "SUB · DUB · soft subs · dual-audio",
+  },
 ];
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
  * tries these before anything else. All nine are Recommended:
- * 1 Delta, 2 Vibe, 3 Waves (AniWaves), 4 Senshi, 5 Mkissa, 6 Alpha, 7 Kilo, 8 Sierra, 9 Juliet. */
+ * 1 Delta, 2 Uniform (KickAssAnime), 3 Kilo, 4 Vibe, 5 Waves (AniWaves), 6 Senshi,
+ * 7 Mkissa, 8 Alpha, 9 Sierra. Juliet (AniWatch) retired from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
+  "KickAssAnime",
+  "Anikoto",
   "AniVibe",
   "AniWaves",
   "Senshi",
   "MKissa",
   "AniKuro",
-  "Anikoto",
   "AniSnatch",
-  "AniWatch",
 ];
 
 /** 1-based rank in the given order (0 if missing). */
@@ -304,8 +319,11 @@ export function isActiveKittyProvider(value: string): value is KittyProvider {
 
 export function normalizeKittyProvider(value: string | null | undefined): KittyProvider {
   // UI labels / retired ids → active keep-list.
-  if (value === "AniZone" || value === "Juliet") return "AniWatch";
-  if (value === "AnimeStream" || value === "KaaLt") return DEFAULT_KITTY_PROVIDER;
+  // Juliet (AniWatch/AniZone) retired from the active roster — fall back to site default.
+  if (value === "AniZone" || value === "Juliet" || value === "AniWatch") {
+    return DEFAULT_KITTY_PROVIDER;
+  }
+  if (value === "AnimeStream" || value === "KaaLt") return "KickAssAnime";
   if (value === "AllAnime" || value === "Bravo") return DEFAULT_KITTY_PROVIDER;
   if (value === "Mkissa" || value === "MKissa") return "MKissa";
   if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return DEFAULT_KITTY_PROVIDER;

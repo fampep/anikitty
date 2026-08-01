@@ -30,13 +30,14 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         continue;
       }
       if (item === "AnimeStream" || item === "KaaLt") {
+        push("KickAssAnime");
         continue;
       }
       if (item === "ReAnime" || item === "KuroHost") {
         continue;
       }
-      if (item === "AniZone" || item === "Juliet") {
-        push("AniWatch");
+      // Juliet retired from the active roster — drop saved refs instead of remapping.
+      if (item === "AniZone" || item === "Juliet" || item === "AniWatch") {
         continue;
       }
       if (item === "HQ" || item === "AniHQ") {
@@ -90,7 +91,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Animeya" ||
         item === "Anitaku" ||
         item === "MeguAnime" ||
-        item === "KickAssAnime" ||
         item === "AniNeko" ||
         item === "AnimeGG" ||
         item === "AnimeHeaven" ||
