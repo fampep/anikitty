@@ -1023,12 +1023,18 @@ const VideoPlayerSection = () => {
     applyAutoKittyProxyNode(won);
   }, [streamData?.kittyNode, applyAutoKittyProxyNode]);
 
+  // Don't wait on the full episode list before starting the (slower) stream
+  // resolve — episodeNo already has a URL-derived fallback (see above), so
+  // the two network round-trips can run in parallel. Only block once the
+  // list has actually loaded and confirmed this episode isn't playable yet
+  // (unaired) — before that we don't know either way, so let it race.
+  const episodeConfirmedUnplayable = Boolean(allEpisodes?.episodes?.length) && !episodePlayable;
   const streamQueryEnabled =
     animeMatchesUrl &&
     !!anilistId &&
     !!episodeNo &&
     parseInt(episodeNo, 10) > 0 &&
-    episodePlayable;
+    !episodeConfirmedUnplayable;
 
   const hasStreamFile = Boolean(streamData?.file);
   const pendingNewEpisode = Boolean(
