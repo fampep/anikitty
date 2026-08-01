@@ -1630,6 +1630,13 @@ const VideoPlayerSection = () => {
         info?.status === 429;
       if (gatewayStatus && attemptNodeFailover()) return;
 
+      // Real playback failure (not a token remint / stale-link refresh, which
+      // usually just needs a fresh signed URL) — feed it into the same
+      // reliability score the stream-fetch-failure path already records, so
+      // both the picker's outcome dots and auto-fallback ordering learn from
+      // HLS-level failures too, not just "API never returned a stream".
+      recordProviderOutcome(provider, false);
+
       if (!providerAutoFallback) {
         trackEvent("playback_failed", {
           provider,
