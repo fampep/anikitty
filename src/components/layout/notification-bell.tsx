@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AtSign, Bell, CheckCircle2, CornerUpLeft, Loader2, Mail, MessageCircle, SkipForward, Timer, Tv, UserPlus, XCircle } from "lucide-react";
+import { AtSign, Bell, CheckCircle2, CornerUpLeft, Loader2, Mail, MessageCircle, Sparkles, SkipForward, Timer, Tv, UserPlus, XCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Avatar from "@/components/common/avatar";
 import { ROUTES } from "@/constants/routes";
@@ -11,6 +11,10 @@ import { useAuthStore } from "@/store/auth-store";
 import { useInboxSummary } from "@/hooks/use-inbox-summary";
 import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
+
+const CHANGELOG_SEEN_KEY = "kitty:changelog-last-seen";
+
+type ChangelogSummary = { version: string; slug: string; title: string | null };
 
 /** Small badge overlaid on the actor avatar so notification kinds are scannable. */
 function NotificationTypeBadge({ type }: { type: string }) {
@@ -44,6 +48,33 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [loading, setLoading] = useState(false);
+  const [latestChangelog, setLatestChangelog] = useState<ChangelogSummary | null>(null);
+  const [changelogSeen, setChangelogSeen] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/changelog/latest")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const latest: ChangelogSummary | null = data?.latest ?? null;
+        setLatestChangelog(latest);
+        if (latest) {
+          const lastSeen = localStorage.getItem(CHANGELOG_SEEN_KEY);
+          setChangelogSeen(lastSeen === latest.version);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dismissChangelog = useCallback(() => {
+    if (!latestChangelog) return;
+    localStorage.setItem(CHANGELOG_SEEN_KEY, latestChangelog.version);
+    setChangelogSeen(true);
+  }, [latestChangelog]);
 
   const loadNotifications = useCallback(async () => {
     setLoading(true);
@@ -75,8 +106,16 @@ export default function NotificationBell() {
     setOpen(false);
   };
 
+  const hasUnseenChangelog = Boolean(latestChangelog && !changelogSeen);
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) dismissChangelog();
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -89,6 +128,12 @@ export default function NotificationBell() {
               {summary.totalUnread > 99 ? "99+" : summary.totalUnread}
             </span>
           )}
+          {hasUnseenChangelog && (
+            <span
+              className="absolute bottom-1 right-1 h-2 w-2 rounded-full bg-amber-400 ring-2 ring-background dark:ring-[#0a0a0a]"
+              aria-hidden
+            />
+          )}
         </button>
       </PopoverTrigger>
 
@@ -96,6 +141,23 @@ export default function NotificationBell() {
         align="end"
         className="w-[min(22rem,calc(100vw-2rem))] p-0 bg-[#0a0a0a] border border-border dark:border-white/12 rounded-xl shadow-2xl overflow-hidden"
       >
+        {latestChangelog && (
+          <Link
+            href={`/changelog/${latestChangelog.slug}`}
+            onClick={() => setOpen(false)}
+            className="flex items-start gap-2.5 border-b border-border dark:border-white/8 bg-primary/[0.06] px-4 py-3 hover:bg-primary/[0.1] transition-colors"
+          >
+            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-foreground dark:text-white">
+                Version {latestChangelog.version} released
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-muted-foreground dark:text-white/50">
+                {latestChangelog.title || "See what's new →"}
+              </p>
+            </div>
+          </Link>
+        )}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-white/8">
           <p className="text-sm font-semibold text-foreground dark:text-white">{t("notifications.title")}</p>
           {notifications.some((n) => !n.readAt) && (

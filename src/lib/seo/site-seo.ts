@@ -101,6 +101,11 @@ export const PAGE_SEO = {
     description: "Search AniKitty help — watching, accounts, watchlists, privacy, and troubleshooting.",
     path: "/faq",
   },
+  changelog: {
+    title: "Changelog | AniKitty",
+    description: "Everything new, improved, and fixed on AniKitty — searchable release notes by version.",
+    path: "/changelog",
+  },
   history: {
     title: "Watch History | AniKitty",
     description:

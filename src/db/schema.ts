@@ -469,6 +469,33 @@ export const announcements = pgTable(
   }),
 );
 
+// ── Changelog ───────────────────────────────────────────────────────────────
+// Versioned release notes, distinct from the site-wide `announcements` banner.
+// `items` is a JSONB array of { category, text }; category is one of
+// new | improved | fixed | content | maintenance | announcement | milestone.
+export const changelogEntries = pgTable(
+  "changelog_entries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    version: varchar("version", { length: 40 }).notNull(),
+    slug: varchar("slug", { length: 60 }).notNull(),
+    title: varchar("title", { length: 200 }),
+    summary: text("summary"),
+    items: jsonb("items").notNull().default(sql`'[]'::jsonb`),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    isPublished: boolean("is_published").notNull().default(false),
+    releasedAt: timestamp("released_at"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at"),
+  },
+  (t) => ({
+    versionUnique: unique("changelog_entries_version_unique").on(t.version),
+    slugUnique: unique("changelog_entries_slug_unique").on(t.slug),
+    publishedIdx: index("changelog_entries_published_idx").on(t.isPublished, t.releasedAt),
+  }),
+);
+
 // ── Account deletion requests ──────────────────────────────────────────────
 export const accountDeletionRequests = pgTable(
   "account_deletion_requests",

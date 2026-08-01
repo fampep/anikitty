@@ -982,6 +982,24 @@ export async function migrateDb() {
         created_at TIMESTAMP DEFAULT NOW()
       )`,
       `CREATE UNIQUE INDEX IF NOT EXISTS daily_stats_date_unique ON daily_stats (date)`,
+      // ── Changelog (distinct from the site-wide `announcements` banner) ──
+      `CREATE TABLE IF NOT EXISTS changelog_entries (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        version VARCHAR(40) NOT NULL,
+        slug VARCHAR(60) NOT NULL,
+        title VARCHAR(200),
+        summary TEXT,
+        items JSONB NOT NULL DEFAULT '[]'::jsonb,
+        is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+        is_published BOOLEAN NOT NULL DEFAULT FALSE,
+        released_at TIMESTAMP,
+        created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS changelog_entries_version_unique ON changelog_entries (version)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS changelog_entries_slug_unique ON changelog_entries (slug)`,
+      `CREATE INDEX IF NOT EXISTS changelog_entries_published_idx ON changelog_entries (is_published, released_at DESC)`,
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>
