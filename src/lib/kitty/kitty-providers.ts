@@ -63,7 +63,7 @@ export const KITTY_PROVIDERS = [
   "AniVibe",
   "AniWaves",
   "Senshi",
-  "AniHQ",
+  "MKissa",
   "AniKuro",
   "Anikoto",
   "AniSnatch",
@@ -77,7 +77,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 9;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 100;
+export const PROVIDER_ORDER_SYNC_VERSION = 104;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -156,16 +156,16 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · HardSub / SoftSub",
   },
   {
-    id: "AniHQ",
-    label: "HQ",
+    id: "MKissa",
+    label: "Mkissa",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
     softSub: false,
-    hardSub: true,
+    hardSub: false,
     nativeSubs: false,
     kittySubs: false,
-    hint: "SUB · DUB · hard subs",
+    hint: "SUB · DUB · multi-mirror",
   },
   {
     id: "AniKuro",
@@ -178,6 +178,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: true,
     hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "AniHQ",
+    label: "HQ",
+    group: "other",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: false,
+    hardSub: true,
+    nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · hard subs",
   },
   {
     id: "Anikoto",
@@ -220,13 +232,13 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
  * tries these before anything else. All nine are Recommended:
- * 1 Delta, 2 Vibe, 3 Waves (AniWaves), 4 Senshi, 5 HQ, 6 Alpha, 7 Kilo, 8 Sierra, 9 Juliet. */
+ * 1 Delta, 2 Vibe, 3 Waves (AniWaves), 4 Senshi, 5 Mkissa, 6 Alpha, 7 Kilo, 8 Sierra, 9 Juliet. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "AniVibe",
   "AniWaves",
   "Senshi",
-  "AniHQ",
+  "MKissa",
   "AniKuro",
   "Anikoto",
   "AniSnatch",
@@ -294,7 +306,8 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   // UI labels / retired ids → active keep-list.
   if (value === "AniZone" || value === "Juliet") return "AniWatch";
   if (value === "AnimeStream" || value === "KaaLt") return DEFAULT_KITTY_PROVIDER;
-  if (value === "AllAnime" || value === "Bravo" || value === "MKissa") return DEFAULT_KITTY_PROVIDER;
+  if (value === "AllAnime" || value === "Bravo") return DEFAULT_KITTY_PROVIDER;
+  if (value === "Mkissa" || value === "MKissa") return "MKissa";
   if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return DEFAULT_KITTY_PROVIDER;
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
   if (value === "Heaven" || value === "AnimeHeaven") return DEFAULT_KITTY_PROVIDER;
@@ -317,7 +330,8 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   ) {
     return "AniDelta";
   }
-  if (value === "HQ" || value === "AniHQ") return "AniHQ";
+  // HQ retired from default roster — map saved HQ prefs onto Mkissa (same slot).
+  if (value === "HQ" || value === "AniHQ") return "MKissa";
   if (value === "Guard" || value === "Senshi") return "Senshi";
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "Anikoto";
   if (value === "Waves" || value === "Whiskey" || value === "AniWaves") return "AniWaves";

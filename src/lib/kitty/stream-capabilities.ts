@@ -72,7 +72,7 @@ const PROBE_FAILOVER_PROVIDERS = new Set<KittyProvider>([
   "Anikoto",
   "AniDelta",
   "AniVibe",
-  "AniHQ",
+  "MKissa",
 ]);
 
 /**

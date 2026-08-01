@@ -42,7 +42,7 @@ const availCache = new Map<string, CacheEntry>();
 const STREAMS_FAILOVER_PROVIDERS = new Set<KittyProvider>([
   "AniDelta",
   "AniVibe",
-  "AniHQ",
+  "MKissa",
   "Anikoto",
 ]);
 

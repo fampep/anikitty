@@ -2620,7 +2620,7 @@
     "providerStatusReliable": "Reliable",
     "providerStatusMixed": "Mixed",
     "providerStatusUnreliable": "Unreliable",
-    "providerHSubsOnlyHint": "Hard-sub playback from HQ when this episode supports it.",
+    "providerHSubsOnlyHint": "Hard-sub playback when this episode supports it.",
     "providerNoSourcesForTab": "No sources for this mode on this episode.",
     "providerSourceCompact": "SOURCE: {label}",
     "providerPickTitle": "Choose source",

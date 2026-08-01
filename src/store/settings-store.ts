@@ -486,7 +486,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 103,
+      version: 104,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1252,6 +1252,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 103) {
           // Waves (AniWaves) joins Recommended as #3; expand to 9 defaults.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 104) {
+          // Mkissa replaces HQ in Recommended #5; AniHQ stays disabled from defaults.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }

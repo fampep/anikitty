@@ -1,5 +1,6 @@
 import { isAllowedMediaProxyUrl } from "@/lib/security/security";
 import { withKittyProxyAuthHeaders } from "@/lib/kitty/kitty-api-core";
+import { rewriteKittyApiUrlToDirectOrigin } from "@/lib/kitty/kitty-api-node-origins.server";
 import {
   HLS_SESSION_COOKIE,
   isAllowedHlsClientRequest,
@@ -337,6 +338,9 @@ export async function GET(req: Request) {
 
   // When upstream is KittyAPI `/proxy?…`, attach KITTY_API_KEY server-side.
   // Browser only ever sees `/api/kitty/hls?t=…` — the key never leaves Next.
+  // Pin CF public DNS → origin IP so undici is not blocked by Browser Integrity
+  // (error 1010) — breaks AniKuro freevideoupload and other /proxy media.
+  const fetchTarget = rewriteKittyApiUrlToDirectOrigin(decoded);
   const fetchHeaders = withKittyProxyAuthHeaders(
     decoded,
     upstreamHeaders(referer, origin, cookie, range) as Record<string, string>,
@@ -344,7 +348,7 @@ export async function GET(req: Request) {
 
   let upstream: Response;
   try {
-    upstream = await fetch(decoded, {
+    upstream = await fetch(fetchTarget, {
       cache: "no-store",
       headers: {
         ...fetchHeaders,
@@ -368,7 +372,7 @@ export async function GET(req: Request) {
     try {
       const loc = new URL(upstream.headers.get("location")!, decoded).toString();
       if (isAllowedMediaProxyUrl(loc)) {
-        upstream = await fetch(loc, {
+        upstream = await fetch(rewriteKittyApiUrlToDirectOrigin(loc), {
           cache: "no-store",
           headers: {
             ...fetchHeaders,
@@ -451,7 +455,7 @@ export async function GET(req: Request) {
       upstreamHeaders(referer, origin, cookie, range) as Record<string, string>,
     );
     try {
-      upstream = await fetch(nested, {
+      upstream = await fetch(rewriteKittyApiUrlToDirectOrigin(nested), {
         cache: "no-store",
         headers: {
           ...nestedHeaders,

@@ -40,7 +40,12 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         continue;
       }
       if (item === "HQ" || item === "AniHQ") {
-        push("AniHQ");
+        // HQ slot → Mkissa (AniHQ kept in repo but off the active roster).
+        push("MKissa");
+        continue;
+      }
+      if (item === "Mkissa" || item === "MKissa") {
+        push("MKissa");
         continue;
       }
       if (item === "Zenkai") {
@@ -77,7 +82,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Luna" ||
         item === "FlixCloud" ||
         item === "Flix" ||
-        item === "MKissa" ||
         item === "Animex" ||
         item === "AnimeLok" ||
         item === "Yenime" ||

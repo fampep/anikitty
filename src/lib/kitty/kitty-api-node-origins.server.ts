@@ -1,6 +1,12 @@
 import "server-only";
 
-import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
+import {
+  KITTY_API_NODE_DNS_SLUGS,
+  KITTY_API_NODES,
+  PUBLIC_KITTY_API_HOST,
+  PUBLIC_KITTY_DNS_ZONE,
+  type KittyApiNodeId,
+} from "@/lib/kitty/kitty-api-nodes";
 
 /**
  * Real VPS IPv4 addresses — server-only. Never import this module from client
@@ -29,6 +35,44 @@ export function getKittyApiNodeOriginIp(id: KittyApiNodeId): string {
 /** Server-side origin that pins traffic to one VPS static IP (no CF hop). */
 export function getKittyApiNodeDirectUrl(id: KittyApiNodeId): string {
   return `http://${getKittyApiNodeOriginIp(id)}`;
+}
+
+function resolveNodeIdFromKittyHostname(hostname: string): KittyApiNodeId | null {
+  const host = hostname.toLowerCase();
+  if (host === PUBLIC_KITTY_API_HOST) return "primary";
+  for (const node of KITTY_API_NODES) {
+    if (host === node.host.toLowerCase()) return node.id;
+  }
+  for (const [id, slug] of Object.entries(KITTY_API_NODE_DNS_SLUGS) as [
+    KittyApiNodeId,
+    string,
+  ][]) {
+    if (host === `${slug}.${PUBLIC_KITTY_DNS_ZONE}`) return id;
+  }
+  // Already a known origin IP — keep pinning to that node.
+  const byIp = Object.entries(KITTY_API_NODE_ORIGIN_IPS).find(([, ip]) => ip === host);
+  return (byIp?.[0] as KittyApiNodeId | undefined) ?? null;
+}
+
+/**
+ * Rewrite Cloudflare-proxied KittyAPI URLs onto the matching origin IP.
+ * AniKitty server fetches (HLS proxy) must skip CF Browser Integrity (1010),
+ * which blocks Node/undici UA on `*.anikitty.online` /proxy paths.
+ */
+export function rewriteKittyApiUrlToDirectOrigin(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    const nodeId = resolveNodeIdFromKittyHostname(parsed.hostname);
+    if (!nodeId) return trimmed;
+    const direct = new URL(getKittyApiNodeDirectUrl(nodeId));
+    parsed.protocol = direct.protocol;
+    parsed.host = direct.host;
+    return parsed.toString();
+  } catch {
+    return trimmed;
+  }
 }
 
 /** Match a probe/benchmark origin string to a node via its static IP. */
