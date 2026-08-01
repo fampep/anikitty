@@ -6,36 +6,50 @@ import { isAllowedUserRole } from "@/lib/admin/validate-user-role";
 import { eq, desc, ilike, or, sql, inArray, max } from "drizzle-orm";
 import { toModerationStatus } from "@/lib/security/moderation";
 
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 100;
+
 export async function GET(req: Request) {
   if (!(await requireAdmin(req))) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim().slice(0, 100);
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10) || 1);
+  const pageSize = Math.min(
+    MAX_PAGE_SIZE,
+    Math.max(1, parseInt(searchParams.get("pageSize") ?? "", 10) || DEFAULT_PAGE_SIZE),
+  );
+  const offset = (page - 1) * pageSize;
 
   const db = getDb();
 
   if (q) {
-    const rows = await db
-      .select({
-        id: users.id,
-        username: users.username,
-        email: users.email,
-        role: users.role,
-        avatarUrl: users.avatarUrl,
-        createdAt: users.createdAt,
-        totpEnabled: users.totpEnabled,
-        kittycoinBalance: users.kittycoinBalance,
-        supporterUntil: users.supporterUntil,
-        discordBoosting: users.discordBoosting,
-        bannedAt: users.bannedAt,
-        banReason: users.banReason,
-        mutedUntil: users.mutedUntil,
-        muteReason: users.muteReason,
-      })
-      .from(users)
-      .where(or(ilike(users.username, `%${q}%`), ilike(users.email, `%${q}%`)))
-      .orderBy(desc(users.createdAt))
-      .limit(200);
+    const whereClause = or(ilike(users.username, `%${q}%`), ilike(users.email, `%${q}%`))!;
+    const [rows, [{ total }]] = await Promise.all([
+      db
+        .select({
+          id: users.id,
+          username: users.username,
+          email: users.email,
+          role: users.role,
+          avatarUrl: users.avatarUrl,
+          createdAt: users.createdAt,
+          totpEnabled: users.totpEnabled,
+          kittycoinBalance: users.kittycoinBalance,
+          supporterUntil: users.supporterUntil,
+          discordBoosting: users.discordBoosting,
+          bannedAt: users.bannedAt,
+          banReason: users.banReason,
+          mutedUntil: users.mutedUntil,
+          muteReason: users.muteReason,
+        })
+        .from(users)
+        .where(whereClause)
+        .orderBy(desc(users.createdAt))
+        .limit(pageSize)
+        .offset(offset),
+      db.select({ total: sql<number>`count(*)::int` }).from(users).where(whereClause),
+    ]);
 
     const ids = rows.map((r) => r.id);
     const lastActiveMap = new Map<string, string>();
@@ -72,34 +86,49 @@ export async function GET(req: Request) {
         lastActiveAt: lastActiveMap.get(u.id) ?? null,
         moderation: toModerationStatus(u),
       })),
+      page,
+      pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
     });
   }
 
-  const rows = rowsOf(await db.execute(sql`
-    SELECT
-      u.id,
-      u.username,
-      u.email,
-      u.role,
-      u.avatar_url AS "avatarUrl",
-      u.created_at AS "createdAt",
-      u.totp_enabled AS "totpEnabled",
-      u.kittycoin_balance AS "kittycoinBalance",
-      u.supporter_until AS "supporterUntil",
-      u.discord_boosting AS "discordBoosting",
-      u.banned_at AS "bannedAt",
-      u.ban_reason AS "banReason",
-      u.muted_until AS "mutedUntil",
-      u.mute_reason AS "muteReason",
-      MAX(wp.updated_at) AS "lastActiveAt"
-    FROM users u
-    LEFT JOIN watch_progress wp ON wp.user_id = u.id
-    GROUP BY u.id
-    ORDER BY u.created_at DESC
-    LIMIT 200
-  `));
+  const [rowsResult, totalResult] = await Promise.all([
+    db.execute(sql`
+      SELECT
+        u.id,
+        u.username,
+        u.email,
+        u.role,
+        u.avatar_url AS "avatarUrl",
+        u.created_at AS "createdAt",
+        u.totp_enabled AS "totpEnabled",
+        u.kittycoin_balance AS "kittycoinBalance",
+        u.supporter_until AS "supporterUntil",
+        u.discord_boosting AS "discordBoosting",
+        u.banned_at AS "bannedAt",
+        u.ban_reason AS "banReason",
+        u.muted_until AS "mutedUntil",
+        u.mute_reason AS "muteReason",
+        MAX(wp.updated_at) AS "lastActiveAt"
+      FROM users u
+      LEFT JOIN watch_progress wp ON wp.user_id = u.id
+      GROUP BY u.id
+      ORDER BY u.created_at DESC
+      LIMIT ${pageSize}
+      OFFSET ${offset}
+    `),
+    db.execute(sql`SELECT count(*)::int AS total FROM users`),
+  ]);
+  const rows = rowsOf(rowsResult);
+  const totalRows = rowsOf(totalResult);
+  const total = Number((totalRows[0] as { total?: number } | undefined)?.total ?? 0);
 
   return NextResponse.json({
+    page,
+    pageSize,
+    total,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
     users: rows.map((u) => ({
       id: u.id,
       username: u.username,

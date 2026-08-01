@@ -420,6 +420,10 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [usersLoading, setUsersLoading] = useState(true);
   const [search, setSearch]         = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [usersPage, setUsersPage]   = useState(1);
+  const [usersTotal, setUsersTotal] = useState(0);
+  const [usersTotalPages, setUsersTotalPages] = useState(1);
+  const USERS_PAGE_SIZE = 50;
   const [pendingRole, setPendingRole] = useState<Record<string, string>>({});
   const [savingRole, setSavingRole]  = useState<string | null>(null);
   const [deletionRequests, setDeletionRequests] = useState<DeletionRequest[]>([]);
@@ -527,14 +531,21 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   }, [onLogout]);
 
   // ── Fetch helpers ────────────────────────────────────────────────────────
-  const fetchUsers = useCallback(async (q?: string) => {
+  const fetchUsers = useCallback(async (q?: string, page = 1) => {
     setUsersLoading(true);
     try {
-      const res = await fetch(`/api/admin/users${q ? `?q=${encodeURIComponent(q)}` : ""}`, { headers: adminHeaders() });
+      const params = new URLSearchParams();
+      if (q) params.set("q", q);
+      params.set("page", String(page));
+      params.set("pageSize", String(USERS_PAGE_SIZE));
+      const res = await fetch(`/api/admin/users?${params}`, { headers: adminHeaders() });
       if (res.status === 403) { onLogout(); return; }
       if (!res.ok) { toast.error("Failed to load admin data"); return; }
       const data = await res.json();
       setUsers(data.users ?? []);
+      setUsersPage(data.page ?? page);
+      setUsersTotal(data.total ?? 0);
+      setUsersTotalPages(data.totalPages ?? 1);
     } catch { toast.error("Failed to load users"); }
     finally { setUsersLoading(false); }
   }, [onLogout]);
@@ -703,7 +714,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
     setRefreshing(true);
     try {
       await Promise.all([
-        fetchUsers(search),
+        fetchUsers(search, usersPage),
         fetchRoles(),
         fetchActivity(activityView),
         fetchStats(),
@@ -722,7 +733,13 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const handleSearch = (v: string) => {
     setSearch(v);
     if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => fetchUsers(v), 350);
+    searchTimer.current = setTimeout(() => fetchUsers(v, 1), 350);
+  };
+
+  const goToUsersPage = (page: number) => {
+    const clamped = Math.max(1, Math.min(usersTotalPages, page));
+    if (clamped === usersPage) return;
+    void fetchUsers(search, clamped);
   };
 
   const allRoleOptions = roles;
@@ -1639,8 +1656,8 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
               </div>
               {!usersLoading && (
                 <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/25">
-                  {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}
-                  {roleFilter !== "all" ? ` · ${roleFilter}` : ""}
+                  {usersTotal} user{usersTotal !== 1 ? "s" : ""} total · page {usersPage} of {usersTotalPages}
+                  {roleFilter !== "all" ? ` · filtered to ${filteredUsers.length} ${roleFilter} on this page` : ""}
                 </span>
               )}
               <select
@@ -1894,6 +1911,30 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
                 {filteredUsers.length === 0 && (
                   <p className="text-center text-muted-foreground/70 dark:text-white/20 text-sm font-mono py-8">No users found</p>
                 )}
+              </div>
+            )}
+
+            {!usersLoading && usersTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => goToUsersPage(usersPage - 1)}
+                  disabled={usersPage <= 1}
+                  className="rounded-lg border border-border dark:border-white/10 px-3 py-1.5 text-xs font-semibold text-muted-foreground dark:text-white/60 hover:text-foreground dark:hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  Previous
+                </button>
+                <span className="text-[11px] font-mono text-muted-foreground/80 dark:text-white/30">
+                  Page {usersPage} of {usersTotalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => goToUsersPage(usersPage + 1)}
+                  disabled={usersPage >= usersTotalPages}
+                  className="rounded-lg border border-border dark:border-white/10 px-3 py-1.5 text-xs font-semibold text-muted-foreground dark:text-white/60 hover:text-foreground dark:hover:text-white disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  Next
+                </button>
               </div>
             )}
           </div>
