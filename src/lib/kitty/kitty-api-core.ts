@@ -262,27 +262,11 @@ export function kittyAuthHeaders(apiKey?: string): HeadersInit {
   };
 }
 
-/**
- * Cloudflare Access service-token headers — main/bulgaria/netherlands/vps.anikitty.online
- * gate /provider, /audio, /subs behind CF Access so those JSON routes can't be reached by
- * hitting the origin directly. /proxy (browser HLS playback) is intentionally excluded from
- * the Access app, so it must never send these headers even if set.
- */
-export function kittyAccessHeaders(): HeadersInit {
-  const id = process.env.CF_ACCESS_CLIENT_ID?.trim();
-  const secret = process.env.CF_ACCESS_CLIENT_SECRET?.trim();
-  if (!id || !secret) return {};
-  return {
-    "CF-Access-Client-Id": id,
-    "CF-Access-Client-Secret": secret,
-  };
-}
-
 function mergeKittyFetchInit(path: string, init?: RequestInit, skipAuth?: boolean): RequestInit {
   if (skipAuth || isKittyNoApiKeyPath(path)) return init ?? {};
 
   const headers = new Headers(init?.headers);
-  const auth = { ...kittyAuthHeaders(), ...kittyAccessHeaders() };
+  const auth = kittyAuthHeaders();
   for (const [name, value] of Object.entries(auth)) {
     if (value && !headers.has(name)) headers.set(name, value);
   }
