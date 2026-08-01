@@ -92,6 +92,20 @@ import {
   VolumeLowIcon,
   VolumeMuteIcon,
 } from "./icons";
+import { Bookmark, BookmarkPlus, Camera, Trash2, X as XIcon } from "lucide-react";
+import { toast } from "sonner";
+import {
+  captureVideoFrame,
+  copyScreenshotToClipboard,
+  downloadScreenshot,
+  shareScreenshot,
+} from "@/lib/player/screenshot";
+import {
+  addBookmark,
+  getBookmarks,
+  removeBookmark,
+  type PlayerBookmark,
+} from "@/lib/player/player-bookmarks";
 import type { SkipTimes } from "@/hooks/use-aniskip";
 import type { W2gSyncState } from "@/lib/kitty/video-player-types";
 import {
@@ -119,6 +133,8 @@ import {
 import { PlayerSubtitleOverlay } from "./subtitle-overlay";
 import PlayerSettingsMenu from "./settings-menu";
 import { useAirPlay } from "./hooks/use-airplay";
+import { useAmbientGlow } from "./hooks/use-ambient-glow";
+import { StatsOverlay } from "./stats-overlay";
 import { useChromeIdle } from "./hooks/use-chrome-idle";
 import { usePlayerFullscreen } from "./hooks/use-fullscreen";
 import { isLikelyCastWebVttUrl, prepareCastMediaUrl } from "./cast/google-cast";
@@ -233,6 +249,7 @@ export function KittyPlayer({
   title,
   seriesTitle,
   episodeNumber,
+  anilistId,
   className,
   tracks = EMPTY_TRACKS,
   qualities = EMPTY_QUALITIES,
@@ -296,6 +313,9 @@ export function KittyPlayer({
   const seekingRef = useRef(false);
   const startAppliedRef = useRef(false);
   const startedRef = useRef(false);
+  const startupTimerRef = useRef<number>(0);
+  const startupMeasuredRef = useRef(false);
+  const [startupMs, setStartupMs] = useState<number | null>(null);
   const lastProgressTsRef = useRef(0);
   const volumeBeforeMuteRef = useRef(1);
   const audioBoostRef = useRef<AudioBoostController | null>(null);
@@ -359,6 +379,10 @@ export function KittyPlayer({
   const liteMode = useEffectiveLiteMode();
   const seekStepSeconds = useSettingsStore((s) => s.seekStepSeconds);
   const playerTouchSeekEnabled = useSettingsStore((s) => s.playerTouchSeekEnabled);
+  const playerTheme = useSettingsStore((s) => s.playerTheme);
+  const ambientModeEnabled = useSettingsStore((s) => s.ambientModeEnabled);
+  const statsOverlayEnabled = useSettingsStore((s) => s.statsOverlayEnabled);
+  const ambientColor = useAmbientGlow(videoRef.current, ambientModeEnabled);
   const autoSkipRef = useRef(autoSkipIntro);
   const autoNextRef = useRef(autoPlay);
   const seekStepRef = useRef(seekStepSeconds);
@@ -1569,6 +1593,10 @@ export function KittyPlayer({
       setHasStarted(true);
       setBuffering(false);
       setSourceLoading(false);
+      if (!startupMeasuredRef.current) {
+        startupMeasuredRef.current = true;
+        setStartupMs(Math.round(performance.now() - startupTimerRef.current));
+      }
       bumpControls({ hideAfterMs: IDLE_AFTER_PLAY_MS });
       void audioBoostRef.current?.resume();
       // After pause, some CDNs stop feeding until load resumes.
@@ -2046,6 +2074,9 @@ export function KittyPlayer({
 
     startAppliedRef.current = false;
     startedRef.current = false;
+    startupTimerRef.current = performance.now();
+    startupMeasuredRef.current = false;
+    setStartupMs(null);
     setPlaybackIssue(null);
     // Keep timeline when swapping into/out of AirPlay native handoff.
     if (!airPlayUrl) {
@@ -3013,6 +3044,79 @@ export function KittyPlayer({
     bumpControls();
   }, [bumpControls, pipSupported, pipBlocked, showGestureHint]);
 
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
+  const [bookmarkNote, setBookmarkNote] = useState("");
+  const [bookmarks, setBookmarks] = useState<PlayerBookmark[]>([]);
+  const bookmarksTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const refreshBookmarks = useCallback(() => {
+    if (!anilistId || !episodeNumber) {
+      setBookmarks([]);
+      return;
+    }
+    setBookmarks(getBookmarks(anilistId, episodeNumber));
+  }, [anilistId, episodeNumber]);
+
+  useEffect(() => {
+    refreshBookmarks();
+  }, [refreshBookmarks]);
+
+  const handleSaveBookmark = useCallback(() => {
+    const video = videoRef.current;
+    if (!anilistId || !episodeNumber || !video) return;
+    addBookmark(anilistId, episodeNumber, video.currentTime, bookmarkNote);
+    setBookmarkNote("");
+    refreshBookmarks();
+    toast.success("Bookmark saved");
+  }, [anilistId, episodeNumber, bookmarkNote, refreshBookmarks]);
+
+  const handleDeleteBookmark = useCallback(
+    (id: string) => {
+      removeBookmark(id);
+      refreshBookmarks();
+    },
+    [refreshBookmarks],
+  );
+
+  const handleJumpToBookmark = useCallback((time: number) => {
+    const video = videoRef.current;
+    if (video) video.currentTime = time;
+    setBookmarksOpen(false);
+    bumpControls();
+  }, [bumpControls]);
+
+  const handleScreenshot = useCallback(async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const blob = await captureVideoFrame(video);
+    if (!blob) {
+      toast.error("Couldn't capture this frame");
+      return;
+    }
+    const namePart = (seriesTitle || title || "anikitty").replace(/[^a-z0-9]+/gi, "-");
+    const filename = `${namePart}-${Math.floor(video.currentTime)}s.png`;
+    const copied = await copyScreenshotToClipboard(blob);
+    if (typeof navigator.share === "function") {
+      toast.success(copied ? "Screenshot copied to clipboard" : "Screenshot captured", {
+        action: {
+          label: "Save",
+          onClick: () => downloadScreenshot(blob, filename),
+        },
+        cancel: {
+          label: "Share",
+          onClick: () => void shareScreenshot(blob, filename, title),
+        },
+      });
+    } else {
+      toast.success(copied ? "Screenshot copied to clipboard" : "Screenshot captured", {
+        action: {
+          label: "Save",
+          onClick: () => downloadScreenshot(blob, filename),
+        },
+      });
+    }
+  }, [seriesTitle, title]);
+
   const applyPlaybackRate = useCallback(
     (rate: number, opts?: { hint?: boolean; persist?: boolean }) => {
       const video = videoRef.current;
@@ -3877,6 +3981,7 @@ export function KittyPlayer({
       tabIndex={0}
       role="region"
       aria-label={title ? `KittyPlayer: ${title}` : "KittyPlayer"}
+      data-player-theme={playerTheme}
       className={cn(
         "anikitty-player group/player relative aspect-video w-full overflow-hidden rounded-lg bg-black outline-none",
         "focus-visible:ring-2 focus-visible:ring-white/40",
@@ -3923,6 +4028,19 @@ export function KittyPlayer({
           : ""}
       </div>
 
+      {/* Ambient glow — soft color wash sampled from the current frame, behind
+          the video so it fills letterbox bars (contained within the player's
+          own rounded/overflow-hidden bounds, not spilling onto the page). */}
+      {ambientColor ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 z-0 opacity-70 blur-3xl transition-[background] duration-700 ease-out"
+          style={{
+            background: `radial-gradient(ellipse at center, rgb(${ambientColor} / 0.55) 0%, rgb(${ambientColor} / 0.18) 55%, transparent 80%)`,
+          }}
+        />
+      ) : null}
+
       {/* Video in its own stacking layer so shadow media-controls can't cover chrome. */}
       <div data-ak-video-layer="" className="absolute inset-0 z-0 overflow-hidden">
         <video
@@ -3956,6 +4074,15 @@ export function KittyPlayer({
           onPointerCancel={surfaceGestures.onPointerCancel}
         />
       </div>
+
+      {statsOverlayEnabled ? (
+        <StatsOverlay
+          video={videoRef.current}
+          hlsRef={hlsRef}
+          provider={provider}
+          startupMs={startupMs}
+        />
+      ) : null}
 
       <PlayerSubtitleOverlay
         videoRef={videoRef}
@@ -4642,6 +4769,25 @@ export function KittyPlayer({
                         />
                       );
                     })
+                  : null}
+                {/* Bookmark markers — small ticks, click to jump (stop propagation
+                    so they don't also start a scrub drag on the parent slider). */}
+                {effectiveDuration > 0 && bookmarks.length > 0
+                  ? bookmarks.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        title={b.note || formatPlayerTime(b.time)}
+                        aria-label={`Jump to bookmark: ${b.note || formatPlayerTime(b.time)}`}
+                        className="absolute top-1/2 z-[2] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-black/40 bg-amber-300 shadow-[0_0_4px_rgba(0,0,0,0.6)] transition-transform hover:scale-125"
+                        style={{ left: `${(b.time / effectiveDuration) * 100}%` }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleJumpToBookmark(b.time);
+                        }}
+                      />
+                    ))
                   : null}
               </div>
               {/* Scrub knob — outside overflow:hidden track so it stays visible */}
@@ -5386,6 +5532,119 @@ export function KittyPlayer({
                     </PlayerOverlayPortal>
                   ) : null}
                 </div>
+
+                <IconButton
+                  label="Screenshot"
+                  onClick={() => void handleScreenshot()}
+                >
+                  <Camera className="h-[17px] w-[17px]" />
+                </IconButton>
+
+                {anilistId && episodeNumber ? (
+                  <div className={cn(!coarsePointer && "relative")}>
+                    <IconButton
+                      buttonRef={bookmarksTriggerRef}
+                      label="Bookmarks"
+                      ariaExpanded={bookmarksOpen}
+                      ariaHasPopup="menu"
+                      ariaPressed={bookmarks.length > 0}
+                      onClick={() => {
+                        setBookmarksOpen((v) => !v);
+                        setMoreOpen(false);
+                        setVolumeOpen(false);
+                        setCaptionsOpen(false);
+                        setQualityOpen(false);
+                        setSpeedOpen(false);
+                        setAudioOpen(false);
+                        bumpControls();
+                      }}
+                    >
+                      {bookmarks.length > 0 ? (
+                        <Bookmark className="h-[17px] w-[17px] fill-current" />
+                      ) : (
+                        <BookmarkPlus className="h-[17px] w-[17px]" />
+                      )}
+                    </IconButton>
+                    {bookmarksOpen ? (
+                      <div
+                        role="menu"
+                        aria-label="Bookmarks"
+                        className={cn(
+                          "absolute bottom-full right-0 z-50 mb-2.5 max-h-[min(60vh,340px)] w-[min(88vw,19rem)] overflow-y-auto py-2",
+                          PLAYER_POPOVER_CLASS,
+                        )}
+                      >
+                        <div className="flex items-center justify-between px-3 pb-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wide text-white/50">
+                            Bookmarks
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Close"
+                            className="text-white/40 hover:text-white/80"
+                            onClick={() => setBookmarksOpen(false)}
+                          >
+                            <XIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <div className="flex gap-1.5 px-3 pb-2">
+                          <input
+                            type="text"
+                            value={bookmarkNote}
+                            onChange={(e) => setBookmarkNote(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveBookmark();
+                            }}
+                            placeholder={`Note at ${formatPlayerTime(videoRef.current?.currentTime ?? 0)}…`}
+                            className="min-w-0 flex-1 rounded-md border border-white/10 bg-white/[0.06] px-2 py-1.5 text-[11px] text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/30"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSaveBookmark}
+                            className="shrink-0 rounded-md border border-teal-400/40 bg-teal-500/20 px-2.5 py-1.5 text-[11px] font-bold text-teal-50 hover:bg-teal-500/30"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        {bookmarks.length === 0 ? (
+                          <p className="px-3 py-3 text-center text-[11px] text-white/35">
+                            No bookmarks yet — add one at the current timestamp.
+                          </p>
+                        ) : (
+                          <div className="flex flex-col">
+                            {bookmarks.map((b) => (
+                              <div
+                                key={b.id}
+                                className="group/bm flex items-center gap-2 px-3 py-1.5 hover:bg-white/[0.06]"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleJumpToBookmark(b.time)}
+                                  className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                                >
+                                  <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 font-mono text-[10px] text-white/70">
+                                    {formatPlayerTime(b.time)}
+                                  </span>
+                                  <span className="min-w-0 flex-1 truncate text-[11px] text-white/80">
+                                    {b.note || "Bookmark"}
+                                  </span>
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label="Delete bookmark"
+                                  className="shrink-0 text-white/25 opacity-0 hover:text-rose-300 group-hover/bm:opacity-100"
+                                  onClick={() => handleDeleteBookmark(b.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className={cn(!coarsePointer && "relative")}>
                   <IconButton

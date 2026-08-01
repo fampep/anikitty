@@ -1276,6 +1276,53 @@ html[data-user-theme] .anikitty-player {
   --ak-player-knob: #fff;
 }
 
+/* Player chrome themes — same specificity as the site-accent rule above so
+   source order decides; these come after it and win when data-player-theme
+   is set to anything but "default" (which intentionally has no override). */
+html .anikitty-player[data-player-theme="amoled"] {
+  --ak-player-surface: #000;
+  --ak-player-track: rgba(255, 255, 255, 0.1);
+  --ak-player-buffer: rgba(255, 255, 255, 0.2);
+  --ak-player-accent: #ffffff;
+  --ak-player-accent-soft: rgba(255, 255, 255, 0.22);
+  --ak-player-played: linear-gradient(90deg, #d4d4d8 0%, #ffffff 100%);
+  --ak-player-knob: #ffffff;
+}
+html .anikitty-player[data-player-theme="amoled"] [data-ak-chrome] > div {
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.75) 55%, transparent 100%);
+}
+
+html .anikitty-player[data-player-theme="purple"] {
+  --ak-player-accent: #a78bfa;
+  --ak-player-accent-soft: rgba(167, 139, 250, 0.35);
+  --ak-player-played: linear-gradient(90deg, #7c3aed 0%, #a78bfa 55%, #c4b5fd 100%);
+  --ak-player-knob: #ede9fe;
+}
+
+html .anikitty-player[data-player-theme="glass"] [data-ak-chrome] > div {
+  background: rgba(12, 12, 16, 0.35);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+html .anikitty-player[data-player-theme="compact"] [data-ak-chrome] > div {
+  padding-top: 0.35rem;
+}
+html .anikitty-player[data-player-theme="compact"] [data-ak-chrome] > div::before {
+  height: 3.25rem;
+}
+
+html .anikitty-player[data-player-theme="minimal"] {
+  --ak-player-accent-soft: rgba(255, 255, 255, 0.06);
+}
+html .anikitty-player[data-player-theme="minimal"] [data-ak-chrome] > div {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent 70%);
+}
+html .anikitty-player[data-player-theme="minimal"] [data-ak-chrome] > div::before {
+  display: none;
+}
+
 .anikitty-player:fullscreen,
 .anikitty-player:-webkit-full-screen,
 .anikitty-player:-moz-full-screen {

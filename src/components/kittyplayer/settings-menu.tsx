@@ -19,14 +19,17 @@ import {
   Music2,
   ImageIcon,
   PanelTop,
+  Palette,
   Shuffle,
   Sparkles,
   Subtitles,
+  Sun,
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
+import { PLAYER_THEMES, PLAYER_THEME_LABELS } from "@/lib/player/player-theme";
 import SubtitleSettingsPanel from "@/components/subtitles/subtitle-settings-panel";
 import SeekStepSetting from "@/components/settings/seek-step-setting";
 import {
@@ -266,6 +269,12 @@ export default function PlayerSettingsMenu({
   const setAnime4kEnabled = useSettingsStore((s) => s.setAnime4kEnabled);
   const anime4kMode = useSettingsStore((s) => s.anime4kMode);
   const setAnime4kMode = useSettingsStore((s) => s.setAnime4kMode);
+  const playerTheme = useSettingsStore((s) => s.playerTheme);
+  const setPlayerTheme = useSettingsStore((s) => s.setPlayerTheme);
+  const ambientModeEnabled = useSettingsStore((s) => s.ambientModeEnabled);
+  const setAmbientModeEnabled = useSettingsStore((s) => s.setAmbientModeEnabled);
+  const statsOverlayEnabled = useSettingsStore((s) => s.statsOverlayEnabled);
+  const setStatsOverlayEnabled = useSettingsStore((s) => s.setStatsOverlayEnabled);
   const kittyProxyNode = useSettingsStore((s) => s.kittyProxyNode);
   const setKittyProxyNode = useSettingsStore((s) => s.setKittyProxyNode);
   const kittyProxyManual = useSettingsStore((s) => s.kittyProxyManual);
@@ -549,6 +558,44 @@ export default function PlayerSettingsMenu({
                 {t("watch.anime4kUnsupported")}
               </p>
             )}
+            <div className="flex items-center gap-2 px-3.5 pb-1.5 pt-3 text-[10px] font-bold uppercase tracking-wide text-white/35">
+              <Palette className="h-3 w-3" />
+              {t("watch.playerSettings.theme")}
+            </div>
+            <div className="flex flex-wrap gap-1.5 px-3.5 pb-3">
+              {PLAYER_THEMES.map((theme) => (
+                <button
+                  key={theme}
+                  type="button"
+                  onClick={() => setPlayerTheme(theme)}
+                  aria-pressed={playerTheme === theme}
+                  className={cn(
+                    "rounded-lg border px-2.5 py-1 text-[10px] font-bold transition-colors",
+                    playerTheme === theme
+                      ? "border-teal-400/40 bg-teal-500/20 text-teal-50"
+                      : "border-white/10 text-white/45 hover:text-white/75",
+                  )}
+                >
+                  {PLAYER_THEME_LABELS[theme]}
+                </button>
+              ))}
+            </div>
+            <ToggleRow
+              compact={compact}
+              icon={<Sun className="h-3.5 w-3.5" />}
+              label={t("watch.playerSettings.ambientMode")}
+              description={compact ? undefined : t("watch.playerSettings.ambientModeDesc")}
+              value={ambientModeEnabled}
+              onChange={setAmbientModeEnabled}
+            />
+            <ToggleRow
+              compact={compact}
+              icon={<Gauge className="h-3.5 w-3.5" />}
+              label={t("watch.playerSettings.statsOverlay")}
+              description={compact ? undefined : t("watch.playerSettings.statsOverlayDesc")}
+              value={statsOverlayEnabled}
+              onChange={setStatsOverlayEnabled}
+            />
           </div>
         ) : null}
 

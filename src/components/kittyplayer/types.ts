@@ -14,6 +14,8 @@ export type KittyPlayerProps = {
   seriesTitle?: string;
   /** Episode number for Chromecast TvShow metadata. */
   episodeNumber?: number;
+  /** AniList id — keys local timestamp bookmarks. */
+  anilistId?: number;
   className?: string;
   /** Soft subtitle / caption tracks (VTT preferred). */
   tracks?: StreamTrack[];

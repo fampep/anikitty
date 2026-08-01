@@ -2697,7 +2697,12 @@
       "autoEnableSubtitles": "Auto-enable subtitles",
       "autoEnableSubtitlesDesc": "Turn on soft subtitles for SUB streams. Hard-sub streams use burned-in text unless you enable soft subs below.",
       "hardSubSoftSubs": "Soft subs on hard-sub streams",
-      "hardSubSoftSubsDesc": "Load soft subtitle tracks on top of burned-in hard subs. May show double subtitles."
+      "hardSubSoftSubsDesc": "Load soft subtitle tracks on top of burned-in hard subs. May show double subtitles.",
+      "theme": "Player theme",
+      "ambientMode": "Ambient lighting",
+      "ambientModeDesc": "Soft glow behind the player, colored from the current frame",
+      "statsOverlay": "Stats for nerds",
+      "statsOverlayDesc": "Show provider, bitrate, buffer, dropped frames, and other debug info"
     },
     "seekBackButton": "Rewind {seconds}s",
     "seekForwardButton": "Skip forward {seconds}s",

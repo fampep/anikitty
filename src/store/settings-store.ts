@@ -34,6 +34,11 @@ import {
   sanitizeAnime4kMode,
   type Anime4kMode,
 } from "@/lib/player/anime4k";
+import {
+  DEFAULT_PLAYER_THEME,
+  sanitizePlayerTheme,
+  type PlayerTheme,
+} from "@/lib/player/player-theme";
 
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
@@ -222,6 +227,18 @@ interface ISettingsStore {
   setAnime4kEnabled: (val: boolean) => void;
   anime4kMode: Anime4kMode;
   setAnime4kMode: (mode: Anime4kMode) => void;
+
+  /** KittyPlayer chrome color/surface theme. */
+  playerTheme: PlayerTheme;
+  setPlayerTheme: (theme: PlayerTheme) => void;
+
+  /** Soft glow behind the player sampled from the current video frame. */
+  ambientModeEnabled: boolean;
+  setAmbientModeEnabled: (val: boolean) => void;
+
+  /** "Stats for nerds" debug overlay (provider, bitrate, buffer, dropped frames…). */
+  statsOverlayEnabled: boolean;
+  setStatsOverlayEnabled: (val: boolean) => void;
 
   /**
    * Preferred HLS max height (e.g. 1080). `null` = Auto / ABR.
@@ -462,6 +479,15 @@ export const useSettingsStore = create<ISettingsStore>()(
       anime4kMode: DEFAULT_ANIME4K_MODE,
       setAnime4kMode: (anime4kMode) => set({ anime4kMode: sanitizeAnime4kMode(anime4kMode) }),
 
+      playerTheme: DEFAULT_PLAYER_THEME,
+      setPlayerTheme: (playerTheme) => set({ playerTheme: sanitizePlayerTheme(playerTheme) }),
+
+      ambientModeEnabled: false,
+      setAmbientModeEnabled: (ambientModeEnabled) => set({ ambientModeEnabled }),
+
+      statsOverlayEnabled: false,
+      setStatsOverlayEnabled: (statsOverlayEnabled) => set({ statsOverlayEnabled }),
+
       defaultQualityHeight: null,
       setDefaultQualityHeight: (height) =>
         set({
@@ -527,6 +553,9 @@ export const useSettingsStore = create<ISettingsStore>()(
         hardSubSoftSubs: state.hardSubSoftSubs,
         anime4kEnabled: state.anime4kEnabled,
         anime4kMode: state.anime4kMode,
+        playerTheme: state.playerTheme,
+        ambientModeEnabled: state.ambientModeEnabled,
+        statsOverlayEnabled: state.statsOverlayEnabled,
         defaultQualityHeight: state.defaultQualityHeight,
         episodeSort: state.episodeSort,
         watchSidebarCollapsed: state.watchSidebarCollapsed,
