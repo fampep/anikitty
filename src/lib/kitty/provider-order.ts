@@ -94,9 +94,12 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "AniNeko" ||
         item === "AnimeGG" ||
         item === "AnimeHeaven" ||
-        item === "EarnVids" ||
-        item === "Miruro"
+        item === "EarnVids"
       ) {
+        continue;
+      }
+      if (item === "Echo") {
+        push("Miruro");
         continue;
       }
       if (item === "Waves" || item === "Whiskey" || item === "AniWaves") {

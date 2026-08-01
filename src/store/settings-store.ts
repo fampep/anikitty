@@ -486,7 +486,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 105,
+      version: 106,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1263,6 +1263,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 105) {
           // Uniform (KickAssAnime) rejoins Recommended as #2; Kilo moves to #3;
           // Juliet (AniWatch) retired from Recommended.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 106) {
+          // Echo (Miruro) rejoins Recommended as #2; Uniform moves to #3.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }

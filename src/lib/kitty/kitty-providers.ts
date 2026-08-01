@@ -68,16 +68,17 @@ export const KITTY_PROVIDERS = [
   "Anikoto",
   "AniSnatch",
   "KickAssAnime",
+  "Miruro",
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 9;
+export const RECOMMENDED_PROVIDER_COUNT = 10;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 105;
+export const PROVIDER_ORDER_SYNC_VERSION = 106;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -242,14 +243,28 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     supportsMulti: true,
     hint: "SUB · DUB · soft subs · dual-audio",
   },
+  {
+    id: "Miruro",
+    label: "Echo",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs · first stream wins",
+  },
 ];
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
- * tries these before anything else. All nine are Recommended:
- * 1 Delta, 2 Uniform (KickAssAnime), 3 Kilo, 4 Vibe, 5 Waves (AniWaves), 6 Senshi,
- * 7 Mkissa, 8 Alpha, 9 Sierra. Juliet (AniWatch) retired from Recommended. */
+ * tries these before anything else. All ten are Recommended:
+ * 1 Delta, 2 Echo (Miruro), 3 Uniform (KickAssAnime), 4 Kilo, 5 Vibe, 6 Waves
+ * (AniWaves), 7 Senshi, 8 Mkissa, 9 Alpha, 10 Sierra. Juliet (AniWatch) retired
+ * from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
+  "Miruro",
   "KickAssAnime",
   "Anikoto",
   "AniVibe",
@@ -305,6 +320,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniVibe",
   "AniWaves",
   "Senshi",
+  "Miruro",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -335,7 +351,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   }
   if (value === "Taku") return DEFAULT_KITTY_PROVIDER;
   if (value === "Lok" || value === "AnimeLok") return DEFAULT_KITTY_PROVIDER;
-  if (value === "Echo" || value === "Miruro") return DEFAULT_KITTY_PROVIDER;
+  if (value === "Echo") return "Miruro";
   if (value === "Sierra" || value === "Snatch") return "AniSnatch";
   if (value === "Vibe" || value === "AniVibeLive") return "AniVibe";
   if (value === "Alpha") return "AniKuro";
