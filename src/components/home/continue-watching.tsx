@@ -53,8 +53,7 @@ interface ContinueWatchingRow {
   };
 }
 
-/** `bare` drops the Container so the caller can place this inside its own grid. */
-type Props = { loading?: boolean; bare?: boolean };
+type Props = { loading?: boolean };
 
 const CONTINUE_CACHE_KEY = "kitty:continue-watching";
 
@@ -316,12 +315,7 @@ function RemoveContinueDialog({
   );
 }
 
-/** Stand-in for Container when the caller supplies its own layout wrapper. */
-const BareShell = ({ className, children }: { className?: string; children?: React.ReactNode }) => (
-  <div className={className}>{children}</div>
-);
-
-const ContinueWatching = ({ loading = false, bare = false }: Props) => {
+const ContinueWatching = ({ loading = false }: Props) => {
   const t = useT();
   const { auth } = useAuthStore();
   const authHydrated = useAuthHydrated();
@@ -434,9 +428,7 @@ const ContinueWatching = ({ loading = false, bare = false }: Props) => {
     void handleRemove(selectedItems);
   };
 
-  const Shell = bare ? BareShell : Container;
-
-  if (loading && !fetched) return <LoadingSkeleton bare={bare} />;
+  if (loading && !fetched) return <LoadingSkeleton />;
 
   // Wait for persist hydration so we don't mount a tall skeleton then collapse to null.
   if (!authHydrated) return null;
@@ -444,11 +436,11 @@ const ContinueWatching = ({ loading = false, bare = false }: Props) => {
   // Keep home uncluttered: only show this rail when the user has something to resume.
   if (!auth) return null;
 
-  if (!fetched && !items.length) return <LoadingSkeleton bare={bare} />;
+  if (!fetched && !items.length) return <LoadingSkeleton />;
 
   if (loadError) {
     return (
-      <Shell>
+      <Container>
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border dark:border-white/8 bg-muted/30 dark:bg-white/[0.02]">
           <p className="text-xs text-muted-foreground dark:text-white/40 font-mono">{t("home.continueLoadError")}</p>
           <button
@@ -460,7 +452,7 @@ const ContinueWatching = ({ loading = false, bare = false }: Props) => {
             {t("home.retry")}
           </button>
         </div>
-      </Shell>
+      </Container>
     );
   }
 
@@ -470,7 +462,7 @@ const ContinueWatching = ({ loading = false, bare = false }: Props) => {
 
   return (
     <>
-      <Shell className="flex flex-col gap-4 items-start">
+      <Container className="flex flex-col gap-4 items-start">
       <div className="site-panel w-full p-3 sm:p-4 flex flex-col gap-4">
       <div className="flex items-center gap-2 w-full min-w-0">
         <div className="min-w-0 flex-1">
@@ -550,7 +542,7 @@ const ContinueWatching = ({ loading = false, bare = false }: Props) => {
         </div>
       </div>
       </div>
-      </Shell>
+      </Container>
 
       <RemoveContinueDialog
         item={pendingRemove}
@@ -572,10 +564,8 @@ const ContinueWatching = ({ loading = false, bare = false }: Props) => {
   );
 };
 
-const LoadingSkeleton = ({ bare = false }: { bare?: boolean }) => {
-  const Shell = bare ? BareShell : Container;
-  return (
-  <Shell className="flex flex-col gap-4 py-2 items-start">
+const LoadingSkeleton = () => (
+  <Container className="flex flex-col gap-4 py-2 items-start">
     <div className="flex items-center gap-3">
       <div className="w-[3px] h-5 rounded-full bg-muted dark:bg-white/15 animate-pulse" />
       <div className="h-6 w-44 animate-pulse bg-accent dark:bg-white/8 rounded" />
@@ -588,8 +578,7 @@ const LoadingSkeleton = ({ bare = false }: { bare?: boolean }) => {
         </div>
       ))}
     </div>
-  </Shell>
-  );
-};
+  </Container>
+);
 
 export default ContinueWatching;

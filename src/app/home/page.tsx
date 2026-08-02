@@ -417,28 +417,7 @@ export default function Home() {
           id="continue"
           className="relative z-[6] mt-3 sm:mt-4 scroll-mt-[calc(var(--nav-total-height)+4.5rem)]"
         >
-          {/* Continue Watching leads, with trending alongside it on desktop.
-              ContinueWatching renders nothing when there's nothing to resume,
-              so the row collapses itself via CSS rather than leaving a tall
-              empty column beside the sidebar. */}
-          <Container className="home-continue-row grid w-full items-start gap-4 sm:gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-            <div className="home-continue-main min-w-0">
-              <ContinueWatching bare />
-            </div>
-            {/* The wrapper stretches to whatever height Continue Watching
-                produces, and the panel inside is absolutely positioned — so
-                the sidebar fills the row rather than dictating its height.
-                Without this a long trending list (or a short loading
-                skeleton beside it) leaves a tall empty column. */}
-            <div className="home-continue-aside relative hidden self-stretch xl:block">
-              <HomeTrendingSidebar
-                animes={trending}
-                loading={isLoading}
-                limit={8}
-                className="absolute inset-0 overflow-y-auto"
-              />
-            </div>
-          </Container>
+          <ContinueWatching />
         </div>
       ) : null}
 
@@ -461,38 +440,58 @@ export default function Home() {
       >
         <HomeWelcomeBar />
 
-        {grouped.map(({ group, ids }) => (
-          <section key={group} className="flex flex-col gap-8 sm:gap-10" aria-label={groupCopy[group].title}>
-            <HomeGroupHeading title={groupCopy[group].title} subtitle={groupCopy[group].subtitle} />
-            <div className="flex flex-col gap-8 sm:gap-10">
-              {pairHomeSections(ids).map((row) => {
-                const nodes = row
-                  .map((id) => ({ id, node: sectionNodes[id] }))
-                  .filter((entry) => entry.node);
-                if (nodes.length === 0) return null;
+        {/* Content column with a trending rail down the right on desktop. The
+            rail sits alongside every section rather than inside any one of
+            them, so its length never affects a section's height. */}
+        <div className="mx-auto w-full max-w-[1400px] 2xl:max-w-[1600px] xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+          <div
+            className={cn(
+              "flex min-w-0 flex-col",
+              prefs.compact ? "gap-6 sm:gap-8" : "gap-[var(--home-section-gap)]",
+            )}
+          >
+            {grouped.map(({ group, ids }) => (
+              <section key={group} className="flex flex-col gap-8 sm:gap-10" aria-label={groupCopy[group].title}>
+                <HomeGroupHeading title={groupCopy[group].title} subtitle={groupCopy[group].subtitle} />
+                <div className="flex flex-col gap-8 sm:gap-10">
+                  {pairHomeSections(ids).map((row) => {
+                    const nodes = row
+                      .map((id) => ({ id, node: sectionNodes[id] }))
+                      .filter((entry) => entry.node);
+                    if (nodes.length === 0) return null;
 
-                // Two half-width sections share a row on wide screens; a lone
-                // section still spans full width.
-                if (nodes.length === 2) {
-                  return (
-                    <div
-                      key={nodes.map((n) => n.id).join("+")}
-                      className="grid gap-8 sm:gap-10 xl:grid-cols-2"
-                    >
-                      {nodes.map(({ id, node }) => (
-                        <div key={id} className="min-w-0">
-                          {node}
+                    // Two half-width sections share a row, but only from 2xl —
+                    // below that the rail already takes the spare width.
+                    if (nodes.length === 2) {
+                      return (
+                        <div
+                          key={nodes.map((n) => n.id).join("+")}
+                          className="grid gap-8 sm:gap-10 2xl:grid-cols-2"
+                        >
+                          {nodes.map(({ id, node }) => (
+                            <div key={id} className="min-w-0">
+                              {node}
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  );
-                }
+                      );
+                    }
 
-                return <div key={nodes[0].id}>{nodes[0].node}</div>;
-              })}
+                    return <div key={nodes[0].id}>{nodes[0].node}</div>;
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+
+          {/* Sticky so the rail keeps pace with a long scroll. Its own
+              scrollbar caps it at the viewport rather than the page. */}
+          <aside className="hidden xl:block pr-4 md:pr-6 lg:pr-8">
+            <div className="sticky top-[calc(var(--nav-total-height)+0.75rem)] max-h-[calc(100dvh-var(--nav-total-height)-1.5rem)] overflow-y-auto">
+              <HomeTrendingSidebar animes={trending} loading={isLoading} limit={10} />
             </div>
-          </section>
-        ))}
+          </aside>
+        </div>
 
         {showBrowseGenres ? <BrowseGenresLink /> : null}
       </div>
