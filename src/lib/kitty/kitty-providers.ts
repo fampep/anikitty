@@ -60,6 +60,7 @@ export type KittyProvider = (typeof ALL_KITTY_PROVIDER_IDS)[number];
  */
 export const KITTY_PROVIDERS = [
   "AniDelta",
+  "AniNeko",
   "AniVibe",
   "AniWaves",
   "Senshi",
@@ -72,13 +73,13 @@ export const KITTY_PROVIDERS = [
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 10;
+export const RECOMMENDED_PROVIDER_COUNT = 11;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 106;
+export const PROVIDER_ORDER_SYNC_VERSION = 107;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -117,6 +118,19 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     softSub: false,
     hardSub: false,
     nativeSubs: false,
+    kittySubs: false,
+    hint: "SUB · DUB · HLS",
+  },
+  {
+    id: "AniNeko",
+    label: "Neko",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    // Serves both softsub and hardsub embeds; softsub is preferred server-side.
+    softSub: true,
+    hardSub: true,
+    nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · HLS",
   },
@@ -266,6 +280,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "Miruro",
   "KickAssAnime",
+  "AniNeko",
   "Anikoto",
   "AniVibe",
   "AniWaves",
