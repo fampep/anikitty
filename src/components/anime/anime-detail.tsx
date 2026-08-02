@@ -22,6 +22,7 @@ import AnimeRecommendationsPanel from "@/components/anime/anime-recommendations-
 import AnimeDetailSidePanel from "@/components/anime/anime-detail-side-panel";
 import { AnimeStatsPanel } from "@/components/anime/anime-stats-panel";
 import EpisodePopularity from "@/components/anime/episode-popularity";
+import { AddToCollectionButton } from "@/components/collections/add-to-collection-button";
 import AnimeStatsCharts from "@/components/anime/anime-stats-charts";
 import AnimeGallery from "@/components/anime/anime-gallery";
 import AnimeWatchProgressPanel from "@/components/anime/anime-watch-progress-panel";
@@ -854,6 +855,14 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   options={bookmarkOptions}
                   onChange={handleSelect}
                   placeholderIcon={Heart}
+                />
+              )}
+              {auth && (
+                <AddToCollectionButton
+                  animeId={slug}
+                  anilistId={typeof anilistId === "number" ? anilistId : null}
+                  animeTitle={info.name}
+                  animeThumbnail={info.poster}
                 />
               )}
               {auth && (bookmarks?.[0]?.status || selected) !== "completed" && (

@@ -38,4 +38,5 @@ export const ROUTES = {
     `/season/${String(season).toLowerCase()}/${year}`,
   profile: (username: string) => `/profile/${encodeURIComponent(username)}`,
   profileComments: (username: string) => `/profile/${encodeURIComponent(username)}/comments`,
+  profileCollections: (username: string) => `/profile/${encodeURIComponent(username)}/collections`,
 };

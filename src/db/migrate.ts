@@ -1000,6 +1000,93 @@ export async function migrateDb() {
       `CREATE UNIQUE INDEX IF NOT EXISTS changelog_entries_version_unique ON changelog_entries (version)`,
       `CREATE UNIQUE INDEX IF NOT EXISTS changelog_entries_slug_unique ON changelog_entries (slug)`,
       `CREATE INDEX IF NOT EXISTS changelog_entries_published_idx ON changelog_entries (is_published, released_at DESC)`,
+      // ── User collections (distinct from the editorial presets in code) ──
+      `CREATE TABLE IF NOT EXISTS collections (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(120) NOT NULL,
+        slug VARCHAR(140) NOT NULL,
+        description TEXT,
+        visibility VARCHAR(12) NOT NULL DEFAULT 'private',
+        category VARCHAR(40),
+        tags JSONB DEFAULT '[]'::jsonb,
+        cover_type VARCHAR(12) NOT NULL DEFAULT 'collage',
+        cover_value TEXT,
+        icon VARCHAR(16),
+        is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+        featured_label VARCHAR(40),
+        forked_from_id UUID,
+        item_count INTEGER NOT NULL DEFAULT 0,
+        like_count INTEGER NOT NULL DEFAULT 0,
+        follower_count INTEGER NOT NULL DEFAULT 0,
+        view_count INTEGER NOT NULL DEFAULT 0,
+        share_count INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW(),
+        items_updated_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE INDEX IF NOT EXISTS collections_owner_idx ON collections (owner_id)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS collections_owner_slug ON collections (owner_id, slug)`,
+      `CREATE INDEX IF NOT EXISTS collections_visibility_idx ON collections (visibility)`,
+      `CREATE INDEX IF NOT EXISTS collections_public_likes_idx ON collections (visibility, like_count DESC)`,
+      `CREATE INDEX IF NOT EXISTS collections_public_followers_idx ON collections (visibility, follower_count DESC)`,
+      `CREATE INDEX IF NOT EXISTS collections_public_created_idx ON collections (visibility, created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS collections_featured_idx ON collections (is_featured)`,
+      `CREATE INDEX IF NOT EXISTS collections_category_idx ON collections (category)`,
+      `CREATE TABLE IF NOT EXISTS collection_items (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        collection_id UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        anime_id VARCHAR(255) NOT NULL,
+        anilist_id INTEGER,
+        anime_title TEXT,
+        anime_thumbnail TEXT,
+        note TEXT,
+        position INTEGER NOT NULL DEFAULT 0,
+        added_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS collection_items_collection_anime ON collection_items (collection_id, anime_id)`,
+      `CREATE INDEX IF NOT EXISTS collection_items_collection_pos_idx ON collection_items (collection_id, position)`,
+      `CREATE TABLE IF NOT EXISTS collection_likes (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        collection_id UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS collection_likes_pair ON collection_likes (collection_id, user_id)`,
+      `CREATE INDEX IF NOT EXISTS collection_likes_collection_idx ON collection_likes (collection_id)`,
+      `CREATE TABLE IF NOT EXISTS collection_follows (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        collection_id UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS collection_follows_pair ON collection_follows (collection_id, user_id)`,
+      `CREATE INDEX IF NOT EXISTS collection_follows_collection_idx ON collection_follows (collection_id)`,
+      `CREATE INDEX IF NOT EXISTS collection_follows_user_idx ON collection_follows (user_id)`,
+      `CREATE TABLE IF NOT EXISTS collection_collaborators (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        collection_id UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        role VARCHAR(12) NOT NULL DEFAULT 'contributor',
+        invited_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS collection_collaborators_pair ON collection_collaborators (collection_id, user_id)`,
+      `CREATE INDEX IF NOT EXISTS collection_collaborators_collection_idx ON collection_collaborators (collection_id)`,
+      `CREATE INDEX IF NOT EXISTS collection_collaborators_user_idx ON collection_collaborators (user_id)`,
+      `CREATE TABLE IF NOT EXISTS collection_views (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        collection_id UUID NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+        viewer_key VARCHAR(64) NOT NULL,
+        day VARCHAR(10) NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS collection_views_dedupe ON collection_views (collection_id, viewer_key, day)`,
+      `CREATE INDEX IF NOT EXISTS collection_views_collection_day_idx ON collection_views (collection_id, day)`,
+      // Collection comments reuse the comments table via a "collection:<id>"
+      // anime_id sentinel, so no schema change is needed there.
     ];
     for (const sql of alters) {
       await client.unsafe(sql).catch((e: unknown) =>

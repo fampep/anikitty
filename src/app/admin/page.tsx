@@ -10,7 +10,7 @@ import { RoleBadge } from "@/components/profile/role-badge";
 import {
   Search, Plus, Trash2, Loader2, ShieldCheck, Users, Tag,
   Check, X, Pencil, LogOut, Lock, Eye, EyeOff, Activity, RefreshCw,
-  TrendingUp, Zap, BarChart2, Megaphone, History, Info, AlertTriangle,
+  TrendingUp, Zap, BarChart2, Megaphone, History, Library, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
   VolumeX, Ban, Clock, Coins, Sparkles, Calendar, Flag, ScrollText, SkipForward,
   Globe, Heart, Wifi,
@@ -21,6 +21,7 @@ import { cn } from "@/lib/core/utils";
 import AdminConfirmDialog from "@/components/admin/admin-confirm-dialog";
 import AnnouncementPreview from "@/components/admin/announcement-preview";
 import ChangelogManager from "@/components/admin/changelog-manager";
+import CollectionsManager from "@/components/admin/collections-manager";
 
 const ADMIN_TOKEN_KEY = "adminToken";
 
@@ -413,7 +414,7 @@ function RolePermissionEditor({
 // ─────────────────────────────────────────────────────────────────────────────
 function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const adminChatPollMs = usePollingIntervalMs("adminChat");
-  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "changelog" | "chat" | "reports" | "skipTimes" | "audit" | "discord" | "analytics" | "providers">("overview");
+  const [tab, setTab] = useState<"overview" | "users" | "roles" | "activity" | "announcements" | "changelog" | "collections" | "chat" | "reports" | "skipTimes" | "audit" | "discord" | "analytics" | "providers">("overview");
 
   // Users
   const [users, setUsers]           = useState<AdminUser[]>([]);
@@ -1417,6 +1418,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
             { value: "chat"           as const, label: "Live Chat",     icon: <MessageCircle className="w-4 h-4" /> },
             { value: "announcements"  as const, label: "Announcements", icon: <Megaphone  className="w-4 h-4" /> },
             { value: "changelog"      as const, label: "Changelog",     icon: <History    className="w-4 h-4" /> },
+            { value: "collections"    as const, label: "Collections",   icon: <Library    className="w-4 h-4" /> },
             { value: "discord"        as const, label: "Discord",       icon: <Globe      className="w-4 h-4" /> },
             { value: "analytics"      as const, label: "Analytics",     icon: <TrendingUp className="w-4 h-4" /> },
             { value: "providers"      as const, label: "Providers",     icon: <Wifi       className="w-4 h-4" /> },
@@ -2904,6 +2906,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
 
         {/* ── CHANGELOG ────────────────────────────────────────────── */}
         {tab === "changelog" && <ChangelogManager />}
+        {tab === "collections" && <CollectionsManager />}
 
         {/* ── DISCORD WEBHOOKS ─────────────────────────────────────── */}
         {tab === "discord" && <DiscordTab />}

@@ -1369,6 +1369,161 @@ export const providerHealthLogs = pgTable(
   }),
 );
 
+// ── User Collections ──────────────────────────────────────────────────────
+// User-curated anime lists. Distinct from the editorial presets in
+// lib/discovery/collections.ts, which are filter shortcuts with no owner.
+// Counters are denormalized so listing pages don't need per-row aggregates;
+// the toggle routes keep them in step with the join tables.
+export const collections = pgTable(
+  "collections",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 120 }).notNull(),
+    slug: varchar("slug", { length: 140 }).notNull(),
+    description: text("description"),
+    // private | unlisted | public
+    visibility: varchar("visibility", { length: 12 }).notNull().default("private"),
+    category: varchar("category", { length: 40 }),
+    tags: jsonb("tags").$type<string[]>().default([]),
+    // collage | gradient | solid | image
+    coverType: varchar("cover_type", { length: 12 }).notNull().default("collage"),
+    coverValue: text("cover_value"),
+    icon: varchar("icon", { length: 16 }),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    featuredLabel: varchar("featured_label", { length: 40 }),
+    // Set when this collection was forked from another, for creator credit.
+    forkedFromId: uuid("forked_from_id"),
+    itemCount: integer("item_count").notNull().default(0),
+    likeCount: integer("like_count").notNull().default(0),
+    followerCount: integer("follower_count").notNull().default(0),
+    viewCount: integer("view_count").notNull().default(0),
+    shareCount: integer("share_count").notNull().default(0),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    // Bumped only when items change, so "Updated 2 days ago" means the list
+    // actually changed rather than the title being retyped.
+    itemsUpdatedAt: timestamp("items_updated_at").defaultNow(),
+  },
+  (t) => ({
+    ownerIdx: index("collections_owner_idx").on(t.ownerId),
+    ownerSlug: unique("collections_owner_slug").on(t.ownerId, t.slug),
+    visibilityIdx: index("collections_visibility_idx").on(t.visibility),
+    // Discovery sorts all filter on visibility first.
+    publicLikesIdx: index("collections_public_likes_idx").on(t.visibility, t.likeCount),
+    publicFollowersIdx: index("collections_public_followers_idx").on(t.visibility, t.followerCount),
+    publicCreatedIdx: index("collections_public_created_idx").on(t.visibility, t.createdAt),
+    featuredIdx: index("collections_featured_idx").on(t.isFeatured),
+    categoryIdx: index("collections_category_idx").on(t.category),
+  }),
+);
+
+export const collectionItems = pgTable(
+  "collection_items",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    animeId: varchar("anime_id", { length: 255 }).notNull(),
+    anilistId: integer("anilist_id"),
+    animeTitle: text("anime_title"),
+    animeThumbnail: text("anime_thumbnail"),
+    // Curator's own words on why this title is on the list.
+    note: text("note"),
+    position: integer("position").notNull().default(0),
+    addedBy: uuid("added_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    collectionAnime: unique("collection_items_collection_anime").on(t.collectionId, t.animeId),
+    collectionPosIdx: index("collection_items_collection_pos_idx").on(t.collectionId, t.position),
+  }),
+);
+
+export const collectionLikes = pgTable(
+  "collection_likes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    pair: unique("collection_likes_pair").on(t.collectionId, t.userId),
+    collectionIdx: index("collection_likes_collection_idx").on(t.collectionId),
+  }),
+);
+
+export const collectionFollows = pgTable(
+  "collection_follows",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    pair: unique("collection_follows_pair").on(t.collectionId, t.userId),
+    collectionIdx: index("collection_follows_collection_idx").on(t.collectionId),
+    userIdx: index("collection_follows_user_idx").on(t.userId),
+  }),
+);
+
+// owner | editor | contributor. The owner row lives on collections.ownerId;
+// this table only holds invited collaborators.
+export const collectionCollaborators = pgTable(
+  "collection_collaborators",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 12 }).notNull().default("contributor"),
+    invitedBy: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    pair: unique("collection_collaborators_pair").on(t.collectionId, t.userId),
+    collectionIdx: index("collection_collaborators_collection_idx").on(t.collectionId),
+    userIdx: index("collection_collaborators_user_idx").on(t.userId),
+  }),
+);
+
+// One row per viewer per collection per day — dedupes the view counter and
+// gives creators a unique-visitor number without storing anything per-request.
+export const collectionViews = pgTable(
+  "collection_views",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    // Null for signed-out viewers, who are deduped on viewerKey instead.
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    viewerKey: varchar("viewer_key", { length: 64 }).notNull(),
+    day: varchar("day", { length: 10 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (t) => ({
+    dedupe: unique("collection_views_dedupe").on(t.collectionId, t.viewerKey, t.day),
+    collectionDayIdx: index("collection_views_collection_day_idx").on(t.collectionId, t.day),
+  }),
+);
+
 // ── Daily Stats Rollup ────────────────────────────────────────────────────
 export const dailyStats = pgTable(
   "daily_stats",

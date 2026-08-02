@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AtSign, Bell, CheckCircle2, CornerUpLeft, Loader2, Mail, MessageCircle, Sparkles, SkipForward, Timer, Tv, UserPlus, XCircle } from "lucide-react";
+import { AtSign, Bell, CheckCircle2, CornerUpLeft, Library, Loader2, Mail, MessageCircle, Sparkles, SkipForward, Timer, Tv, UserPlus, XCircle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Avatar from "@/components/common/avatar";
 import { ROUTES } from "@/constants/routes";
@@ -210,6 +210,12 @@ export default function NotificationBell() {
                       ) : (
                         <SkipForward className="h-4 w-4" />
                       )}
+                    </div>
+                  ) : n.type === "collection_update" ||
+                    n.type === "collection_milestone" ||
+                    n.type === "collection_invite" ? (
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-500/15 text-violet-300">
+                      <Library className="h-4 w-4" />
                     </div>
                   ) : (
                     <Avatar

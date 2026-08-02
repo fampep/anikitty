@@ -1443,7 +1443,12 @@
     "subNav": {
       "label": "Profile pages",
       "overview": "Overview",
-      "comments": "Comments"
+      "comments": "Comments",
+      "collections": "Collections"
+    },
+    "collectionsPage": {
+      "subtitle": "Curated anime collections",
+      "backToProfile": "Back to profile"
     },
     "commentsPage": {
       "subtitle": "Episode comments and activity",
@@ -2068,6 +2073,8 @@
     "collections": {
       "title": "Collections",
       "subtitle": "Curated lists with descriptions and ready-made filters.",
+      "curatedHeading": "Editor's shortcuts",
+      "communityHeading": "Community collections",
       "openFilters": "Open in search",
       "titles": "Titles",
       "all": "All collections",

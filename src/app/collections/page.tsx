@@ -18,6 +18,7 @@ import { ROUTES } from "@/constants/routes";
 import { CURATED_COLLECTIONS } from "@/lib/discovery/collections";
 import { useT } from "@/providers/i18n-provider";
 import { DiscoveryHero } from "@/components/discovery/discovery-shared";
+import { CollectionsBrowser } from "@/components/collections/collections-browser";
 
 const ICONS: Record<string, typeof Sparkles> = {
   "best-of-2026": Flame,
@@ -41,6 +42,9 @@ export default function CollectionsIndexPage() {
         title={t("discovery.collections.title")}
         subtitle={t("discovery.collections.subtitle")}
       />
+      <h2 className="mb-3 text-sm font-semibold text-foreground dark:text-white/80">
+        {t("discovery.collections.curatedHeading")}
+      </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {CURATED_COLLECTIONS.map((c) => {
           const Icon = ICONS[c.slug] ?? Clock;
@@ -62,6 +66,11 @@ export default function CollectionsIndexPage() {
           );
         })}
       </div>
+
+      <h2 className="mt-10 text-sm font-semibold text-foreground dark:text-white/80">
+        {t("discovery.collections.communityHeading")}
+      </h2>
+      <CollectionsBrowser />
     </Container>
   );
 }

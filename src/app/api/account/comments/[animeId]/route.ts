@@ -395,9 +395,14 @@ export async function POST(
   const levelFields = attachLevelRole({ userId: payload.userId }, xpStats);
 
   if (body && user?.username) {
-    const linkUrl = resolvedEpisodeId
-      ? `/anime/watch?anime=${encodeURIComponent(animeId)}&episode=${encodeURIComponent(resolvedEpisodeId)}`
-      : `/anime/${encodeURIComponent(animeId)}`;
+    // Collection discussions reuse this table under a "collection:<id>"
+    // sentinel, so they need their own link shape rather than /anime/….
+    const collectionId = animeId.startsWith("collection:") ? animeId.slice("collection:".length) : null;
+    const linkUrl = collectionId
+      ? `/collection/${encodeURIComponent(collectionId)}/collection`
+      : resolvedEpisodeId
+        ? `/anime/watch?anime=${encodeURIComponent(animeId)}&episode=${encodeURIComponent(resolvedEpisodeId)}`
+        : `/anime/${encodeURIComponent(animeId)}`;
     void notifyCommentTargets(db, {
       actorUserId: payload.userId,
       actorUsername: user.username,

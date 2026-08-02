@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { List, MessageSquare } from "lucide-react";
+import { Library, List, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
 import { useT } from "@/providers/i18n-provider";
 
-export type ProfileSubNavTab = "overview" | "comments";
+export type ProfileSubNavTab = "overview" | "comments" | "collections";
 
 type Props = {
   username: string;
@@ -19,6 +19,7 @@ type Props = {
 const TABS: { id: ProfileSubNavTab; href: (username: string) => string; icon: typeof List; labelKey: string }[] = [
   { id: "overview", href: ROUTES.profile, icon: List, labelKey: "profile.subNav.overview" },
   { id: "comments", href: ROUTES.profileComments, icon: MessageSquare, labelKey: "profile.subNav.comments" },
+  { id: "collections", href: ROUTES.profileCollections, icon: Library, labelKey: "profile.subNav.collections" },
 ];
 
 function NavLinks({
