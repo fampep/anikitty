@@ -1577,3 +1577,20 @@ body > .anikitty-fs-host--active {
   transition-duration: 0.01ms !important;
 }
 
+
+/*
+ * Unlayered on purpose: Tailwind's `xl:flex` on the sidebar lives in the
+ * utilities layer, and unlayered rules win over layered ones regardless of
+ * specificity. Without this the sidebar would keep its display:flex.
+ *
+ * When Continue Watching has nothing to show it renders no children at all,
+ * which used to leave an empty column stretched to the sidebar's height —
+ * a tall blank gap under the hero. Collapse the whole row instead.
+ */
+.home-continue-row:has(> .home-continue-main:empty) > .home-continue-aside {
+  display: none;
+}
+
+.home-continue-row:has(> .home-continue-main:empty) {
+  gap: 0;
+}

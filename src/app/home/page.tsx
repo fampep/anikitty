@@ -417,15 +417,19 @@ export default function Home() {
           id="continue"
           className="relative z-[6] mt-3 sm:mt-4 scroll-mt-[calc(var(--nav-total-height)+4.5rem)]"
         >
-          {/* Continue Watching leads, with trending alongside it on desktop. */}
-          <Container className="grid w-full gap-4 sm:gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
-            <div className="min-w-0">
+          {/* Continue Watching leads, with trending alongside it on desktop.
+              ContinueWatching renders nothing when there's nothing to resume,
+              so the row collapses itself via CSS rather than leaving a tall
+              empty column beside the sidebar. */}
+          <Container className="home-continue-row grid w-full items-start gap-4 sm:gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+            <div className="home-continue-main min-w-0">
               <ContinueWatching bare />
             </div>
             <HomeTrendingSidebar
               animes={trending}
               loading={isLoading}
-              className="hidden xl:flex"
+              limit={6}
+              className="home-continue-aside hidden xl:flex"
             />
           </Container>
         </div>
