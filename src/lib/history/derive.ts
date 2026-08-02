@@ -294,6 +294,24 @@ export function computeMilestones(stats: {
       target: 1000,
     },
     {
+      id: "streak_7",
+      unlocked: stats.longestStreak >= 7,
+      progress: Math.min(stats.longestStreak, 7),
+      target: 7,
+    },
+    {
+      id: "streak_30",
+      unlocked: stats.longestStreak >= 30,
+      progress: Math.min(stats.longestStreak, 30),
+      target: 30,
+    },
+    {
+      id: "streak_100",
+      unlocked: stats.longestStreak >= 100,
+      progress: Math.min(stats.longestStreak, 100),
+      target: 100,
+    },
+    {
       id: "streak_365",
       unlocked: stats.longestStreak >= 365,
       progress: Math.min(stats.longestStreak, 365),

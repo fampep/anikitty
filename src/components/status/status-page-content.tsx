@@ -41,6 +41,27 @@ type StatusAnnouncement = {
   linkLabel: string | null;
 };
 
+type ProviderHealthRow = {
+  provider: string;
+  totalRequests: number;
+  successCount: number;
+  failedCount: number;
+  uptimePercent: number;
+  avgResponseMs: number;
+  status: "healthy" | "degraded" | "offline";
+};
+
+type StatusIncident = {
+  id: string;
+  title: string;
+  body: string;
+  severity: string;
+  resolved: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+  createdAt: string;
+};
+
 function resolveOverallStatus(
   loading: boolean,
   ready: boolean,
@@ -118,6 +139,40 @@ export default function StatusPageContent() {
             (a: StatusAnnouncement) => a.severity === "warn" || a.severity === "critical",
           ),
         );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const [providers, setProviders] = useState<ProviderHealthRow[]>([]);
+  const [providersLoading, setProvidersLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/status/providers")
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        setProviders(Array.isArray(data.providers) ? data.providers : []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setProvidersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const [incidents, setIncidents] = useState<StatusIncident[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/status/incidents")
+      .then((r) => r.json())
+      .then((data) => {
+        if (cancelled) return;
+        setIncidents(Array.isArray(data.incidents) ? data.incidents : []);
       })
       .catch(() => {});
     return () => {
@@ -618,6 +673,104 @@ export default function StatusPageContent() {
             })
           )}
         </div>
+
+        <div className="flex flex-col gap-3">
+          <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/35">
+            Streaming Providers
+          </p>
+          {providersLoading ? (
+            <div className="site-panel flex items-center justify-center gap-2 py-6 text-muted-foreground dark:text-white/40">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm font-mono">Checking providers…</span>
+            </div>
+          ) : providers.length === 0 ? (
+            <div className="site-panel py-6 text-center text-sm font-mono text-muted-foreground dark:text-white/35">
+              No provider health data yet.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {providers.map((p) => {
+                const dot =
+                  p.status === "healthy"
+                    ? "bg-emerald-400"
+                    : p.status === "degraded"
+                      ? "bg-amber-400"
+                      : "bg-rose-400";
+                const label =
+                  p.status === "healthy" ? "Operational" : p.status === "degraded" ? "Degraded" : "Offline";
+                return (
+                  <div
+                    key={p.provider}
+                    className="site-panel flex items-center justify-between gap-3 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full", dot)} />
+                      <span className="truncate text-sm font-semibold text-foreground dark:text-white/85">
+                        {p.provider}
+                      </span>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="text-[11px] font-mono text-muted-foreground dark:text-white/40">
+                        {label}
+                      </p>
+                      <p className="text-[10px] font-mono text-muted-foreground/70 dark:text-white/25">
+                        {p.uptimePercent}% · {p.avgResponseMs}ms
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {incidents.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <p className="text-[11px] font-mono uppercase tracking-widest text-muted-foreground/80 dark:text-white/35">
+              Incident History
+            </p>
+            <div className="site-panel divide-y divide-border dark:divide-white/8 overflow-hidden">
+              {incidents.map((inc) => (
+                <div key={inc.id} className="flex items-start gap-3 px-4 py-3">
+                  {inc.resolved ? (
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                  ) : (
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <p className="text-sm font-semibold text-foreground dark:text-white/85">
+                        {inc.title}
+                      </p>
+                      <span
+                        className={cn(
+                          "rounded px-1.5 py-0.5 text-[10px] font-bold uppercase",
+                          inc.resolved
+                            ? "bg-emerald-500/15 text-emerald-300"
+                            : "bg-amber-500/15 text-amber-300",
+                        )}
+                      >
+                        {inc.resolved ? "Resolved" : "Ongoing"}
+                      </span>
+                    </div>
+                    {inc.body ? (
+                      <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground dark:text-white/55 whitespace-pre-wrap">
+                        {inc.body}
+                      </p>
+                    ) : null}
+                    <p className="mt-1.5 text-[11px] font-mono text-muted-foreground/70 dark:text-white/30">
+                      {new Date(inc.createdAt).toLocaleDateString(undefined, {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="site-panel p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex-1 min-w-0">

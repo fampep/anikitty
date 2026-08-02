@@ -21,6 +21,7 @@ import AnimeRelationsGrouped from "@/components/anime/anime-relations-grouped";
 import AnimeRecommendationsPanel from "@/components/anime/anime-recommendations-panel";
 import AnimeDetailSidePanel from "@/components/anime/anime-detail-side-panel";
 import { AnimeStatsPanel } from "@/components/anime/anime-stats-panel";
+import EpisodePopularity from "@/components/anime/episode-popularity";
 import AnimeStatsCharts from "@/components/anime/anime-stats-charts";
 import AnimeGallery from "@/components/anime/anime-gallery";
 import AnimeWatchProgressPanel from "@/components/anime/anime-watch-progress-panel";
@@ -1387,6 +1388,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
             malBroadcast={extMeta?.mal?.broadcast}
           />
           <AnimeStatsPanel animeId={info.id} />
+          <EpisodePopularity animeId={info.id} />
         </div>
 
         {recommendedAnimes.length > 0 && safeActiveTab !== "recommendations" && (

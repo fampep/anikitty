@@ -25,6 +25,9 @@ const MILESTONE_KEYS: Record<string, string> = {
   eps_500: "history.milestones.eps500",
   completed_100: "history.milestones.completed100",
   hours_1000: "history.milestones.hours1000",
+  streak_7: "history.milestones.streak7",
+  streak_30: "history.milestones.streak30",
+  streak_100: "history.milestones.streak100",
   streak_365: "history.milestones.streak365",
 };
 

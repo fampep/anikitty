@@ -141,6 +141,9 @@ export type MilestoneId =
   | "eps_500"
   | "completed_100"
   | "hours_1000"
+  | "streak_7"
+  | "streak_30"
+  | "streak_100"
   | "streak_365";
 
 export type Milestone = {

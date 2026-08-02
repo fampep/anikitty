@@ -266,6 +266,9 @@
       "eps500": "500 episodes",
       "completed100": "100 completed",
       "hours1000": "1,000 hours",
+      "streak7": "7-day streak",
+      "streak30": "30-day streak",
+      "streak100": "100-day streak",
       "streak365": "365-day streak"
     },
     "expand": {
