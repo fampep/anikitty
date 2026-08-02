@@ -38,7 +38,10 @@ export function airedCountFromAnilist(
 export function resolveEffectiveNextAiringEpisode(
   next: AnilistNextAiring,
   now = Date.now(),
+  /** Optional series status — a finished show has no next episode. */
+  status?: string | null,
 ): { episode: number; airingAt: number } | null {
+  if (isSeriesFinished(status)) return null;
   const episode = next?.episode;
   const airingAt = next?.airingAt;
   if (episode == null || episode <= 0 || airingAt == null || airingAt <= 0) return null;
@@ -75,7 +78,21 @@ export function isEpisodeAiredByDate(
 }
 
 /** How many episodes have aired according to AniList schedule metadata. */
+/** Series that can never have a further episode, whatever AniList still lists. */
+export function isSeriesFinished(status?: string | null): boolean {
+  const s = status?.toUpperCase();
+  return s === "FINISHED" || s === "CANCELLED";
+}
+
 export function resolveAiredEpisodeCount(ctx: AiringContext): number {
+  // A finished series has aired everything it will ever air. AniList
+  // sometimes leaves a stale nextAiringEpisode on completed shows, and
+  // trusting it made long-finished series report `nextEp - 1` aired — which
+  // rendered their remaining episodes as "not aired yet".
+  if (isSeriesFinished(ctx.status)) {
+    return maxPositive(ctx.episodes, ctx.streamingEpisodeCount);
+  }
+
   const nextEp = ctx.nextAiringEpisode;
   if (nextEp != null && nextEp > 0) {
     if (isNextAiringEpisodeAlreadyAired(ctx.nextAiringAt)) {
