@@ -16,9 +16,48 @@ export const HOME_SECTION_IDS = [
   "community-picks",
   "studios",
   "voice-actors",
+  "movies",
 ] as const;
 
 export type HomeSectionId = (typeof HOME_SECTION_IDS)[number];
+
+/**
+ * Sections that read well at half width. When two of these end up adjacent in
+ * the visible order they're rendered side by side on large screens instead of
+ * stacked, which is what gives the desktop home its paired-column rhythm.
+ * Anything not listed here always spans the full width.
+ */
+export const HOME_HALF_WIDTH_SECTIONS: ReadonlySet<HomeSectionId> = new Set([
+  "collections",
+  "voice-actors",
+  "studios",
+  "movies",
+  "schedule",
+  "recently-viewed",
+]);
+
+export function isHalfWidthSection(id: HomeSectionId): boolean {
+  return HOME_HALF_WIDTH_SECTIONS.has(id);
+}
+
+/**
+ * Groups the visible order into rows: two adjacent half-width sections pair
+ * into one row, everything else gets a row of its own.
+ */
+export function pairHomeSections(order: HomeSectionId[]): HomeSectionId[][] {
+  const rows: HomeSectionId[][] = [];
+  for (let i = 0; i < order.length; i++) {
+    const current = order[i];
+    const next = order[i + 1];
+    if (next && isHalfWidthSection(current) && isHalfWidthSection(next)) {
+      rows.push([current, next]);
+      i++;
+      continue;
+    }
+    rows.push([current]);
+  }
+  return rows;
+}
 
 export type HomeLayoutPrefs = {
   order: HomeSectionId[];

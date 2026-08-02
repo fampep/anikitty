@@ -18,6 +18,8 @@ import HomeFeaturedStudios from "@/components/home/home-featured-studios";
 import HomeFeaturedVas from "@/components/home/home-featured-vas";
 import HomeBecauseYouWatched from "@/components/home/home-because-you-watched";
 import HomeNewUpcoming from "@/components/home/home-new-upcoming";
+import HomeTrendingSidebar from "@/components/home/home-trending-sidebar";
+import HomePopularMovies from "@/components/home/home-popular-movies";
 import Container from "@/components/layout/container";
 import LazyMount from "@/components/shared/lazy-mount";
 import { GET_HOME_CRITICAL } from "@/constants/query-keys";
@@ -32,6 +34,7 @@ import {
   DEFAULT_HOME_LAYOUT,
   isHomeSectionVisible,
   orderedVisibleSections,
+  pairHomeSections,
   readHomeLayoutPrefs,
   type HomeLayoutPrefs,
   type HomeSectionId,
@@ -48,6 +51,7 @@ const AnimeSections = dynamic(() => import("@/components/home/anime-sections"));
 const HomeRankings = dynamic(() => import("@/components/home/home-rankings"));
 const HomeJustCompleted = dynamic(() => import("@/components/home/home-just-completed"));
 const HomeDiscoveryRows = dynamic(() => import("@/components/home/home-discovery-rows"));
+const HomeLiveStats = dynamic(() => import("@/components/home/home-live-stats"), { ssr: false });
 
 const HOME_RAIL_LIMIT = 12;
 
@@ -70,6 +74,7 @@ const SECTION_GROUP: Partial<Record<HomeSectionId, HomeGroupId>> = {
   "community-picks": "more",
   studios: "more",
   "voice-actors": "more",
+  movies: "more",
 };
 
 const GROUP_ORDER: HomeGroupId[] = ["whats-new", "top-anime", "more"];
@@ -355,6 +360,14 @@ export default function Home() {
         </Container>
       </LazyMount>
     ),
+    movies: (
+      <LazyMount rootMargin="360px 0px" keepMounted minHeight={240}>
+        <HomePopularMovies
+          pools={[popular, trending, topRated, discoveryPool]}
+          loading={isLoading || discoveryLoadingState}
+        />
+      </LazyMount>
+    ),
   };
 
   const visibleOrder = orderedVisibleSections(prefs).filter((id) => id !== "continue");
@@ -403,12 +416,26 @@ export default function Home() {
           id="continue"
           className="relative z-[6] mt-3 sm:mt-4 scroll-mt-[calc(var(--nav-total-height)+4.5rem)]"
         >
-          <ContinueWatching />
+          {/* Continue Watching leads, with trending alongside it on desktop. */}
+          <Container className="grid w-full gap-4 sm:gap-6 xl:grid-cols-[minmax(0,7fr)_minmax(0,3fr)]">
+            <div className="min-w-0">
+              <ContinueWatching bare />
+            </div>
+            <HomeTrendingSidebar
+              animes={trending}
+              loading={isLoading}
+              className="hidden xl:flex"
+            />
+          </Container>
         </div>
       ) : null}
 
       <div className="relative z-[7] mt-2">
         <HomeQuickNav />
+      </div>
+
+      <div className="relative z-[6] mt-3">
+        <HomeLiveStats />
       </div>
 
       <HomeSocialBanner />
@@ -425,10 +452,30 @@ export default function Home() {
           <section key={group} className="flex flex-col gap-8 sm:gap-10" aria-label={groupCopy[group].title}>
             <HomeGroupHeading title={groupCopy[group].title} subtitle={groupCopy[group].subtitle} />
             <div className="flex flex-col gap-8 sm:gap-10">
-              {ids.map((id) => {
-                const node = sectionNodes[id];
-                if (!node) return null;
-                return <div key={id}>{node}</div>;
+              {pairHomeSections(ids).map((row) => {
+                const nodes = row
+                  .map((id) => ({ id, node: sectionNodes[id] }))
+                  .filter((entry) => entry.node);
+                if (nodes.length === 0) return null;
+
+                // Two half-width sections share a row on wide screens; a lone
+                // section still spans full width.
+                if (nodes.length === 2) {
+                  return (
+                    <div
+                      key={nodes.map((n) => n.id).join("+")}
+                      className="grid gap-8 sm:gap-10 xl:grid-cols-2"
+                    >
+                      {nodes.map(({ id, node }) => (
+                        <div key={id} className="min-w-0">
+                          {node}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+
+                return <div key={nodes[0].id}>{nodes[0].node}</div>;
               })}
             </div>
           </section>

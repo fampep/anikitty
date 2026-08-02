@@ -32,6 +32,7 @@ const LABEL_KEYS: Record<HomeSectionId, string> = {
   studios: "featuredStudios",
   "voice-actors": "featuredVoiceActors",
   schedule: "estimatedSchedule",
+  movies: "popularMovies",
 };
 
 export default function HomeCustomizeButton() {
