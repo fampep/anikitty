@@ -13,6 +13,7 @@ import { useAuthStore } from "@/store/auth-store";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { cn } from "@/lib/core/utils";
 import { AiringDot, formatAnimeType, scoreLabel } from "./home-shared";
+import { useAnimeHoverPreview } from "@/components/anime/anime-hover-preview";
 
 type Props = {
   anime: IAnime;
@@ -44,6 +45,8 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
   const { createOrUpdateBookMark } = useBookMarks({ populate: false });
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const { triggerProps, preview } = useAnimeHoverPreview(anime);
 
   const rating = scoreLabel(anime.score);
   const detailsHref = `${ROUTES.ANIME_DETAILS}/${anime.id}`;
@@ -93,9 +96,14 @@ const HomeCompactPoster = memo(function HomeCompactPoster({
         "home-glass-card group/poster relative flex flex-col gap-y-2 shrink-0 w-[7.5rem] xs:w-[8.5rem] md:w-[9.5rem] lg:w-40 overflow-hidden",
         className,
       )}
-      onMouseEnter={prefetch}
+      {...triggerProps}
+      onMouseEnter={() => {
+        prefetch();
+        triggerProps.onMouseEnter?.();
+      }}
       onFocus={prefetch}
     >
+      {preview}
       <div className="relative flex w-full aspect-[1/1.4] bg-white/10 dark:bg-white/10 rounded-xl overflow-hidden">
         <Link href={primaryHref} className="absolute inset-0 z-0" draggable={false} aria-label={anime.name}>
           <LazyPosterImage

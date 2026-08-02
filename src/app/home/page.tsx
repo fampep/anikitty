@@ -52,6 +52,7 @@ const HomeRankings = dynamic(() => import("@/components/home/home-rankings"));
 const HomeJustCompleted = dynamic(() => import("@/components/home/home-just-completed"));
 const HomeDiscoveryRows = dynamic(() => import("@/components/home/home-discovery-rows"));
 const HomeLiveStats = dynamic(() => import("@/components/home/home-live-stats"), { ssr: false });
+const HomeDiscoveryHub = dynamic(() => import("@/components/home/home-discovery-hub"), { ssr: false });
 
 const HOME_RAIL_LIMIT = 12;
 
@@ -434,8 +435,9 @@ export default function Home() {
         <HomeQuickNav />
       </div>
 
-      <div className="relative z-[6] mt-3">
+      <div className="relative z-[6] mt-3 flex flex-col gap-3">
         <HomeLiveStats />
+        <HomeDiscoveryHub />
       </div>
 
       <HomeSocialBanner />
