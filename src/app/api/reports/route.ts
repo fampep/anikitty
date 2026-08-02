@@ -4,7 +4,16 @@ import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
 import { eq } from "drizzle-orm";
 
-const VALID_REASONS = new Set(["spam", "harassment", "spoiler", "nsfw", "hate", "other"]);
+const VALID_REASONS = new Set([
+  "spam",
+  "harassment",
+  "spoiler",
+  "nsfw",
+  "hate",
+  "off_topic",
+  "duplicate",
+  "other",
+]);
 const VALID_TARGETS = new Set(["comment", "user"]);
 
 export async function POST(req: Request) {

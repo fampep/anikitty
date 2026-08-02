@@ -8,7 +8,7 @@ import { withAuth } from "@/lib/auth/auth-fetch";
 import {
   MessageSquare, Send, Trash2, Loader2, ImagePlay, X, SmilePlus,
   ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin, Flag,
-  Link2, Brackets, MoreHorizontal,
+  Link2, Brackets, MoreHorizontal, ArrowUp, Image as ImageIcon, ShieldCheck,
 } from "lucide-react";
 import CommentBody from "@/components/comments/comment-body";
 import { CommentFeedBody } from "@/components/comments/comment-feed-body";
@@ -24,7 +24,7 @@ import LoginPopoverButton from "@/components/auth/login-popover-button";
 import FramedAvatar from "@/components/common/framed-avatar";
 import { CosmeticUsername } from "@/components/common/user-cosmetics";
 import CommentRulesDialog from "@/components/comments/comment-rules-dialog";
-import { CommentReportDialog } from "@/components/comments/comment-report-dialog";
+import { CommentReportDialog, type ReportReason } from "@/components/comments/comment-report-dialog";
 import { useCommentRulesAccepted } from "@/hooks/use-comment-rules-accepted";
 
 // ── Emoji picker ──────────────────────────────────────────────────────────────
@@ -104,6 +104,11 @@ export interface CommentEpisode {
   episodeId: string;
   number: number;
   title?: string;
+}
+
+/** Mirrors isStaffRole() in lib/security/moderation — inlined to keep this client-side. */
+function isStaffComment(c: { role?: string | null }): boolean {
+  return c.role === "admin" || c.role === "moderator";
 }
 
 interface Comment {
@@ -405,10 +410,15 @@ export default function CommentSection({
   const [reportTargetId, setReportTargetId] = useState<string | null>(null);
   const [reporting, setReporting] = useState(false);
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [newCommentCount, setNewCommentCount] = useState(0);
+  const [filterImages, setFilterImages] = useState(false);
+  const [filterStaff, setFilterStaff] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const deepLinkHandled = useRef(false);
+  // Mirrors `total` so the poll below can read it without restarting on every change.
+  const totalRef = useRef(0);
 
   const openRulesDialog = useCallback((opts?: { readOnly?: boolean }) => {
     setRulesReadOnly(!!opts?.readOnly);
@@ -543,8 +553,50 @@ export default function CommentSection({
     setComments([]);
     setPage(1);
     setHasMore(false);
+    setNewCommentCount(0);
     fetchComments(1, sort, false);
   }, [sort, animeId, activeEpisodeQuery, fetchComments]);
+
+  useEffect(() => {
+    totalRef.current = total;
+  }, [total]);
+
+  // Poll the count-only endpoint so new activity can be surfaced as a pill
+  // without yanking the list out from under whoever is reading it.
+  useEffect(() => {
+    if (requiresEpisode) return;
+
+    const episodeParam =
+      activeEpisodeQuery && activeEpisodeQuery !== "all"
+        ? `&episodeId=${encodeURIComponent(activeEpisodeQuery)}`
+        : activeEpisodeQuery === "all" || hasEpisodePicker
+          ? "&episodeId=all"
+          : "";
+
+    let cancelled = false;
+
+    const check = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await fetch(
+          `/api/account/comments/${encodeURIComponent(animeId)}?countOnly=1${episodeParam}`,
+          withAuth(),
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled || typeof data?.total !== "number") return;
+        setNewCommentCount(Math.max(0, data.total - totalRef.current));
+      } catch {
+        // Transient — the next tick retries.
+      }
+    };
+
+    const id = window.setInterval(check, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [animeId, activeEpisodeQuery, requiresEpisode, hasEpisodePicker]);
 
   const loadMore = () => fetchComments(page + 1, sort, true);
   const loadMoreSentinelRef = useRef<HTMLDivElement>(null);
@@ -743,8 +795,8 @@ export default function CommentSection({
     setReportTargetId(commentId);
   };
 
-  const submitReport = async (details: string) => {
-    if (!auth || !reportTargetId || !details) return;
+  const submitReport = async (reason: ReportReason, details: string) => {
+    if (!auth || !reportTargetId) return;
     setReporting(true);
     try {
       const res = await fetch(
@@ -755,8 +807,8 @@ export default function CommentSection({
           body: JSON.stringify({
             targetType: "comment",
             targetId: reportTargetId,
-            reason: "other",
-            details,
+            reason,
+            details: details || null,
           }),
         }),
       );
@@ -893,8 +945,18 @@ export default function CommentSection({
   const canSubmitReply = (replyDraft.trim().length > 0 || !!replyGif) && !submittingReply;
   const showToolbar = focused || !!draft || !!selectedGif || isSpoiler;
   const charNearLimit = draft.length > 850;
-  const visibleComments = hideSpoilers ? comments.filter((c) => !c.isSpoiler) : comments;
-  const hiddenSpoilerCount = hideSpoilers ? comments.length - visibleComments.length : 0;
+  const visibleComments = comments.filter((c) => {
+    if (hideSpoilers && c.isSpoiler) return false;
+    if (filterImages && !c.gifUrl) return false;
+    if (filterStaff && !isStaffComment(c)) return false;
+    return true;
+  });
+  const hiddenSpoilerCount = hideSpoilers ? comments.filter((c) => c.isSpoiler).length : 0;
+
+  const loadNewComments = () => {
+    setNewCommentCount(0);
+    void fetchComments(1, sort, false);
+  };
 
   const jumpToNewest = () => {
     if (sort !== "new") setSort("new");
@@ -1207,6 +1269,34 @@ export default function CommentSection({
             >
               {hideSpoilers ? t("comments.showSpoilers") : t("comments.hideSpoilers")}
             </button>
+            <button
+              type="button"
+              onClick={() => setFilterImages((v) => !v)}
+              aria-pressed={filterImages}
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                filterImages
+                  ? "bg-primary/12 text-primary border-primary/25"
+                  : "border-border dark:border-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
+              )}
+            >
+              <ImageIcon className="w-3 h-3" />
+              {t("comments.filterImages")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterStaff((v) => !v)}
+              aria-pressed={filterStaff}
+              className={cn(
+                "shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all",
+                filterStaff
+                  ? "bg-primary/12 text-primary border-primary/25"
+                  : "border-border dark:border-white/8 text-muted-foreground dark:text-white/30 hover:text-muted-foreground dark:hover:text-white/55",
+              )}
+            >
+              <ShieldCheck className="w-3 h-3" />
+              {t("comments.filterStaff")}
+            </button>
             {comments.length > 0 && (
               <button
                 type="button"
@@ -1446,6 +1536,20 @@ export default function CommentSection({
         </div>
       ) : null}
 
+      {/* New-activity pill — refreshing is opt-in so the list never jumps on its own */}
+      {newCommentCount > 0 && !loading && !requiresEpisode && (
+        <button
+          type="button"
+          onClick={loadNewComments}
+          className="self-center mb-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-primary/12 text-primary text-[11px] font-bold ring-1 ring-primary/25 hover:bg-primary/20 transition-colors"
+        >
+          <ArrowUp className="w-3 h-3" />
+          {newCommentCount === 1
+            ? t("comments.newCommentOne")
+            : t("comments.newCommentsMany", { count: newCommentCount })}
+        </button>
+      )}
+
       {/* Comment list */}
       {requiresEpisode ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center">
@@ -1493,6 +1597,22 @@ export default function CommentSection({
             <p className="text-[11px] font-mono text-amber-300/70 mb-2">
               {t("comments.hiddenSpoilers", { count: hiddenSpoilerCount })}
             </p>
+          )}
+          {visibleComments.length === 0 && (
+            <div className="flex flex-col items-center gap-2.5 py-9 text-center">
+              <p className="text-sm text-muted-foreground dark:text-white/35">{t("comments.filterNoMatch")}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterImages(false);
+                  setFilterStaff(false);
+                  setHideSpoilers(false);
+                }}
+                className="px-3 py-1.5 rounded-lg border border-border dark:border-white/10 text-[11px] font-semibold text-muted-foreground dark:text-white/60 hover:text-foreground dark:hover:text-white/85 transition-colors"
+              >
+                {t("comments.filterClear")}
+              </button>
+            </div>
           )}
           {visibleComments.map((c, index) => {
             const isOwn = auth?.id === c.userId;
