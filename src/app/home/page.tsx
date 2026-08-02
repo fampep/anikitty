@@ -425,12 +425,19 @@ export default function Home() {
             <div className="home-continue-main min-w-0">
               <ContinueWatching bare />
             </div>
-            <HomeTrendingSidebar
-              animes={trending}
-              loading={isLoading}
-              limit={6}
-              className="home-continue-aside hidden xl:flex"
-            />
+            {/* The wrapper stretches to whatever height Continue Watching
+                produces, and the panel inside is absolutely positioned — so
+                the sidebar fills the row rather than dictating its height.
+                Without this a long trending list (or a short loading
+                skeleton beside it) leaves a tall empty column. */}
+            <div className="home-continue-aside relative hidden self-stretch xl:block">
+              <HomeTrendingSidebar
+                animes={trending}
+                loading={isLoading}
+                limit={8}
+                className="absolute inset-0 overflow-y-auto"
+              />
+            </div>
           </Container>
         </div>
       ) : null}
