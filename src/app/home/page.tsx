@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { useQueryClient } from "@tanstack/react-query";
-import { Compass, RefreshCw, WifiOff } from "lucide-react";
+import { CalendarClock, CheckCircle2, Compass, Flame, RefreshCw, WifiOff } from "lucide-react";
 import Link from "next/link";
 import ContinueWatching from "@/components/home/continue-watching";
 import HeroSection from "@/components/home/hero-section";
@@ -18,7 +18,7 @@ import HomeFeaturedStudios from "@/components/home/home-featured-studios";
 import HomeFeaturedVas from "@/components/home/home-featured-vas";
 import HomeBecauseYouWatched from "@/components/home/home-because-you-watched";
 import HomeNewUpcoming from "@/components/home/home-new-upcoming";
-import HomeTrendingSidebar from "@/components/home/home-trending-sidebar";
+import HomeRailPanel from "@/components/home/home-rail-panel";
 import HomePopularMovies from "@/components/home/home-popular-movies";
 import Container from "@/components/layout/container";
 import LazyMount from "@/components/shared/lazy-mount";
@@ -487,8 +487,30 @@ export default function Home() {
           {/* Sticky so the rail keeps pace with a long scroll. Its own
               scrollbar caps it at the viewport rather than the page. */}
           <aside className="hidden xl:block pr-4 md:pr-6 lg:pr-8">
-            <div className="sticky top-[calc(var(--nav-total-height)+0.75rem)] max-h-[calc(100dvh-var(--nav-total-height)-1.5rem)] overflow-y-auto">
-              <HomeTrendingSidebar animes={trending} loading={isLoading} limit={10} />
+            <div className="sticky top-[calc(var(--nav-total-height)+0.75rem)] flex max-h-[calc(100dvh-var(--nav-total-height)-1.5rem)] flex-col gap-3 overflow-y-auto">
+              <HomeRailPanel
+                title={t("home.trendingNow")}
+                icon={<Flame className="h-4 w-4" />}
+                href={ROUTES.TRENDING}
+                animes={trending}
+                loading={isLoading}
+                limit={10}
+                showRank
+              />
+              <HomeRailPanel
+                title={t("home.upcomingAnime")}
+                icon={<CalendarClock className="h-4 w-4" />}
+                animes={upcoming}
+                loading={discoveryLoadingState}
+                limit={6}
+              />
+              <HomeRailPanel
+                title={t("home.justCompleted")}
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                animes={completed}
+                loading={discoveryLoadingState}
+                limit={6}
+              />
             </div>
           </aside>
         </div>

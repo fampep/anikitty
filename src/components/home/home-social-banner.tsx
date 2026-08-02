@@ -1,7 +1,7 @@
 "use client";
 
-import { DiscordLogoIcon } from "@radix-ui/react-icons";
-import { MessageCircle } from "lucide-react";
+import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
+import { Heart } from "lucide-react";
 import Container from "@/components/layout/container";
 import TelegramIcon from "@/icons/telegram";
 import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
@@ -15,16 +15,16 @@ export default function HomeSocialBanner() {
 
   return (
     <Container className="py-1 sm:py-1.5">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 px-4 py-3 rounded-xl border border-indigo-500/15 bg-gradient-to-r from-indigo-500/[0.08] via-sky-500/[0.04] to-transparent">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 border border-indigo-400/20 text-indigo-300">
-            <MessageCircle className="h-4 w-4" />
+      <div className="site-panel flex flex-col gap-3 rounded-2xl px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-foreground/70 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/70">
+            <Heart className="h-4 w-4" />
           </span>
-          <div className="min-w-0 pt-0.5">
-            <p className="text-[12px] font-semibold text-foreground/85 dark:text-white/75">
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground dark:text-white/85">
               {t("home.socialBannerTitle")}
             </p>
-            <p className="text-[11px] text-muted-foreground dark:text-white/45 leading-relaxed mt-0.5">
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground dark:text-white/40">
               {t("home.socialBannerBody")}
             </p>
           </div>
@@ -49,6 +49,16 @@ export default function HomeSocialBanner() {
             className={ICON_BTN}
           >
             <TelegramIcon className="h-4 w-4" />
+          </a>
+          <a
+            href="https://github.com/fampep/anikitty"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("footer.github")}
+            title={t("footer.github")}
+            className={ICON_BTN}
+          >
+            <GitHubLogoIcon width="16" height="16" />
           </a>
         </div>
       </div>
