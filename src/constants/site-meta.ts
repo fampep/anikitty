@@ -5,7 +5,7 @@ export const SITE_VERSION = packageJson.version;
 
 export const SITE_IS_BETA = false;
 
-export const DISCORD_INVITE_URL = "https://discord.gg/qn55BfU5Ur";
+export const DISCORD_INVITE_URL = "https://discord.gg/anikitty";
 
 /** Public Telegram channel for AniKitty announcements. */
 export const TELEGRAM_CHANNEL_URL = "https://t.me/Anikittymoe";
