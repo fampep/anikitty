@@ -1,6 +1,7 @@
 import {
   CLICK_AD_DOMAIN,
   getClickAdScriptSrc,
+  getClickAdZoneId,
 } from "@/lib/ads/click-ads-config";
 
 export const CLICK_AD_SCRIPT_ID = "anikitty-click-ads";
@@ -21,28 +22,25 @@ export function unloadClickAds(): void {
 
 /**
  * Inject the popunder zone script once when ads should run.
- * Mirrors the publisher dashboard snippet (settings + insertBefore last script).
+ *
+ * Mirrors the publisher dashboard snippet: append to `<body>` (falling back to
+ * `<html>`) and carry the zone id on `data-zone` — this network reads the zone
+ * from that attribute, not from the script URL, so it is required.
  */
 export function loadClickAds(): void {
   if (typeof document === "undefined") return;
   if (document.getElementById(CLICK_AD_SCRIPT_ID)) return;
 
-  const scripts = document.scripts;
-  const last = scripts.length > 0 ? scripts[scripts.length - 1] : null;
-  const parent = last?.parentNode ?? document.head ?? document.body;
+  const parent = document.body ?? document.documentElement;
   if (!parent) return;
 
   const script = document.createElement("script") as AdScriptElement;
   script.id = CLICK_AD_SCRIPT_ID;
-  script.settings = {};
+  script.dataset.zone = getClickAdZoneId();
   script.src = getClickAdScriptSrc();
   script.async = true;
   script.type = "text/javascript";
   script.referrerPolicy = "no-referrer-when-downgrade";
 
-  if (last?.parentNode === parent) {
-    parent.insertBefore(script, last);
-  } else {
-    parent.appendChild(script);
-  }
+  parent.appendChild(script);
 }

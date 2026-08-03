@@ -8,7 +8,8 @@ import { isAdPlacementAllowed } from "@/lib/ads/ad-placement";
 import { loadClickAds, unloadClickAds } from "@/lib/ads/show-ads-preference";
 
 /**
- * Popunder click ads (zone 7275065) — loads when placement allows.
+ * Popunder click ads — loads when placement allows. Zone id lives in
+ * `click-ads-config` so swapping networks touches one file.
  * Guests and accounts both see ads; frequency is handled by the ad network.
  */
 export default function ClickAdsLoader() {

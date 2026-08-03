@@ -1,12 +1,14 @@
-/** Popunder zone #7275065 — script host from the publisher dashboard. */
-export const CLICK_AD_DOMAIN = "unfolded-uncle.com";
+/** Popunder script host from the publisher dashboard. */
+export const CLICK_AD_DOMAIN = "al5sm.com";
 
-/** Default zone id (path-embedded in the script URL; for docs / logging). */
-export const CLICK_AD_ZONE_ID_DEFAULT = 7275065;
+/**
+ * Zone id. This network takes it as a `data-zone` attribute on the script tag
+ * rather than embedding it in the URL, so the loader must set it explicitly.
+ */
+export const CLICK_AD_ZONE_ID_DEFAULT = "11267140";
 
 /** Default popunder script path (override via NEXT_PUBLIC_CLICK_AD_SCRIPT_SRC). */
-export const CLICK_AD_SCRIPT_SRC_DEFAULT =
-  `https://${CLICK_AD_DOMAIN}/coDO9.6ybz2h5zlFSnWwQJ9MNjzLIt3_NMT-A/2QNySW0m3SMFj-cb1kMtDVY/5G`;
+export const CLICK_AD_SCRIPT_SRC_DEFAULT = `https://${CLICK_AD_DOMAIN}/tag.min.js`;
 
 type RuntimeEnvWindow = Window & { __ENV?: Record<string, string | undefined> };
 
@@ -34,4 +36,13 @@ export function getClickAdScriptSrc(): string {
     process.env.NEXT_PUBLIC_CLICK_AD_SCRIPT_SRC?.trim() ||
     CLICK_AD_SCRIPT_SRC_DEFAULT;
   return normalizeScriptSrc(raw);
+}
+
+/** Zone id set as `data-zone` on the injected script. */
+export function getClickAdZoneId(): string {
+  return (
+    readRuntimeEnv("NEXT_PUBLIC_CLICK_AD_ZONE_ID") ||
+    process.env.NEXT_PUBLIC_CLICK_AD_ZONE_ID?.trim() ||
+    CLICK_AD_ZONE_ID_DEFAULT
+  );
 }
