@@ -1231,7 +1231,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   { label: t("anime.detailFields.tmdbProduction"), value: tmdb?.production?.length ? tmdb.production.join(", ") : null },
                   { label: t("anime.detailFields.tmdbProductionCountries"), value: tmdb?.productionCountries?.length ? tmdb.productionCountries.join(", ") : null },
                   { label: t("anime.detailFields.tmdbShowType"), value: tmdb?.showType },
+                  { label: t("anime.detailFields.tmdbGenres"), value: tmdb?.genres?.length ? tmdb.genres.join(", ") : null },
                   { label: t("anime.detailFields.tmdbEpisodeRuntime"), value: tmdb?.episodeRuntime ? `${tmdb.episodeRuntime} min` : null },
+                  { label: t("anime.detailFields.tmdbInProduction"), value: tmdb?.inProduction === true ? "Yes" : tmdb?.inProduction === false ? "No" : null },
                   { label: t("anime.detailFields.tmdbNextEpisode"), value: formatTmdbEpisode(tmdb?.nextEpisode) },
                   { label: t("anime.detailFields.tmdbLastEpisode"), value: formatTmdbEpisode(tmdb?.lastEpisode) },
                 ].filter((r) => r.value).map((row) => (
