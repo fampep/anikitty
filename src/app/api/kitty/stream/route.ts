@@ -843,6 +843,50 @@ export async function GET(req: Request) {
     }
   }
 
+  if (provider === "AniDelta") {
+    try {
+      // AniDelta needs extended timeout for stream resolution
+      const anideltaAttempt = await fetchWithSubAudioFallback(
+        subtitleCtx.audio,
+        async (streamAudio) => {
+          const streamResult = await fetchKittyProviderStream({
+            provider: "AniDelta",
+            anilistId: subtitleCtx.anilistId,
+            episode: subtitleCtx.episode,
+            audio: streamAudio,
+            title: titleParam,
+            directOnly: false,
+            preferHardSub,
+            refresh: refreshStream,
+            // Extended timeout for AniDelta stream resolution
+            timeoutMs: 60_000,
+          });
+
+          if (!streamResult?.file) return null;
+
+          const payload = streamResult as StreamPayload;
+          if (streamResult.cached) payload.cached = true;
+          const serverLabel = payload.server;
+          if (typeof serverLabel === "string") {
+            const trimmed = serverLabel.trim();
+            payload.server = trimmed || undefined;
+          }
+          return payload;
+        },
+      );
+
+      const anideltaResponse = await respondWithStream(
+        anideltaAttempt.result,
+        "AniDelta",
+        anideltaAttempt.servedAudio,
+        anideltaAttempt.audioFallback,
+      );
+      if (anideltaResponse) return anideltaResponse;
+    } catch (e) {
+      console.error("[kitty/stream] AniDelta stream resolution failed:", e);
+    }
+  }
+
   if (provider === "MKissa") {
     try {
       const mkissaAttempt = await fetchWithSubAudioFallback(
