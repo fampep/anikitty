@@ -125,7 +125,7 @@ const Footer = () => {
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors dark:text-white/35 dark:hover:text-white/65"
             >
               <DiscordLogoIcon width="13" height="13" />
-              {t("footer.discord")}
+              Discord › AniKitty
             </a>
             <a
               href={TELEGRAM_CHANNEL_URL}
