@@ -11,7 +11,7 @@ import {
   clampAudioCounts,
   type AudioCacheContext,
 } from "@/lib/watch/anime-audio-store";
-import { fetchKittyAudio, fetchKittyAudioBatch } from "@/lib/kitty/kitty-audio-api";
+import { fetchKittyAudio, fetchKittyAudioBatch, type KittyAudioCounts } from "@/lib/kitty/kitty-audio-api";
 
 const ANIKOTO_API_BASE =
   process.env.ANIKOTO_API_BASE?.replace(/\/$/, "") ?? "https://www.anikotoapi.site";
@@ -393,6 +393,26 @@ export type AnimeListAudioItem = {
 
 const LIST_REFRESH_BUDGET = 12;
 
+/**
+ * Aggregate true counts across all available providers.
+ * Takes the maximum sub/dub from any provider (each might specialize).
+ */
+function aggregateProviderCounts(
+  breakdown?: Record<string, { sub: number; dub: number; source: string }>,
+): { sub: number; dub: number } | null {
+  if (!breakdown || Object.keys(breakdown).length === 0) return null;
+
+  let maxSub = 0;
+  let maxDub = 0;
+
+  for (const provider of Object.values(breakdown)) {
+    maxSub = Math.max(maxSub, provider.sub || 0);
+    maxDub = Math.max(maxDub, provider.dub || 0);
+  }
+
+  return maxSub > 0 || maxDub > 0 ? { sub: maxSub, dub: maxDub } : null;
+}
+
 /** Fire-and-forget: pull KittyAPI counts for missing/stale ids and write to Postgres. */
 function refreshAudioCountsInBackground(queue: AudioAvailabilityOpts[]) {
   if (queue.length === 0) return;
@@ -400,7 +420,7 @@ function refreshAudioCountsInBackground(queue: AudioAvailabilityOpts[]) {
   void (async () => {
     const ids = queue.map((q) => q.anilistId);
     const byId = new Map(queue.map((q) => [q.anilistId, q]));
-    let kittyHits = new Map<number, AudioAvailability>();
+    let kittyHits = new Map<number, KittyAudioCounts>();
 
     try {
       kittyHits = await fetchKittyAudioBatch(ids);
@@ -408,8 +428,15 @@ function refreshAudioCountsInBackground(queue: AudioAvailabilityOpts[]) {
       kittyHits = new Map();
     }
 
-    for (const [anilistId, counts] of kittyHits) {
+    for (const [anilistId, kittyData] of kittyHits) {
       const opts = byId.get(anilistId);
+
+      // Use aggregated counts from multi-provider breakdown if available.
+      const aggregated = aggregateProviderCounts(kittyData.breakdown);
+      const counts = aggregated
+        ? toCounts(aggregated.sub, aggregated.dub, opts?.fallbackSub)
+        : kittyData;
+
       const ctx: AudioCacheContext = opts
         ? cacheContext(opts)
         : { anilistEpisodeCount: counts.sub, isAiring: false };
@@ -645,7 +672,12 @@ export async function getAudioAvailability(
       title: opts.titles.find((t) => typeof t === "string" && t.trim()) ?? null,
     });
     if (kitty) {
-      const clamped = clampAudioCounts(kitty.sub, kitty.dub, opts.fallbackSub);
+      // Use aggregated counts from multi-provider breakdown if available.
+      const aggregated = aggregateProviderCounts(kitty.breakdown);
+      const sub = aggregated?.sub ?? kitty.sub ?? 0;
+      const dub = aggregated?.dub ?? kitty.dub ?? 0;
+
+      const clamped = clampAudioCounts(sub, dub, opts.fallbackSub);
       const value = {
         ...kitty,
         sub: clamped.sub,

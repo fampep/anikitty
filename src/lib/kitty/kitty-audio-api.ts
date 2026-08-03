@@ -3,10 +3,19 @@ import "server-only";
 import { kittyApiFetch } from "@/lib/kitty/kitty-api-server";
 import type { AudioAvailability } from "@/lib/providers/anikoto-availability";
 
+export type ProviderAudioCounts = {
+  sub: number;
+  dub: number;
+  source: string;
+};
+
 export type KittyAudioCounts = AudioAvailability & {
   anilistId: number;
   provider?: string;
   source?: string;
+  /** Per-provider breakdown from KittyAPI. */
+  breakdown?: Record<string, ProviderAudioCounts>;
+  providers?: string[];
 };
 
 function toCounts(sub: number, dub: number): AudioAvailability {
@@ -31,16 +40,51 @@ function parseKittyAudioBody(body: unknown, fallbackId?: number): KittyAudioCoun
         ? fallbackId
         : 0;
   if (anilistId <= 0) return null;
-  const sub = typeof row.sub === "number" ? row.sub : Number(row.sub);
-  const dub = typeof row.dub === "number" ? row.dub : Number(row.dub);
+
+  // Extract breakdown from per-provider data if available.
+  const breakdown: Record<string, ProviderAudioCounts> = {};
+  let maxSub = 0;
+  let maxDub = 0;
+
+  if (row.breakdown && typeof row.breakdown === "object") {
+    const bd = row.breakdown as Record<string, unknown>;
+    for (const [provider, data] of Object.entries(bd)) {
+      if (data && typeof data === "object") {
+        const provData = data as Record<string, unknown>;
+        const sub = typeof provData.sub === "number" ? provData.sub : Number(provData.sub) || 0;
+        const dub = typeof provData.dub === "number" ? provData.dub : Number(provData.dub) || 0;
+        if (sub > 0 || dub > 0) {
+          breakdown[provider] = {
+            sub: Math.max(0, Math.floor(sub) || 0),
+            dub: Math.max(0, Math.floor(dub) || 0),
+            source: typeof provData.source === "string" ? provData.source : provider,
+          };
+          maxSub = Math.max(maxSub, breakdown[provider].sub);
+          maxDub = Math.max(maxDub, breakdown[provider].dub);
+        }
+      }
+    }
+  }
+
+  // Fall back to top-level counts if no breakdown.
+  let sub = maxSub || (typeof row.sub === "number" ? row.sub : Number(row.sub));
+  let dub = maxDub || (typeof row.dub === "number" ? row.dub : Number(row.dub));
+
   if (!Number.isFinite(sub) && !Number.isFinite(dub)) return null;
   const counts = toCounts(sub || 0, dub || 0);
   if (!counts.hasSub && !counts.hasDub) return null;
+
+  const providers = Array.isArray(row.providers)
+    ? (row.providers as unknown[]).map(String).filter(Boolean)
+    : Object.keys(breakdown);
+
   return {
     anilistId,
     ...counts,
     provider: typeof row.provider === "string" ? row.provider : undefined,
     source: typeof row.source === "string" ? row.source : undefined,
+    breakdown: Object.keys(breakdown).length > 0 ? breakdown : undefined,
+    providers: providers.length > 0 ? providers : undefined,
   };
 }
 
