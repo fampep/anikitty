@@ -1,12 +1,12 @@
-/** Popunder zone #7275065 — script host from the publisher dashboard. */
-export const CLICK_AD_DOMAIN = "unfolded-uncle.com";
+/** Popunder zone #148429 (anikitty.moe_pops) — script host from the publisher dashboard. */
+export const CLICK_AD_DOMAIN = "ge.angloidalmanac.com";
 
 /** Default zone id (path-embedded in the script URL; for docs / logging). */
-export const CLICK_AD_ZONE_ID_DEFAULT = 7275065;
+export const CLICK_AD_ZONE_ID_DEFAULT = 148429;
 
 /** Default popunder script path (override via NEXT_PUBLIC_CLICK_AD_SCRIPT_SRC). */
 export const CLICK_AD_SCRIPT_SRC_DEFAULT =
-  `https://${CLICK_AD_DOMAIN}/coDO9.6ybz2h5zlFSnWwQJ9MNjzLIt3_NMT-A/2QNySW0m3SMFj-cb1kMtDVY/5G`;
+  `https://${CLICK_AD_DOMAIN}/rFAsAOxU8sDL/148429`;
 
 type RuntimeEnvWindow = Window & { __ENV?: Record<string, string | undefined> };
 
