@@ -71,6 +71,7 @@ import AnilistRateButton from "@/components/anime/anilist-rate-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 
 const TAB_STORAGE_KEY = "anikitty:anime-detail-tab";
+const PROVIDER_STORAGE_KEY = "anikitty:metadata-provider";
 
 const VALID_TABS = new Set([
   "overview",
@@ -88,6 +89,9 @@ const VALID_TABS = new Set([
   "reviews",
   "comments",
 ]);
+
+const METADATA_PROVIDERS = ["anilist", "tmdb", "tvdb", "mal"] as const;
+type MetadataProvider = typeof METADATA_PROVIDERS[number];
 
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
   ssr: false,
@@ -187,6 +191,19 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
+  const [metadataProvider, setMetadataProvider] = useState<MetadataProvider>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem(PROVIDER_STORAGE_KEY);
+        if (stored && METADATA_PROVIDERS.includes(stored as MetadataProvider)) {
+          return stored as MetadataProvider;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return "anilist";
+  });
 
   useEffect(() => {
     setActiveTab(defaultTab);
@@ -286,6 +303,15 @@ export default function AnimeDetail({ slug }: { slug: string }) {
         block: "start",
       });
     });
+  };
+
+  const handleMetadataProviderChange = (provider: MetadataProvider) => {
+    setMetadataProvider(provider);
+    try {
+      localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
+    } catch {
+      /* ignore */
+    }
   };
 
   // First-party "AniKitty Score" aggregate from user reviews.
@@ -904,7 +930,37 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
         <Tabs value={safeActiveTab} onValueChange={handleTabChange} className="w-full">
           {/* ── Overview ── */}
-          <TabsContent value="overview" className="mt-8 space-y-5">
+          <TabsContent value="overview" className="mt-8 space-y-6">
+            {/* Metadata Provider Selector */}
+            <div className="site-panel p-4 sm:p-5 border-primary/20 bg-primary/[0.04]">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground dark:text-white/90 mb-1">
+                    {t("anime.metadataProvider") || "Metadata Provider"}
+                  </h3>
+                  <p className="text-xs text-muted-foreground dark:text-white/50">
+                    {t("anime.metadataProviderDesc") || "Choose the data source for this page's main display"}
+                  </p>
+                </div>
+                <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+                  {METADATA_PROVIDERS.map((provider) => (
+                    <button
+                      key={provider}
+                      onClick={() => handleMetadataProviderChange(provider)}
+                      className={cn(
+                        "px-3 py-1.5 text-xs font-medium rounded-lg border transition-all capitalize",
+                        metadataProvider === provider
+                          ? "border-primary bg-primary/20 text-primary dark:bg-primary/30 dark:text-primary/90"
+                          : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.03] text-muted-foreground dark:text-white/50 hover:bg-muted dark:hover:bg-white/[0.06]"
+                      )}
+                    >
+                      {provider === "anilist" ? "AniList" : provider === "tmdb" ? "TMDB" : provider === "tvdb" ? "TVDB" : "MAL"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Watch Progress */}
             {(auth || watchedEpisodeCount > 0) && totalEpisodeCount > 0 && (
               <AnimeWatchProgressPanel
                 animeId={slug}
@@ -916,6 +972,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               />
             )}
 
+            {/* Next Airing Episode Banner */}
             {info.nextAiringEpisode?.airingAt &&
               info.nextAiringEpisode.airingAt * 1000 > Date.now() && (
                 <div className="site-panel p-4 sm:p-5 border-primary/20 bg-primary/[0.04]">
@@ -927,6 +984,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                 </div>
               )}
 
+            {/* Streaming Info - All Providers */}
             {(stats?.episodes?.sub ?? 0) > 0 && (
               <OverviewPanel title={t("anime.sidePanel.streaming")}>
                 <div className="flex flex-wrap items-center gap-2">
@@ -959,8 +1017,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             )}
 
+            {/* Synopsis Section */}
             <OverviewPanel title={t("anime.synopsis")}>
-              {tmdb?.tagline ? (
+              {metadataProvider === "tmdb" && tmdb?.tagline ? (
                 <p className="text-sm italic text-sky-300/75 mb-4 leading-relaxed">
                   &ldquo;{tmdb.tagline}&rdquo;
                 </p>
@@ -971,7 +1030,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               />
             </OverviewPanel>
 
-            {(info.themes?.length || info.demographics?.length) ? (
+            {/* AniList Specific Content */}
+            {metadataProvider === "anilist" && (info.themes?.length || info.demographics?.length) ? (
               <OverviewPanel title={t("anime.themesAndDemographics")}>
                 <div className="flex flex-wrap gap-2">
                   {info.demographics?.map((d) => (
@@ -1138,7 +1198,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             )}
 
-            {extMeta?.mal?.themes && extMeta.mal.themes.length > 0 && !info.themes?.length && (
+            {/* MAL Specific Content */}
+            {metadataProvider === "mal" && extMeta?.mal?.themes && extMeta.mal.themes.length > 0 && (
               <OverviewPanel title={t("anime.detailFields.malThemes")}>
                 <div className="flex flex-wrap gap-2">
                   {extMeta.mal.themes.map((theme) => (
@@ -1153,12 +1214,29 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             )}
 
+            {/* TMDB Specific Content */}
+            {metadataProvider === "tmdb" && tmdb?.keywords?.length ? (
+              <OverviewPanel title={t("anime.detailFields.keywords")}>
+                <div className="flex flex-wrap gap-2">
+                  {tmdb.keywords.map((keyword) => (
+                    <span
+                      key={`kw-${keyword}`}
+                      className="px-2.5 py-1 text-[11px] rounded border border-purple-500/25 text-purple-200/80 bg-purple-500/8 font-medium"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              </OverviewPanel>
+            ) : null}
+
             <AnimeStatsCharts
               statusDistribution={info.statusDistribution}
               scoreDistribution={info.scoreDistribution}
             />
 
-            {(tmdb?.cast?.length || tmdb?.crew?.length) ? (
+            {/* TMDB Cast - Only show when TMDB is selected */}
+            {metadataProvider === "tmdb" && (tmdb?.cast?.length || tmdb?.crew?.length) ? (
               <OverviewPanel title={t("anime.detailFields.cast")}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {tmdb?.cast?.slice(0, 8).map((actor) => (
@@ -1180,7 +1258,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             ) : null}
 
-            {(tmdb?.production?.length || tmdb?.creators?.length || tmdb?.crew?.length) ? (
+            {/* TMDB Production & Crew - Only show when TMDB is selected */}
+            {metadataProvider === "tmdb" && (tmdb?.production?.length || tmdb?.creators?.length || tmdb?.crew?.length) ? (
               <OverviewPanel title={t("anime.detailFields.production")}>
                 <div className="flex flex-wrap gap-2">
                   {tmdb?.creators?.map((creator) => (
@@ -1211,21 +1290,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             ) : null}
 
-            {tmdb?.keywords?.length ? (
-              <OverviewPanel title={t("anime.detailFields.keywords")}>
-                <div className="flex flex-wrap gap-2">
-                  {tmdb.keywords.map((keyword) => (
-                    <span
-                      key={`kw-${keyword}`}
-                      className="px-2.5 py-1 text-[11px] rounded border border-purple-500/25 text-purple-200/80 bg-purple-500/8 font-medium"
-                    >
-                      {keyword}
-                    </span>
-                  ))}
-                </div>
-              </OverviewPanel>
-            ) : null}
-
+            {/* Details Grid - Provider Specific */}
             <OverviewPanel title={t("anime.details")}>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {info.nextAiringEpisode?.airingAt &&
@@ -1254,20 +1319,20 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   { label: t("anime.detailFields.country"), value: tmdb?.originCountry?.length ? tmdb.originCountry.join(", ") : extMeta?.tvdb?.country },
                   { label: t("anime.detailFields.languages"), value: tmdb?.spokenLanguages?.length ? tmdb.spokenLanguages.slice(0, 3).join(", ") : null },
                   { label: t("anime.detailFields.source"), value: moreInfo.source },
-                  { label: t("anime.detailFields.score"), value: malScoreLabel },
-                  { label: t("anime.detailFields.malRank"), value: extMeta?.mal?.rank ? `#${extMeta.mal.rank.toLocaleString()}` : null },
-                  { label: t("anime.detailFields.malPopularity"), value: extMeta?.mal?.popularity ? `#${extMeta.mal.popularity.toLocaleString()}` : null },
-                  { label: t("anime.detailFields.malMembers"), value: extMeta?.mal?.members ? formatMalMemberCount(extMeta.mal.members) : null },
-                  { label: t("anime.detailFields.tmdbPopularity"), value: tmdb?.popularity ? tmdb.popularity.toLocaleString() : null },
-                  { label: t("anime.detailFields.malLicensors"), value: extMeta?.mal?.licensors?.length ? extMeta.mal.licensors.join(", ") : null },
-                  { label: t("anime.detailFields.producers"), value: tmdb?.production?.length ? tmdb.production.join(", ") : null },
-                  { label: t("anime.detailFields.creators"), value: tmdb?.creators?.length ? tmdb.creators.join(", ") : null },
-                  { label: t("anime.detailFields.inProduction"), value: tmdb?.inProduction === true ? "Yes" : tmdb?.inProduction === false ? "No" : null },
-                  { label: t("anime.detailFields.nextEpisode"), value: formatTmdbEpisode(tmdb?.nextEpisode) },
-                  { label: t("anime.detailFields.lastEpisode"), value: formatTmdbEpisode(tmdb?.lastEpisode) },
-                  { label: t("anime.detailFields.budget"), value: tmdb?.budget ? `$${(tmdb.budget / 1_000_000).toFixed(1)}M` : null },
-                  { label: t("anime.detailFields.revenue"), value: tmdb?.revenue ? `$${(tmdb.revenue / 1_000_000).toFixed(1)}M` : null },
-                  { label: t("anime.detailFields.imdb"), value: tmdb?.imdbId ? `${tmdb.imdbId}` : null },
+                  ...(metadataProvider === "mal" ? [{ label: t("anime.detailFields.score"), value: malScoreLabel }] : []),
+                  ...(metadataProvider === "mal" ? [{ label: t("anime.detailFields.malRank"), value: extMeta?.mal?.rank ? `#${extMeta.mal.rank.toLocaleString()}` : null }] : []),
+                  ...(metadataProvider === "mal" ? [{ label: t("anime.detailFields.malPopularity"), value: extMeta?.mal?.popularity ? `#${extMeta.mal.popularity.toLocaleString()}` : null }] : []),
+                  ...(metadataProvider === "mal" ? [{ label: t("anime.detailFields.malMembers"), value: extMeta?.mal?.members ? formatMalMemberCount(extMeta.mal.members) : null }] : []),
+                  ...(metadataProvider === "mal" ? [{ label: t("anime.detailFields.malLicensors"), value: extMeta?.mal?.licensors?.length ? extMeta.mal.licensors.join(", ") : null }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.tmdbPopularity"), value: tmdb?.popularity ? tmdb.popularity.toLocaleString() : null }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.producers"), value: tmdb?.production?.length ? tmdb.production.join(", ") : null }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.creators"), value: tmdb?.creators?.length ? tmdb.creators.join(", ") : null }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.inProduction"), value: tmdb?.inProduction === true ? "Yes" : tmdb?.inProduction === false ? "No" : null }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.nextEpisode"), value: formatTmdbEpisode(tmdb?.nextEpisode) }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.lastEpisode"), value: formatTmdbEpisode(tmdb?.lastEpisode) }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.budget"), value: tmdb?.budget ? `$${(tmdb.budget / 1_000_000).toFixed(1)}M` : null }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.revenue"), value: tmdb?.revenue ? `$${(tmdb.revenue / 1_000_000).toFixed(1)}M` : null }] : []),
+                  ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.imdb"), value: tmdb?.imdbId ? `${tmdb.imdbId}` : null }] : []),
                 ].filter((r) => r.value).map((row) => (
                   <div key={row.label} className="rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8 px-4 py-3 hover:border-border dark:border-white/14 transition-colors">
                     <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider block mb-1">{row.label}</span>
