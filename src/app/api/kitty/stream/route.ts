@@ -97,6 +97,11 @@ const STREAM_RACE_SKIP = new Set<string>();
 /**
  * After an auto race misses, still try dedicated linkId/servers/mirrors.
  * Plain stream-direct providers already exhausted every healthy CDN node.
+ *
+ * AniDelta is here for a different reason: it scrapes through a curl_cffi
+ * subprocess, and a cold episode regularly needs longer than the 12s per-node
+ * race budget. Without a slower second attempt, the first view of any title
+ * nobody has watched yet answers "Provider unavailable".
  */
 const STREAM_DEDICATED_AFTER_RACE = new Set<string>([
   "MKissa",
@@ -104,6 +109,7 @@ const STREAM_DEDICATED_AFTER_RACE = new Set<string>([
   "AniSnatch",
   "AniKuro",
   "AniWaves",
+  "AniDelta",
 ]);
 
 type StreamPayload = {
@@ -845,7 +851,9 @@ export async function GET(req: Request) {
 
   if (provider === "AniDelta") {
     try {
-      // AniDelta needs extended timeout for stream resolution
+      // Slow retry after the race gave up: one sequential pass with cross-node
+      // failover and a budget that fits a cold curl_cffi scrape. 30s leaves
+      // headroom under the route's 60s maxDuration even after a 16s race.
       const anideltaAttempt = await fetchWithSubAudioFallback(
         subtitleCtx.audio,
         async (streamAudio) => {
@@ -855,11 +863,12 @@ export async function GET(req: Request) {
             episode: subtitleCtx.episode,
             audio: streamAudio,
             title: titleParam,
-            directOnly: false,
+            // Never /auto/stream for a named provider — it resolves by
+            // catalog and can hand back a different anime entirely.
+            directOnly: true,
             preferHardSub,
             refresh: refreshStream,
-            // Extended timeout for AniDelta stream resolution
-            timeoutMs: 60_000,
+            timeoutMs: 30_000,
           });
 
           if (!streamResult?.file) return null;
