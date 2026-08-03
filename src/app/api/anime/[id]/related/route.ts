@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
+import { fetchMalRelated } from "@/lib/anime/mal-fallback";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import {
   getStoredAnimeRelated,
@@ -155,7 +156,18 @@ function warmRelatedHints(payload: RelatedPayload): void {
 }
 
 async function fetchRelatedFromAniList(numId: number): Promise<RelatedPayload | null> {
-  const raw = await queryAniList<{ Media?: any }>(RELATED_QUERY, { id: numId });
+  let raw: { Media?: any };
+  try {
+    raw = await queryAniList<{ Media?: any }>(RELATED_QUERY, { id: numId });
+  } catch (err) {
+    // AniList is down — MAL covers relations and recommendations, but has no
+    // cast data, so the characters section stays empty rather than wrong.
+    console.error("[related] AniList query failed, falling back to MAL:", err);
+    const fallback = await fetchMalRelated(numId);
+    if (!fallback) throw err;
+    raw = fallback;
+  }
+
   const m = raw.Media;
   if (!m) return null;
 

@@ -7,6 +7,17 @@ export type AiringContext = {
   /** AniList `airingAt` — unix timestamp in seconds. */
   nextAiringAt?: number | null;
   streamingEpisodeCount?: number;
+  /**
+   * Episodes with a verified past air date in AniZip/TVDB episode metadata.
+   * Counted as a contiguous run from episode 1 — see `airedCountFromEpisodeMetadata`.
+   */
+  metadataAiredCount?: number;
+  /**
+   * TMDB show-level `number_of_episodes`. Deliberately unused for aired counts:
+   * it spans a whole show, so it reads 87 for Attack on Titan's 25-episode
+   * first season. Planned totals still fall back to it when AniList has none.
+   */
+  tmdbTotal?: number | null;
 };
 
 export type AnilistNextAiring = {
@@ -60,6 +71,30 @@ export function parseEpisodeAirDate(airDate: string): Date | null {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
+/**
+ * How many episodes third-party metadata proves have already aired.
+ *
+ * Walks up from episode 1 and stops at the first episode without a past air
+ * date, so a stray absolute-numbered entry leaking in from a later season
+ * (AniZip indexes both `episodeNumber` and `absoluteEpisodeNumber`) can't
+ * inflate the count the way `maxEpisodeNumberInSources` would.
+ */
+export function airedCountFromEpisodeMetadata(
+  airDateFor: (episodeNumber: number) => string | null | undefined,
+  limit: number,
+  now = Date.now(),
+): number {
+  let count = 0;
+  for (let num = 1; num <= limit; num++) {
+    const airDate = airDateFor(num)?.trim();
+    // Missing dates are treated as aired elsewhere; here we need real evidence.
+    if (!airDate || !parseEpisodeAirDate(airDate)) break;
+    if (!isEpisodeAiredByDate(airDate, now)) break;
+    count = num;
+  }
+  return count;
+}
+
 /** True when the calendar air date is today or earlier (UTC). Missing date → aired. */
 export function isEpisodeAiredByDate(
   airDate: string | null | undefined,
@@ -85,28 +120,27 @@ export function isSeriesFinished(status?: string | null): boolean {
 }
 
 export function resolveAiredEpisodeCount(ctx: AiringContext): number {
+  // What sources other than the AniList schedule can prove is already out.
+  const evidence = maxPositive(ctx.streamingEpisodeCount, ctx.metadataAiredCount);
+
   // A finished series has aired everything it will ever air. AniList
   // sometimes leaves a stale nextAiringEpisode on completed shows, and
   // trusting it made long-finished series report `nextEp - 1` aired — which
   // rendered their remaining episodes as "not aired yet".
   if (isSeriesFinished(ctx.status)) {
-    return maxPositive(ctx.episodes, ctx.streamingEpisodeCount);
+    return maxPositive(ctx.episodes, evidence);
   }
 
   const nextEp = ctx.nextAiringEpisode;
   if (nextEp != null && nextEp > 0) {
     if (isNextAiringEpisodeAlreadyAired(ctx.nextAiringAt)) {
-      return nextEp;
+      return maxPositive(nextEp, evidence);
     }
 
-    const unairedBased = Math.max(0, nextEp - 1);
-    if (
-      ctx.streamingEpisodeCount != null &&
-      ctx.streamingEpisodeCount > unairedBased
-    ) {
-      return ctx.streamingEpisodeCount;
-    }
-    return unairedBased;
+    // Everything below the next slot has aired. Other catalogs may be a step
+    // ahead of AniList's schedule, but nothing past that slot can be out yet —
+    // an inflated catalog count used to be taken verbatim.
+    return capEpisodeCount(maxPositive(nextEp - 1, evidence), nextEp);
   }
 
   const status = ctx.status?.toUpperCase();
@@ -114,11 +148,14 @@ export function resolveAiredEpisodeCount(ctx: AiringContext): number {
     return 0;
   }
 
+  // No schedule to go on: episode air dates decide, then AniList's own count.
+  // Falling straight to 0 here is what rendered airing shows as "hasn't aired
+  // yet" whenever AniList carried neither a schedule nor streaming episodes.
   if (status === "RELEASING") {
-    return ctx.streamingEpisodeCount ?? ctx.episodes ?? 0;
+    return evidence > 0 ? evidence : (ctx.episodes ?? 0);
   }
 
-  return ctx.episodes ?? ctx.streamingEpisodeCount ?? 0;
+  return maxPositive(ctx.episodes, evidence);
 }
 
 function maxPositive(...values: Array<number | null | undefined>): number {
@@ -163,19 +200,16 @@ export function resolveTotalEpisodeCount(
   ctx: AiringContext & {
     metadataMaxEpisode?: number;
     anikotoTotal?: number;
-    tmdbTotal?: number;
   },
 ): number {
   const aired = resolveAiredEpisodeCount(ctx);
   const planned = ctx.episodes;
 
-  // AniList season length wins when known.
+  // AniList season length wins when known. Aired counts deliberately don't
+  // raise it — metadata that spans several TMDB/TVDB seasons would otherwise
+  // report a sequel cour's whole run as this entry's length.
   if (planned != null && planned > 0) {
-    const nextEp = ctx.nextAiringEpisode;
-    if (nextEp != null && nextEp > 0) {
-      return Math.max(planned, nextEp);
-    }
-    return Math.max(planned, aired);
+    return maxPositive(planned, ctx.nextAiringEpisode);
   }
 
   const anikotoTotal = ctx.anikotoTotal ?? 0;

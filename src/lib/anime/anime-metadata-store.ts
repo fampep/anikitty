@@ -244,6 +244,43 @@ export async function getBatchStoredAnimeMeta(
   }
 }
 
+/**
+ * MAL id → AniList id for rows we've already cached.
+ *
+ * The MAL fallback needs this bridge for every card it renders; without it each
+ * one costs an AniZip round-trip, and a throttled burst silently empties rails.
+ */
+export async function getAniListIdsByMalIds(
+  malIds: number[],
+): Promise<Map<number, number>> {
+  const unique = [...new Set(malIds.filter((id) => id > 0))];
+  if (!dbAvailable() || unique.length === 0) return new Map();
+
+  try {
+    const db = getDb();
+    const rows = await Promise.race([
+      db
+        .select({
+          anilistId: animeMetadata.anilistId,
+          malId: animeMetadata.malId,
+        })
+        .from(animeMetadata)
+        .where(inArray(animeMetadata.malId, unique)),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("mal id batch timeout")), 1_500),
+      ),
+    ]);
+
+    const map = new Map<number, number>();
+    for (const row of rows) {
+      if (row.malId != null && row.anilistId > 0) map.set(row.malId, row.anilistId);
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
 /** Local title search fallback when AniList is down (ILIKE on cached titles). */
 export async function searchLocalAnimeMetadata(
   query: string,

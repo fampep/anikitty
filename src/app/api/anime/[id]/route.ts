@@ -9,6 +9,7 @@ import {
   getStoredAnimeDetail,
   upsertAnimeMetadata,
 } from "@/lib/anime/anime-metadata-store";
+import { fetchMediaFromMal } from "@/lib/anime/mal-fallback";
 import { publicErrorMessage } from "@/lib/security/public-error";
 
 export const revalidate = 3600;
@@ -200,7 +201,14 @@ function mapMediaToCriticalPayload(m: any): CriticalAnimePayload {
           type: toFormat(m.format),
           duration: m.duration ? `${m.duration} min` : "N/A",
         },
-        nextAiringEpisode: resolveEffectiveNextAiringEpisode(m.nextAiringEpisode),
+        // Status matters: a finished show carrying a stale AniList
+        // nextAiringEpisode otherwise renders a countdown for an episode
+        // that will never air.
+        nextAiringEpisode: resolveEffectiveNextAiringEpisode(
+          m.nextAiringEpisode,
+          Date.now(),
+          m.status,
+        ),
         promotionalVideos: m.trailer?.site === "youtube" && m.trailer.id
           ? [{
               title: "Trailer",
@@ -285,6 +293,16 @@ async function fetchCriticalAnimePayload(numId: number): Promise<CriticalAnimePa
       console.warn("[anime-details] serving stale DB metadata after AniList error:", err);
       return stored.payload;
     }
+
+    // Nothing cached and AniList is unreachable — rebuild what we can from MAL.
+    // Deliberately not persisted: a MAL-derived record would look fresh in the
+    // metadata store and suppress the AniList refresh once it recovers.
+    const mal = await fetchMediaFromMal(numId);
+    if (mal) {
+      console.warn("[anime-details] AniList unavailable, serving MAL fallback:", err);
+      return mapMediaToCriticalPayload(mal);
+    }
+
     throw err;
   }
 }

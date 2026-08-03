@@ -3,6 +3,12 @@ import { queryAniList, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
 import {
+  fetchMalRanking,
+  fetchMalSeason,
+  malSeasonFor,
+  fetchMalFeaturedStudios,
+} from "@/lib/anime/mal-fallback";
+import {
   getAniListSeason,
   getNextAniListSeason,
   type AniListSeason,
@@ -269,9 +275,46 @@ function mapSpotlight(
 
 type EnrichableAnime = { id: string; episodes: { sub: number | null; dub: number | null } };
 
+/**
+ * Rebuild the critical-rail payload from MAL when AniList is unreachable.
+ * Shaped like the GraphQL response so every mapper below runs unchanged.
+ */
+async function malCriticalFallback(): Promise<any | null> {
+  const { year, season } = malSeasonFor();
+  const [airing, seasonal] = await Promise.all([
+    fetchMalRanking("airing", 30),
+    fetchMalSeason(year, season, 24),
+  ]);
+  if (airing.length === 0 && seasonal.length === 0) return null;
+
+  const releasing = airing.filter((m) => m.status === "RELEASING");
+
+  return {
+    spotlight: { media: releasing.slice(0, 8) },
+    trending: { media: airing.slice(0, 15) },
+    // MAL publishes no per-episode airing feed, so `episode: 0` tells the
+    // mapper to keep each entry's own count instead of deriving one.
+    recentlyAired: {
+      airingSchedules: releasing
+        .slice(0, 24)
+        .map((media) => ({ episode: 0, media: { ...media, type: "ANIME" } })),
+    },
+    recentlyAdded: { media: releasing.slice(0, 15) },
+    currentSeason: { media: seasonal.slice(0, 18) },
+  };
+}
+
 async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
   const { season, year } = getAniListSeason();
-  const raw = await queryAniList(CRITICAL_QUERY, { season, seasonYear: year });
+
+  let raw: any;
+  try {
+    raw = await queryAniList(CRITICAL_QUERY, { season, seasonYear: year });
+  } catch (err) {
+    console.error("[home] AniList critical query failed, falling back to MAL:", err);
+    raw = await malCriticalFallback();
+    if (!raw) throw err;
+  }
 
   const spotlightAnimes = (raw.spotlight?.media ?? []).map(mapSpotlight);
 
@@ -305,7 +348,9 @@ async function fetchHomeCriticalUncached(): Promise<HomeCriticalData> {
     .map((s) =>
       toAnime({
         ...s.media!,
-        nextAiringEpisode: { episode: s.episode + 1 },
+        // `episode: 0` marks a source with no per-episode feed (MAL fallback) —
+        // keep the entry's own count rather than deriving one from the schedule.
+        nextAiringEpisode: s.episode > 0 ? { episode: s.episode + 1 } : null,
       }),
     );
 
@@ -345,6 +390,33 @@ function isLikelyVoiceActor(occupations?: string[] | null): boolean {
   return occupations.some((o) => /voice|seiyuu|actor|actress/i.test(o));
 }
 
+/** MAL stand-in for the discovery rails, in the GraphQL response's shape. */
+async function malDiscoveryFallback(
+  nextYear: number,
+  nextSeason: string,
+): Promise<any | null> {
+  const [favorite, rated, popular, upcoming, next] = await Promise.all([
+    fetchMalRanking("favorite", 15),
+    fetchMalRanking("all", 18),
+    fetchMalRanking("bypopularity", 15),
+    fetchMalRanking("upcoming", 15),
+    fetchMalSeason(nextYear, nextSeason.toLowerCase(), 15),
+  ]);
+
+  if (!favorite.length && !rated.length && !popular.length) return null;
+
+  return {
+    favorite: { media: favorite },
+    rated: { media: rated },
+    popular: { media: popular.filter((m) => m.status === "RELEASING") },
+    // MAL has no "recently finished" ranking — the top list's finished entries
+    // are the closest stand-in.
+    latest: { media: rated.filter((m) => m.status === "FINISHED").slice(0, 15) },
+    upcoming: { media: upcoming },
+    nextSeason: { media: next },
+  };
+}
+
 async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
   const current = getAniListSeason();
   const next = getNextAniListSeason(current.season as AniListSeason, current.year);
@@ -357,8 +429,27 @@ async function fetchHomeDiscoveryUncached(): Promise<HomeDiscoveryData> {
     queryAniList(DISCOVERY_META_QUERY),
   ]);
 
-  const lists = listsResult.status === "fulfilled" ? listsResult.value : null;
-  const meta = metaResult.status === "fulfilled" ? metaResult.value : null;
+  let lists = listsResult.status === "fulfilled" ? listsResult.value : null;
+  let meta = metaResult.status === "fulfilled" ? metaResult.value : null;
+
+  // Fallback rails and studios when AniList is down.
+  if (!lists) {
+    lists = await malDiscoveryFallback(next.year, next.season);
+  }
+  if (!meta || !meta.studios) {
+    const malStudios = await fetchMalFeaturedStudios(20).catch(() => []);
+    if (!meta) meta = {};
+    if (malStudios.length > 0) {
+      meta.studios = {
+        studios: malStudios.map((s) => ({
+          id: s.id,
+          name: s.name,
+          isAnimationStudio: true,
+          favourites: s.favourites,
+        })),
+      };
+    }
+  }
 
   if (!lists && !meta) {
     throw listsResult.status === "rejected"

@@ -4,6 +4,7 @@ import {
   getStoredAnimeDetail,
   getBatchStoredAnimeMeta,
 } from "@/lib/anime/anime-metadata-store";
+import { fetchMediaFromMal } from "@/lib/anime/mal-fallback";
 import { APP_URL } from "@/lib/seo/site-seo";
 
 export type AnimeSeoData = {
@@ -113,10 +114,27 @@ async function fetchAnimeSeoData(id: number): Promise<AnimeSeoData | null> {
     if (stored?.payload) return seoFromDetailPayload(stored.payload);
     if (stored) return seoFromFlat(stored.flat);
 
-    // Last resort: batch flat lookup (same row, but keeps API consistent).
     const batch = await getBatchStoredAnimeMeta([id]);
     const flat = batch.get(id);
-    return flat ? seoFromFlat(flat) : null;
+    if (flat) return seoFromFlat(flat);
+
+    // Nothing cached anywhere and AniList is down — without this the page
+    // title degrades to a bare "Anime | AniKitty".
+    const mal = await fetchMediaFromMal(id);
+    return mal
+      ? {
+          title: { english: mal.title.english, romaji: mal.title.romaji },
+          description: mal.description,
+          coverImage: { extraLarge: mal.coverImage.extraLarge },
+          bannerImage: mal.bannerImage,
+          genres: mal.genres,
+          averageScore: mal.averageScore,
+          episodes: mal.episodes,
+          format: mal.format,
+          status: mal.status,
+          startDate: mal.startDate,
+        }
+      : null;
   }
 }
 
