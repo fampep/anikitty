@@ -328,7 +328,7 @@ export async function GET(
     }));
 
     const dubCount =
-      episodeCount > 0 ? Math.min(audio.dub || 0, episodeCount) : Math.min(audio.dub || 0, 500);
+      episodeCount > 0 ? Math.min(audio.dub || 0, episodeCount) : (audio.dub || 0);
 
     // Clone before attaching live audio so unstable_cache isn't mutated.
     const data = structuredClone(cached);
