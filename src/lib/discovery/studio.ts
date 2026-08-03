@@ -167,9 +167,9 @@ export async function getStudioPage(id: number, allowAdult = false): Promise<Stu
     null;
   const logo = popularNodes[0]?.coverImage?.large ?? null;
 
-  let popular = popularNodes.slice(0, 24).map(toAnime);
-  let highestRated = ratedNodes.slice(0, 18).map(toAnime);
-  let upcoming = upcomingNodes.slice(0, 12).map(toAnime);
+  let popular = popularNodes.map(toAnime);
+  let highestRated = ratedNodes.map(toAnime);
+  let upcoming = upcomingNodes.map(toAnime);
 
   try {
     const combined = [...popular, ...highestRated, ...upcoming];
