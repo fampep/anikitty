@@ -430,27 +430,6 @@ export default function Home() {
         <HomeDiscoveryHub />
       </div>
 
-      <div className="relative z-[6] flex flex-col gap-3">
-        <Container className="pt-3">
-          <div className="flex flex-col gap-3">
-            <HomeRailPanel
-              title={t("home.trendingNow")}
-              icon={<Flame className="h-4 w-4" />}
-              href={ROUTES.TRENDING}
-              animes={trending}
-              loading={isLoading}
-              showRank
-            />
-            <HomeRailPanel
-              title={t("home.justCompleted")}
-              icon={<CheckCircle2 className="h-4 w-4" />}
-              animes={completed}
-              loading={discoveryLoadingState}
-            />
-          </div>
-        </Container>
-      </div>
-
       <HomeSocialBanner />
 
       <div

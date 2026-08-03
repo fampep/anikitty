@@ -2,10 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Compass,
+  Dice5,
   Flame,
   History,
+  Loader2,
   Sparkles,
   Tv2,
 } from "lucide-react";
@@ -27,8 +31,10 @@ const LINKS = [
 
 export default function HomeQuickNav() {
   const t = useT();
+  const router = useRouter();
   const [activeId, setActiveId] = useState<string>(LINKS[0].id);
   const [stuck, setStuck] = useState(false);
+  const [rolling, setRolling] = useState(false);
 
   useEffect(() => {
     const updateActive = () => {
@@ -64,6 +70,20 @@ export default function HomeQuickNav() {
     window.history.replaceState(null, "", ROUTES.HOME);
   };
 
+  const surpriseMe = async () => {
+    if (rolling) return;
+    setRolling(true);
+    try {
+      const res = await fetch("/api/anime/random");
+      const data = await res.json();
+      if (!res.ok || !data?.id) throw new Error();
+      router.push(`${ROUTES.ANIME_DETAILS}/${data.id}`);
+    } catch {
+      toast.error(t("home.hubRandomFailed"));
+      setRolling(false);
+    }
+  };
+
   return (
     <Container
       className={cn(
@@ -83,6 +103,20 @@ export default function HomeQuickNav() {
           aria-label={t("home.quickNav.label")}
           className="flex gap-1 overflow-x-auto scrollbar-hide scroll-momentum -mx-0.5 px-0.5"
         >
+          <button
+            type="button"
+            onClick={() => void surpriseMe()}
+            disabled={rolling}
+            className="site-chip site-focus snap-start shrink-0 py-1.5 text-xs transition-[color,background-color,border-color,box-shadow] duration-200 disabled:opacity-50"
+          >
+            {rolling ? (
+              <Loader2 className="w-3 h-3 animate-spin text-zinc-300/70" />
+            ) : (
+              <Dice5 className="w-3 h-3 text-zinc-300/70" />
+            )}
+            {t("home.hubRandom")}
+          </button>
+
           {LINKS.map(({ id, href, icon: Icon, key }) => {
             const active = activeId === id;
             return (
