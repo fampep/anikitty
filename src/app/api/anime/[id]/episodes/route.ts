@@ -17,13 +17,11 @@ import {
   type EpisodeContentFlags,
 } from "@/lib/anime/episode-filler";
 import {
-  airedCountFromEpisodeMetadata,
   capEpisodeCount,
   resolveAiredEpisodeCount,
   resolveEpisodeAiredStatus,
   resolveTotalEpisodeCount,
 } from "@/lib/anime/episode-availability";
-import { fetchMediaFromMal } from "@/lib/anime/mal-fallback";
 import { getAnikotoSeriesSchedule } from "@/lib/providers/anikoto-availability";
 import { getDb } from "@/db";
 import { getEpisodeRatingsForAnime } from "@/lib/reviews/episode-ratings";
@@ -81,35 +79,38 @@ export async function GET(
   }
 
   try {
-    type EpisodesMedia = {
+    let raw: { Media?: {
       episodes?: number | null;
       status?: string | null;
       idMal?: number | null;
       nextAiringEpisode?: { episode?: number | null; airingAt?: number | null } | null;
       streamingEpisodes?: Array<{ title: string }>;
-    };
-
-    let m: EpisodesMedia | undefined;
+    } };
     try {
-      m = (await queryAniList<{ Media?: EpisodesMedia }>(QUERY, { id: numId })).Media;
+      raw = await queryAniList(QUERY, { id: numId });
     } catch (primaryErr) {
       console.error("Episodes primary query failed:", primaryErr);
-      try {
-        m = (await queryAniList<{ Media?: EpisodesMedia }>(MINIMAL_QUERY, { id: numId })).Media;
-      } catch (anilistErr) {
-        // AniList is down. MAL still knows the episode count and status, and
-        // the aired count leans on AniZip air dates anyway — so the list stays
-        // correct without a schedule.
-        console.error("Episodes AniList query failed, falling back to MAL:", anilistErr);
-        const mal = await fetchMediaFromMal(numId);
-        if (!mal) throw anilistErr;
-        m = { episodes: mal.episodes, status: mal.status, idMal: mal.idMal };
-      }
+      raw = await queryAniList(MINIMAL_QUERY, { id: numId });
     }
 
+    const m = raw.Media;
     if (!m) return Response.json({ error: "Not found" }, { status: 404 });
 
     const streamingEpisodes = m.streamingEpisodes ?? [];
+    const airingCtx = {
+      status: m.status,
+      episodes: m.episodes,
+      nextAiringEpisode: m.nextAiringEpisode?.episode ?? null,
+      nextAiringAt: m.nextAiringEpisode?.airingAt ?? null,
+      streamingEpisodeCount: streamingEpisodes.length,
+    };
+
+    // AniList schedule / season length is the source of truth for how many
+    // aired slots to show — do not bump or shrink from Anikoto / TMDB catalogs.
+    const airedUpTo = capEpisodeCount(
+      resolveAiredEpisodeCount(airingCtx),
+      m.episodes,
+    );
 
     const [sources, anikotoSchedule] = await Promise.all([
       // Thumbs: AniZip (`api.ani.zip/mappings?anilist_id=…`). Titles may still use AniList.
@@ -117,31 +118,6 @@ export async function GET(
       // Titles only — never used for list length or planned totals.
       getAnikotoSeriesSchedule({ anilistId: numId, malId: m.idMal }).catch(() => null),
     ]);
-
-    // Episodes AniZip/TVDB give a past air date for. AniList alone hid real
-    // episodes whenever its schedule or `episodes` count was stale or missing.
-    const metadataAiredCount = airedCountFromEpisodeMetadata(
-      (num) => resolveEpisodeAirDate(num, sources),
-      maxEpisodeNumberInSources(sources),
-    );
-
-    const airingCtx = {
-      status: m.status,
-      episodes: m.episodes,
-      nextAiringEpisode: m.nextAiringEpisode?.episode ?? null,
-      nextAiringAt: m.nextAiringEpisode?.airingAt ?? null,
-      streamingEpisodeCount: streamingEpisodes.length,
-      metadataAiredCount,
-      tmdbTotal: sources.tmdbTotalEpisodes,
-    };
-
-    // AniList's season length still bounds the list so a multi-season TMDB /
-    // AniZip mapping can't invent slots; the added sources only fill in when
-    // AniList's own schedule is missing or behind.
-    const airedUpTo = capEpisodeCount(
-      resolveAiredEpisodeCount(airingCtx),
-      m.episodes,
-    );
 
     const plannedTotal = resolveTotalEpisodeCount({
       ...airingCtx,

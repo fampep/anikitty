@@ -24,7 +24,7 @@ export type EpisodeImageSources = {
   anizip: Record<number, EpisodeMeta>;
   tvdbById: Record<number, string>;
   tvdbByOrder: Record<number, string>;
-  /** @deprecated Kept empty — episode UI uses AniZip/TVDB images, not TMDB stills. */
+  /** @deprecated Kept empty — episode UI uses AniZip images, not TMDB stills. */
   tmdb: Record<number, string>;
   /** @deprecated Kept empty — episode UI uses AniZip meta, not TMDB meta. */
   tmdbMeta: Record<number, EpisodeMeta>;
@@ -45,11 +45,6 @@ function firstDefined(...values: (string | null | undefined)[]): string | null {
     if (value) return value;
   }
   return null;
-}
-
-/** AniZip spells the same field differently between its two upstreams. */
-function str(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value : undefined;
 }
 
 function mergeEpisodeMeta(existing: EpisodeMeta | undefined, next: EpisodeMeta): EpisodeMeta {
@@ -135,11 +130,7 @@ export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
       const image = typeof e.image === "string" ? e.image : undefined;
       const tvdbId = typeof e.tvdbId === "number" ? e.tvdbId : undefined;
       const overview = typeof e.overview === "string" ? e.overview : undefined;
-      // AniZip merges a sparse TVDB block (`airDate`) with a complete AniDB one
-      // (`airdate`). Only the TVDB spelling was read, and it covers a fraction
-      // of episodes — One Piece carried 22 air dates across 1260 — so almost
-      // nothing could be confirmed as aired.
-      const airDate = str(e.airDate) ?? str(e.airdate);
+      const airDate = typeof e.airDate === "string" ? e.airDate : undefined;
       const meta: EpisodeMeta = { image, title, tvdbId, overview, airDate };
 
       for (const num of nums) {
@@ -156,40 +147,24 @@ export async function fetchAniZipEpisodeData(anilistId: number): Promise<{
   }
 }
 
-async function fetchTmdb(path: string): Promise<any | null> {
+/** Show-level episode count only — used to cap lists, not for UI metadata. */
+async function fetchTmdbEpisodeCount(
+  tmdbId: number | string,
+): Promise<number | null> {
   const apiKey = process.env.TMDB_API_KEY?.trim();
-  if (!apiKey) return null;
+  if (!apiKey || !tmdbId) return null;
 
+  const id = encodeURIComponent(String(tmdbId));
   const baseUrl = process.env.TMDB_API_URL ?? "https://api.themoviedb.org/3";
-  // TMDB takes a v3 key as `?api_key=`, but a v4 read access token (a JWT)
-  // only authenticates as a bearer header — sent as `api_key` it 401s.
-  const isV4Token = apiKey.split(".").length === 3;
-  const url = isV4Token
-    ? `${baseUrl}${path}`
-    : `${baseUrl}${path}?api_key=${encodeURIComponent(apiKey)}`;
-
-  const res = await fetch(url, {
-    headers: isV4Token ? { Authorization: `Bearer ${apiKey}` } : undefined,
-    signal: AbortSignal.timeout(6000),
-    next: { revalidate: 3600 },
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
-
-/**
- * Show-level episode count only. TMDB is deliberately not used for per-episode
- * metadata: AniZip labels each episode with a *TVDB* season, and TMDB numbers
- * anime differently — it splits One Piece into arc-seasons — so lining the two
- * up pulled an unrelated block of episodes (0 matches for Jujutsu Kaisen S2,
- * and a 59-episode count for its 23 episodes). TVDB needs no such guessing:
- * AniZip hands us the exact `tvdbId` per episode.
- */
-async function fetchTmdbEpisodeCount(tmdbId: number | string): Promise<number | null> {
-  if (!tmdbId) return null;
 
   try {
-    const show = await fetchTmdb(`/tv/${encodeURIComponent(String(tmdbId))}`);
+    const showRes = await fetch(
+      `${baseUrl}/tv/${id}?api_key=${encodeURIComponent(apiKey)}`,
+      { signal: AbortSignal.timeout(6000), next: { revalidate: 3600 } },
+    );
+    if (!showRes.ok) return null;
+
+    const show = await showRes.json();
     return typeof show?.number_of_episodes === "number" && show.number_of_episodes > 0
       ? show.number_of_episodes
       : null;

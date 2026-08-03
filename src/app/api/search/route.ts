@@ -2,7 +2,6 @@ import { queryAniListSearch, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { slugsToAniListGenres } from "@/lib/search/genre-filters";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
-import { searchMediaOnMal, filterMalResults } from "@/lib/anime/mal-fallback";
 import {
   searchLocalAnimeMetadata,
   upsertAnimeMetadataHints,
@@ -305,9 +304,7 @@ export async function GET(request: Request) {
 
     let pageInfo: Record<string, unknown> = {};
     let mediaNodes: any[] = [];
-    let anilistFailed = false;
 
-    try {
     if (useStudioMedia) {
       const raw = await queryAniListSearch(STUDIO_MEDIA_QUERY, {
         id: studioId,
@@ -344,30 +341,6 @@ export async function GET(request: Request) {
       });
       pageInfo = raw.Page?.pageInfo ?? {};
       mediaNodes = raw.Page?.media ?? [];
-    }
-    } catch (err) {
-      console.error("[search] AniList query failed, trying MAL:", err);
-      anilistFailed = true;
-    }
-
-    // MAL answers keyword searches and we can apply most filters locally.
-    // This only stands in once AniList has come up empty.
-    if (anilistFailed && mediaNodes.length === 0) {
-      if (!cleanQ) throw new Error("AniList search unavailable");
-      let fallback = await searchMediaOnMal(cleanQ, 50).catch(() => []);
-      if (fallback.length === 0) throw new Error("AniList search unavailable");
-      // Apply MAL-compatible filters: genre, score, format, status. Filter grammar
-      // (episodes, date ranges, source, country, tags) is partial or unavailable.
-      fallback = filterMalResults(fallback, {
-        genres: genreList,
-        genresExclude: excludeGenreList,
-        format: format as any,
-        status: aniStatus,
-        scoreMin: averageScore_greater ? averageScore_greater + 1 : null,
-      });
-      mediaNodes = allowAdult ? fallback : fallback.filter((m) => !m.isAdult);
-      mediaNodes = mediaNodes.slice(0, 20);
-      pageInfo = { currentPage: page, hasNextPage: false };
     }
 
     const animes = mediaNodes.map((m: any) => ({

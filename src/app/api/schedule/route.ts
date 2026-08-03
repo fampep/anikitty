@@ -1,5 +1,4 @@
 import { queryAniList, toTitle } from "@/lib/oauth/anilist";
-import { fetchMalScheduleForDate } from "@/lib/anime/mal-fallback";
 import { resolveScheduleAudio } from "@/lib/anime/schedule-format";
 import { getAudioAvailability } from "@/lib/providers/anikoto-availability";
 import { getBatchStoredAudioAvailability } from "@/lib/watch/anime-audio-store";
@@ -51,34 +50,13 @@ export async function GET(request: Request) {
   const endOfDay = startOfDay + 86400;
 
   try {
-    let schedules: any[];
-    try {
-      const raw = await queryAniList(QUERY, {
-        airingAt_greater: startOfDay - 1,
-        airingAt_lesser: endOfDay,
-      });
-      schedules = raw.Page?.airingSchedules ?? [];
-    } catch (err) {
-      // AniList is down — rebuild the day from MAL broadcast slots. Episode
-      // numbers aren't recoverable that way, so they come back as 0.
-      console.error("[schedule] AniList query failed, falling back to MAL:", err);
-      const slots = await fetchMalScheduleForDate(date);
-      if (slots.length === 0) throw err;
-      schedules = slots.map(({ media, airingAt }) => ({
-        episode: 0,
-        airingAt,
-        media: {
-          id: media.id,
-          idMal: media.idMal,
-          status: media.status,
-          title: { english: media.title.english, romaji: media.title.romaji },
-          coverImage: media.coverImage,
-        },
-      }));
-    }
+    const raw = await queryAniList(QUERY, {
+      airingAt_greater: startOfDay - 1,
+      airingAt_lesser: endOfDay,
+    });
 
     const now = Math.floor(Date.now() / 1000);
-    const rawItems: ScheduleRawItem[] = schedules.map((s: any) => ({
+    const rawItems: ScheduleRawItem[] = (raw.Page?.airingSchedules ?? []).map((s: any) => ({
       id: String(s.media.id),
       name: toTitle(s.media.title),
       jname: s.media.title?.romaji ?? "",

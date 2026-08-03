@@ -1,7 +1,6 @@
 import { queryAniListSearch, toTitle, toFormat } from "@/lib/oauth/anilist";
 import { enrichAnimeListWithAudio } from "@/lib/providers/anikoto-availability";
 import { airedCountFromAnilist } from "@/lib/anime/episode-availability";
-import { searchMediaOnMal } from "@/lib/anime/mal-fallback";
 import {
   searchLocalAnimeMetadata,
   upsertAnimeMetadataHints,
@@ -241,13 +240,7 @@ export async function GET(request: Request) {
 
     let allSuggestions = media.map(mapSuggestion);
 
-    // AniList miss → MAL, which shares the AniList media shape here.
-    if (!raw && allSuggestions.length === 0) {
-      const fallback = await searchMediaOnMal(q, 8).catch(() => []);
-      allSuggestions = fallback.map(mapSuggestion);
-    }
-
-    // Still nothing → local title cache for typeahead anime results.
+    // AniList miss → local title cache for typeahead anime results.
     if (!raw && allSuggestions.length === 0) {
       const local = await searchLocalAnimeMetadata(q, 8).catch(() => []);
       allSuggestions = local.map((m) => ({
