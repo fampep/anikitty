@@ -425,20 +425,12 @@ export default function Home() {
         <HomeQuickNav />
       </div>
 
-      <div className="relative z-[6] mt-3 flex flex-col gap-3">
-        <HomeLiveStats />
-        <HomeDiscoveryHub />
-      </div>
-
-      <HomeSocialBanner />
-
       <div
         className={cn(
           "home-cinema-body relative z-[5] flex flex-col p-2 pt-0.5 sm:pt-1 pb-8",
           prefs.compact ? "gap-6 sm:gap-8" : "gap-[var(--home-section-gap)]",
         )}
       >
-        <HomeWelcomeBar />
 
         {/* Content column with a trending rail down the right on desktop. The
             rail sits alongside every section rather than inside any one of
