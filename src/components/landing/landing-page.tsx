@@ -3,13 +3,14 @@
 import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useGetHomeCriticalData } from "@/query/home/get-home-page-data";
+import { useGetHomeCriticalData, useGetHomeDiscoveryData } from "@/query/home/get-home-page-data";
 import { ROUTES } from "@/constants/routes";
 import LazyMount from "@/components/shared/lazy-mount";
 import LandingHero from "@/components/landing/landing-hero";
 import LandingStats from "@/components/landing/landing-stats";
 import LandingWatchYourWay from "@/components/landing/landing-watch-your-way";
 import LandingTrendingRow from "@/components/landing/landing-trending-row";
+import LandingCompletedRow from "@/components/landing/landing-completed-row";
 import LandingFooter from "@/components/landing/landing-footer";
 
 const LandingFeatures = dynamic(() => import("@/components/landing/landing-features"));
@@ -30,6 +31,7 @@ const LANDING_HASH_IDS = new Set(["features", "support"]);
 export default function LandingPage() {
   const router = useRouter();
   const { data: homeData, isLoading: homeLoading } = useGetHomeCriticalData();
+  const { data: discoveryData, isLoading: discoveryLoading } = useGetHomeDiscoveryData();
   const spotlight = homeData?.spotlightAnimes?.[0] ?? null;
 
   useEffect(() => {
@@ -56,12 +58,8 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen bg-[#09090b] text-white overflow-x-hidden flex flex-col">
       <LandingHero poster={spotlight?.poster ?? null} />
-      <LandingStats />
-      <LandingWatchYourWay />
       <LandingTrendingRow anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
-
-      {/* Schedule/community can be empty — no LazyMount floor (avoids gap or collapse jump). */}
-      <LandingScheduleStrip />
+      <LandingCompletedRow anime={discoveryData?.latestCompletedAnimes ?? []} loading={discoveryLoading} />
 
       <LazyMount
         id="features"
@@ -74,50 +72,11 @@ export default function LandingPage() {
         <LandingFeatures />
       </LazyMount>
 
-      <LazyMount keepMounted retainMinHeight minHeight={380} rootMargin="400px 0px">
-        <LandingWhy />
-      </LazyMount>
-
-      <LazyMount keepMounted retainMinHeight minHeight={480} rootMargin="400px 0px">
-        <LandingPlayerPreview />
-      </LazyMount>
-
-      <LazyMount keepMounted retainMinHeight minHeight={320} rootMargin="400px 0px">
-        <LandingSyncStory />
-      </LazyMount>
-
-      <LazyMount keepMounted retainMinHeight minHeight={320} rootMargin="400px 0px">
-        <LandingPersonalized />
-      </LazyMount>
-
-      <LazyMount keepMounted retainMinHeight minHeight={400} rootMargin="400px 0px">
-        <LandingSearchDemo />
-      </LazyMount>
-
-      <LandingCommunity />
-
       <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
         <LandingFaq />
       </LazyMount>
 
-      <LazyMount keepMounted retainMinHeight minHeight={280} rootMargin="400px 0px">
-        <LandingTestimonials />
-      </LazyMount>
-
-      <LazyMount
-        id="support"
-        keepMounted
-        retainMinHeight
-        minHeight={360}
-        rootMargin="400px 0px"
-        className="scroll-mt-20"
-      >
-        <LandingSupportPerks />
-      </LazyMount>
-
-      <LazyMount keepMounted retainMinHeight minHeight={220} rootMargin="360px 0px">
-        <LandingFinalCta />
-      </LazyMount>
+      <LandingCommunity />
 
       <LandingFooter />
     </div>
