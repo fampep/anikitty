@@ -45,6 +45,22 @@ export type ExternalMetadata = {
       name?: string | null;
       airDate?: string | null;
     } | null;
+    budget?: number | null;
+    revenue?: number | null;
+    keywords?: string[];
+    cast?: Array<{
+      id: number;
+      name: string;
+      character: string;
+      profilePath?: string | null;
+    }>;
+    crew?: Array<{
+      id: number;
+      name: string;
+      job: string;
+      profilePath?: string | null;
+    }>;
+    imdbId?: string | null;
   };
   mal?: {
     rank?: number | null;
@@ -224,12 +240,30 @@ async function fetchTmdbExtras(
   if (!apiKey) return { tmdb: undefined, rating: null };
 
   try {
-    const res = await fetch(
-      `${TMDB_API}/tv/${tmdbId}?api_key=${encodeURIComponent(apiKey)}`,
-      { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
-    );
-    if (!res.ok) return { tmdb: undefined, rating: null };
-    const data = await res.json();
+    const [mainRes, creditsRes, externalRes, keywordsRes] = await Promise.all([
+      fetch(
+        `${TMDB_API}/tv/${tmdbId}?api_key=${encodeURIComponent(apiKey)}`,
+        { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
+      ),
+      fetch(
+        `${TMDB_API}/tv/${tmdbId}/credits?api_key=${encodeURIComponent(apiKey)}`,
+        { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
+      ),
+      fetch(
+        `${TMDB_API}/tv/${tmdbId}/external_ids?api_key=${encodeURIComponent(apiKey)}`,
+        { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
+      ),
+      fetch(
+        `${TMDB_API}/tv/${tmdbId}/keywords?api_key=${encodeURIComponent(apiKey)}`,
+        { signal: AbortSignal.timeout(6000), next: { revalidate: 86400 } },
+      ),
+    ]);
+
+    if (!mainRes.ok) return { tmdb: undefined, rating: null };
+    const data = await mainRes.json();
+    const credits = creditsRes.ok ? await creditsRes.json() : null;
+    const external = externalRes.ok ? await externalRes.json() : null;
+    const keywords = keywordsRes.ok ? await keywordsRes.json() : null;
 
     const avg = typeof data.vote_average === "number" && data.vote_average > 0 ? data.vote_average : null;
     const nextRaw = data.next_episode_to_air;
@@ -281,6 +315,30 @@ async function fetchTmdbExtras(
               airDate: lastRaw.air_date ? String(lastRaw.air_date) : null,
             }
           : null,
+        budget: typeof data.budget === "number" && data.budget > 0 ? data.budget : null,
+        revenue: typeof data.revenue === "number" && data.revenue > 0 ? data.revenue : null,
+        keywords: (keywords?.results ?? [])
+          .map((k: { name?: string }) => k.name)
+          .filter(Boolean)
+          .slice(0, 10),
+        cast: (credits?.cast ?? [])
+          .slice(0, 12)
+          .map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            character: c.character,
+            profilePath: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+          })),
+        crew: (credits?.crew ?? [])
+          .filter((c: any) => ["Director", "Writer", "Producer", "Cinematography"].includes(c.job))
+          .slice(0, 8)
+          .map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            job: c.job,
+            profilePath: c.profile_path ? `https://image.tmdb.org/t/p/w185${c.profile_path}` : null,
+          })),
+        imdbId: external?.imdb_id ? String(external.imdb_id) : null,
       },
       rating: avg
         ? {

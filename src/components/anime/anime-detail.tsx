@@ -1158,8 +1158,30 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               scoreDistribution={info.scoreDistribution}
             />
 
-            {(tmdb?.production?.length || tmdb?.creators?.length) ? (
-              <OverviewPanel title={t("anime.detailFields.tmdbProduction")}>
+            {(tmdb?.cast?.length || tmdb?.crew?.length) ? (
+              <OverviewPanel title={t("anime.detailFields.cast")}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                  {tmdb?.cast?.slice(0, 8).map((actor) => (
+                    <div key={`cast-${actor.id}`} className="flex flex-col items-center gap-2">
+                      {actor.profilePath && (
+                        <img
+                          src={actor.profilePath}
+                          alt={actor.name}
+                          className="w-12 h-16 rounded object-cover"
+                        />
+                      )}
+                      <div className="text-center">
+                        <p className="text-[12px] font-medium line-clamp-1">{actor.name}</p>
+                        <p className="text-[10px] text-muted-foreground line-clamp-1">{actor.character}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </OverviewPanel>
+            ) : null}
+
+            {(tmdb?.production?.length || tmdb?.creators?.length || tmdb?.crew?.length) ? (
+              <OverviewPanel title={t("anime.detailFields.production")}>
                 <div className="flex flex-wrap gap-2">
                   {tmdb?.creators?.map((creator) => (
                     <span
@@ -1169,12 +1191,35 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                       {creator}
                     </span>
                   ))}
+                  {tmdb?.crew?.slice(0, 6).map((crew) => (
+                    <span
+                      key={`crew-${crew.id}-${crew.job}`}
+                      className="px-3 py-1.5 text-[12px] rounded-lg border border-amber-500/25 text-amber-200/85 bg-amber-500/10 font-medium"
+                    >
+                      {crew.name} ({crew.job})
+                    </span>
+                  ))}
                   {tmdb?.production?.map((company) => (
                     <span
                       key={`prod-${company}`}
                       className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/8 text-muted-foreground dark:text-white/35 bg-muted/30 dark:bg-white/[0.02]"
                     >
                       {company}
+                    </span>
+                  ))}
+                </div>
+              </OverviewPanel>
+            ) : null}
+
+            {tmdb?.keywords?.length ? (
+              <OverviewPanel title={t("anime.detailFields.keywords")}>
+                <div className="flex flex-wrap gap-2">
+                  {tmdb.keywords.map((keyword) => (
+                    <span
+                      key={`kw-${keyword}`}
+                      className="px-2.5 py-1 text-[11px] rounded border border-purple-500/25 text-purple-200/80 bg-purple-500/8 font-medium"
+                    >
+                      {keyword}
                     </span>
                   ))}
                 </div>
@@ -1220,6 +1265,9 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   { label: t("anime.detailFields.inProduction"), value: tmdb?.inProduction === true ? "Yes" : tmdb?.inProduction === false ? "No" : null },
                   { label: t("anime.detailFields.nextEpisode"), value: formatTmdbEpisode(tmdb?.nextEpisode) },
                   { label: t("anime.detailFields.lastEpisode"), value: formatTmdbEpisode(tmdb?.lastEpisode) },
+                  { label: t("anime.detailFields.budget"), value: tmdb?.budget ? `$${(tmdb.budget / 1_000_000).toFixed(1)}M` : null },
+                  { label: t("anime.detailFields.revenue"), value: tmdb?.revenue ? `$${(tmdb.revenue / 1_000_000).toFixed(1)}M` : null },
+                  { label: t("anime.detailFields.imdb"), value: tmdb?.imdbId ? `${tmdb.imdbId}` : null },
                 ].filter((r) => r.value).map((row) => (
                   <div key={row.label} className="rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8 px-4 py-3 hover:border-border dark:border-white/14 transition-colors">
                     <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider block mb-1">{row.label}</span>
