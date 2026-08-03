@@ -11,7 +11,7 @@ const STUDIO_QUERY = `
       isAnimationStudio
       favourites
       siteUrl
-      media(sort: POPULARITY_DESC, page: 1, perPage: 50, isMain: true) {
+      media(sort: POPULARITY_DESC, page: 1, perPage: 150, isMain: true) {
         pageInfo { total }
         nodes {
           id
@@ -38,7 +38,7 @@ const STUDIO_QUERY = `
 const STUDIO_TOP_RATED_QUERY = `
   query ($id: Int) {
     Studio(id: $id) {
-      media(sort: SCORE_DESC, page: 1, perPage: 20, isMain: true) {
+      media(sort: SCORE_DESC, page: 1, perPage: 100, isMain: true) {
         nodes {
           id
           title { english romaji }
@@ -59,7 +59,7 @@ const STUDIO_TOP_RATED_QUERY = `
 const STUDIO_UPCOMING_QUERY = `
   query ($id: Int) {
     Studio(id: $id) {
-      media(sort: START_DATE, page: 1, perPage: 20, isMain: true, status: NOT_YET_RELEASED) {
+      media(sort: START_DATE, page: 1, perPage: 100, isMain: true, status: NOT_YET_RELEASED) {
         nodes {
           id
           title { english romaji }
