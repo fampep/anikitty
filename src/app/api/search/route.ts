@@ -309,7 +309,7 @@ export async function GET(request: Request) {
       const raw = await queryAniListSearch(STUDIO_MEDIA_QUERY, {
         id: studioId,
         page,
-        perPage: 20,
+        perPage: 100,
         sort: sortArr,
         isAdult: allowAdult ? undefined : false,
       });
