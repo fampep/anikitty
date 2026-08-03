@@ -1291,60 +1291,170 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               scoreDistribution={info.scoreDistribution}
             />
 
-            {/* TMDB Cast - Only show when TMDB is selected */}
-            {metadataProvider === "tmdb" && (tmdb?.cast?.length || tmdb?.crew?.length) ? (
-              <OverviewPanel title={t("anime.detailFields.cast")}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {tmdb?.cast?.slice(0, 8).map((actor) => (
-                    <div key={`cast-${actor.id}`} className="flex flex-col items-center gap-2">
-                      {actor.profilePath && (
-                        <img
-                          src={actor.profilePath}
-                          alt={actor.name}
-                          className="w-12 h-16 rounded object-cover"
-                        />
-                      )}
-                      <div className="text-center">
-                        <p className="text-[12px] font-medium line-clamp-1">{actor.name}</p>
-                        <p className="text-[10px] text-muted-foreground line-clamp-1">{actor.character}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </OverviewPanel>
-            ) : null}
 
             {/* TMDB Production & Crew - Only show when TMDB is selected */}
             {metadataProvider === "tmdb" && (tmdb?.production?.length || tmdb?.creators?.length || tmdb?.crew?.length) ? (
               <OverviewPanel title={t("anime.detailFields.production")}>
-                <div className="flex flex-wrap gap-2">
-                  {tmdb?.creators?.map((creator) => (
-                    <span
-                      key={`creator-${creator}`}
-                      className="px-3 py-1.5 text-[12px] rounded-lg border border-sky-500/25 text-sky-200/85 bg-sky-500/10 font-medium"
-                    >
-                      {creator}
-                    </span>
-                  ))}
-                  {tmdb?.crew?.slice(0, 6).map((crew) => (
-                    <span
-                      key={`crew-${crew.id}-${crew.job}`}
-                      className="px-3 py-1.5 text-[12px] rounded-lg border border-amber-500/25 text-amber-200/85 bg-amber-500/10 font-medium"
-                    >
-                      {crew.name} ({crew.job})
-                    </span>
-                  ))}
-                  {tmdb?.production?.map((company) => (
-                    <span
-                      key={`prod-${company}`}
-                      className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/8 text-muted-foreground dark:text-white/35 bg-muted/30 dark:bg-white/[0.02]"
-                    >
-                      {company}
-                    </span>
-                  ))}
+                <div className="space-y-4">
+                  {tmdb?.creators?.length ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-sky-300/70 font-mono mb-2">Creators</p>
+                      <div className="flex flex-wrap gap-2">
+                        {tmdb.creators.map((creator) => (
+                          <span
+                            key={`creator-${creator}`}
+                            className="px-3 py-1.5 text-[12px] rounded-lg border border-sky-500/25 text-sky-200/85 bg-sky-500/10 font-medium"
+                          >
+                            {creator}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {tmdb?.crew?.length ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-amber-300/70 font-mono mb-2">Crew</p>
+                      <div className="flex flex-wrap gap-2">
+                        {tmdb.crew.map((crew) => (
+                          <span
+                            key={`crew-${crew.id}-${crew.job}`}
+                            className="px-3 py-1.5 text-[12px] rounded-lg border border-amber-500/25 text-amber-200/85 bg-amber-500/10 font-medium"
+                          >
+                            {crew.name} ({crew.job})
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {tmdb?.production?.length ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-sky-300/70 font-mono mb-2">Production Companies</p>
+                      <div className="flex flex-wrap gap-2">
+                        {tmdb.production.map((company) => (
+                          <span
+                            key={`prod-${company}`}
+                            className="px-3 py-1.5 text-[12px] rounded-lg border border-border dark:border-white/8 text-muted-foreground dark:text-white/35 bg-muted/30 dark:bg-white/[0.02]"
+                          >
+                            {company}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </OverviewPanel>
             ) : null}
+
+            {/* TVDB Specific Details - Only show when TVDB is selected */}
+            {metadataProvider === "tvdb" && extMeta?.tvdb && (
+              <OverviewPanel title={t("anime.detailFields.tvdbInfo") || "TVDB Information"}>
+                <div className="space-y-4">
+                  {extMeta.tvdb.status && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-green-300/70 font-mono mb-1">Status</p>
+                      <p className="text-sm text-green-200/90">{extMeta.tvdb.status}</p>
+                    </div>
+                  )}
+                  {extMeta.tvdb.runtime && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-green-300/70 font-mono mb-1">Runtime</p>
+                      <p className="text-sm text-green-200/90">{extMeta.tvdb.runtime} minutes</p>
+                    </div>
+                  )}
+                  {extMeta.tvdb.network && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-green-300/70 font-mono mb-1">Network</p>
+                      <p className="text-sm text-green-200/90">{extMeta.tvdb.network}</p>
+                    </div>
+                  )}
+                  {extMeta.tvdb.country && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-green-300/70 font-mono mb-1">Country</p>
+                      <p className="text-sm text-green-200/90">{extMeta.tvdb.country}</p>
+                    </div>
+                  )}
+                  {extMeta.tvdb.year && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-green-300/70 font-mono mb-1">Year</p>
+                      <p className="text-sm text-green-200/90">{extMeta.tvdb.year}</p>
+                    </div>
+                  )}
+                  {extMeta.tvdb.overview && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-green-300/70 font-mono mb-2">Overview</p>
+                      <p className="text-sm text-green-200/80 leading-relaxed">{extMeta.tvdb.overview}</p>
+                    </div>
+                  )}
+                </div>
+              </OverviewPanel>
+            )}
+
+            {/* MAL Specific Details - Only show when MAL is selected */}
+            {metadataProvider === "mal" && extMeta?.mal && (
+              <OverviewPanel title={t("anime.detailFields.malInfo") || "MyAnimeList Information"}>
+                <div className="space-y-4">
+                  {extMeta.mal.rank && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 px-3 py-3">
+                        <p className="text-[10px] uppercase tracking-wider text-blue-300/70 font-mono mb-1">Rank</p>
+                        <p className="text-lg font-bold text-blue-200">#{extMeta.mal.rank.toLocaleString()}</p>
+                      </div>
+                      {extMeta.mal.popularity && (
+                        <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-wider text-blue-300/70 font-mono mb-1">Popularity</p>
+                          <p className="text-lg font-bold text-blue-200">#{extMeta.mal.popularity.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {extMeta.mal.members && (
+                        <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-wider text-blue-300/70 font-mono mb-1">Members</p>
+                          <p className="text-lg font-bold text-blue-200">{formatMalMemberCount(extMeta.mal.members)}</p>
+                        </div>
+                      )}
+                      {extMeta.mal.scoredBy && (
+                        <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-wider text-blue-300/70 font-mono mb-1">Scored By</p>
+                          <p className="text-lg font-bold text-blue-200">{(extMeta.mal.scoredBy / 1000).toFixed(0)}K</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {extMeta.mal.source && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-blue-300/70 font-mono mb-1">Source</p>
+                      <p className="text-sm text-blue-200/90">{extMeta.mal.source}</p>
+                    </div>
+                  )}
+                  {extMeta.mal.broadcast && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-blue-300/70 font-mono mb-1">Broadcast</p>
+                      <p className="text-sm text-blue-200/90">{extMeta.mal.broadcast}</p>
+                    </div>
+                  )}
+                  {extMeta.mal.contentRating && (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-blue-300/70 font-mono mb-1">Content Rating</p>
+                      <p className="text-sm text-blue-200/90">{extMeta.mal.contentRating}</p>
+                    </div>
+                  )}
+                  {extMeta.mal.licensors?.length ? (
+                    <div>
+                      <p className="text-[11px] uppercase tracking-wider text-blue-300/70 font-mono mb-2">Licensors</p>
+                      <div className="flex flex-wrap gap-2">
+                        {extMeta.mal.licensors.map((licensor) => (
+                          <span
+                            key={licensor}
+                            className="px-3 py-1.5 text-[12px] rounded-lg border border-blue-500/20 text-blue-200/85 bg-blue-500/8 font-medium"
+                          >
+                            {licensor}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </OverviewPanel>
+            )}
 
             {/* Details Grid - Provider Specific */}
             <OverviewPanel title={t("anime.details")}>
