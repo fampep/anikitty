@@ -45,6 +45,10 @@ export type EpisodeLayout = "list" | "compact" | "thumbnail";
 /** Watch page structure: player + playlist arrangement (not theatre chrome). */
 export type WatchLayout = "default" | "theater" | "compact" | "focus";
 
+/** Preferred metadata provider for displaying anime information across the site. */
+export type MetadataProviderPreference = "anilist" | "tmdb" | "tvdb" | "mal" | "imdb";
+export const DEFAULT_METADATA_PROVIDER: MetadataProviderPreference = "anilist";
+
 /** Compact: tighter gaps and a narrower playlist column. */
 export const DEFAULT_WATCH_LAYOUT: WatchLayout = "compact";
 
@@ -258,6 +262,10 @@ interface ISettingsStore {
   /** Desktop episode sidebar width in px (resizable). */
   watchSidebarWidth: number;
   setWatchSidebarWidth: (width: number) => void;
+
+  /** Global metadata provider preference for displaying anime data across the site. */
+  metadataProvider: MetadataProviderPreference;
+  setMetadataProvider: (provider: MetadataProviderPreference) => void;
 }
 
 export const useSettingsStore = create<ISettingsStore>()(
@@ -509,6 +517,14 @@ export const useSettingsStore = create<ISettingsStore>()(
         set({
           watchSidebarWidth: Math.min(440, Math.max(260, Math.round(width))),
         }),
+
+      metadataProvider: DEFAULT_METADATA_PROVIDER,
+      setMetadataProvider: (metadataProvider) => {
+        const valid = ["anilist", "tmdb", "tvdb", "mal", "imdb"] as const;
+        if (valid.includes(metadataProvider as any)) {
+          set({ metadataProvider });
+        }
+      },
     }),
     {
       name: "kitty-settings",
@@ -560,6 +576,7 @@ export const useSettingsStore = create<ISettingsStore>()(
         episodeSort: state.episodeSort,
         watchSidebarCollapsed: state.watchSidebarCollapsed,
         watchSidebarWidth: state.watchSidebarWidth,
+        metadataProvider: state.metadataProvider,
       }),
       migrate: (persisted, version) => {
         const state = persisted as Partial<ISettingsStore> & {
@@ -1299,6 +1316,9 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Echo (Miruro) rejoins Recommended as #2; Uniform moves to #3.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 107) {
+          next.metadataProvider = DEFAULT_METADATA_PROVIDER;
         }
         return next as ISettingsStore;
       },

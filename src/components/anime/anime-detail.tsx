@@ -71,7 +71,6 @@ import AnilistRateButton from "@/components/anime/anilist-rate-button";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
 
 const TAB_STORAGE_KEY = "anikitty:anime-detail-tab";
-const PROVIDER_STORAGE_KEY = "anikitty:metadata-provider";
 
 const VALID_TABS = new Set([
   "overview",
@@ -153,6 +152,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   const searchParams = useSearchParams();
   const bookmarkOptions = useBookmarkLabels();
   const showAdultContent = useSettingsStore((s) => s.showAdultContent);
+  const globalMetadataProvider = useSettingsStore((s) => s.metadataProvider);
+  const setGlobalMetadataProvider = useSettingsStore((s) => s.setMetadataProvider);
   const { data: anime, isLoading, isError, isFetching, refetch } = useGetAnimeDetails(slug);
   const { auth } = useAuthStore();
   const { bookmarks, createOrUpdateBookMark } = useBookMarks({
@@ -191,19 +192,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
 
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [synopsisExpanded, setSynopsisExpanded] = useState(false);
-  const [metadataProvider, setMetadataProvider] = useState<MetadataProvider>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem(PROVIDER_STORAGE_KEY);
-        if (stored && METADATA_PROVIDERS.includes(stored as MetadataProvider)) {
-          return stored as MetadataProvider;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-    return "anilist";
-  });
+  const metadataProvider = globalMetadataProvider;
 
   useEffect(() => {
     setActiveTab(defaultTab);
@@ -306,12 +295,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
   };
 
   const handleMetadataProviderChange = (provider: MetadataProvider) => {
-    setMetadataProvider(provider);
-    try {
-      localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
-    } catch {
-      /* ignore */
-    }
+    setGlobalMetadataProvider(provider as any);
   };
 
   // First-party "AniKitty Score" aggregate from user reviews.
