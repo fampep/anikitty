@@ -1243,27 +1243,55 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                       href={`https://www.imdb.com/title/${tmdb.imdbId}/`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-amber-500/25 bg-amber-500/10 text-amber-300/90 hover:bg-amber-500/15 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-amber-500/25 bg-amber-500/10 text-amber-300/90 hover:bg-amber-500/15 transition-colors whitespace-nowrap"
                     >
                       View on IMDb
                       <ExternalLink className="w-3 h-3 opacity-60" />
                     </a>
                   </div>
                   {providerRatings.find(r => r.provider === "imdb") && (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                       {providerRatings
                         .filter(r => r.provider === "imdb")
                         .map((rating) => (
-                          <div key={rating.provider} className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+                          <div key={rating.provider} className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-4">
                             <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300/70 block mb-1">IMDb Rating</span>
-                            <span className="text-xl font-bold tabular-nums text-amber-200">{rating.label}</span>
+                            <span className="text-3xl font-bold tabular-nums text-amber-200">{rating.label}</span>
                             {rating.votes != null && rating.votes > 0 && (
-                              <span className="text-[10px] font-mono text-amber-300/50 block mt-1">
+                              <span className="text-[10px] font-mono text-amber-300/50 block mt-2">
                                 {rating.votes.toLocaleString()} votes
                               </span>
                             )}
                           </div>
                         ))}
+                    </div>
+                  )}
+                  {tmdb && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {tmdb.popularity && (
+                        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-wider text-amber-300/70 font-mono mb-1">Popularity</p>
+                          <p className="text-lg font-bold text-amber-200">{tmdb.popularity.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {tmdb.seasons && (
+                        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-wider text-amber-300/70 font-mono mb-1">Seasons</p>
+                          <p className="text-lg font-bold text-amber-200">{tmdb.seasons}</p>
+                        </div>
+                      )}
+                      {tmdb.episodes && (
+                        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-wider text-amber-300/70 font-mono mb-1">Episodes</p>
+                          <p className="text-lg font-bold text-amber-200">{tmdb.episodes}</p>
+                        </div>
+                      )}
+                      {tmdb.status && (
+                        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-3">
+                          <p className="text-[10px] uppercase tracking-wider text-amber-300/70 font-mono mb-1">Status</p>
+                          <p className="text-sm font-medium text-amber-200">{tmdb.status}</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
