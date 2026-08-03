@@ -90,7 +90,7 @@ const VALID_TABS = new Set([
   "comments",
 ]);
 
-const METADATA_PROVIDERS = ["anilist", "tmdb", "tvdb", "mal"] as const;
+const METADATA_PROVIDERS = ["anilist", "tmdb", "tvdb", "mal", "imdb"] as const;
 type MetadataProvider = typeof METADATA_PROVIDERS[number];
 
 const AnimeThemePlayer = dynamic(() => import("@/components/anime/anime-theme-player"), {
@@ -954,7 +954,7 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                           : "border-border dark:border-white/10 bg-muted/50 dark:bg-white/[0.03] text-muted-foreground dark:text-white/50 hover:bg-muted dark:hover:bg-white/[0.06]"
                       )}
                     >
-                      {provider === "anilist" ? "AniList" : provider === "tmdb" ? "TMDB" : provider === "tvdb" ? "TVDB" : "MAL"}
+                      {provider === "anilist" ? "AniList" : provider === "tmdb" ? "TMDB" : provider === "tvdb" ? "TVDB" : provider === "mal" ? "MAL" : "IMDb"}
                     </button>
                   ))}
                 </div>
@@ -1097,7 +1097,8 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             )}
 
-            {providerRatings.length > 0 && (
+            {/* All Provider Ratings - Show when not focused on specific provider */}
+            {metadataProvider !== "imdb" && providerRatings.length > 0 && (
               <OverviewPanel title={t("anime.ratings")}>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {providerRatings.map((rating) => {
@@ -1198,6 +1199,37 @@ export default function AnimeDetail({ slug }: { slug: string }) {
               </OverviewPanel>
             )}
 
+            {/* IMDb Focused Ratings - Show when IMDb provider is selected */}
+            {metadataProvider === "imdb" && providerRatings.filter(r => r.provider === "imdb").length > 0 && (
+              <OverviewPanel title={t("anime.ratings")}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {providerRatings
+                    .filter(r => r.provider === "imdb")
+                    .map((rating) => (
+                      <a
+                        key={rating.provider}
+                        href={rating.url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:opacity-90 transition-opacity"
+                      >
+                        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-4 transition-colors hover:bg-amber-500/15">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300/70 block mb-1">
+                            IMDb Rating
+                          </span>
+                          <span className="text-3xl font-bold tabular-nums text-amber-200">{rating.label}</span>
+                          {rating.votes != null && rating.votes > 0 && (
+                            <span className="text-[10px] font-mono text-amber-300/50 block mt-2">
+                              {rating.votes.toLocaleString()} votes
+                            </span>
+                          )}
+                        </div>
+                      </a>
+                    ))}
+                </div>
+              </OverviewPanel>
+            )}
+
             {/* MAL Specific Content */}
             {metadataProvider === "mal" && extMeta?.mal?.themes && extMeta.mal.themes.length > 0 && (
               <OverviewPanel title={t("anime.detailFields.malThemes")}>
@@ -1210,6 +1242,46 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                       {theme}
                     </span>
                   ))}
+                </div>
+              </OverviewPanel>
+            )}
+
+            {/* IMDb Specific Content */}
+            {metadataProvider === "imdb" && tmdb?.imdbId && (
+              <OverviewPanel title={t("anime.detailFields.imdbInfo") || "IMDb Information"}>
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="flex-1">
+                      <p className="text-xs uppercase tracking-wider text-amber-300/70 font-mono mb-1">IMDb ID</p>
+                      <p className="text-sm font-mono text-amber-200/90">{tmdb.imdbId}</p>
+                    </div>
+                    <a
+                      href={`https://www.imdb.com/title/${tmdb.imdbId}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium border border-amber-500/25 bg-amber-500/10 text-amber-300/90 hover:bg-amber-500/15 transition-colors"
+                    >
+                      View on IMDb
+                      <ExternalLink className="w-3 h-3 opacity-60" />
+                    </a>
+                  </div>
+                  {providerRatings.find(r => r.provider === "imdb") && (
+                    <div className="grid grid-cols-2 gap-3">
+                      {providerRatings
+                        .filter(r => r.provider === "imdb")
+                        .map((rating) => (
+                          <div key={rating.provider} className="rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3">
+                            <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300/70 block mb-1">IMDb Rating</span>
+                            <span className="text-xl font-bold tabular-nums text-amber-200">{rating.label}</span>
+                            {rating.votes != null && rating.votes > 0 && (
+                              <span className="text-[10px] font-mono text-amber-300/50 block mt-1">
+                                {rating.votes.toLocaleString()} votes
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </OverviewPanel>
             )}
@@ -1333,6 +1405,10 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.budget"), value: tmdb?.budget ? `$${(tmdb.budget / 1_000_000).toFixed(1)}M` : null }] : []),
                   ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.revenue"), value: tmdb?.revenue ? `$${(tmdb.revenue / 1_000_000).toFixed(1)}M` : null }] : []),
                   ...(metadataProvider === "tmdb" ? [{ label: t("anime.detailFields.imdb"), value: tmdb?.imdbId ? `${tmdb.imdbId}` : null }] : []),
+                  ...(metadataProvider === "imdb" ? [
+                    { label: t("anime.detailFields.imdb"), value: tmdb?.imdbId ? `${tmdb.imdbId}` : null },
+                    { label: t("anime.detailFields.imdbRating"), value: providerRatings.find(r => r.provider === "imdb")?.label ?? null },
+                  ] : []),
                 ].filter((r) => r.value).map((row) => (
                   <div key={row.label} className="rounded-xl bg-muted/30 dark:bg-white/[0.02] border border-border dark:border-white/8 px-4 py-3 hover:border-border dark:border-white/14 transition-colors">
                     <span className="text-[10px] font-mono text-muted-foreground dark:text-white/30 uppercase tracking-wider block mb-1">{row.label}</span>
