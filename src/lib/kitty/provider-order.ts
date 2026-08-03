@@ -78,6 +78,10 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("Senshi");
         continue;
       }
+      if (item === "AnimeGG" || item === "Golf") {
+        push("AnimeGG");
+        continue;
+      }
       if (
         item === "Lunar" ||
         item === "Luna" ||
@@ -92,7 +96,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Anitaku" ||
         item === "MeguAnime" ||
         item === "AniNeko" ||
-        item === "AnimeGG" ||
         item === "AnimeHeaven" ||
         item === "EarnVids"
       ) {

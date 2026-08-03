@@ -528,7 +528,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 107,
+      version: 108,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1319,6 +1319,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 107) {
           next.metadataProvider = DEFAULT_METADATA_PROVIDER;
+        }
+        if (version < 108) {
+          // Golf (AnimeGG) joins Recommended — saved orders dropped it while retired.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
         }
         return next as ISettingsStore;
       },
