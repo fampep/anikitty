@@ -55,10 +55,16 @@ export async function migrateDb() {
         anime_thumbnail  TEXT,
         anilist_id       INTEGER,
         mal_id           INTEGER,
+        rewatch_count    INTEGER NOT NULL DEFAULT 0,
         created_at       TIMESTAMP DEFAULT NOW(),
         updated_at       TIMESTAMP DEFAULT NOW(),
         UNIQUE(user_id, anime_id)
       )
+    `;
+
+    // Ensure rewatch_count column exists (for existing databases)
+    await client`
+      ALTER TABLE watchlist ADD COLUMN IF NOT EXISTS rewatch_count INTEGER NOT NULL DEFAULT 0
     `;
 
     await client`

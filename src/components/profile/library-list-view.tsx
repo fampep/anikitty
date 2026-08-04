@@ -113,17 +113,21 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
       ...(searchTerm && { search: searchTerm }),
     });
 
-    fetch(`/api/account/watchlist?${params.toString()}`, {
-      headers: { "Content-Type": "application/json" },
-    })
-      .then((res) => (res.ok ? res.json() : null))
+    fetch(`/api/account/watchlist?${params.toString()}`, withAuth())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((res) => {
         const results = res?.results ?? [];
         setBookmarks(results.length ? results : null);
         const total = res?.total ?? results.length;
         setTotalPages(Math.ceil(total / perPage));
       })
-      .catch(() => setBookmarks(null))
+      .catch((err) => {
+        console.error("Watchlist fetch error:", err);
+        setBookmarks(null);
+      })
       .finally(() => setIsLoading(false));
   }, [auth, status, sortBy, searchTerm, currentPage, perPage, watchlistVersion]);
 
