@@ -57,14 +57,27 @@ export async function migrateDb() {
         mal_id           INTEGER,
         rewatch_count    INTEGER NOT NULL DEFAULT 0,
         created_at       TIMESTAMP DEFAULT NOW(),
-        updated_at       TIMESTAMP DEFAULT NOW(),
-        UNIQUE(user_id, anime_id)
+        updated_at       TIMESTAMP DEFAULT NOW()
       )
+    `;
+
+    // Create unique constraint if it doesn't exist (defined in Drizzle schema)
+    await client`
+      CREATE UNIQUE INDEX IF NOT EXISTS watchlist_user_anime ON watchlist(user_id, anime_id)
     `;
 
     // Ensure rewatch_count column exists (for existing databases)
     await client`
       ALTER TABLE watchlist ADD COLUMN IF NOT EXISTS rewatch_count INTEGER NOT NULL DEFAULT 0
+    `;
+
+    // Clean up any duplicate watchlist entries (keep the most recently updated)
+    await client`
+      DELETE FROM watchlist WHERE id NOT IN (
+        SELECT DISTINCT ON (user_id, anime_id) id
+        FROM watchlist
+        ORDER BY user_id, anime_id, updated_at DESC
+      )
     `;
 
     await client`
