@@ -5,9 +5,81 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { createSession } from "@/lib/user/user-sessions";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 const ANILIST_AUTHORIZE = "https://anilist.co/api/v2/oauth/authorize";
 const ANILIST_TOKEN = "https://anilist.co/api/v2/oauth/token";
+
+async function uniqueUsername(base: string, anilistId: number): Promise<string> {
+  const db = getDb();
+  let candidate = base.slice(0, 25);
+  const [conflict] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.username, candidate))
+    .limit(1);
+  if (!conflict) return candidate;
+  candidate = `${base.slice(0, 20)}${String(anilistId).slice(-4)}`.slice(0, 25);
+  const [conflict2] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.username, candidate))
+    .limit(1);
+  if (!conflict2) return candidate;
+  return `a${String(anilistId).slice(-10)}`.slice(0, 25);
+}
+
+async function findOrCreateUserFromAniList(
+  viewer: { id: number; name: string },
+  accessToken: string,
+): Promise<{ user: typeof users.$inferSelect; created: boolean } | null> {
+  const db = getDb();
+  const anilistId = viewer.id;
+  const anilistUsername = viewer.name;
+
+  // Check if user already exists by AniList ID
+  const [existing] = await db.select().from(users).where(eq(users.anilistUserId, anilistId)).limit(1);
+  if (existing) {
+    // Update token if changed
+    if (existing.anilistAccessToken !== accessToken) {
+      await db
+        .update(users)
+        .set({
+          anilistAccessToken: accessToken,
+          anilistUsername,
+        })
+        .where(eq(users.id, existing.id));
+      return { user: { ...existing, anilistAccessToken: accessToken, anilistUsername }, created: false };
+    }
+    return { user: existing, created: false };
+  }
+
+  // Create new user from AniList data
+  const username = await uniqueUsername(anilistUsername, anilistId);
+  const email = `anilist_${anilistId}@anikitty.local`;
+  const passwordHash = await bcrypt.hash(`anilist_sso:${anilistId}:${Date.now()}`, 10);
+
+  const [created] = await db
+    .insert(users)
+    .values({
+      username,
+      email,
+      passwordHash,
+      anilistUserId: anilistId,
+      anilistUsername,
+      anilistAccessToken: accessToken,
+      emailVerified: true,
+      passwordSetAt: null,
+    })
+    .returning();
+
+  if (!created) {
+    console.error("[anilist] Failed to create user", { anilistId, username });
+    return null;
+  }
+
+  return { user: created, created: true };
+}
 
 export function getAniListClientId(): string | null {
   return process.env.ANILIST_CLIENT_ID ?? null;
@@ -97,63 +169,11 @@ export async function completeAniListOAuth(
       return { status: "connected", userId: statePayload.userId };
     }
 
-    // Otherwise, try to find or create user via AniList ID
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.anilistUserId, viewer.id))
-      .limit(1);
+    // For login: find or create user from AniList data
+    const result = await findOrCreateUserFromAniList(viewer, accessToken);
+    if (!result) return { status: "error" };
 
-    if (existingUser.length > 0) {
-      // Update existing user's token
-      await db
-        .update(users)
-        .set({
-          anilistAccessToken: accessToken,
-        })
-        .where(eq(users.id, existingUser[0].id));
-      return { status: "logged_in", userId: existingUser[0].id };
-    }
-
-    // Create new user from AniList data
-    // Ensure username is unique (similar to Discord flow)
-    let username = viewer.name.slice(0, 25);
-    let [conflict] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-
-    if (conflict) {
-      username = `${viewer.name.slice(0, 20)}${String(viewer.id).slice(-4)}`.slice(0, 25);
-      const [conflict2] = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-      if (conflict2) {
-        username = `a${String(viewer.id).slice(-10)}`.slice(0, 25);
-      }
-    }
-
-    const newUser = await db
-      .insert(users)
-      .values({
-        username,
-        email: `anilist_${viewer.id}@anikitty.local`,
-        anilistUserId: viewer.id,
-        anilistUsername: viewer.name,
-        anilistAccessToken: accessToken,
-        emailVerified: true,
-      })
-      .returning({ id: users.id })
-      .then((r) => r[0]);
-
-    if (!newUser) {
-      console.error("[anilist] Failed to create user", { viewerId: viewer.id, username });
-      return { status: "error" };
-    }
-    return { status: "logged_in", userId: newUser.id };
+    return { status: "logged_in", userId: result.user.id };
   } catch (e) {
     console.error("[anilist oauth callback]", e);
     return { status: "error" };
