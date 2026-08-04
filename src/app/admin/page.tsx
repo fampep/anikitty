@@ -3187,6 +3187,77 @@ function AnalyticsTab() {
 // ─────────────────────────────────────────────────────────────────────────────
 // Provider Health Tab
 // ─────────────────────────────────────────────────────────────────────────────
+// Cached SUB/DUB episode totals (anime_audio_availability). Wiping is safe —
+// counts refetch from KittyAPI on the next request for each title.
+function AudioCacheCard() {
+  const [stats, setStats] = useState<{ rows: number; oldestFetchedAt: string | null; newestFetchedAt: string | null } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/audio-cache", { headers: adminHeaders() });
+      if (res.ok) setStats(await res.json());
+      else setStats(null);
+    } catch { setStats(null); } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { void fetchStats(); }, [fetchStats]);
+
+  const reset = async (mode: "purge" | "stale") => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/audio-cache", {
+        method: "POST",
+        headers: adminHeaders(),
+        body: JSON.stringify({ mode }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok) {
+        toast.success(mode === "purge" ? `Cleared ${data.rows} cached titles` : `Marked ${data.rows} titles stale`);
+        void fetchStats();
+      } else {
+        toast.error(data?.error ?? "Reset failed");
+      }
+    } catch { toast.error("Reset failed"); } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="p-4 rounded-lg bg-white/5 border border-white/10 flex flex-col gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h3 className="text-sm font-medium text-white">Sub/dub count cache</h3>
+          <p className="text-[11px] text-white/40 mt-0.5">
+            Episode totals from Anikoto + MegaVid. Clearing refetches on next view.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void reset("stale")}
+            disabled={busy || loading}
+            className="px-3 py-1.5 rounded-md text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 disabled:opacity-40 transition-colors"
+          >
+            Mark stale
+          </button>
+          <button
+            onClick={() => void reset("purge")}
+            disabled={busy || loading}
+            className="px-3 py-1.5 rounded-md text-xs font-medium bg-red-500/15 hover:bg-red-500/25 border border-red-400/30 text-red-300 disabled:opacity-40 transition-colors inline-flex items-center gap-1.5"
+          >
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            Reset now
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-3 text-xs text-white/50">
+        <div><span className="block text-white/80 font-medium tabular-nums">{loading ? "—" : (stats?.rows ?? 0)}</span>Cached titles</div>
+        <div><span className="block text-white/80 font-medium">{stats?.oldestFetchedAt ? new Date(stats.oldestFetchedAt).toLocaleString() : "—"}</span>Oldest</div>
+        <div><span className="block text-white/80 font-medium">{stats?.newestFetchedAt ? new Date(stats.newestFetchedAt).toLocaleString() : "—"}</span>Newest</div>
+      </div>
+    </div>
+  );
+}
+
 function ProvidersTab() {
   const [providers, setProviders] = useState<{ provider: string; totalRequests: number; successCount: number; failedCount: number; uptimePercent: number; avgResponseMs: number; lastSuccessAt: string | null; lastFailureAt: string | null; status: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -3204,6 +3275,7 @@ function ProvidersTab() {
 
   return (
     <div className="flex flex-col gap-4">
+      <AudioCacheCard />
       <h2 className="text-lg font-semibold text-white">Provider Health (24h)</h2>
       {providers.length === 0 ? (
         <p className="text-white/40 text-sm text-center py-8">No health data yet. Provider checks will be logged during streaming.</p>

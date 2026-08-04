@@ -83,6 +83,13 @@ type AudioCountCacheEntry = { exp: number; sub: number; dub: number };
 const AUDIO_COUNT_TTL_MS = 10 * 60_000;
 const audioCountCache = new Map<string, AudioCountCacheEntry>();
 
+/** Drop this process's per-provider count cache (admin cache reset). */
+export function clearAudioCountCache(): number {
+  const size = audioCountCache.size;
+  audioCountCache.clear();
+  return size;
+}
+
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
   concurrency: number,

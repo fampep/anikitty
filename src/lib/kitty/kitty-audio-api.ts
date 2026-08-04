@@ -18,6 +18,24 @@ export type KittyAudioCounts = AudioAvailability & {
   providers?: string[];
 };
 
+/**
+ * Only these providers are trusted for site-wide SUB/DUB episode totals — both
+ * report the same verified counts (One Piece 1172/1155, Death Note 37/37) while
+ * the rest of the `/audio` chain disagrees. Applies to the unscoped `/audio` and
+ * `/audio/batch` reads; a call that names a provider is a per-provider
+ * capability probe and is never filtered.
+ */
+export const AUDIO_COUNT_PROVIDER_IDS = ["Anikoto", "MegaVid"] as const;
+
+const AUDIO_COUNT_PROVIDER_SET = new Set<string>(
+  AUDIO_COUNT_PROVIDER_IDS.map((id) => id.toLowerCase()),
+);
+
+/** Breakdown keys / `source` values arrive as either the id or its slug. */
+function isAudioCountProvider(...names: (string | undefined)[]): boolean {
+  return names.some((name) => !!name && AUDIO_COUNT_PROVIDER_SET.has(name.trim().toLowerCase()));
+}
+
 function toCounts(sub: number, dub: number): AudioAvailability {
   const safeSub = Math.max(0, Math.floor(sub) || 0);
   const safeDub = Math.max(0, Math.floor(dub) || 0);
@@ -29,7 +47,11 @@ function toCounts(sub: number, dub: number): AudioAvailability {
   };
 }
 
-function parseKittyAudioBody(body: unknown, fallbackId?: number): KittyAudioCounts | null {
+function parseKittyAudioBody(
+  body: unknown,
+  fallbackId?: number,
+  opts?: { trustedProvidersOnly?: boolean },
+): KittyAudioCounts | null {
   if (!body || typeof body !== "object") return null;
   const row = body as Record<string, unknown>;
   if (typeof row.error === "string" && row.error) return null;
@@ -42,7 +64,9 @@ function parseKittyAudioBody(body: unknown, fallbackId?: number): KittyAudioCoun
   if (anilistId <= 0) return null;
 
   // Extract breakdown from per-provider data if available.
+  const trustedOnly = opts?.trustedProvidersOnly === true;
   const breakdown: Record<string, ProviderAudioCounts> = {};
+  let sawBreakdownEntry = false;
   let maxSub = 0;
   let maxDub = 0;
 
@@ -54,10 +78,13 @@ function parseKittyAudioBody(body: unknown, fallbackId?: number): KittyAudioCoun
         const sub = typeof provData.sub === "number" ? provData.sub : Number(provData.sub) || 0;
         const dub = typeof provData.dub === "number" ? provData.dub : Number(provData.dub) || 0;
         if (sub > 0 || dub > 0) {
+          sawBreakdownEntry = true;
+          const source = typeof provData.source === "string" ? provData.source : provider;
+          if (trustedOnly && !isAudioCountProvider(provider, source)) continue;
           breakdown[provider] = {
             sub: Math.max(0, Math.floor(sub) || 0),
             dub: Math.max(0, Math.floor(dub) || 0),
-            source: typeof provData.source === "string" ? provData.source : provider,
+            source,
           };
           maxSub = Math.max(maxSub, breakdown[provider].sub);
           maxDub = Math.max(maxDub, breakdown[provider].dub);
@@ -66,23 +93,47 @@ function parseKittyAudioBody(body: unknown, fallbackId?: number): KittyAudioCoun
     }
   }
 
+  // A breakdown that only lists untrusted providers yields no counts at all —
+  // the top-level totals are the same untrusted numbers aggregated.
+  if (trustedOnly && sawBreakdownEntry && maxSub === 0 && maxDub === 0) return null;
+
+  const topLevelProvider = typeof row.provider === "string" ? row.provider : undefined;
+  const topLevelSource = typeof row.source === "string" ? row.source : undefined;
+  // Flat response (no breakdown): trust it only when it names a trusted provider.
+  if (
+    trustedOnly &&
+    !sawBreakdownEntry &&
+    (topLevelProvider || topLevelSource) &&
+    !isAudioCountProvider(topLevelProvider, topLevelSource)
+  ) {
+    return null;
+  }
+
+  // Trusted breakdown wins outright — never top up a missing sub/dub side from
+  // the aggregated top-level numbers, which include every other provider.
+  const useBreakdownOnly = trustedOnly && sawBreakdownEntry;
   // Fall back to top-level counts if no breakdown.
-  let sub = maxSub || (typeof row.sub === "number" ? row.sub : Number(row.sub));
-  let dub = maxDub || (typeof row.dub === "number" ? row.dub : Number(row.dub));
+  let sub = useBreakdownOnly
+    ? maxSub
+    : maxSub || (typeof row.sub === "number" ? row.sub : Number(row.sub));
+  let dub = useBreakdownOnly
+    ? maxDub
+    : maxDub || (typeof row.dub === "number" ? row.dub : Number(row.dub));
 
   if (!Number.isFinite(sub) && !Number.isFinite(dub)) return null;
   const counts = toCounts(sub || 0, dub || 0);
   if (!counts.hasSub && !counts.hasDub) return null;
 
-  const providers = Array.isArray(row.providers)
-    ? (row.providers as unknown[]).map(String).filter(Boolean)
-    : Object.keys(breakdown);
+  const providers =
+    !useBreakdownOnly && Array.isArray(row.providers)
+      ? (row.providers as unknown[]).map(String).filter(Boolean)
+      : Object.keys(breakdown);
 
   return {
     anilistId,
     ...counts,
-    provider: typeof row.provider === "string" ? row.provider : undefined,
-    source: typeof row.source === "string" ? row.source : undefined,
+    provider: topLevelProvider,
+    source: topLevelSource,
     breakdown: Object.keys(breakdown).length > 0 ? breakdown : undefined,
     providers: providers.length > 0 ? providers : undefined,
   };
@@ -108,7 +159,11 @@ export function buildKittyAudioBatchPath(ids: number[], refresh = false): string
   return `/audio/batch?${params.toString()}`;
 }
 
-/** Single-title SUB/DUB episode totals from KittyAPI auto provider chain. */
+/**
+ * Single-title SUB/DUB episode totals from KittyAPI.
+ * Unscoped calls are restricted to {@link AUDIO_COUNT_PROVIDER_IDS}; passing an
+ * explicit `provider` probes that provider and keeps its own numbers.
+ */
 export async function fetchKittyAudio(opts: {
   anilistId: number;
   provider?: string;
@@ -125,13 +180,15 @@ export async function fetchKittyAudio(opts: {
     });
     if (!res.ok) return null;
     const body = await res.json().catch(() => null);
-    return parseKittyAudioBody(body, opts.anilistId);
+    return parseKittyAudioBody(body, opts.anilistId, {
+      trustedProvidersOnly: !opts.provider?.trim(),
+    });
   } catch {
     return null;
   }
 }
 
-/** Batch SUB/DUB totals keyed by AniList id. */
+/** Batch SUB/DUB totals keyed by AniList id — {@link AUDIO_COUNT_PROVIDER_IDS} only. */
 export async function fetchKittyAudioBatch(
   ids: number[],
   opts?: { refresh?: boolean; timeoutMs?: number },
@@ -157,7 +214,7 @@ export async function fetchKittyAudioBatch(
       if (!results || typeof results !== "object") continue;
       for (const [key, value] of Object.entries(results)) {
         const id = Number(key);
-        const parsed = parseKittyAudioBody(value, id);
+        const parsed = parseKittyAudioBody(value, id, { trustedProvidersOnly: true });
         if (parsed) out.set(parsed.anilistId, parsed);
       }
     } catch {

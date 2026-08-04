@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db";
 import { animeAudioAvailability } from "@/db/schema";
 import type { AudioAvailability } from "@/lib/providers/anikoto-availability";
@@ -184,6 +184,59 @@ export async function getStoredAudioAvailability(
   } catch {
     return null;
   }
+}
+
+/** Row count + freshness for the admin cache panel. */
+export async function getAudioCacheStats(): Promise<{
+  rows: number;
+  oldestFetchedAt: string | null;
+  newestFetchedAt: string | null;
+} | null> {
+  if (!dbAvailable()) return null;
+
+  try {
+    const db = getDb();
+    const [row] = await db
+      .select({
+        rows: sql<number>`count(*)::int`,
+        oldest: sql<Date | null>`min(${animeAudioAvailability.fetchedAt})`,
+        newest: sql<Date | null>`max(${animeAudioAvailability.fetchedAt})`,
+      })
+      .from(animeAudioAvailability);
+
+    return {
+      rows: row?.rows ?? 0,
+      oldestFetchedAt: row?.oldest ? new Date(row.oldest).toISOString() : null,
+      newestFetchedAt: row?.newest ? new Date(row.newest).toISOString() : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Wipe cached sub/dub counts so every title refetches on next request.
+ * `mode: "stale"` keeps the rows but backdates them — the old numbers are
+ * served once more per title while a background refresh rewrites them.
+ */
+export async function resetAudioCache(
+  mode: "purge" | "stale" = "purge",
+): Promise<{ rows: number } | null> {
+  if (!dbAvailable()) return null;
+
+  const db = getDb();
+  if (mode === "stale") {
+    const rows = await db
+      .update(animeAudioAvailability)
+      .set({ fetchedAt: new Date(0) })
+      .returning({ anilistId: animeAudioAvailability.anilistId });
+    return { rows: rows.length };
+  }
+
+  const rows = await db
+    .delete(animeAudioAvailability)
+    .returning({ anilistId: animeAudioAvailability.anilistId });
+  return { rows: rows.length };
 }
 
 export type StoreAudioMeta = {

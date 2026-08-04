@@ -148,6 +148,13 @@ function remember(anilistId: number, value: AudioAvailability, ctx: AudioCacheCo
   }
 }
 
+/** Drop this process's cached counts (admin cache reset). */
+export function clearAudioMemoryCache(): number {
+  const size = memoryCache.size;
+  memoryCache.clear();
+  return size;
+}
+
 function memoryIsFresh(entry: MemoryEntry, ctx: AudioCacheContext): boolean {
   return !isAudioCacheStale(
     {
@@ -394,8 +401,9 @@ export type AnimeListAudioItem = {
 const LIST_REFRESH_BUDGET = 12;
 
 /**
- * Aggregate true counts across all available providers.
- * Takes the maximum sub/dub from any provider (each might specialize).
+ * Aggregate true counts across the breakdown KittyAPI returned. The unscoped
+ * `/audio` reads already filter it to AUDIO_COUNT_PROVIDER_IDS, so this is the
+ * max sub/dub of Anikoto and MegaVid (each might specialize).
  */
 function aggregateProviderCounts(
   breakdown?: Record<string, { sub: number; dub: number; source: string }>,
