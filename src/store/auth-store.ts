@@ -43,10 +43,21 @@ export const useAuthStore = create<IAuthStore>()(
 
 /** Subscribe so components re-render once persist finishes hydrating. */
 export function useAuthHydrated() {
-  const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
+  // `persist` is absent in the SSR bundle, so read it defensively — otherwise
+  // the initialiser throws during server render and the tree falls back to
+  // client-only rendering. Server always reports false, which also keeps the
+  // first client paint identical and avoids a hydration mismatch.
+  const [hydrated, setHydrated] = useState(
+    () => useAuthStore.persist?.hasHydrated() ?? false,
+  );
   useEffect(() => {
-    setHydrated(useAuthStore.persist.hasHydrated());
-    return useAuthStore.persist.onFinishHydration(() => setHydrated(true));
+    const persist = useAuthStore.persist;
+    if (!persist) {
+      setHydrated(true);
+      return;
+    }
+    setHydrated(persist.hasHydrated());
+    return persist.onFinishHydration(() => setHydrated(true));
   }, []);
   return hydrated;
 }

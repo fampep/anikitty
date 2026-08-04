@@ -74,7 +74,7 @@ export default function HomeAmbientBackdrop({
         "pointer-events-none overflow-hidden",
         isPage
           ? "absolute inset-x-0 top-0 -z-10 h-[min(100%,720px)] min-h-[min(70dvh,640px)]"
-          : "absolute inset-x-0 top-0 -z-10 h-[min(var(--home-hero-max-h),560px)]",
+          : "home-hero-bleed absolute inset-x-0 -z-10",
         className,
       )}
       aria-hidden

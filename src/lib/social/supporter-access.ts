@@ -8,6 +8,10 @@ import {
   STAFF_ROLES,
 } from "@/lib/social/donation-config";
 import {
+  hasActiveDonatorStatus,
+  parseSupporterUntil,
+} from "@/lib/social/supporter-status";
+import {
   isBuiltinRole,
 } from "@/lib/security/permissions";
 import {
@@ -46,26 +50,8 @@ export type KofiWebhookResult =
   | { granted: true; userId: string; daysAdded: number; supporterUntil: string }
   | { granted: false; reason: string };
 
-function parseSupporterUntil(
-  value?: Date | string | null,
-): Date | null {
-  if (value == null) return null;
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value;
-  }
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-export function hasActiveDonatorStatus(
-  role?: string | null,
-  supporterUntil?: Date | string | null,
-): boolean {
-  if (role !== DONATOR_ROLE) return false;
-  const until = parseSupporterUntil(supporterUntil);
-  if (!until) return true;
-  return until.getTime() > Date.now();
-}
+// Re-exported so existing server-side callers keep their import path.
+export { hasActiveDonatorStatus, parseSupporterUntil };
 
 export function extendSupporterUntilByDays(
   current: Date | null | undefined,

@@ -14,12 +14,10 @@ html {
   /* Instant scrolling — global `smooth` fights wheel/trackpad and layout shifts
      (LazyMount, sticky nav, images), which feels like bounce-back-up. */
   scroll-behavior: auto;
-  --nav-height: 4rem;
+  /* Navigation lives in the floating bottom pill, so nothing is docked at the
+     top any more — page content starts flush and reserves no strip for it. */
+  --nav-height: 0rem;
   --nav-total-height: calc(var(--nav-height) + env(safe-area-inset-top, 0px));
-  /* Floating pill nav: gap above the pill, and the pill's own bar height.
-     Both derive from --nav-height so every existing top offset still holds. */
-  --nav-float: 0.4rem;
-  --nav-bar-h: calc(var(--nav-height) - var(--nav-float) - 0.25rem);
   --mobile-nav-height: 3.5rem;
   --mobile-nav-total: calc(var(--mobile-nav-height) + max(0.625rem, env(safe-area-inset-bottom)));
   --banner-offset: 0px;
@@ -591,7 +589,6 @@ html[data-surface="custom"].dark body::before {
 }
 
 html.density-compact {
-  --nav-height: 3.25rem;
   --home-section-gap: 1.5rem;
   --home-hero-max-h: 420px;
   --site-section-gap: 0.75rem;
@@ -635,11 +632,60 @@ html.density-compact .site-bottom-nav {
   .site-header-pill {
     @apply rounded-full border border-border/60 bg-background/90 backdrop-blur-xl;
     @apply dark:border-white/[0.12] dark:bg-[#08080c]/90;
-    /* Floor keeps the pill comfortable where --nav-height is compact. */
-    height: max(2.85rem, var(--nav-bar-h));
+    height: var(--nav-bar-h);
+    animation: site-header-pill-in 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform;
+    transition:
+      background-color 260ms ease,
+      border-color 260ms ease,
+      box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 260ms ease,
+      transform 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-header-pill:hover {
+    @apply border-border/80 dark:border-white/[0.18];
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+      0 16px 46px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Slides away on scroll-down, returns on scroll-up. */
+  .site-header-pill[data-hidden] {
+    transform: translateY(calc(-100% - var(--nav-float) - 0.75rem));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Lifts and tightens once the page scrolls under it. */
+  .site-header-pill[data-scrolled] {
+    @apply border-border/80 bg-background/95 dark:border-white/[0.16] dark:bg-[#08080c]/95;
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+      0 14px 44px rgba(0, 0, 0, 0.42);
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.1),
       0 10px 36px rgba(0, 0, 0, 0.28);
+  }
+
+  /* The floating pill overlays the page, so the hero art runs to the very top
+     instead of leaving a black band where the old solid bar reserved space. */
+  .home-hero-bleed {
+    --home-hero-bleed-up: calc(var(--nav-total-height) + var(--banner-offset));
+    top: calc(-1 * var(--home-hero-bleed-up));
+    height: calc(min(var(--home-hero-max-h), 560px) + var(--home-hero-bleed-up));
+  }
+
+  /* Pill entrance — settles in from just above on first paint. */
+  @keyframes site-header-pill-in {
+    from {
+      opacity: 0;
+      transform: translateY(-0.6rem) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   /* The field animates its own width; the w-fit pill grows along with it. */
@@ -647,6 +693,76 @@ html.density-compact .site-bottom-nav {
     transition:
       width 300ms cubic-bezier(0.22, 1, 0.36, 1),
       opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Search lives in the bottom pill, so its results must open upward —
+     the default `top: 100% + 8px` would render them off the bottom edge. */
+  .site-bottom-search [class*="top-[calc(100%"] {
+    top: auto !important;
+    bottom: calc(100% + 10px);
+  }
+
+  .site-bottom-tabs {
+    transition:
+      opacity 200ms ease,
+      width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      flex-grow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* The icon swaps element on toggle, so ease the new one in. */
+  @keyframes site-bottom-icon-swap {
+    from {
+      opacity: 0;
+      transform: scale(0.7) rotate(-35deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .site-bottom-tab svg {
+    animation: site-bottom-icon-swap 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .site-bottom-tab {
+    transition:
+      background-color 180ms ease,
+      color 180ms ease,
+      transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-bottom-tab:active {
+    transform: scale(0.92);
+  }
+
+  .site-bottom-shell {
+    transition: max-width 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-bottom-tabs,
+    .site-bottom-search,
+    .site-bottom-tab,
+    .site-bottom-shell,
+    .site-bottom-nav {
+      transition-duration: 1ms;
+    }
+    .site-bottom-tab svg {
+      animation: none;
+    }
+    .site-bottom-nav:hover,
+    .site-bottom-nav[data-search-open] {
+      transform: none;
+    }
+  }
+
+  /* Links collapse rather than snap out when the field takes the room. */
+  .site-header-links {
+    transition:
+      opacity 200ms ease,
+      width 320ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .site-header-link,
@@ -664,14 +780,83 @@ html.density-compact .site-bottom-nav {
   @media (prefers-reduced-motion: reduce) {
     .site-header-search,
     .site-header-link,
-    .site-header-icon {
+    .site-header-icon,
+    .site-header-pill {
       transition-duration: 1ms;
+    }
+    .site-header-pill {
+      animation: none;
     }
   }
 
   .site-bottom-nav {
     @apply rounded-full border border-border/50 bg-background/95 shadow-[0_4px_24px_rgba(0,0,0,0.18)];
     @apply dark:border-white/10 dark:bg-background/95 dark:shadow-[0_8px_32px_rgba(0,0,0,0.55)];
+    will-change: transform;
+    transition:
+      border-color 260ms ease,
+      background-color 260ms ease,
+      transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Rises to meet the pointer. */
+  .site-bottom-nav:hover {
+    @apply border-border/80 dark:border-white/20;
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
+      0 14px 40px rgba(0, 0, 0, 0.34);
+  }
+
+  .dark .site-bottom-nav:hover {
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+      0 18px 52px rgba(0, 0, 0, 0.68);
+  }
+
+  /* Settles a touch higher and brighter while the field is open. */
+  .site-bottom-nav[data-search-open] {
+    @apply border-primary/30 dark:border-white/25;
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+      0 20px 56px rgba(0, 0, 0, 0.42);
+  }
+
+  .dark .site-bottom-nav[data-search-open] {
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+      0 22px 64px rgba(0, 0, 0, 0.72);
+  }
+
+  /* Field fades and lifts into place rather than simply unhiding. */
+  .site-bottom-search {
+    transform: translateY(4px);
+    transition:
+      opacity 240ms ease,
+      width 340ms cubic-bezier(0.22, 1, 0.36, 1),
+      flex-grow 340ms cubic-bezier(0.22, 1, 0.36, 1),
+      transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .site-bottom-nav[data-search-open] .site-bottom-search {
+    transform: none;
+  }
+
+  .site-bottom-search input {
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .site-bottom-search:hover input {
+    @apply border-border/80 dark:border-white/20;
+  }
+
+  .site-bottom-nav[data-search-open] .site-bottom-tabs {
+    transform: translateX(-6px);
   }
 
   .site-panel {

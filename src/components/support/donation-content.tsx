@@ -27,7 +27,7 @@ import {
   kofiDonationUrlForUsername,
   siteOwnerDmHref,
 } from "@/lib/social/donation-config";
-import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";
+import { hasActiveDonatorStatus } from "@/lib/social/supporter-status";
 import { useAuthStore } from "@/store/auth-store";
 import { authFromMeResponse } from "@/lib/oauth/account";
 import { withAuth } from "@/lib/auth/auth-fetch";
