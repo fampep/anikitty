@@ -135,6 +135,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-teal-400",
     glow: "from-teal-500/20",
   },
+  MegaVid: {
+    chip: "border-blue-400/30 bg-blue-500/10 text-blue-100/90",
+    pillActive: "border-blue-400/45 bg-blue-500/20 text-blue-50 shadow-[0_0_12px_-4px_rgba(96,165,250,0.35)]",
+    pillIdle: "border-transparent text-blue-300/45 hover:text-blue-200/80 hover:bg-blue-500/[0.06]",
+    dot: "bg-blue-400",
+    glow: "from-blue-500/20",
+  },
   AnimeGG: {
     chip: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100/90",
     pillActive: "border-emerald-400/45 bg-emerald-500/20 text-emerald-50 shadow-[0_0_12px_-4px_rgba(52,211,153,0.35)]",

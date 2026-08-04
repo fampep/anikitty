@@ -82,6 +82,10 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("AnimeGG");
         continue;
       }
+      if (item === "MegaVid" || item === "Mike") {
+        push("MegaVid");
+        continue;
+      }
       if (
         item === "Lunar" ||
         item === "Luna" ||

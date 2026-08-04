@@ -528,7 +528,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 108,
+      version: 109,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1322,6 +1322,10 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 108) {
           // Golf (AnimeGG) joins Recommended — saved orders dropped it while retired.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+        }
+        if (version < 109) {
+          // Mike (MegaVid) joins Recommended as #3 — reseed so saved orders pick it up.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
         }
         return next as ISettingsStore;

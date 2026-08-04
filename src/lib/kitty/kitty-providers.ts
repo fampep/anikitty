@@ -13,6 +13,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniWatch",
   "AniBD",
   "Anikoto",
+  "MegaVid",
   "Animeya",
   "AniVibe",
   "AniDelta",
@@ -71,16 +72,17 @@ export const KITTY_PROVIDERS = [
   "KickAssAnime",
   "Miruro",
   "AnimeGG",
+  "MegaVid",
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 12;
+export const RECOMMENDED_PROVIDER_COUNT = 13;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 108;
+export const PROVIDER_ORDER_SYNC_VERSION = 109;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -271,6 +273,19 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs · first stream wins",
   },
   {
+    id: "MegaVid",
+    label: "Mike",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    // stream-direct returns distinct SUB / DUB sources plus one subtitle track.
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · soft subs",
+  },
+  {
     id: "AnimeGG",
     label: "Golf",
     group: "featured",
@@ -285,13 +300,14 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
- * tries these before anything else. All twelve are Recommended:
- * 1 Delta, 2 Echo (Miruro), 3 Uniform (KickAssAnime), 4 Neko, 5 Kilo, 6 Vibe,
- * 7 Waves (AniWaves), 8 Senshi, 9 Mkissa, 10 Alpha, 11 Sierra, 12 Golf
- * (AnimeGG). Juliet (AniWatch) retired from Recommended. */
+ * tries these before anything else. All thirteen are Recommended:
+ * 1 Delta, 2 Echo (Miruro), 3 Mike (MegaVid), 4 Uniform (KickAssAnime), 5 Neko,
+ * 6 Kilo, 7 Vibe, 8 Waves (AniWaves), 9 Senshi, 10 Mkissa, 11 Alpha,
+ * 12 Sierra, 13 Golf (AnimeGG). Juliet (AniWatch) retired from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "Miruro",
+  "MegaVid",
   "KickAssAnime",
   "AniNeko",
   "Anikoto",
@@ -350,6 +366,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniWaves",
   "Senshi",
   "Miruro",
+  "MegaVid",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -374,6 +391,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return DEFAULT_KITTY_PROVIDER;
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
   if (value === "Golf" || value === "AnimeGG") return "AnimeGG";
+  if (value === "Mike" || value === "MegaVid") return "MegaVid";
   if (value === "Heaven" || value === "AnimeHeaven") return DEFAULT_KITTY_PROVIDER;
   if (value === "Megu" || value === "MeguAnimes" || value === "MeguAnime") return DEFAULT_KITTY_PROVIDER;
   if (value === "Ya" || value === "VidNest" || value === "Mp4Upload" || value === "MP4Upload") {
