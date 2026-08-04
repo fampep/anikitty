@@ -15,6 +15,7 @@ import WatchPanelSheet from "@/components/watch/watch-panel-sheet";
 import WatchQuickNav from "@/components/watch/watch-quick-nav";
 import WatchStatsPanel from "@/components/watch/watch-stats-panel";
 import WatchEpisodeInfo from "@/components/watch/watch-episode-info";
+import WatchRelatedSidebar from "@/components/watch/watch-related-sidebar";
 import { WatchPageProvider } from "@/components/watch/watch-page-context";
 import { CommentScopeTabs, type CommentScope } from "@/components/comments/comment-scope-tabs";
 import AnimeClearLogo from "@/components/anime/anime-clear-logo";
@@ -39,6 +40,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IAnime } from "@/types/anime";
+import type { RecommendedAnime, RelatedAnime } from "@/types/anime-details";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { accountContinue } from "@/lib/oauth/account";
 import { useAuthStore } from "@/store/auth-store";
@@ -745,11 +747,12 @@ const Layout = (props: Props) => {
 
         </div>
 
-        {/* Right sidebar: episodes (desktop) — Default & Compact */}
+        {/* Right rail: episodes + related (desktop) — Default & Compact */}
         {showSideSidebar && (
+          <div className="hidden lg:flex flex-col gap-3 min-w-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start">
           <aside
             className={cn(
-              "watch-sidebar relative hidden lg:flex flex-col gap-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start lg:max-h-[calc(100vh-var(--nav-total-height)-1rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
+              "watch-sidebar relative flex flex-col gap-0 lg:max-h-[min(62vh,34rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
               isCompactLayout && "watch-sidebar--compact",
               isDefaultLayout && "rounded-xl border-border/50 dark:border-white/[0.07]",
               sidebarCollapsed && "items-center px-1 py-2",
@@ -818,11 +821,20 @@ const Layout = (props: Props) => {
               </>
             )}
           </aside>
+
+          {!sidebarCollapsed && hasRelated && (
+            <WatchRelatedSidebar
+              relatedAnimes={relatedAnimes as RelatedAnime[]}
+              recommendedAnimes={recommendedAnimes as RecommendedAnime[]}
+            />
+          )}
+          </div>
         )}
       </div>
 
       {/* ── Full-width sections below the player ── */}
-      {!theatreMode && hasRelated && (
+      {/* Sidebar rail already carries these on Default/Compact — avoid duplicating. */}
+      {!theatreMode && hasRelated && !showSideSidebar && (
       <div className="mt-7 sm:mt-9 space-y-6 border-t border-border/50 dark:border-white/[0.05] pt-6 sm:pt-8 hidden lg:block">
           <section id="watch-tab-related" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-5">
             {relatedAnimes.length > 0 && (
