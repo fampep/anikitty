@@ -351,13 +351,12 @@ function LoginPopoverButton({
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
               {t("auth.signInSubmit")}
             </button>
-            {(passkeySupported || discordEnabled) && (
-              <>
-                <div className="flex items-center gap-3 py-1">
-                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
-                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-                </div>
+            <>
+              <div className="flex items-center gap-3 py-1">
+                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+                <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
+                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+              </div>
                 {passkeySupported && (
                   <button
                     type="button"
@@ -389,8 +388,7 @@ function LoginPopoverButton({
                     {t("auth.continueWithDiscord")}
                   </button>
                 )}
-              </>
-            )}
+            </>
           </div>
         )}
 
