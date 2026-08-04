@@ -111,12 +111,21 @@ export default function MobileBottomNav() {
 
   useEffect(() => {
     if (!searchOpen) return;
-    searchRef.current?.querySelector("input")?.focus();
+    // The panel is still `visibility: hidden` this commit, and a hidden
+    // element cannot take focus. A timeout rather than rAF so the focus
+    // survives React's dev double-invoke of this effect, and any focus the
+    // browser hands to the toggle button after a real click.
+    const focusTimer = window.setTimeout(() => {
+      searchRef.current?.querySelector("input")?.focus();
+    }, 80);
     const onPointerDown = (e: PointerEvent) => {
       if (!pillRef.current?.contains(e.target as Node)) setSearchOpen(false);
     };
     document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
   }, [searchOpen]);
 
   useEffect(() => {
@@ -140,42 +149,37 @@ export default function MobileBottomNav() {
         <div
           className={cn(
             "site-bottom-shell mx-auto px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))]",
-            searchOpen ? "max-w-2xl" : "max-w-md sm:max-w-lg",
+            searchOpen ? "max-w-xl" : "max-w-md sm:max-w-lg",
           )}
         >
-          <div
-            ref={pillRef}
-            data-search-open={searchOpen || undefined}
-            className="site-bottom-nav pointer-events-auto flex items-center gap-1 px-2 py-1.5"
-          >
-            {/* Tabs collapse to make room for the field. */}
+          <div ref={pillRef} className="relative">
+            {/* Pops out above the pill rather than growing inside it. */}
             <div
-              className={cn(
-                "site-bottom-tabs flex min-w-0 items-center gap-1 overflow-hidden",
-                searchOpen ? "w-0 opacity-0" : "flex-1 opacity-100",
-              )}
+              ref={searchRef}
+              data-open={searchOpen || undefined}
+              aria-hidden={!searchOpen}
+              className="site-search-pop absolute inset-x-0 bottom-[calc(100%+0.7rem)] z-10"
             >
-              {PRIMARY_TABS.map(({ href, icon, labelKey, match }) => (
-                <BottomNavTab
-                  key={href}
-                  href={href}
-                  label={t(labelKey)}
-                  icon={icon}
-                  active={match(pathname)}
-                />
-              ))}
+              <div className="site-search-pop-card rounded-2xl p-1.5">
+                <SearchBar dropUp className="w-full" onAnimeClick={closeSearch} />
+              </div>
             </div>
 
             <div
-              ref={searchRef}
-              aria-hidden={!searchOpen}
-              className={cn(
-                "site-bottom-search min-w-0 overflow-visible",
-                searchOpen ? "flex-1 opacity-100" : "w-0 flex-none opacity-0",
-              )}
+              data-search-open={searchOpen || undefined}
+              className="site-bottom-nav pointer-events-auto flex items-center gap-1 px-2 py-1.5"
             >
-              <SearchBar className="w-full" onAnimeClick={closeSearch} />
-            </div>
+              <div className="site-bottom-tabs flex min-w-0 flex-1 items-center gap-1">
+                {PRIMARY_TABS.map(({ href, icon, labelKey, match }) => (
+                  <BottomNavTab
+                    key={href}
+                    href={href}
+                    label={t(labelKey)}
+                    icon={icon}
+                    active={match(pathname)}
+                  />
+                ))}
+              </div>
 
             <div className="ml-auto flex flex-none items-center gap-0.5">
               <BottomNavTab
@@ -213,6 +217,7 @@ export default function MobileBottomNav() {
                   </button>
                 }
               />
+            </div>
             </div>
           </div>
         </div>

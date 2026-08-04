@@ -40,12 +40,15 @@ const SearchBar = ({
   autoFocus,
   defaultValue = "",
   onSubmitQuery,
+  dropUp = false,
 }: {
   className?: string;
   onAnimeClick?: () => void;
   autoFocus?: boolean;
   defaultValue?: string;
   onSubmitQuery?: (query: string) => void;
+  /** Open results above the field — for bottom-anchored callers. */
+  dropUp?: boolean;
 }) => {
   const t = useT();
   const [searchValue, setSearchValue] = useState(defaultValue);
@@ -275,7 +278,10 @@ const SearchBar = ({
         <div
           id={listboxId}
           role="listbox"
-          className="absolute top-[calc(100%+8px)] left-0 z-50 max-h-[70vh] overflow-y-auto overscroll-contain w-full rounded-2xl border border-border dark:border-white/[0.08] bg-[#09090b] shadow-[0_16px_48px_rgba(0,0,0,0.7)]"
+          className={cn(
+            "absolute left-0 z-50 max-h-[70vh] overflow-y-auto overscroll-contain w-full rounded-2xl border border-border dark:border-white/[0.08] bg-[#09090b] shadow-[0_16px_48px_rgba(0,0,0,0.7)]",
+            dropUp ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
+          )}
         >
           {isLoading && (
             <div className="flex flex-col gap-0 p-2">
