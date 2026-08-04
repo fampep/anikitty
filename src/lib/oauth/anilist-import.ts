@@ -74,7 +74,7 @@ async function searchKittyForAnilistId(
       });
       if (match) {
         return {
-          id: String(anilistId),
+          id: String(match.id ?? match.animeId ?? anilistId),
           title: match.title ?? match.name ?? title,
           poster: match.poster ?? match.image,
           anilistId,
