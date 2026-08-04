@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
-import { verifyOAuthStateFor, signToken } from "@/lib/auth/auth-jwt";
+import { verifyOAuthStateFor, sign2faPendingToken } from "@/lib/auth/auth-jwt";
 import { getAniListViewer } from "@/lib/oauth/anilist-sync";
+import { buildAuthResponse } from "@/lib/auth/auth-response";
+import { redirectWithAuthCookie } from "@/lib/auth/auth-cookie";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
-import { createSession } from "@/lib/user/user-sessions";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { isUserBanned } from "@/lib/security/moderation";
+import { shouldPromptForTwoFactor } from "@/lib/auth/totp-reactive";
 
 const ANILIST_AUTHORIZE = "https://anilist.co/api/v2/oauth/authorize";
 const ANILIST_TOKEN = "https://anilist.co/api/v2/oauth/token";
@@ -142,17 +145,22 @@ export async function completeAniListOAuth(
   code: string,
   state: string,
   req: Request,
-): Promise<{ status: "connected" | "logged_in" | "error"; userId?: string }> {
+): Promise<
+  | { type: "success"; token: string }
+  | { type: "2fa"; pendingToken: string }
+  | { type: "link"; userId: string }
+  | { type: "error"; reason: string }
+> {
   const statePayload = await verifyOAuthStateFor(state, "anilist_oauth");
-  if (!statePayload) return { status: "error" };
+  if (!statePayload) return { type: "error", reason: "invalid_state" };
 
   try {
     const redirectUri = getAniListRedirectUri(req);
     const accessToken = await exchangeAniListCode(code, redirectUri);
-    if (!accessToken) return { status: "error" };
+    if (!accessToken) return { type: "error", reason: "token_exchange" };
 
     const viewer = await getAniListViewer(accessToken);
-    if (!viewer) return { status: "error" };
+    if (!viewer) return { type: "error", reason: "user_fetch" };
 
     const db = getDb();
 
@@ -166,73 +174,63 @@ export async function completeAniListOAuth(
           anilistUsername: viewer.name,
         })
         .where(eq(users.id, statePayload.userId));
-      return { status: "connected", userId: statePayload.userId };
+      return { type: "link", userId: statePayload.userId };
     }
 
     // For login: find or create user from AniList data
     const result = await findOrCreateUserFromAniList(viewer, accessToken);
-    if (!result) return { status: "error" };
+    if (!result) return { type: "error", reason: "user_creation" };
 
-    return { status: "logged_in", userId: result.user.id };
+    const { user } = result;
+
+    // Check if user is banned
+    if (isUserBanned(user)) {
+      return { type: "error", reason: "banned" };
+    }
+
+    // Check if 2FA is required
+    if (await shouldPromptForTwoFactor(user.id, user.totpEnabled, user.totpSecret)) {
+      const pendingToken = await sign2faPendingToken(user.id);
+      return { type: "2fa", pendingToken };
+    }
+
+    // Build auth response (creates session, issues token)
+    const authData = await buildAuthResponse(user, req);
+    return { type: "success", token: authData.token };
   } catch (e) {
     console.error("[anilist oauth callback]", e);
-    return { status: "error" };
+    return { type: "error", reason: "server" };
   }
 }
 
-export async function anilistSettingsRedirect(req: Request, result: { status: "connected" | "logged_in" | "error"; userId?: string }) {
+export function anilistLoginErrorRedirect(req: Request, reason: string) {
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ??
     req.headers.get("origin") ??
     new URL(req.url).origin;
-  const { status, userId } = result;
+  return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?anilist=${reason}`);
+}
 
-  // Redirect login flow to home with session, linking flow to settings
-  if (status === "logged_in" && userId) {
-    try {
-      const db = getDb();
-      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (user.length === 0) {
-        console.error("[anilist login] User not found after creation", { userId });
-        return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=user_not_found`);
-      }
+export function anilistLoginSuccessRedirect(req: Request, token: string) {
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    req.headers.get("origin") ??
+    new URL(req.url).origin;
+  return redirectWithAuthCookie(`${origin.replace(/\/$/, "")}/home?anilist=welcome`, token);
+}
 
-      const userData = user[0];
-      const session = await createSession(userId, req);
-      if (!session?.id) {
-        console.error("[anilist login] Session creation failed", { userId });
-        return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=session_failed`);
-      }
+export function anilist2faRedirect(req: Request, pendingToken: string) {
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    req.headers.get("origin") ??
+    new URL(req.url).origin;
+  return NextResponse.redirect(`${origin.replace(/\/$/, "")}/auth/2fa?token=${encodeURIComponent(pendingToken)}`);
+}
 
-      const token = await signToken({
-        userId: userData.id,
-        username: userData.username,
-        role: userData.role || "user",
-        sessionId: session.id,
-      });
-
-      const response = NextResponse.redirect(`${origin.replace(/\/$/, "")}/home`);
-      response.cookies.set({
-        name: "auth-token",
-        value: token,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 30 * 24 * 60 * 60,
-      });
-
-      console.log("[anilist login] Successful login", { userId, username: userData.username });
-      return response;
-    } catch (e) {
-      console.error("[anilist login redirect]", e);
-      return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=session_failed`);
-    }
-  }
-
-  if (status === "error") {
-    console.error("[anilist oauth] OAuth flow failed");
-    return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=anilist_failed`);
-  }
-
+export function anilistLinkRedirect(req: Request, status: "connected" | "error") {
+  const origin =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    req.headers.get("origin") ??
+    new URL(req.url).origin;
   return NextResponse.redirect(`${origin.replace(/\/$/, "")}/settings?anilist=${status}`);
 }
