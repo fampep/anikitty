@@ -309,7 +309,10 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
       {/* List View */}
       {!isLoading && visible && visible.length > 0 && viewMode === "list" && (
         <div className="space-y-1 mb-4">
-          {visible.map((bookmark) => (
+          {visible.map((bookmark) => {
+            const title = bookmark.animeTitle || bookmark.anime?.title?.english || bookmark.anime?.title?.romaji || "Unknown";
+            const addedDate = bookmark.addedAt ? new Date(bookmark.addedAt).toLocaleDateString() : "—";
+            return (
             <div
               key={bookmark.animeId}
               className={cn(
@@ -338,9 +341,9 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
               )}
 
               <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded bg-muted/40 dark:bg-white/[0.04]">
-                {bookmark.thumbnail ? (
+                {bookmark.thumbnail || bookmark.anime?.cover_image?.large ? (
                   <Image
-                    src={bookmark.thumbnail}
+                    src={bookmark.thumbnail || bookmark.anime?.cover_image?.large || ""}
                     alt=""
                     fill
                     sizes="36px"
@@ -355,13 +358,10 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
                 className="flex-1 min-w-0 group"
               >
                 <p className="truncate text-sm font-medium text-foreground/90 dark:text-white/80 group-hover:text-primary">
-                  {bookmark.animeTitle}
+                  {title}
                 </p>
                 <p className="text-[11px] text-muted-foreground dark:text-white/40">
-                  Added{" "}
-                  {bookmark.created
-                    ? new Date(bookmark.created).toLocaleDateString()
-                    : "—"}
+                  Added {addedDate}
                 </p>
               </Link>
 
@@ -390,14 +390,17 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* Grid View */}
       {!isLoading && visible && visible.length > 0 && viewMode === "grid" && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mb-4">
-          {visible.map((bookmark) => (
+          {visible.map((bookmark) => {
+            const title = bookmark.animeTitle || bookmark.anime?.title?.english || bookmark.anime?.title?.romaji || "Unknown";
+            return (
             <div
               key={bookmark.animeId}
               className={cn(
@@ -430,9 +433,9 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
                 className="flex flex-col gap-1.5 group cursor-pointer"
               >
                 <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted/40 dark:bg-white/[0.04]">
-                  {bookmark.thumbnail ? (
+                  {bookmark.thumbnail || bookmark.anime?.cover_image?.large ? (
                     <Image
-                      src={bookmark.thumbnail}
+                      src={bookmark.thumbnail || bookmark.anime?.cover_image?.large || ""}
                       alt=""
                       fill
                       sizes="120px"
@@ -448,7 +451,7 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
                   )}
                 </div>
                 <p className="line-clamp-2 text-[11px] font-medium text-foreground/85 dark:text-white/75">
-                  {bookmark.animeTitle}
+                  {title}
                 </p>
               </Link>
 
@@ -462,7 +465,8 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
                 </button>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
