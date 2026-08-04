@@ -8,6 +8,7 @@ import { Loader2, LogIn, UserPlus, ShieldCheck, Fingerprint } from "lucide-react
 import { accountAuth, authFromMeResponse } from "@/lib/oauth/account";
 import { useT } from "@/providers/i18n-provider";
 import { DiscordIcon } from "@/components/auth/discord-connect";
+import AnilistIcon from "@/icons/anilist";
 import { useDiscordAuthEnabled } from "@/hooks/use-discord-auth-enabled";
 import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 import { RecoveryCodesReveal } from "@/components/auth/recovery-codes-reveal";
@@ -374,7 +375,7 @@ function LoginPopoverButton({
                   disabled={loading}
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#0e1e7a]/20 border border-[#3c5aa6]/40 text-[#7eb3ff] font-semibold text-sm hover:bg-[#0e1e7a]/30 disabled:opacity-60 transition-colors"
                 >
-                  <span className="font-bold text-lg">★</span>
+                  <AnilistIcon className="w-4 h-4" />
                   {t("auth.continueWithAniList") ?? "Continue with AniList"}
                 </button>
                 {discordEnabled && (
