@@ -189,6 +189,10 @@ function LoginPopoverButton({
     window.location.href = "/api/account/auth/discord/start";
   };
 
+  const handleAniListLogin = () => {
+    window.location.href = "/api/auth/anilist/start";
+  };
+
   const handlePasskeyLogin = async () => {
     setLoading(true);
     try {
@@ -364,6 +368,15 @@ function LoginPopoverButton({
                     {t("auth.signInWithPasskey")}
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={handleAniListLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#0e1e7a]/20 border border-[#3c5aa6]/40 text-[#7eb3ff] font-semibold text-sm hover:bg-[#0e1e7a]/30 disabled:opacity-60 transition-colors"
+                >
+                  <span className="font-bold text-lg">★</span>
+                  {t("auth.continueWithAniList") ?? "Continue with AniList"}
+                </button>
                 {discordEnabled && (
                   <button
                     type="button"
@@ -472,13 +485,22 @@ function LoginPopoverButton({
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
               {t("auth.createAccountSubmit")}
             </button>
-            {discordEnabled && (
-              <>
-                <div className="flex items-center gap-3 py-1">
-                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-                  <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
-                  <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-                </div>
+            <>
+              <div className="flex items-center gap-3 py-1">
+                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+                <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
+                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+              </div>
+              <button
+                type="button"
+                onClick={handleAniListLogin}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#0e1e7a]/20 border border-[#3c5aa6]/40 text-[#7eb3ff] font-semibold text-sm hover:bg-[#0e1e7a]/30 disabled:opacity-60 transition-colors"
+              >
+                <span className="font-bold text-lg">★</span>
+                {t("auth.continueWithAniList") ?? "Continue with AniList"}
+              </button>
+              {discordEnabled && (
                 <button
                   type="button"
                   onClick={handleDiscordLogin}
@@ -488,8 +510,8 @@ function LoginPopoverButton({
                   <DiscordIcon className="w-4 h-4" />
                   {t("auth.continueWithDiscord")}
                 </button>
-              </>
-            )}
+              )}
+            </>
           </div>
         )}
       </PopoverContent>

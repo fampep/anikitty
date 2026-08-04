@@ -6,9 +6,9 @@ export async function GET(req: Request) {
   const state = searchParams.get("state");
 
   if (!code || !state) {
-    return anilistSettingsRedirect(req, "error");
+    return anilistSettingsRedirect(req, { status: "error" });
   }
 
-  const status = await completeAniListOAuth(code, state, req);
-  return anilistSettingsRedirect(req, status);
+  const result = await completeAniListOAuth(code, state, req);
+  return anilistSettingsRedirect(req, result);
 }

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { verifyOAuthState } from "@/lib/auth/auth-jwt";
+import { verifyOAuthStateFor, signToken } from "@/lib/auth/auth-jwt";
 import { getAniListViewer } from "@/lib/oauth/anilist-sync";
 import { getDb } from "@/db";
 import { users } from "@/db/schema";
+import { createSession } from "@/lib/user/user-sessions";
 import { eq } from "drizzle-orm";
 
 const ANILIST_AUTHORIZE = "https://anilist.co/api/v2/oauth/authorize";
@@ -69,39 +70,114 @@ export async function completeAniListOAuth(
   code: string,
   state: string,
   req: Request,
-): Promise<"connected" | "error"> {
-  const userId = await verifyOAuthState(state);
-  if (!userId) return "error";
+): Promise<{ status: "connected" | "logged_in" | "error"; userId?: string }> {
+  const statePayload = await verifyOAuthStateFor(state, "anilist_oauth");
+  if (!statePayload) return { status: "error" };
 
   try {
     const redirectUri = getAniListRedirectUri(req);
     const accessToken = await exchangeAniListCode(code, redirectUri);
-    if (!accessToken) return "error";
+    if (!accessToken) return { status: "error" };
 
     const viewer = await getAniListViewer(accessToken);
-    if (!viewer) return "error";
+    if (!viewer) return { status: "error" };
 
     const db = getDb();
-    await db
-      .update(users)
-      .set({
-        anilistAccessToken: accessToken,
+
+    // If user is already logged in, just link the account
+    if (statePayload.userId) {
+      await db
+        .update(users)
+        .set({
+          anilistAccessToken: accessToken,
+          anilistUserId: viewer.id,
+          anilistUsername: viewer.name,
+        })
+        .where(eq(users.id, statePayload.userId));
+      return { status: "connected", userId: statePayload.userId };
+    }
+
+    // Otherwise, try to find or create user via AniList ID
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.anilistUserId, viewer.id))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      // Update existing user's token
+      await db
+        .update(users)
+        .set({
+          anilistAccessToken: accessToken,
+        })
+        .where(eq(users.id, existingUser[0].id));
+      return { status: "logged_in", userId: existingUser[0].id };
+    }
+
+    // Create new user from AniList data
+    const newUser = await db
+      .insert(users)
+      .values({
+        username: viewer.name,
+        email: `${viewer.name}@anilist.local`,
         anilistUserId: viewer.id,
         anilistUsername: viewer.name,
+        anilistAccessToken: accessToken,
+        emailVerified: true,
       })
-      .where(eq(users.id, userId));
+      .returning({ id: users.id })
+      .then((r) => r[0]);
 
-    return "connected";
+    if (!newUser) return { status: "error" };
+    return { status: "logged_in", userId: newUser.id };
   } catch (e) {
     console.error("[anilist oauth callback]", e);
-    return "error";
+    return { status: "error" };
   }
 }
 
-export function anilistSettingsRedirect(req: Request, status: "connected" | "error") {
+export async function anilistSettingsRedirect(req: Request, result: { status: "connected" | "logged_in" | "error"; userId?: string }) {
   const origin =
     process.env.NEXT_PUBLIC_APP_URL ??
     req.headers.get("origin") ??
     new URL(req.url).origin;
+  const { status, userId } = result;
+
+  // Redirect login flow to home with session, linking flow to settings
+  if (status === "logged_in" && userId) {
+    try {
+      const db = getDb();
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (user.length === 0) {
+        return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=user_not_found`);
+      }
+
+      const userData = user[0];
+      const session = await createSession(userId, req);
+      const token = await signToken({
+        userId: userData.id,
+        username: userData.username,
+        role: userData.role || "user",
+        sessionId: session.id,
+      });
+
+      const response = NextResponse.redirect(`${origin.replace(/\/$/, "")}/home`);
+      response.cookies.set({
+        name: "auth-token",
+        value: token,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 30 * 24 * 60 * 60,
+      });
+
+      return response;
+    } catch (e) {
+      console.error("[anilist login redirect]", e);
+      return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=session_failed`);
+    }
+  }
+
   return NextResponse.redirect(`${origin.replace(/\/$/, "")}/settings?anilist=${status}`);
 }
