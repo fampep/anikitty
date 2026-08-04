@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/core/utils";
-import Container from "./container";
 import { ROUTES } from "@/constants/routes";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import SearchBar from "./search-bar";
 import { Coins, SearchIcon, X } from "lucide-react";
 import LoginPopoverButton from "@/components/auth/login-popover-button";
@@ -19,31 +18,14 @@ import { toast } from "sonner";
 import { useKittycoins } from "@/hooks/use-kittycoins";
 import SiteBrandWordmark from "@/components/layout/site-brand-wordmark";
 
-function DesktopSearchTrigger({ onClick }: { onClick: () => void }) {
-  const t = useT();
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group hidden h-9 min-w-0 max-w-md flex-1 items-center rounded-full border border-border/60 bg-muted/30",
-        "text-muted-foreground transition-colors hover:border-primary/25 hover:bg-primary/[0.06] hover:text-foreground",
-        "dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-white/45 dark:hover:border-primary/20 dark:hover:bg-primary/[0.05] dark:hover:text-white/80",
-        "lg:inline-flex xl:max-w-lg",
-        "justify-start gap-2.5 px-3.5",
-      )}
-      aria-label={t("nav.aria.openSearch")}
-    >
-      <SearchIcon className="h-4 w-4 shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
-      <span className="min-w-0 flex-1 truncate text-left text-[13px] opacity-80 transition-opacity group-hover:opacity-100">
-        {t("search.placeholder")}
-      </span>
-      <kbd className="pointer-events-none hidden shrink-0 rounded-md border border-border/70 bg-background/80 px-1.5 py-0.5 text-[10px] font-mono leading-none text-muted-foreground/70 lg:inline-block dark:border-white/[0.06] dark:bg-black/20 dark:text-white/20">
-        Ctrl&nbsp;K
-      </kbd>
-    </button>
-  );
-}
+/** Primary destinations shown inline in the pill on desktop. */
+const NAV_LINKS = [
+  { href: ROUTES.HOME, key: "nav.home" },
+  { href: ROUTES.NEW, key: "nav.newReleases" },
+  { href: ROUTES.TRENDING, key: "nav.trending" },
+  { href: ROUTES.SCHEDULE, key: "nav.schedule" },
+  { href: ROUTES.COMMUNITY, key: "nav.community" },
+] as const;
 
 function KittycoinPill() {
   const t = useT();
@@ -72,10 +54,14 @@ const NavBar = () => {
   const pathname = usePathname();
   const isLanding = pathname === "/";
   const [searchOpen, setSearchOpen] = useState(false);
+  const pillRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const authBag = React.useMemo(
     () => ({ auth: user, setAuth, clearAuth }),
     [user, setAuth, clearAuth],
   );
+
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
 
   const meProbeRef = useRef(false);
 
@@ -154,57 +140,109 @@ const NavBar = () => {
         e.preventDefault();
         setSearchOpen(true);
       }
+      if (e.key === "Escape") setSearchOpen(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // Collapse when focus/pointer leaves the pill entirely.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!pillRef.current?.contains(e.target as Node)) setSearchOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [searchOpen]);
+
+  // The field stays mounted, so `autoFocus` never fires — focus it explicitly.
+  useEffect(() => {
+    if (!searchOpen) return;
+    searchRef.current?.querySelector("input")?.focus();
+  }, [searchOpen]);
+
+  // Close the expanded field on navigation.
+  useEffect(() => {
+    setSearchOpen(false);
+  }, [pathname]);
+
   if (isLanding) return null;
 
   return (
-    <header className="site-header fixed left-0 right-0 top-0 z-[100] pt-safe">
-      <Container className="relative">
-        {searchOpen && (
-          <div className="site-search-overlay absolute inset-x-0 top-0 z-30 flex h-[var(--nav-height)] items-center gap-3 border-b border-border/60 bg-background/95 px-4 backdrop-blur-xl dark:border-white/[0.05] dark:bg-[#050508]/98">
-            <SearchBar className="mx-auto max-w-3xl flex-1" autoFocus onAnimeClick={() => setSearchOpen(false)} />
-            <button
-              type="button"
-              onClick={() => setSearchOpen(false)}
-              className="shrink-0 rounded-full p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:text-white/50 dark:hover:bg-white/8 dark:hover:text-white"
-              aria-label={t("nav.aria.closeSearch")}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        <div className="flex h-[var(--nav-height)] items-center gap-3">
+    <header className="site-header pointer-events-none fixed inset-x-0 top-0 z-[100] pt-safe">
+      <div className="mx-auto flex w-full max-w-[87.5rem] justify-center px-3 pt-[var(--nav-float)] sm:px-5">
+        <div
+          ref={pillRef}
+          data-search-open={searchOpen || undefined}
+          className={cn(
+            "site-header-pill pointer-events-auto flex w-fit max-w-full items-center",
+            "gap-1 px-2.5 sm:gap-2 sm:px-3.5",
+          )}
+        >
           <Link
             href={ROUTES.HOME}
-            className="group relative z-20 flex shrink-0 items-center rounded-md py-0.5 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="group relative flex shrink-0 items-center rounded-md py-0.5 outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <SiteBrandWordmark size="nav" />
           </Link>
 
-          <div className="hidden min-w-0 flex-1 justify-center lg:flex">
-            <DesktopSearchTrigger onClick={() => setSearchOpen(true)} />
+          {/* Primary links — only the narrow breakpoints yield to the field. */}
+          <nav
+            aria-label={t("nav.menu")}
+            className={cn(
+              "site-header-links hidden items-center gap-0.5 md:flex",
+              searchOpen && "max-lg:hidden",
+            )}
+          >
+            {NAV_LINKS.map((link) => {
+              const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "site-header-link rounded-full px-2.5 py-1.5 text-[13px] font-medium",
+                    active
+                      ? "bg-foreground/[0.07] text-foreground dark:bg-white/10 dark:text-white"
+                      : "text-muted-foreground hover:bg-foreground/[0.05] hover:text-foreground dark:text-white/55 dark:hover:bg-white/[0.07] dark:hover:text-white",
+                  )}
+                >
+                  {t(link.key)}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Expanding search field — width drives the pill's own growth. */}
+          <div
+            ref={searchRef}
+            aria-hidden={!searchOpen}
+            className={cn(
+              "site-header-search min-w-0 overflow-hidden",
+              searchOpen ? "w-[min(60vw,22rem)] opacity-100" : "w-0 opacity-0",
+            )}
+          >
+            <SearchBar className="w-full" onAnimeClick={closeSearch} />
           </div>
 
-          <div className="relative z-20 ml-auto flex shrink-0 items-center gap-1 sm:gap-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
             <button
               type="button"
-              onClick={() => setSearchOpen(true)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground dark:text-white/55 dark:hover:bg-white/8 dark:hover:text-white lg:hidden"
-              aria-label={t("nav.aria.openSearch")}
+              onClick={() => setSearchOpen((open) => !open)}
+              className="site-header-icon inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground dark:text-white/60 dark:hover:bg-white/[0.08] dark:hover:text-white"
+              aria-label={searchOpen ? t("nav.aria.closeSearch") : t("nav.aria.openSearch")}
+              aria-expanded={searchOpen}
             >
-              <SearchIcon className="h-4 w-4" />
+              {searchOpen ? <X className="h-4 w-4" /> : <SearchIcon className="h-4 w-4" />}
             </button>
             {user && <KittycoinPill />}
             {user && <NotificationBell />}
             {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
           </div>
         </div>
-      </Container>
+      </div>
     </header>
   );
 };
