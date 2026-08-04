@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { queryAniList } from "@/lib/oauth/anilist";
 import { getBatchStoredAnimeMeta } from "@/lib/anime/anime-metadata-store";
 import { watchEpisodeDescription } from "@/lib/seo/site-seo";
-import VideoPlayerSection from "@/components/watch/video-player-section";
+import WatchPageLayout from "@/components/watch/watch-page-layout";
 
 const META_QUERY = `
   query ($id: Int) {
@@ -98,5 +98,5 @@ export async function generateMetadata({
 }
 
 export default function Page() {
-  return <VideoPlayerSection />;
+  return <WatchPageLayout />;
 }
