@@ -116,11 +116,31 @@ export async function completeAniListOAuth(
     }
 
     // Create new user from AniList data
+    // Ensure username is unique (similar to Discord flow)
+    let username = viewer.name.slice(0, 25);
+    let [conflict] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.username, username))
+      .limit(1);
+
+    if (conflict) {
+      username = `${viewer.name.slice(0, 20)}${String(viewer.id).slice(-4)}`.slice(0, 25);
+      const [conflict2] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+      if (conflict2) {
+        username = `a${String(viewer.id).slice(-10)}`.slice(0, 25);
+      }
+    }
+
     const newUser = await db
       .insert(users)
       .values({
-        username: viewer.name,
-        email: `${viewer.name}@anilist.local`,
+        username,
+        email: `anilist_${viewer.id}@anikitty.local`,
         anilistUserId: viewer.id,
         anilistUsername: viewer.name,
         anilistAccessToken: accessToken,
@@ -129,7 +149,10 @@ export async function completeAniListOAuth(
       .returning({ id: users.id })
       .then((r) => r[0]);
 
-    if (!newUser) return { status: "error" };
+    if (!newUser) {
+      console.error("[anilist] Failed to create user", { viewerId: viewer.id, username });
+      return { status: "error" };
+    }
     return { status: "logged_in", userId: newUser.id };
   } catch (e) {
     console.error("[anilist oauth callback]", e);
@@ -150,11 +173,17 @@ export async function anilistSettingsRedirect(req: Request, result: { status: "c
       const db = getDb();
       const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       if (user.length === 0) {
+        console.error("[anilist login] User not found after creation", { userId });
         return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=user_not_found`);
       }
 
       const userData = user[0];
       const session = await createSession(userId, req);
+      if (!session?.id) {
+        console.error("[anilist login] Session creation failed", { userId });
+        return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=session_failed`);
+      }
+
       const token = await signToken({
         userId: userData.id,
         username: userData.username,
@@ -172,11 +201,17 @@ export async function anilistSettingsRedirect(req: Request, result: { status: "c
         maxAge: 30 * 24 * 60 * 60,
       });
 
+      console.log("[anilist login] Successful login", { userId, username: userData.username });
       return response;
     } catch (e) {
       console.error("[anilist login redirect]", e);
       return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=session_failed`);
     }
+  }
+
+  if (status === "error") {
+    console.error("[anilist oauth] OAuth flow failed");
+    return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?error=anilist_failed`);
   }
 
   return NextResponse.redirect(`${origin.replace(/\/$/, "")}/settings?anilist=${status}`);
