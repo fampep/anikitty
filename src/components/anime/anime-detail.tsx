@@ -41,6 +41,7 @@ import {
   Radio,
   Star,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import QueryRetryPanel from "@/components/shared/query-retry-panel";
@@ -162,6 +163,26 @@ export default function AnimeDetail({ slug }: { slug: string }) {
     per_page: 1,
   });
   const [selected, setSelected] = useState(bookmarks?.[0]?.status || "");
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const removeFromWatchlist = async () => {
+    if (!bookmarks?.[0]) return;
+    setIsRemoving(true);
+    try {
+      const res = await fetch(`/api/account/watchlist/${encodeURIComponent(slug)}`, {
+        method: "DELETE",
+        ...withAuth(),
+      });
+      if (!res.ok) throw new Error("Failed to remove");
+      toast.success("Removed from watchlist");
+      // Refetch bookmarks will happen automatically via the hook
+    } catch (e) {
+      console.error("[remove from watchlist]", e);
+      toast.error("Failed to remove from watchlist");
+    } finally {
+      setIsRemoving(false);
+    }
+  };
 
   useEffect(() => {
     const status = bookmarks?.[0]?.status;
@@ -897,6 +918,16 @@ export default function AnimeDetail({ slug }: { slug: string }) {
                   localListStatus={bookmarks?.[0]?.status || selected || null}
                 />
               ) : null}
+              {auth && bookmarks?.[0] && (
+                <button
+                  onClick={removeFromWatchlist}
+                  disabled={isRemoving}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 disabled:opacity-60 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {isRemoving ? "Removing..." : "Remove"}
+                </button>
+              )}
             </div>
           </div>
         </div>
