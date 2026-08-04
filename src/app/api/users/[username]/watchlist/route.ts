@@ -6,7 +6,9 @@ import {
   WATCHLIST_FOLDERS,
 } from "@/lib/watch/watchlist-response";
 import { requireVisibleProfileUser } from "@/lib/user/public-profile-access";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, sql, ilike, desc, asc } from "drizzle-orm";
+
+const VALID_SORTS = ["title", "added", "updated", "score", "rewatches"] as const;
 
 export async function GET(
   req: Request,
@@ -21,10 +23,37 @@ export async function GET(
   const folder = searchParams.get("folder")?.toUpperCase();
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0");
+  const sort = (searchParams.get("sort") ?? "updated") as typeof VALID_SORTS[number];
+  const search = searchParams.get("search")?.trim();
 
   const conditions = [eq(watchlist.userId, userOrResponse.id)];
   if (folder && WATCHLIST_FOLDERS.includes(folder as (typeof WATCHLIST_FOLDERS)[number])) {
     conditions.push(eq(watchlist.folder, folder));
+  }
+  if (search) {
+    conditions.push(ilike(watchlist.animeTitle, `%${search}%`));
+  }
+
+  // Map sort param to column and direction
+  let orderBy: any;
+  switch (sort) {
+    case "title":
+      orderBy = asc(sql`COALESCE(${watchlist.animeTitle}, '')`);
+      break;
+    case "added":
+      orderBy = desc(watchlist.createdAt);
+      break;
+    case "updated":
+      orderBy = desc(watchlist.updatedAt);
+      break;
+    case "score":
+      orderBy = desc(animeReviews.score);
+      break;
+    case "rewatches":
+      orderBy = desc(watchlist.rewatchCount);
+      break;
+    default:
+      orderBy = desc(watchlist.updatedAt);
   }
 
   const [items, countResult] = await Promise.all([
@@ -39,7 +68,7 @@ export async function GET(
         ),
       )
       .where(and(...conditions))
-      .orderBy(sql`${watchlist.updatedAt} DESC`)
+      .orderBy(orderBy)
       .limit(limit)
       .offset(offset),
     db

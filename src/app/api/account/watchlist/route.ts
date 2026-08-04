@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { animeReviews, watchlist } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, ilike, desc, asc } from "drizzle-orm";
 
 const VALID_FOLDERS = ["WATCHING", "PLANNING", "COMPLETED", "PAUSED", "DROPPED"];
+const VALID_SORTS = ["title", "added", "updated", "score", "rewatches"] as const;
 
 export async function GET(req: Request) {
   const token = extractToken(req);
@@ -17,12 +18,39 @@ export async function GET(req: Request) {
   const folder = searchParams.get("folder")?.toUpperCase();
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 250);
   const offset = parseInt(searchParams.get("offset") ?? "0");
+  const sort = (searchParams.get("sort") ?? "updated") as typeof VALID_SORTS[number];
+  const search = searchParams.get("search")?.trim();
 
   const db = getDb();
 
   const conditions = [eq(watchlist.userId, payload.userId)];
   if (folder && VALID_FOLDERS.includes(folder)) {
     conditions.push(eq(watchlist.folder, folder));
+  }
+  if (search) {
+    conditions.push(ilike(watchlist.animeTitle, `%${search}%`));
+  }
+
+  // Map sort param to column and direction
+  let orderBy: any;
+  switch (sort) {
+    case "title":
+      orderBy = asc(sql`COALESCE(${watchlist.animeTitle}, '')`);
+      break;
+    case "added":
+      orderBy = desc(watchlist.createdAt);
+      break;
+    case "updated":
+      orderBy = desc(watchlist.updatedAt);
+      break;
+    case "score":
+      orderBy = desc(animeReviews.score);
+      break;
+    case "rewatches":
+      orderBy = desc(watchlist.rewatchCount);
+      break;
+    default:
+      orderBy = desc(watchlist.updatedAt);
   }
 
   const [items, countResult] = await Promise.all([
@@ -37,7 +65,7 @@ export async function GET(req: Request) {
         ),
       )
       .where(and(...conditions))
-      .orderBy(sql`${watchlist.updatedAt} DESC`)
+      .orderBy(orderBy)
       .limit(limit)
       .offset(offset),
     db

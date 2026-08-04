@@ -4,7 +4,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ContinueWatching from "@/components/home/continue-watching";
-import AnimeLists from "@/components/profile/anime-lists";
+import LibraryListView from "@/components/profile/library-list-view";
 import AnimeHeatmap from "@/components/profile/anime-heatmap";
 import ProfileBioContent from "@/components/profile/profile-bio-content";
 import ProfileHubTabs, { buildDefaultHubTabs } from "@/components/profile/profile-hub-tabs";
@@ -362,7 +362,7 @@ export default function ProfileHub({
                       : counts.dropped
               }
             />
-            <AnimeLists
+            <LibraryListView
               status={HUB_TAB_TO_STATUS[activeTab]}
               username={username}
               isOwn={isOwn}

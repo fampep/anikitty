@@ -1549,7 +1549,24 @@
       "achievementsTitle": "Achievements",
       "sideStats": "At a glance",
       "reviewsCount": "{count} ratings",
-      "noPoster": "No cover"
+      "noPoster": "No cover",
+      "librarySearch": "Search titles…",
+      "sortLastUpdated": "Last Updated",
+      "sortDateAdded": "Date Added",
+      "sortTitleAZ": "Title (A–Z)",
+      "sortScoreHigh": "Score (Highest)",
+      "sortMostRewatched": "Most Rewatched",
+      "viewModeBtnList": "List",
+      "viewModeBtnGrid": "Grid",
+      "bulkSelectEdit": "Edit",
+      "bulkActionRemove": "Remove {count}",
+      "bulkActionMove": "Move",
+      "bulkConfirmRemove": "Remove item?",
+      "bulkConfirmRemoveMany": "Remove {count} items?",
+      "bulkRemoveDesc": "This will remove the selected item from your list.",
+      "bulkRemoveDescMany": "This will remove {count} items from your list.",
+      "removeFromList": "Remove from list",
+      "itemsPerPage": "Items per page"
     }
   },
   "forum": {
