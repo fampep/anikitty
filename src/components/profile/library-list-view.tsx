@@ -98,12 +98,12 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
     const folderMap: Record<string, string> = {
       watching: "WATCHING",
       completed: "COMPLETED",
-      plan: "PLANNING",
-      onHold: "PAUSED",
+      "plan to watch": "PLANNING",
+      "on hold": "PAUSED",
       dropped: "DROPPED",
     };
 
-    const folder = folderMap[status] || "WATCHING";
+    const folder = folderMap[status] || status?.toUpperCase() || "WATCHING";
 
     const params = new URLSearchParams({
       folder,
