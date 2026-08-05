@@ -14,8 +14,10 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { DiscordLogoIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/core/utils";
 import { ROUTES } from "@/constants/routes";
+import { DISCORD_INVITE_URL } from "@/constants/site-meta";
 import { useT } from "@/providers/i18n-provider";
 import MoreNavMenu from "@/components/layout/more-nav-menu";
 import { isNavActive, useMenuItems } from "@/components/layout/site-nav-menu";
@@ -265,6 +267,16 @@ export default function SiteTopNav() {
                 icon={searchOpen ? X : Search}
                 onClick={() => setSearchOpen((open) => !open)}
               />
+              <a
+                href={DISCORD_INVITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t("footer.discord")}
+                aria-label={t("footer.discord")}
+                className="site-top-icon flex h-9 w-9 flex-none items-center justify-center rounded-full text-muted-foreground/70 hover:text-[#5865f2] dark:text-white/45 dark:hover:text-[#7986ff]"
+              >
+                <DiscordLogoIcon width="17" height="17" />
+              </a>
               <Link
                 href={ROUTES.SHOP}
                 title={t("nav.short.shop")}
