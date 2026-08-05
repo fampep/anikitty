@@ -55,7 +55,7 @@ export const PUBLIC_KITTY_DNS_ZONE = "anikitty.online";
 /** Location DNS slug → node id (Cloudflare A → origin IP, proxied). */
 export const KITTY_API_NODE_DNS_SLUGS: Record<KittyApiNodeId, string> = {
   primary: "main",
-  "third-choice": "bulgaria",
+  "third-choice": "moldova",
   "seventh-choice": "netherlands",
 };
 
@@ -139,12 +139,12 @@ export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "third-choice",
     index: 2,
-    label: "Bulgaria",
+    label: "Moldova",
     dnsSlug: KITTY_API_NODE_DNS_SLUGS["third-choice"],
     url: THIRD_URL,
     host: nodeHost(THIRD_URL),
-    location: "Bulgaria",
-    timezone: "Europe/Sofia",
+    location: "Moldova",
+    timezone: "Europe/Chisinau",
   },
   {
     id: "seventh-choice",
@@ -251,6 +251,7 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
     normalized === "third-choice" ||
     normalized === "thirdchoice" ||
     normalized === "2" ||
+    normalized === "moldova" ||
     normalized === "bulgaria"
   ) {
     return "third-choice";

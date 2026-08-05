@@ -177,6 +177,10 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
 
     const infoTitle = animeData?.anime?.info?.name ?? undefined;
     const infoPoster = animeData?.anime?.info?.poster ?? undefined;
+    // Auto-complete guard: a scheduled next episode proves the series is still
+    // airing, so the server must not treat the latest aired episode as the last.
+    const animeStatus = animeData?.anime?.moreInfo?.status ?? undefined;
+    const hasNextEpisode = Boolean(animeData?.anime?.info?.nextAiringEpisode);
 
     try {
       await accountProgress.save(
@@ -193,6 +197,8 @@ function useBookMarks({ animeID, status, page = 1, per_page = 20, populate = tru
           server: episodeData.server ?? "default",
           ...(infoTitle ? { animeTitle: infoTitle } : {}),
           ...(infoPoster ? { animeThumbnail: infoPoster } : {}),
+          ...(animeStatus ? { animeStatus } : {}),
+          hasNextEpisode,
         },
         opts,
       );

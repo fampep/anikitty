@@ -52,15 +52,21 @@ function BottomNavTab({
   href?: string;
 }) {
   const className = cn(
-    "site-bottom-tab relative flex h-11 w-11 flex-none items-center justify-center rounded-full",
+    "site-bottom-tab relative flex h-11 w-11 flex-none items-center justify-center rounded-full transition-all duration-200",
     active
       ? "text-foreground dark:text-white"
-      : "text-muted-foreground/65 hover:text-foreground/90 dark:text-white/40 dark:hover:text-white/75",
+      : "text-muted-foreground/65 hover:text-foreground/85 dark:text-white/40 dark:hover:text-white/80 hover:bg-primary/5 dark:hover:bg-white/5",
   );
 
   const iconEl = (
     <>
-      <Icon className={cn("h-[18px] w-[18px]", active && "text-primary dark:text-zinc-300")} strokeWidth={active ? 2.25 : 1.85} />
+      <Icon
+        className={cn(
+          "h-[18px] w-[18px] transition-all duration-200",
+          active && "text-primary dark:text-zinc-300"
+        )}
+        strokeWidth={active ? 2.25 : 1.85}
+      />
       {active && (
         <span className="site-bottom-dot absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-primary dark:bg-zinc-300" aria-hidden />
       )}
@@ -90,7 +96,6 @@ export default function MobileBottomNav() {
   const setAuth = useAuthStore((s) => s.setAuth);
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const [searchOpen, setSearchOpen] = useState(false);
-  const pillRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const closeSearch = useCallback(() => setSearchOpen(false), []);
@@ -118,13 +123,13 @@ export default function MobileBottomNav() {
     const focusTimer = window.setTimeout(() => {
       searchRef.current?.querySelector("input")?.focus();
     }, 80);
-    const onPointerDown = (e: PointerEvent) => {
-      if (!pillRef.current?.contains(e.target as Node)) setSearchOpen(false);
-    };
-    document.addEventListener("pointerdown", onPointerDown);
+    // The overlay covers the viewport, so the page behind must not scroll
+    // under it — otherwise the blurred backdrop slides while the panel sits still.
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
       window.clearTimeout(focusTimer);
-      document.removeEventListener("pointerdown", onPointerDown);
+      document.body.style.overflow = prevOverflow;
     };
   }, [searchOpen]);
 
@@ -140,46 +145,54 @@ export default function MobileBottomNav() {
 
   return (
     <>
+      {/* Centred search overlay — blurs the page behind and holds the results,
+          so the list never has to fight the bottom pill for room. */}
+      <div
+        data-open={searchOpen || undefined}
+        aria-hidden={!searchOpen}
+        className="site-search-overlay fixed inset-0 z-[110]"
+      >
+        <button
+          type="button"
+          aria-label={t("nav.aria.closeSearch")}
+          onClick={closeSearch}
+          className="site-search-scrim absolute inset-0 cursor-default"
+        />
+        <div className="pointer-events-none absolute inset-0 flex items-start justify-center px-4 pt-[14vh]">
+          <div
+            ref={searchRef}
+            role="dialog"
+            aria-modal={searchOpen || undefined}
+            aria-label={t("nav.search")}
+            className="site-search-panel pointer-events-auto w-full max-w-xl rounded-2xl p-2.5"
+          >
+            <SearchBar inline className="w-full" onAnimeClick={closeSearch} />
+          </div>
+        </div>
+      </div>
+
       {/* No layout reservation: the pill is fixed and floats over content, so
           a spacer here only adds dead space at the end of the page. */}
       <nav
         aria-label={t("nav.aria.mobileBottomNav")}
         className="site-mobile-nav fixed inset-x-0 bottom-0 z-[95] pointer-events-none"
       >
-        <div
-          className={cn(
-            "site-bottom-shell mx-auto px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))]",
-            searchOpen ? "max-w-xl" : "max-w-md sm:max-w-lg",
-          )}
-        >
-          <div ref={pillRef} className="relative">
-            {/* Pops out above the pill rather than growing inside it. */}
-            <div
-              ref={searchRef}
-              data-open={searchOpen || undefined}
-              aria-hidden={!searchOpen}
-              className="site-search-pop absolute inset-x-0 bottom-[calc(100%+0.7rem)] z-10"
-            >
-              <div className="site-search-pop-card rounded-2xl p-1.5">
-                <SearchBar dropUp className="w-full" onAnimeClick={closeSearch} />
-              </div>
+        <div className="site-bottom-shell mx-auto max-w-md px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:max-w-lg">
+          <div
+            data-search-open={searchOpen || undefined}
+            className="site-bottom-nav pointer-events-auto flex items-center gap-1 px-2 py-1.5"
+          >
+            <div className="site-bottom-tabs flex min-w-0 flex-1 items-center gap-1">
+              {PRIMARY_TABS.map(({ href, icon, labelKey, match }) => (
+                <BottomNavTab
+                  key={href}
+                  href={href}
+                  label={t(labelKey)}
+                  icon={icon}
+                  active={match(pathname)}
+                />
+              ))}
             </div>
-
-            <div
-              data-search-open={searchOpen || undefined}
-              className="site-bottom-nav pointer-events-auto flex items-center gap-1 px-2 py-1.5"
-            >
-              <div className="site-bottom-tabs flex min-w-0 flex-1 items-center gap-1">
-                {PRIMARY_TABS.map(({ href, icon, labelKey, match }) => (
-                  <BottomNavTab
-                    key={href}
-                    href={href}
-                    label={t(labelKey)}
-                    icon={icon}
-                    active={match(pathname)}
-                  />
-                ))}
-              </div>
 
             <div className="ml-auto flex flex-none items-center gap-0.5">
               <BottomNavTab
@@ -200,15 +213,18 @@ export default function MobileBottomNav() {
                     aria-label={t("nav.more")}
                     aria-haspopup="dialog"
                     className={cn(
-                      "site-bottom-tab relative flex h-11 w-11 flex-none items-center justify-center rounded-full",
+                      "site-bottom-tab relative flex h-11 w-11 flex-none items-center justify-center rounded-full transition-all duration-200",
                       moreActive
                         ? "text-foreground dark:text-white"
-                        : "text-muted-foreground/65 hover:text-foreground/90 dark:text-white/40 dark:hover:text-white/75",
+                        : "text-muted-foreground/65 hover:text-foreground/85 dark:text-white/40 dark:hover:text-white/80 hover:bg-primary/5 dark:hover:bg-white/5",
                       "data-[state=open]:bg-primary/10 data-[state=open]:text-primary dark:data-[state=open]:text-zinc-300",
                     )}
                   >
                     <Menu
-                      className={cn("h-[18px] w-[18px]", moreActive && "text-primary dark:text-zinc-300")}
+                      className={cn(
+                        "h-[18px] w-[18px] transition-all duration-200",
+                        moreActive && "text-primary dark:text-zinc-300",
+                      )}
                       strokeWidth={moreActive ? 2.25 : 1.85}
                     />
                     {moreActive && (
@@ -217,7 +233,6 @@ export default function MobileBottomNav() {
                   </button>
                 }
               />
-            </div>
             </div>
           </div>
         </div>

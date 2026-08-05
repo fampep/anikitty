@@ -11,6 +11,37 @@ function isWatchedEnough(current: number, duration: number): boolean {
   return current >= Math.max(Math.floor(duration * 0.9), 30);
 }
 
+/**
+ * Airing statuses that mean "more episodes are coming". Accepts both the raw
+ * AniList enum and the humanized label the detail API serves, since callers
+ * send whichever they have.
+ */
+const UNFINISHED_STATUSES = new Set([
+  "releasing",
+  "currently airing",
+  "not_yet_released",
+  "not yet aired",
+  "hiatus",
+  "on hiatus",
+]);
+
+const FINISHED_STATUSES = new Set(["finished", "finished airing"]);
+
+/**
+ * Whether the series has definitively ended, so `totalEpisodes` can be trusted
+ * as the final count. For an airing show `totalEpisodes` is only the episodes
+ * aired so far — treating the latest one as the finale would wrongly move a
+ * "Watching" entry into Completed.
+ */
+function isSeriesFinished(status: unknown, hasNextEpisode: unknown): boolean {
+  // A scheduled next episode is decisive regardless of the status string.
+  if (hasNextEpisode === true) return false;
+  if (typeof status !== "string" || !status.trim()) return false;
+  const key = status.trim().toLowerCase();
+  if (UNFINISHED_STATUSES.has(key)) return false;
+  return FINISHED_STATUSES.has(key);
+}
+
 export async function POST(req: Request) {
   const token = extractToken(req);
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,6 +63,8 @@ export async function POST(req: Request) {
       animeThumbnail,
       episodeNumber,
       totalEpisodes,
+      animeStatus,
+      hasNextEpisode,
     } = body;
 
     if (!animeId || !episodeId)
@@ -100,9 +133,14 @@ export async function POST(req: Request) {
         ? episodeNumber
         : parseEpisodeNumber(episodeId)) ?? null;
     const totalEps = typeof totalEpisodes === "number" ? totalEpisodes : 0;
-    // Finishing the final episode completes the title.
+    // Finishing the final episode of an *ended* series completes the title.
+    // Callers that send no status signal get the safe answer: no auto-complete.
     const isLastEpisode =
-      watchedEnough && episodeNum != null && totalEps > 0 && episodeNum >= totalEps;
+      watchedEnough &&
+      episodeNum != null &&
+      totalEps > 0 &&
+      episodeNum >= totalEps &&
+      isSeriesFinished(animeStatus, hasNextEpisode);
 
     // Move the title into the Completed list (create the entry if it wasn't
     // tracked). Only touches rows not already Completed to avoid churn.

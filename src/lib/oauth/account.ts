@@ -250,6 +250,10 @@ export const accountProgress = {
       server?: string;
       animeTitle?: string;
       animeThumbnail?: string;
+      /** Airing status label — gates auto-completion of the title. */
+      animeStatus?: string;
+      /** True when a next episode is scheduled, i.e. the series is still airing. */
+      hasNextEpisode?: boolean;
     },
     /** keepalive lets the request survive page teardown. */
     opts?: { keepalive?: boolean },

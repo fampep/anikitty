@@ -41,6 +41,7 @@ const SearchBar = ({
   defaultValue = "",
   onSubmitQuery,
   dropUp = false,
+  inline = false,
 }: {
   className?: string;
   onAnimeClick?: () => void;
@@ -49,6 +50,12 @@ const SearchBar = ({
   onSubmitQuery?: (query: string) => void;
   /** Open results above the field — for bottom-anchored callers. */
   dropUp?: boolean;
+  /**
+   * Render results in normal flow under the field instead of as a floating
+   * layer. For callers that already own a panel (the centred search overlay),
+   * so the panel grows with the list rather than the list escaping it.
+   */
+  inline?: boolean;
 }) => {
   const t = useT();
   const [searchValue, setSearchValue] = useState(defaultValue);
@@ -209,7 +216,9 @@ const SearchBar = ({
     }
   };
 
-  const showDropdown = isOpen && searchValue.trim().length > 0;
+  // Inline mode lives inside a panel that is itself dismissible, so the field's
+  // own outside-click close would fight it — keep the list tied to the query.
+  const showDropdown = (inline || isOpen) && searchValue.trim().length > 0;
 
   useEffect(() => {
     if (activeIndex < 0) return;
@@ -279,8 +288,13 @@ const SearchBar = ({
           id={listboxId}
           role="listbox"
           className={cn(
-            "absolute left-0 z-50 max-h-[70vh] overflow-y-auto overscroll-contain w-full rounded-2xl border border-border dark:border-white/[0.08] bg-[#09090b] shadow-[0_16px_48px_rgba(0,0,0,0.7)]",
-            dropUp ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
+            "overflow-y-auto overscroll-contain w-full",
+            inline
+              ? "site-search-results mt-2 max-h-[min(60vh,28rem)] rounded-xl border border-border/60 dark:border-white/[0.07] bg-transparent"
+              : cn(
+                  "absolute left-0 z-50 max-h-[70vh] rounded-2xl border border-border dark:border-white/[0.08] bg-[#09090b] shadow-[0_16px_48px_rgba(0,0,0,0.7)]",
+                  dropUp ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
+                ),
           )}
         >
           {isLoading && (

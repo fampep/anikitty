@@ -695,37 +695,69 @@ html.density-compact .site-bottom-nav {
       opacity 220ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
-  /* Search panel that pops out above the pill. Closed it sits low, small and
-     transparent; opening springs it up from the pill's edge. */
-  .site-search-pop {
-    transform-origin: bottom center;
-    opacity: 0;
-    transform: translateY(14px) scale(0.94);
+  /* Centred search overlay. The scrim blurs the whole page; the panel springs
+     down from slightly above so the motion reads as "coming forward". */
+  .site-search-overlay {
     pointer-events: none;
     visibility: hidden;
-    transition:
-      opacity 200ms ease,
-      transform 380ms cubic-bezier(0.34, 1.4, 0.5, 1),
-      visibility 0s linear 380ms;
+    transition: visibility 0s linear 320ms;
   }
 
-  .site-search-pop[data-open] {
-    opacity: 1;
-    transform: none;
+  .site-search-overlay[data-open] {
     pointer-events: auto;
     visibility: visible;
-    transition:
-      opacity 180ms ease,
-      transform 380ms cubic-bezier(0.34, 1.4, 0.5, 1),
-      visibility 0s;
+    transition: visibility 0s;
   }
 
-  .site-search-pop-card {
+  .site-search-scrim {
+    opacity: 0;
+    background: rgba(9, 9, 11, 0.45);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    transition: opacity 300ms ease;
+  }
+
+  .site-search-overlay[data-open] .site-search-scrim {
+    opacity: 1;
+  }
+
+  :root:not(.dark) .site-search-scrim {
+    background: rgba(250, 250, 250, 0.5);
+  }
+
+  .site-search-panel {
     @apply border border-border/60 bg-background/95 backdrop-blur-xl;
     @apply dark:border-white/[0.14] dark:bg-[#08080c]/95;
     box-shadow:
       inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
-      0 20px 56px rgba(0, 0, 0, 0.5);
+      0 28px 80px rgba(0, 0, 0, 0.55);
+    transform-origin: top center;
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+    transition:
+      opacity 200ms ease,
+      transform 360ms cubic-bezier(0.34, 1.35, 0.5, 1);
+  }
+
+  .site-search-overlay[data-open] .site-search-panel {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Results grow in under the field rather than appearing fully formed. */
+  .site-search-results {
+    animation: site-search-results-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes site-search-results-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .site-bottom-tabs {
@@ -740,7 +772,7 @@ html.density-compact .site-bottom-nav {
   @keyframes site-bottom-icon-swap {
     from {
       opacity: 0;
-      transform: scale(0.7) rotate(-35deg);
+      transform: scale(0.5) rotate(-40deg);
     }
     to {
       opacity: 1;
@@ -749,18 +781,44 @@ html.density-compact .site-bottom-nav {
   }
 
   .site-bottom-tab svg {
-    animation: site-bottom-icon-swap 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: site-bottom-icon-swap 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .site-bottom-dot {
+    animation: site-bottom-dot-pop 400ms cubic-bezier(0.34, 1.4, 0.5, 1) both;
+  }
+
+  @keyframes site-bottom-dot-pop {
+    from {
+      opacity: 0;
+      transform: scale(0);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
   .site-bottom-tab {
     transition:
-      background-color 180ms ease,
-      color 180ms ease,
-      transform 160ms cubic-bezier(0.22, 1, 0.36, 1);
+      background-color 200ms ease,
+      color 200ms ease,
+      transform 240ms cubic-bezier(0.34, 1.4, 0.5, 1);
+  }
+
+  /* Hover-capable pointers only — on touch, :hover sticks after a tap and the
+     tab would stay lifted after navigating.
+     The lift/scale lives on the tab, not the svg: the icon-swap keyframes below
+     use `both` fill mode and would hold `transform: none` over any transition
+     set on the same element. */
+  @media (hover: hover) and (pointer: fine) {
+    .site-bottom-tab:hover {
+      transform: translateY(-2.5px) scale(1.08);
+    }
   }
 
   .site-bottom-tab:active {
-    transform: scale(0.92);
+    transform: translateY(0) scale(0.86);
   }
 
   .site-bottom-shell {
@@ -774,22 +832,26 @@ html.density-compact .site-bottom-nav {
     /* `!important` is required here: the global `*` reset above zeroes every
        duration site-wide. Small fades are safe under reduced motion, so the
        nav keeps readable feedback instead of snapping between states. */
-    .site-search-pop {
-      transform: translateY(2px) scale(0.99);
-      transition:
-        opacity 200ms ease,
-        transform 200ms ease,
-        visibility 0s linear 200ms;
-      transition-duration: 200ms, 200ms, 0s !important;
+    .site-search-overlay {
+      transition-duration: 0s !important;
     }
 
-    .site-search-pop[data-open] {
+    .site-search-scrim {
+      transition-duration: 200ms !important;
+    }
+
+    /* Fade in place — no travel, no spring. */
+    .site-search-panel {
+      transform: scale(0.995);
+      transition-duration: 200ms !important;
+    }
+
+    .site-search-overlay[data-open] .site-search-panel {
       transform: none;
-      transition:
-        opacity 200ms ease,
-        transform 200ms ease,
-        visibility 0s;
-      transition-duration: 200ms, 200ms, 0s !important;
+    }
+
+    .site-search-results {
+      animation: site-bottom-icon-fade 200ms ease both;
     }
 
     .site-bottom-nav,
@@ -805,19 +867,38 @@ html.density-compact .site-bottom-nav {
     .site-bottom-nav:hover,
     .site-bottom-nav[data-search-open] {
       transform: none;
+      filter: none;
     }
 
     .site-bottom-tab:active {
-      transform: scale(0.97);
+      transform: scale(0.95);
     }
 
     .site-bottom-tab svg {
       animation: site-bottom-icon-fade 200ms ease both;
     }
+
+    .site-bottom-nav::before {
+      display: none;
+    }
+
+    .site-bottom-dot {
+      animation: site-bottom-dot-fade 200ms ease both;
+    }
   }
 
   /* Reduced-motion counterpart to the icon swap: fade only, no spin. */
   @keyframes site-bottom-icon-fade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Reduced-motion counterpart to the dot pop: fade only. */
+  @keyframes site-bottom-dot-fade {
     from {
       opacity: 0;
     }
@@ -860,52 +941,78 @@ html.density-compact .site-bottom-nav {
   .site-bottom-nav {
     @apply rounded-full border border-border/50 bg-background/95 shadow-[0_4px_24px_rgba(0,0,0,0.18)];
     @apply dark:border-white/10 dark:bg-background/95 dark:shadow-[0_8px_32px_rgba(0,0,0,0.55)];
-    will-change: transform;
+    will-change: transform, filter;
     transition:
       border-color 260ms ease,
       background-color 260ms ease,
       transform 380ms cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow 380ms cubic-bezier(0.22, 1, 0.36, 1),
+      filter 260ms ease;
+    position: relative;
+    overflow: hidden;
   }
 
-  /* Rises to meet the pointer. */
+  /* Subtle shimmer effect on the nav */
+  .site-bottom-nav::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.04),
+      transparent
+    );
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+  }
+
+  .site-bottom-nav:hover::before {
+    opacity: 1;
+  }
+
+  /* Rises to meet the pointer with enhanced lift. */
   .site-bottom-nav:hover {
     @apply border-border/80 dark:border-white/20;
-    transform: translateY(-2px);
+    transform: translateY(-4px);
+    filter: brightness(1.02);
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
-      0 14px 40px rgba(0, 0, 0, 0.34);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+      0 16px 48px rgba(0, 0, 0, 0.4);
   }
 
   .dark .site-bottom-nav:hover {
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
-      0 18px 52px rgba(0, 0, 0, 0.68);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+      0 20px 56px rgba(0, 0, 0, 0.72);
   }
 
-  /* Settles a touch higher and brighter while the field is open. */
+  /* Settles higher and brighter while search is open. */
   .site-bottom-nav[data-search-open] {
-    @apply border-primary/30 dark:border-white/25;
-    transform: translateY(-3px);
+    @apply border-primary/35 dark:border-white/30;
+    transform: translateY(-6px);
+    filter: brightness(1.05);
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
-      0 20px 56px rgba(0, 0, 0, 0.42);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+      0 24px 64px rgba(0, 0, 0, 0.48);
   }
 
   .dark .site-bottom-nav[data-search-open] {
     box-shadow:
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
-      0 22px 64px rgba(0, 0, 0, 0.72);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+      0 28px 72px rgba(0, 0, 0, 0.78);
   }
 
-  .site-search-pop-card input {
+  .site-search-panel input {
     transition:
       background-color 200ms ease,
       border-color 200ms ease,
       box-shadow 200ms ease;
   }
 
-  .site-search-pop-card:hover input {
+  .site-search-panel:hover input {
     @apply border-border/80 dark:border-white/20;
   }
 
