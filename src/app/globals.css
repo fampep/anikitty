@@ -14,9 +14,12 @@ html {
   /* Instant scrolling — global `smooth` fights wheel/trackpad and layout shifts
      (LazyMount, sticky nav, images), which feels like bounce-back-up. */
   scroll-behavior: auto;
-  /* Navigation lives in the floating bottom pill, so nothing is docked at the
-     top any more — page content starts flush and reserves no strip for it. */
-  --nav-height: 0rem;
+  /* Height of the floating top pill plus the gap above it. Page content
+     reserves this strip via `.pt-page`; the home hero deliberately bleeds up
+     underneath it. */
+  --nav-bar-h: 3.25rem;
+  --nav-float: 0.55rem;
+  --nav-height: calc(var(--nav-bar-h) + var(--nav-float));
   --nav-total-height: calc(var(--nav-height) + env(safe-area-inset-top, 0px));
   --mobile-nav-height: 3.5rem;
   --mobile-nav-total: calc(var(--mobile-nav-height) + max(0.625rem, env(safe-area-inset-bottom)));
@@ -935,6 +938,201 @@ html.density-compact .site-bottom-nav {
     }
     .site-header-pill {
       animation: none;
+    }
+  }
+
+  /* Genre bento tiles and strip rows. Artwork sits full-bleed behind a scrim
+     rather than being tinted, so the site's monochrome chrome stays the frame
+     and the art supplies the colour. */
+  .genre-tile,
+  .genre-row {
+    --genre-hue: calc(var(--genre-index, 0) * 47deg);
+    @apply bg-card/60 dark:bg-[#0b0b0b];
+    transition:
+      border-color 220ms ease,
+      transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 280ms ease;
+  }
+
+  .genre-tile__art,
+  .genre-row__art {
+    z-index: 0;
+    transition:
+      transform 620ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 280ms ease;
+  }
+
+  .genre-row__art {
+    opacity: 0.5;
+    /* Art fades out to the left so the label block stays readable. */
+    mask-image: linear-gradient(to right, transparent 0%, black 42%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 42%);
+  }
+
+  /* Bottom-left weighted so the name and tagline always clear the art. */
+  .genre-tile__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(to top, rgb(0 0 0 / 0.88) 0%, rgb(0 0 0 / 0.45) 42%, rgb(0 0 0 / 0.1) 72%),
+      linear-gradient(to right, rgb(0 0 0 / 0.6) 0%, transparent 60%);
+  }
+
+  .genre-row__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(to right, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.35) 55%, transparent 100%);
+  }
+
+  :root:not(.dark) .genre-row__scrim {
+    background: linear-gradient(to right, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0.6) 55%, transparent 100%);
+  }
+
+  /* Fallback when a genre has no banner — keeps the tile part of the set. */
+  .genre-tile__wash {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      120% 100% at 12% 0%,
+      hsl(var(--genre-hue) 55% 55% / 0.22),
+      transparent 64%
+    );
+  }
+
+  .genre-tile__count {
+    @apply bg-black/55 text-white/90 backdrop-blur-sm;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .genre-tile:hover,
+    .genre-row:hover {
+      @apply border-border dark:border-white/25;
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px -16px rgb(0 0 0 / 0.7);
+    }
+
+    .genre-tile:hover .genre-tile__art {
+      transform: scale(1.06);
+    }
+
+    .genre-row:hover .genre-row__art {
+      opacity: 0.72;
+    }
+  }
+
+  .genre-tile:active,
+  .genre-row:active {
+    transform: translateY(0) scale(0.995);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .genre-tile,
+    .genre-row,
+    .genre-tile__art,
+    .genre-row__art {
+      transition-duration: 200ms !important;
+    }
+
+    .genre-tile:hover,
+    .genre-row:hover,
+    .genre-tile:active,
+    .genre-row:active,
+    .genre-tile:hover .genre-tile__art {
+      transform: none;
+    }
+  }
+
+  /* Floating top bar — one rounded pill carrying brand, links and actions. */
+  .site-top-pill {
+    @apply rounded-full border border-border/50 bg-background/95 backdrop-blur-xl;
+    @apply dark:border-white/10 dark:bg-[#0a0a0a]/95;
+    min-height: var(--nav-bar-h);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+      0 8px 32px rgba(0, 0, 0, 0.28);
+    animation: site-top-pill-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition:
+      border-color 260ms ease,
+      box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .dark .site-top-pill {
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+      0 10px 40px rgba(0, 0, 0, 0.6);
+  }
+
+  .site-top-pill:hover {
+    @apply border-border/80 dark:border-white/[0.18];
+  }
+
+  @keyframes site-top-pill-in {
+    from {
+      opacity: 0;
+      transform: translateY(-0.5rem) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .site-top-tab,
+  .site-top-icon,
+  .site-top-brand {
+    transition:
+      background-color 200ms ease,
+      color 200ms ease,
+      transform 220ms cubic-bezier(0.34, 1.35, 0.5, 1);
+  }
+
+  /* Filled chip marking the current section. */
+  .site-top-tab--active {
+    @apply bg-accent dark:bg-white/[0.09];
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .site-top-tab:hover,
+    .site-top-icon:hover {
+      @apply bg-accent/60 dark:bg-white/[0.06];
+    }
+
+    .site-top-brand:hover {
+      transform: scale(1.08);
+    }
+  }
+
+  .site-top-tab:active,
+  .site-top-icon:active,
+  .site-top-brand:active {
+    transform: scale(0.92);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-top-pill {
+      animation: none;
+    }
+
+    .site-top-tab,
+    .site-top-icon,
+    .site-top-brand {
+      transition-duration: 200ms !important;
+    }
+
+    .site-top-tab:hover,
+    .site-top-icon:hover,
+    .site-top-brand:hover,
+    .site-top-tab:active,
+    .site-top-icon:active,
+    .site-top-brand:active {
+      transform: none;
     }
   }
 
@@ -1913,7 +2111,7 @@ html.anikitty-css-fs body {
 
 /* Hide site chrome — player host lives under main.site-page (z-1), below nav. */
 html.anikitty-css-fs .site-header,
-html.anikitty-css-fs .site-mobile-nav,
+html.anikitty-css-fs .site-top-nav,
 html.anikitty-css-fs .site-scroll-top {
   visibility: hidden !important;
   opacity: 0 !important;

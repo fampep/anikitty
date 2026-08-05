@@ -34,6 +34,8 @@
     },
     "short": {
       "home": "Home",
+      "genre": "Genre",
+      "profile": "Profile",
       "schedule": "Schedule",
       "trending": "Trending",
       "seasonal": "Season",
@@ -729,6 +731,12 @@
     "showSection": "Show section",
     "resetLayout": "Reset layout",
     "compactMode": "Compact"
+  },
+  "genres": {
+    "subtitle": "Browse by mood, setting and tone.",
+    "filterPlaceholder": "Filter genres…",
+    "browse": "Browse",
+    "noMatches": "No genres match “{query}”."
   },
   "search": {
     "title": "Search",

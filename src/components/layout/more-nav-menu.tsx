@@ -11,10 +11,12 @@ type Props = {
   trigger: ReactNode;
   items: readonly MenuItem[];
   pathname: string;
+  /** Which way the popover opens off its trigger. Top-anchored bars want "bottom". */
+  side?: "top" | "bottom";
 };
 
-/** Compact “More” popover — floats above the bottom nav instead of a full-page sheet. */
-export default function MoreNavMenu({ trigger, items, pathname }: Props) {
+/** Compact “More” popover — floats off the nav bar instead of a full-page sheet. */
+export default function MoreNavMenu({ trigger, items, pathname, side = "top" }: Props) {
   const t = useT();
   const [open, setOpen] = useState(false);
 
@@ -22,7 +24,7 @@ export default function MoreNavMenu({ trigger, items, pathname }: Props) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
-        side="top"
+        side={side}
         align="end"
         sideOffset={12}
         collisionPadding={16}
@@ -32,6 +34,7 @@ export default function MoreNavMenu({ trigger, items, pathname }: Props) {
           "dark:border-white/10 dark:bg-[#09090b]/96 dark:shadow-[0_20px_56px_rgba(0,0,0,0.55)]",
           "data-[state=open]:duration-200 data-[state=closed]:duration-150",
           "data-[side=top]:slide-in-from-bottom-3 data-[side=top]:slide-out-to-bottom-2",
+          "data-[side=bottom]:slide-in-from-top-3 data-[side=bottom]:slide-out-to-top-2",
           "motion-reduce:animate-none motion-reduce:transition-none",
         )}
       >

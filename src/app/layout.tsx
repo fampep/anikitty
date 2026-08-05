@@ -4,7 +4,7 @@ import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 
 import NavBar from "@/components/layout/navbar";
-import MobileBottomNav from "@/components/layout/mobile-bottom-nav";
+import SiteTopNav from "@/components/layout/site-top-nav";
 import SkipToContent from "@/components/layout/skip-to-content";
 import Footer from "@/components/layout/footer";
 import ScrollToTop from "@/components/layout/scroll-to-top";
@@ -186,13 +186,13 @@ export default async function RootLayout({
               <SiteDisplaySync />
               <SkipToContent />
               <NavBar />
+              <SiteTopNav />
               <NetworkOfflineBanner />
               <SiteAnnouncementBanner />
               <main id="main" tabIndex={-1} className="site-page">
                 {children}
               </main>
               <Footer />
-              <MobileBottomNav />
               <ScrollToTop />
               <DiscordWelcomePrompt />
               <SettingsSync />
