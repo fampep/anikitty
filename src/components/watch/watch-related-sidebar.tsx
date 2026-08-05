@@ -99,23 +99,37 @@ export default function WatchRelatedSidebar({
       .map(relatedRow),
   })).filter((group) => group.rows.length > 0);
 
+  // The rail scrolls on its own now, so these are generous rather than sized to
+  // fit a fixed block — prequels/sequels above are not capped at all.
   const claimed = new Set(PRIMARY_RELATIONS.map((r) => r.toLowerCase()));
   const otherRows = relatedAnimes
     .filter((item) => !claimed.has(normalizeRelation(item.relationType)))
-    .slice(0, 4)
+    .slice(0, 12)
     .map(relatedRow);
 
-  const recommendedRows = recommendedAnimes.slice(0, 6).map(recommendedRow);
+  const recommendedRows = recommendedAnimes.slice(0, 16).map(recommendedRow);
 
   if (!primary.length && !otherRows.length && !recommendedRows.length) return null;
 
   return (
-    <div className={cn("flex flex-col gap-3", className)}>
+    <div
+      className={cn(
+        "flex flex-col gap-3",
+        // Own scroll area, matching the episode playlist. The rail above is
+        // sticky and already spends most of the viewport on episodes, so
+        // without a cap these rows sit below the fold and can only be reached
+        // by scrolling the whole page to the bottom.
+        // Budget: the episode aside takes min(62vh,34rem); this leaves the rest
+        // of the viewport clear for the floating bottom nav pill.
+        "lg:max-h-[min(30vh,20rem)] lg:overflow-y-auto overscroll-contain scroll-momentum scrollbar-hide",
+        className,
+      )}
+    >
       {primary.map((group) => (
         <SidebarSection
           key={group.relation}
           title={t(`anime.relations.types.${group.relation.toUpperCase()}`)}
-          rows={group.rows.slice(0, 3)}
+          rows={group.rows}
         />
       ))}
       <SidebarSection title={t("common.alsoWatch")} rows={otherRows} />

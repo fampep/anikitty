@@ -444,7 +444,9 @@ const EpisodePlaylist = ({
       <div
         ref={scrollContainerRef}
         className={cn(
-          "flex-1 overflow-y-auto scroll-momentum scrollbar-hide",
+          // overscroll-contain: reaching either end must not hand the scroll to
+          // the page, which otherwise jumps the whole watch layout.
+          "flex-1 overflow-y-auto overscroll-contain scroll-momentum scrollbar-hide",
           isWatch ? "max-h-[min(48vh,26rem)] py-1.5" : "min-h-0 py-1",
         )}
       >
