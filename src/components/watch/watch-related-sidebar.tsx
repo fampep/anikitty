@@ -113,6 +113,10 @@ export default function WatchRelatedSidebar({
 
   return (
     <div
+      // Focusable so the arrow keys drive this rail rather than the page.
+      tabIndex={0}
+      role="region"
+      aria-label={t("watch.relatedAria")}
       className={cn(
         "flex flex-col gap-3",
         // Own scroll area, matching the episode playlist. The rail above is
@@ -120,8 +124,8 @@ export default function WatchRelatedSidebar({
         // without a cap these rows sit below the fold and can only be reached
         // by scrolling the whole page to the bottom.
         // Budget: the episode aside takes min(62vh,34rem); this leaves the rest
-        // of the viewport clear for the floating bottom nav pill.
-        "lg:max-h-[min(30vh,20rem)] lg:overflow-y-auto overscroll-contain scroll-momentum scrollbar-hide",
+        // of the viewport clear for the floating nav pill.
+        "lg:max-h-[min(30vh,20rem)] lg:overflow-y-auto overscroll-contain scroll-momentum site-thin-scroll",
         className,
       )}
     >

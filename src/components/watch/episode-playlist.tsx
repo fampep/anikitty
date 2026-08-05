@@ -443,10 +443,15 @@ const EpisodePlaylist = ({
 
       <div
         ref={scrollContainerRef}
+        // Focusable so the arrow keys / PageUp / Home drive this list rather
+        // than the page behind it. Labelled because it is now a tab stop.
+        tabIndex={0}
+        role="region"
+        aria-label={t("watch.episodesAria")}
         className={cn(
           // overscroll-contain: reaching either end must not hand the scroll to
           // the page, which otherwise jumps the whole watch layout.
-          "flex-1 overflow-y-auto overscroll-contain scroll-momentum scrollbar-hide",
+          "flex-1 overflow-y-auto overscroll-contain scroll-momentum site-thin-scroll",
           isWatch ? "max-h-[min(48vh,26rem)] py-1.5" : "min-h-0 py-1",
         )}
       >

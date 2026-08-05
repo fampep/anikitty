@@ -51,6 +51,17 @@ function isPlayerVisible(player: PlayerController | null): boolean {
   return r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
 }
 
+/**
+ * True when the key landed inside a panel that scrolls on its own (episode
+ * playlist, related rail). Those are focusable regions, so Arrow/Page/Home must
+ * reach the browser's native scrolling instead of being claimed for volume.
+ */
+function isInsideScrollRegion(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement && Boolean(target.closest(".site-thin-scroll"))
+  );
+}
+
 function isInsideAniKittyPlayer(target: EventTarget | null): boolean {
   return (
     target instanceof HTMLElement &&
@@ -102,6 +113,7 @@ export function useWatchKeyboard({
 
       const key = e.key.toLowerCase();
       const playerActive = isAniKittyPlayerActive(e.target);
+      const scrollRegion = isInsideScrollRegion(e.target);
 
       if (key === "?" || (key === "h" && e.shiftKey)) {
         e.preventDefault();
@@ -179,14 +191,14 @@ export function useWatchKeyboard({
       }
 
       if (key === "arrowup") {
-        if (playerActive) return;
+        if (playerActive || scrollRegion) return;
         e.preventDefault();
         player.setVolume(Math.min(1, player.volume + 0.1));
         return;
       }
 
       if (key === "arrowdown") {
-        if (playerActive) return;
+        if (playerActive || scrollRegion) return;
         e.preventDefault();
         player.setVolume(Math.max(0, player.volume - 0.1));
         return;

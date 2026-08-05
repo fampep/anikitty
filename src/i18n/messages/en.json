@@ -2612,6 +2612,8 @@
       "exit": "Exit theatre"
     },
     "selectEpisodeHint": "Pick an episode from the list below",
+    "episodesAria": "Episode list — scrollable, use the arrow keys",
+    "relatedAria": "Related anime — scrollable, use the arrow keys",
     "fullAnimePage": "Full anime page",
     "databaseIds": "Database IDs",
     "selectEpisode": "Select an episode to start watching",

@@ -454,6 +454,64 @@ body {
     -webkit-overflow-scrolling: touch;
     overflow-scrolling: touch;
   }
+
+  /*
+   * Slim, always-present scrollbar for panels that scroll inside the page
+   * (episode playlist, related rail). `scrollbar-hide` leaves no affordance at
+   * all, so a long list reads as if it simply ends. Pair with tabIndex={0} so
+   * the panel can take focus and answer the arrow keys.
+   */
+  .site-thin-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(24, 24, 27, 0.28) transparent;
+  }
+
+  .dark .site-thin-scroll {
+    scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  }
+
+  .site-thin-scroll::-webkit-scrollbar {
+    width: 9px;
+  }
+
+  .site-thin-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Transparent border + padding-box clip keeps the visible thumb ~5px while
+     leaving a comfortable pointer target. */
+  .site-thin-scroll::-webkit-scrollbar-thumb {
+    background: rgba(24, 24, 27, 0.28);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+    border-radius: 999px;
+  }
+
+  .dark .site-thin-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    background-clip: padding-box;
+  }
+
+  .site-thin-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(24, 24, 27, 0.45);
+    background-clip: padding-box;
+  }
+
+  .dark .site-thin-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.38);
+    background-clip: padding-box;
+  }
+
+  /* Keyboard users need to see which panel the arrow keys will drive. */
+  .site-thin-scroll:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.4);
+    outline-offset: -2px;
+    border-radius: 0.5rem;
+  }
+
+  :root:not(.dark) .site-thin-scroll:focus-visible {
+    outline-color: rgba(63, 63, 70, 0.55);
+  }
 }
 
 @layer base {
