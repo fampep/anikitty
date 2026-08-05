@@ -1994,6 +1994,7 @@ const VideoPlayerSection = () => {
         }
         seriesTitle={animeName ?? undefined}
         episodeNumber={currentEpisodeInfo?.number}
+        totalEpisodes={allEpisodes?.totalEpisodes ?? undefined}
         anilistId={anilistId ?? undefined}
         watchingHardSub={watchingHardSub && streamAudio === "sub"}
         className="rounded-none"

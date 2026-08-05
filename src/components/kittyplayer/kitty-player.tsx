@@ -249,6 +249,7 @@ export function KittyPlayer({
   title,
   seriesTitle,
   episodeNumber,
+  totalEpisodes,
   anilistId,
   className,
   tracks = EMPTY_TRACKS,
@@ -4533,14 +4534,22 @@ export function KittyPlayer({
           )}
           aria-hidden={!chromeVisible}
         >
+          {/* Eyebrow, then the series large, then the episode line — the show is
+              the headline and the episode is the detail. */}
           <div className="px-3.5 pb-10 sm:px-5">
-            {seriesTitle ? (
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.16em] text-white/45">
-                {seriesTitle}
-              </p>
-            ) : null}
-            {title ? (
-              <p className="mt-1 truncate text-[13px] font-semibold tracking-wide text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.7)] sm:text-[15px]">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+              You&rsquo;re watching
+            </p>
+            <p className="mt-1 truncate text-[17px] font-semibold tracking-tight text-white drop-shadow-[0_1px_10px_rgba(0,0,0,0.7)] sm:text-[21px]">
+              {seriesTitle || title}
+            </p>
+            {title && seriesTitle ? (
+              <p className="mt-0.5 truncate text-[12px] text-white/55 sm:text-[13px]">
+                {/* Callers often pass "Episode 1" as the title, so only prefix
+                    the number when the title is a real episode name. */}
+                {episodeNumber && !/episode/i.test(title)
+                  ? `Episode ${episodeNumber} · `
+                  : ""}
                 {title}
               </p>
             ) : null}
@@ -4587,6 +4596,27 @@ export function KittyPlayer({
               "drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]",
             )}
           >
+            {/* Meta row above the seek bar: elapsed and episode badge on the
+                left, total on the right. Keeps the control row free of the
+                time readout so the icons can breathe. */}
+            <div
+              className="relative z-[1] mb-0.5 flex items-center gap-2 px-1 text-[11px] tabular-nums text-white/70 sm:text-[12px]"
+              aria-hidden
+            >
+              <span className="font-semibold text-white/95">
+                {formatPlayerTime(displayTime)}
+              </span>
+              {episodeNumber ? (
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/75 ring-1 ring-inset ring-white/10">
+                  EP {episodeNumber}
+                  {totalEpisodes ? ` / ${totalEpisodes}` : ""}
+                </span>
+              ) : null}
+              <span className="ml-auto text-white/60">
+                {formatPlayerTime(effectiveDuration)}
+              </span>
+            </div>
+
             {/* Progress — full content width; compact hit target; thin visual line */}
             <div
               ref={progressRef}
@@ -4877,16 +4907,20 @@ export function KittyPlayer({
                   </>
                 ) : null}
 
-                <span
-                  className="ml-1.5 min-w-0 select-none truncate tabular-nums tracking-wide text-[11px] text-white/95 sm:ml-2 sm:text-[12px]"
-                  aria-hidden
-                >
-                  <span className="font-semibold">{formatPlayerTime(displayTime)}</span>
-                  <span className="text-white/40">
-                    <span className="mx-0.5 text-white/20">/</span>
-                    {formatPlayerTime(effectiveDuration)}
-                  </span>
-                </span>
+                {/* Now playing — series above, episode below. Hidden on narrow
+                    viewports where the icon clusters need the whole row. */}
+                {(seriesTitle || title) && (
+                  <div className="ml-3 hidden min-w-0 flex-col justify-center lg:flex" aria-hidden>
+                    {seriesTitle ? (
+                      <span className="truncate text-[11px] leading-tight text-white/50">
+                        {seriesTitle}
+                      </span>
+                    ) : null}
+                    <span className="truncate text-[12px] font-semibold leading-tight text-white/90">
+                      {title || seriesTitle}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Right — never shrinks; stays above the time label */}

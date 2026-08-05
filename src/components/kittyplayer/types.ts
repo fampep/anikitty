@@ -14,6 +14,8 @@ export type KittyPlayerProps = {
   seriesTitle?: string;
   /** Episode number for Chromecast TvShow metadata. */
   episodeNumber?: number;
+  /** Episode count, for the `EP n / total` badge above the seek bar. */
+  totalEpisodes?: number;
   /** AniList id — keys local timestamp bookmarks. */
   anilistId?: number;
   className?: string;
