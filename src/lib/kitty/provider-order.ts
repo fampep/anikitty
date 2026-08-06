@@ -86,8 +86,8 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("MegaVid");
         continue;
       }
-      if (item === "XAnime" || item === "Unique") {
-        push("UniqueStream");
+      if (item === "XAnime" || item === "Unique" || item === "UniqueStream") {
+        push("XAnime");
         continue;
       }
       if (

@@ -15,7 +15,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Anikoto",
   "MegaVid",
   // NB: distinct from "AniKuro" (Alpha) — the ids differ by one letter.
-  "UniqueStream",
+  "XAnime",
   "Animeya",
   "AniVibe",
   "AniDelta",
@@ -43,6 +43,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "Lunar",
   "FlixCloud",
   "MegaPlay",
+  "UniqueStream",
   "AllAnime",
   "ReAnime",
   "Zenkai",
@@ -75,7 +76,7 @@ export const KITTY_PROVIDERS = [
   "Miruro",
   "AnimeGG",
   "MegaVid",
-  "UniqueStream",
+  "XAnime",
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
@@ -85,7 +86,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 14;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 110;
+export const PROVIDER_ORDER_SYNC_VERSION = 111;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -289,12 +290,12 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "UniqueStream",
+    id: "XAnime",
     label: "XAnime",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
-    // XAnime display name; UniqueStream remains the API provider id.
+    // Direct M3U8 streams via XAnime, with subtitle tracks when available.
     softSub: true,
     hardSub: false,
     nativeSubs: true,
@@ -317,7 +318,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
  * tries these before anything else. All fourteen are Recommended:
- * 1 Delta, 2 Echo (Miruro), 3 Mike (MegaVid), 4 XAnime (UniqueStream),
+ * 1 Delta, 2 Echo (Miruro), 3 Mike (MegaVid), 4 XAnime,
  * 5 Uniform (KickAssAnime), 6 Neko, 7 Kilo, 8 Vibe, 9 Waves (AniWaves),
  * 10 Senshi, 11 Mkissa, 12 Alpha, 13 Sierra, 14 Golf (AnimeGG).
  * Juliet (AniWatch) retired from Recommended. */
@@ -325,7 +326,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
   "Miruro",
   "MegaVid",
-  "UniqueStream",
+  "XAnime",
   "KickAssAnime",
   "AniNeko",
   "Anikoto",
@@ -385,7 +386,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Senshi",
   "Miruro",
   "MegaVid",
-  "UniqueStream",
+  "XAnime",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -411,7 +412,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
   if (value === "Golf" || value === "AnimeGG") return "AnimeGG";
   if (value === "Mike" || value === "MegaVid") return "MegaVid";
-  if (value === "XAnime" || value === "Unique") return "UniqueStream";
+  if (value === "XAnime" || value === "Unique" || value === "UniqueStream") return "XAnime";
   if (value === "Heaven" || value === "AnimeHeaven") return DEFAULT_KITTY_PROVIDER;
   if (value === "Megu" || value === "MeguAnimes" || value === "MeguAnime") return DEFAULT_KITTY_PROVIDER;
   if (value === "Ya" || value === "VidNest" || value === "Mp4Upload" || value === "MP4Upload") {
@@ -423,8 +424,8 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Sierra" || value === "Snatch") return "AniSnatch";
   if (value === "Vibe" || value === "AniVibeLive") return "AniVibe";
   if (value === "Alpha") return "AniKuro";
-  // Lima was AniKura - retired, map to XAnime's API provider id.
-  if (value === "Lima" || value === "AniKura") return "UniqueStream";
+  // Lima was AniKura - retired, map to XAnime.
+  if (value === "Lima" || value === "AniKura") return "XAnime";
   if (
     value === "Delta" ||
     value === "DB" ||

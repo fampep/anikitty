@@ -528,7 +528,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 110,
+      version: 111,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1327,6 +1327,11 @@ export const useSettingsStore = create<ISettingsStore>()(
         if (version < 109) {
           // Mike (MegaVid) joins Recommended as #3 — reseed so saved orders pick it up.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+        }
+        if (version < 111) {
+          // XAnime replaces UniqueStream in Recommended #4.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }
         return next as ISettingsStore;
       },
