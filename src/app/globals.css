@@ -999,11 +999,10 @@ html.density-compact .site-bottom-nav {
     }
   }
 
-  /* Genre bento tiles and strip rows. Artwork sits full-bleed behind a scrim
-     rather than being tinted, so the site's monochrome chrome stays the frame
-     and the art supplies the colour. */
-  .genre-tile,
-  .genre-row {
+  /* Genre directory. Artwork stays textural and the cards keep the site's
+     restrained chrome, giving the page its own layout without changing theme. */
+  .genre-spotlight,
+  .genre-card {
     --genre-hue: calc(var(--genre-index, 0) * 47deg);
     @apply bg-card/60 dark:bg-[#0b0b0b];
     transition:
@@ -1012,50 +1011,55 @@ html.density-compact .site-bottom-nav {
       box-shadow 280ms ease;
   }
 
-  .genre-tile__art,
-  .genre-row__art {
+  .genre-spotlight__art,
+  .genre-card__art {
     z-index: 0;
     transition:
       transform 620ms cubic-bezier(0.22, 1, 0.36, 1),
       opacity 280ms ease;
   }
 
-  .genre-row__art {
-    opacity: 0.5;
-    /* Art fades out to the left so the label block stays readable. */
-    mask-image: linear-gradient(to right, transparent 0%, black 42%);
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, black 42%);
+  .genre-card__art {
+    opacity: 0.28;
+    mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
   }
 
-  /* Bottom-left weighted so the name and tagline always clear the art. */
-  .genre-tile__scrim {
+  .genre-spotlight__scrim,
+  .genre-card__scrim {
     position: absolute;
     inset: 0;
     z-index: 1;
     pointer-events: none;
+  }
+
+  .genre-spotlight__scrim {
     background:
-      linear-gradient(to top, rgb(0 0 0 / 0.88) 0%, rgb(0 0 0 / 0.45) 42%, rgb(0 0 0 / 0.1) 72%),
-      linear-gradient(to right, rgb(0 0 0 / 0.6) 0%, transparent 60%);
+      linear-gradient(to top, rgb(0 0 0 / 0.9) 0%, rgb(0 0 0 / 0.52) 48%, rgb(0 0 0 / 0.18) 100%),
+      linear-gradient(to right, rgb(0 0 0 / 0.58) 0%, transparent 68%);
   }
 
-  .genre-row__scrim {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(to right, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.35) 55%, transparent 100%);
+  .genre-card__scrim {
+    background:
+      linear-gradient(to bottom, rgb(255 255 255 / 0.78) 0%, rgb(255 255 255 / 0.92) 68%, rgb(255 255 255 / 0.98) 100%),
+      radial-gradient(90% 70% at 100% 100%, hsl(var(--genre-hue) 70% 55% / 0.13), transparent 70%);
   }
 
-  :root:not(.dark) .genre-row__scrim {
-    background: linear-gradient(to right, rgb(255 255 255 / 0.9) 0%, rgb(255 255 255 / 0.6) 55%, transparent 100%);
+  .dark .genre-card__scrim {
+    background:
+      linear-gradient(to bottom, rgb(0 0 0 / 0.18) 0%, rgb(0 0 0 / 0.72) 64%, rgb(0 0 0 / 0.9) 100%),
+      radial-gradient(90% 70% at 100% 100%, hsl(var(--genre-hue) 70% 55% / 0.16), transparent 70%);
   }
 
-  /* Fallback when a genre has no banner — keeps the tile part of the set. */
-  .genre-tile__wash {
+  .genre-spotlight__wash,
+  .genre-card__wash {
     position: absolute;
     inset: 0;
     z-index: 0;
     pointer-events: none;
+  }
+
+  .genre-spotlight__wash {
     background: radial-gradient(
       120% 100% at 12% 0%,
       hsl(var(--genre-hue) 55% 55% / 0.22),
@@ -1063,46 +1067,123 @@ html.density-compact .site-bottom-nav {
     );
   }
 
-  .genre-tile__count {
+  .genre-card__wash {
+    background:
+      radial-gradient(90% 90% at 10% 0%, hsl(var(--genre-hue) 65% 55% / 0.18), transparent 68%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.05), transparent);
+  }
+
+  .genre-card__count {
     @apply bg-black/55 text-white/90 backdrop-blur-sm;
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12);
   }
 
+  .genre-card__posters,
+  .genre-card__empty-posters {
+    position: relative;
+    display: inline-flex;
+    width: 7.5rem;
+    height: 4.6rem;
+    flex: 0 0 auto;
+  }
+
+  .genre-card__posters > span,
+  .genre-card__empty-posters > span {
+    position: absolute;
+    bottom: 0;
+    left: calc(var(--poster-index, 0) * 2.1rem);
+    width: 3.25rem;
+    height: 4.6rem;
+    overflow: hidden;
+    border-radius: 0.45rem;
+    box-shadow:
+      0 10px 24px rgb(0 0 0 / 0.34),
+      inset 0 0 0 1px rgb(255 255 255 / 0.14);
+    transform: rotate(calc((var(--poster-index, 0) - 1) * 5deg));
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .genre-card__empty-posters > span {
+    background: hsl(var(--genre-hue) 42% 48% / 0.22);
+  }
+
+  .genre-card__empty-posters > span:nth-child(1) {
+    --poster-index: 0;
+  }
+
+  .genre-card__empty-posters > span:nth-child(2) {
+    --poster-index: 1;
+  }
+
+  .genre-card__empty-posters > span:nth-child(3) {
+    --poster-index: 2;
+  }
+
+  .genre-pill__dot,
+  .genre-result__mark {
+    background: hsl(var(--genre-hue) 70% 58% / 0.85);
+    box-shadow: 0 0 18px hsl(var(--genre-hue) 70% 58% / 0.3);
+  }
+
+  .genre-pill__dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 999px;
+    flex: 0 0 auto;
+  }
+
+  .genre-result__mark {
+    width: 0.55rem;
+    height: 2rem;
+    border-radius: 999px;
+    flex: 0 0 auto;
+  }
+
   @media (hover: hover) and (pointer: fine) {
-    .genre-tile:hover,
-    .genre-row:hover {
+    .genre-spotlight:hover,
+    .genre-card:hover {
       @apply border-border dark:border-white/25;
       transform: translateY(-3px);
       box-shadow: 0 16px 40px -16px rgb(0 0 0 / 0.7);
     }
 
-    .genre-tile:hover .genre-tile__art {
+    .genre-spotlight:hover .genre-spotlight__art {
       transform: scale(1.06);
     }
 
-    .genre-row:hover .genre-row__art {
-      opacity: 0.72;
+    .genre-card:hover .genre-card__art {
+      opacity: 0.42;
+      transform: scale(1.04);
+    }
+
+    .genre-card:hover .genre-card__posters > span,
+    .genre-spotlight:hover .genre-card__posters > span {
+      transform: translateY(-0.25rem) rotate(calc((var(--poster-index, 0) - 1) * 2deg));
     }
   }
 
-  .genre-tile:active,
-  .genre-row:active {
+  .genre-spotlight:active,
+  .genre-card:active {
     transform: translateY(0) scale(0.995);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .genre-tile,
-    .genre-row,
-    .genre-tile__art,
-    .genre-row__art {
+    .genre-spotlight,
+    .genre-card,
+    .genre-spotlight__art,
+    .genre-card__art,
+    .genre-card__posters > span {
       transition-duration: 200ms !important;
     }
 
-    .genre-tile:hover,
-    .genre-row:hover,
-    .genre-tile:active,
-    .genre-row:active,
-    .genre-tile:hover .genre-tile__art {
+    .genre-spotlight:hover,
+    .genre-card:hover,
+    .genre-spotlight:active,
+    .genre-card:active,
+    .genre-spotlight:hover .genre-spotlight__art,
+    .genre-card:hover .genre-card__art,
+    .genre-card:hover .genre-card__posters > span,
+    .genre-spotlight:hover .genre-card__posters > span {
       transform: none;
     }
   }
