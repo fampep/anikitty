@@ -20,11 +20,11 @@ export default function WatchNowWatchingCard({ servers, className }: Props) {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-muted/25 dark:bg-[#0c0c0c]/90",
+        "watch-source-card overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-muted/25 dark:bg-[#0c0c0c]/90",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2 border-b border-border/50 dark:border-white/[0.06] px-3 py-2 sm:px-3.5">
+      <div className="watch-source-card__header flex items-center justify-between gap-2 border-b border-border/50 dark:border-white/[0.06] px-3 py-2 sm:px-3.5">
         <p className="text-[10px] font-mono font-bold uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">
           {t("watch.serverPickerTitle")}
         </p>

@@ -507,7 +507,7 @@ const Layout = (props: Props) => {
       toggleMobilePlaylist={toggleMobilePlaylist}
       setMobilePlaylistOpen={setMobilePlaylistOpen}
     >
-    <div className="relative min-h-screen">
+    <div className="watch-page-shell relative min-h-screen">
     {!theatreMode && watchPosterTheme ? (
       <HomeAmbientBackdrop
         imageUrl={info.poster || mappingData?.images?.poster}
@@ -520,7 +520,7 @@ const Layout = (props: Props) => {
     <Container
       data-watch-layout={theatreMode ? "theatre" : watchLayout}
       className={cn(
-      "relative z-[1] pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
+      "watch-page-container relative z-[1] pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
       // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
       // Default + theater: near full-bleed player column.
@@ -554,7 +554,7 @@ const Layout = (props: Props) => {
       {/* Main grid: player + sidebar */}
       <div
         className={cn(
-          "grid grid-cols-1 gap-3 sm:gap-4",
+          "watch-main-grid grid grid-cols-1 gap-3 sm:gap-4",
           isCompactLayout && "gap-2 sm:gap-2.5",
           showSideSidebar &&
             !sidebarCollapsed &&
@@ -574,7 +574,7 @@ const Layout = (props: Props) => {
       >
         {/* Left: player + episode info + tabs (AniDap: span 2 of 3) */}
         <div className={cn(
-          "flex flex-col gap-2.5 sm:gap-3.5 min-w-0",
+          "watch-player-column flex flex-col gap-2.5 sm:gap-3.5 min-w-0",
           isCompactLayout && "gap-1.5 sm:gap-2",
         )}>
           <div
@@ -594,7 +594,7 @@ const Layout = (props: Props) => {
             <div
               id="watch-quick-nav"
               className={cn(
-                "watch-sticky-chrome -mx-4 px-4 sm:mx-0 sm:px-0 bg-background/90 dark:bg-[#050505]/90 backdrop-blur-md border-b border-border/40 dark:border-white/[0.06] py-1.5 sm:py-2",
+                "watch-sticky-chrome -mx-4 px-4 sm:mx-0 sm:px-0 py-1.5 sm:py-2",
                 // Default (Miruro-like): keep tabs in flow under the player, not sticky over content.
                 isDefaultLayout
                   ? "relative z-10"
@@ -705,7 +705,7 @@ const Layout = (props: Props) => {
               )}
             </div>
             {currentAnimeId && currentEpisode && (
-              <div className="rounded-xl border border-border/50 dark:border-white/[0.07] bg-muted/10 dark:bg-white/[0.015] p-3.5 sm:p-4">
+              <div className="watch-content-panel rounded-xl border border-border/50 dark:border-white/[0.07] bg-muted/10 dark:bg-white/[0.015] p-3.5 sm:p-4">
                 <CommentSection
                   key={`${currentAnimeId}-${desktopCommentScope}-${episodeId ?? "none"}`}
                   animeId={currentAnimeId}
@@ -729,7 +729,7 @@ const Layout = (props: Props) => {
               <h2 className="text-[13px] font-semibold tracking-tight text-foreground/85 dark:text-white/80">{t("watch.tabs.info")}</h2>
             </div>
 
-            <div className="rounded-xl border border-border/50 dark:border-white/[0.06] bg-transparent p-3.5 sm:p-4 space-y-4">
+            <div className="watch-content-panel rounded-xl border border-border/50 dark:border-white/[0.06] bg-transparent p-3.5 sm:p-4 space-y-4">
               <WatchInfoDetails
                 info={info}
                 moreInfo={moreInfo}
@@ -752,7 +752,7 @@ const Layout = (props: Props) => {
           <div className="hidden lg:flex flex-col gap-3 min-w-0 lg:sticky lg:top-[calc(var(--nav-total-height)+0.35rem)] lg:self-start">
           <aside
             className={cn(
-              "watch-sidebar relative flex flex-col gap-0 lg:max-h-[min(62vh,34rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
+              "watch-sidebar watch-sidebar-panel relative flex flex-col gap-0 lg:max-h-[min(62vh,34rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
               isCompactLayout && "watch-sidebar--compact",
               isDefaultLayout && "rounded-xl border-border/50 dark:border-white/[0.07]",
               sidebarCollapsed && "items-center px-1 py-2",

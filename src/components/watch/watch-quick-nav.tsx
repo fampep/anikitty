@@ -45,11 +45,11 @@ export default function WatchQuickNav({
   return (
     <div
       className={cn(
-        "flex items-center gap-1 overflow-x-auto scrollbar-hide scroll-momentum",
+        "watch-quick-nav flex items-center gap-1 overflow-x-auto scrollbar-hide scroll-momentum",
         className,
       )}
     >
-      <div className="inline-flex items-center gap-0.5 rounded-lg border border-border/60 dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.03] p-0.5">
+      <div className="watch-quick-nav__tabs inline-flex items-center gap-0.5 rounded-lg border border-border/60 dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.03] p-0.5">
         {tabs.map(({ value, icon: Icon, key, mobileOnly }) => {
           const active = activeTab === value;
           const hideOnDesktop = Boolean(mobileOnly) && !showEpisodesOnDesktop;
@@ -59,7 +59,7 @@ export default function WatchQuickNav({
               type="button"
               onClick={() => onTabChange(value)}
               className={cn(
-                "site-focus inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors shrink-0",
+                "watch-quick-nav__tab site-focus inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors shrink-0",
                 active
                   ? "bg-background dark:bg-white/[0.1] text-foreground dark:text-white shadow-sm"
                   : "text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/75",
@@ -79,7 +79,7 @@ export default function WatchQuickNav({
       </div>
       <Link
         href={`${ROUTES.ANIME_DETAILS}/${animeId}`}
-        className="ml-auto shrink-0 text-[11px] font-medium text-muted-foreground/80 dark:text-white/30 hover:text-foreground dark:hover:text-white/65 transition-colors px-1.5 py-1.5"
+        className="watch-quick-nav__link ml-auto shrink-0 text-[11px] font-medium text-muted-foreground/80 dark:text-white/30 hover:text-foreground dark:hover:text-white/65 transition-colors px-1.5 py-1.5"
       >
         {t("watch.quickNav.animePage")} →
       </Link>

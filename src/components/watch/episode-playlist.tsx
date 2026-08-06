@@ -300,13 +300,13 @@ const EpisodePlaylist = ({
       className={cn(
         "col-span-1 flex flex-col w-full overflow-hidden",
         isWatch
-          ? "site-panel min-h-0"
+          ? "watch-episode-playlist site-panel min-h-0"
           : "min-h-0 flex-1 border-0 bg-transparent rounded-none shadow-none",
       )}
     >
       <div
         className={cn(
-          "shrink-0 border-b border-border dark:border-white/[0.07]",
+          "watch-episode-playlist__toolbar shrink-0 border-b border-border dark:border-white/[0.07]",
           isWatch ? "px-3 py-2.5 space-y-2" : "px-3 pt-2.5 pb-2 space-y-1.5",
         )}
       >
