@@ -8,6 +8,7 @@ import { kofiDonationUrl } from "@/lib/social/donation-config";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-status";
 import { useAuthStore } from "@/store/auth-store";
 import { ROUTES } from "@/constants/routes";
+import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
 
