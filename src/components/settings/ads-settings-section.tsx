@@ -1,10 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
-import { useT } from "@/providers/i18n-provider";
-import { DisableAdsDialog } from "@/components/ads/disable-ads-dialog";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/core/utils";
 
@@ -91,43 +88,28 @@ function ToggleRow({
 
 export default function AdsSettingsSection() {
   const t = useT();
-  const [infoOpen, setInfoOpen] = useState(false);
-
-  const handleToggle = (next: boolean) => {
-    if (!next) {
-      setInfoOpen(true);
-    }
-  };
 
   return (
-    <>
-      <SectionCard>
-        <SectionHeader
-          icon={<Megaphone className="w-4 h-4" />}
-          title={t("settings.ads.title")}
-          description={t("settings.ads.desc")}
-        />
-        <div className="px-5 py-4 space-y-3">
-          <ToggleRow
-            icon={<Megaphone className="w-4 h-4" />}
-            label={t("settings.ads.showAds")}
-            description={t("settings.ads.showAdsDesc")}
-            value={true}
-            onChange={handleToggle}
-          />
-          <p className="text-[11px] text-muted-foreground dark:text-white/40 leading-relaxed">
-            {t("settings.ads.donationHint")}{" "}
-            <Link
-              href={ROUTES.DONATE}
-              className="text-primary underline-offset-2 hover:underline"
-            >
-              {t("settings.ads.donationLink")}
-            </Link>
-          </p>
-        </div>
-      </SectionCard>
-
-      <DisableAdsDialog open={infoOpen} onOpenChange={setInfoOpen} />
-    </>
+    <SectionCard>
+      <SectionHeader
+        icon={<Megaphone className="w-4 h-4" />}
+        title="Support Us Instead of Ads"
+        description="We've replaced ads with a permanent support banner"
+      />
+      <div className="px-5 py-4 space-y-3">
+        <p className="text-sm text-foreground dark:text-white/75 leading-relaxed">
+          We've removed intrusive ads and replaced them with a permanent support banner asking for Kifu donations. This helps cover our server costs while maintaining a better viewing experience for everyone.
+        </p>
+        <p className="text-[11px] text-muted-foreground dark:text-white/50 leading-relaxed">
+          Thank you for supporting us! Every contribution helps keep AniKitty free and accessible.{" "}
+          <Link
+            href={ROUTES.DONATE}
+            className="text-primary underline-offset-2 hover:underline"
+          >
+            Learn about supporting us
+          </Link>
+        </p>
+      </div>
+    </SectionCard>
   );
 }
