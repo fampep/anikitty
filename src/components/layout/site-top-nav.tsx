@@ -6,10 +6,11 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Crown,
+  Flame,
   Home,
   LayoutGrid,
-  ListFilter,
   Search,
+  Tags,
   UserRound,
   X,
   type LucideIcon,
@@ -45,13 +46,13 @@ const PRIMARY_TABS: PrimaryTab[] = [
   },
   {
     href: ROUTES.TRENDING,
-    icon: LayoutGrid,
+    icon: Flame,
     labelKey: "nav.short.trending",
     match: (p) => p === ROUTES.TRENDING || p.startsWith("/trending"),
   },
   {
     href: ROUTES.GENRE,
-    icon: ListFilter,
+    icon: Tags,
     labelKey: "nav.short.genre",
     match: (p) => p.startsWith("/genre"),
   },
@@ -81,14 +82,14 @@ function NavTab({
       title={label}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "site-top-tab flex h-9 flex-none items-center gap-2 rounded-full px-2.5 text-[13px] font-medium sm:px-3",
+        "site-top-tab relative isolate flex h-9 flex-none items-center gap-2 overflow-hidden rounded-full px-2.5 text-[13px] font-medium sm:px-3",
         active
           ? "site-top-tab--active text-foreground dark:text-white"
           : "text-muted-foreground/70 hover:text-foreground/90 dark:text-white/45 dark:hover:text-white/85",
       )}
     >
-      <Icon className="h-[17px] w-[17px] shrink-0" strokeWidth={active ? 2.2 : 1.85} />
-      <span className="hidden lg:inline">{label}</span>
+      <Icon className="site-top-glyph h-[17px] w-[17px] shrink-0" strokeWidth={active ? 2.25 : 1.85} />
+      <span className="relative z-[1] hidden lg:inline">{label}</span>
     </Link>
   );
 }
@@ -112,13 +113,13 @@ function NavIconButton({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "site-top-icon flex h-9 w-9 flex-none items-center justify-center rounded-full",
+        "site-top-icon relative isolate flex h-9 w-9 flex-none items-center justify-center overflow-hidden rounded-full",
         active
           ? "site-top-tab--active text-foreground dark:text-white"
           : "text-muted-foreground/70 hover:text-foreground/90 dark:text-white/45 dark:hover:text-white/85",
       )}
     >
-      <Icon className="h-[17px] w-[17px]" strokeWidth={1.9} />
+      <Icon className="site-top-glyph h-[17px] w-[17px]" strokeWidth={1.9} />
     </button>
   );
 }
@@ -219,7 +220,7 @@ export default function SiteTopNav() {
             <Link
               href={ROUTES.HOME}
               aria-label={t("nav.short.home")}
-              className="site-top-brand mr-1 flex h-9 w-9 flex-none items-center justify-center rounded-full"
+              className="site-top-brand relative isolate mr-1 flex h-9 w-9 flex-none items-center justify-center overflow-hidden rounded-full"
             >
               <Image
                 src="/anikitty-logo.png"
@@ -254,7 +255,7 @@ export default function SiteTopNav() {
               )}
             </nav>
 
-            {/* Splits navigation from account actions, as in the reference bar. */}
+            {/* Splits browsing links from account actions. */}
             <span
               className="mx-1.5 hidden h-5 w-px flex-none bg-border/70 dark:bg-white/[0.1] sm:block"
               aria-hidden
@@ -273,7 +274,7 @@ export default function SiteTopNav() {
                 rel="noopener noreferrer"
                 title={t("footer.discord")}
                 aria-label={t("footer.discord")}
-                className="site-top-icon flex h-9 w-9 flex-none items-center justify-center rounded-full text-muted-foreground/70 hover:text-[#5865f2] dark:text-white/45 dark:hover:text-[#7986ff]"
+                className="site-top-icon relative isolate flex h-9 w-9 flex-none items-center justify-center overflow-hidden rounded-full text-muted-foreground/70 hover:text-[#5865f2] dark:text-white/45 dark:hover:text-[#7986ff]"
               >
                 <DiscordLogoIcon width="17" height="17" />
               </a>
@@ -281,9 +282,9 @@ export default function SiteTopNav() {
                 href={ROUTES.SHOP}
                 title={t("nav.short.shop")}
                 aria-label={t("nav.short.shop")}
-                className="site-top-icon flex h-9 w-9 flex-none items-center justify-center rounded-full text-amber-400/80 hover:text-amber-300"
+                className="site-top-icon relative isolate flex h-9 w-9 flex-none items-center justify-center overflow-hidden rounded-full text-amber-400/80 hover:text-amber-300"
               >
-                <Crown className="h-[17px] w-[17px]" strokeWidth={1.9} />
+                <Crown className="site-top-glyph h-[17px] w-[17px]" strokeWidth={1.9} />
               </Link>
               {user && <NotificationBell />}
               {user ? <NavbarAvatar auth={authBag} /> : <LoginPopoverButton />}
@@ -298,7 +299,7 @@ export default function SiteTopNav() {
                     aria-label={t("nav.more")}
                     aria-haspopup="dialog"
                     className={cn(
-                      "site-top-icon flex h-9 w-9 flex-none items-center justify-center rounded-full",
+                      "site-top-icon relative isolate flex h-9 w-9 flex-none items-center justify-center overflow-hidden rounded-full",
                       moreActive
                         ? "site-top-tab--active text-foreground dark:text-white"
                         : "text-muted-foreground/70 hover:text-foreground/90 dark:text-white/45 dark:hover:text-white/85",
