@@ -29,7 +29,7 @@ export default function MoreNavMenu({ trigger, items, pathname, side = "top" }: 
         sideOffset={12}
         collisionPadding={16}
         className={cn(
-          "site-overlay-surface z-[150] w-[min(calc(100vw-1.25rem),24rem)] max-h-[min(68vh,26rem)] overflow-hidden p-0",
+          "site-more-menu site-overlay-surface z-[150] w-[min(calc(100vw-1.25rem),24rem)] max-h-[min(68vh,26rem)] overflow-hidden p-0",
           "rounded-2xl border border-border/60 bg-background/95 shadow-[0_16px_48px_rgba(0,0,0,0.28)] backdrop-blur-2xl",
           "dark:border-white/10 dark:bg-[#09090b]/96 dark:shadow-[0_20px_56px_rgba(0,0,0,0.55)]",
           "data-[state=open]:duration-200 data-[state=closed]:duration-150",
@@ -38,7 +38,7 @@ export default function MoreNavMenu({ trigger, items, pathname, side = "top" }: 
           "motion-reduce:animate-none motion-reduce:transition-none",
         )}
       >
-        <div className="flex items-center justify-between border-b border-border/50 px-3.5 py-2.5 dark:border-white/[0.06]">
+        <div className="site-more-menu__header flex items-center justify-between border-b border-border/50 px-3.5 py-2.5 dark:border-white/[0.06]">
           <p className="text-[13px] font-semibold tracking-tight text-foreground dark:text-white">{t("nav.more")}</p>
           <button
             type="button"

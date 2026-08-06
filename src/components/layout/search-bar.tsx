@@ -230,16 +230,16 @@ const SearchBar = ({
 
   const rowClass = (index: number) =>
     cn(
-      "flex items-center gap-3 px-3 py-2 transition-colors group",
+      "site-search-row flex items-center gap-3 px-3 py-2 transition-colors group",
       activeIndex === index
-        ? "bg-accent dark:bg-white/10"
+        ? "site-search-row--active bg-accent dark:bg-white/10"
         : "hover:bg-accent dark:hover:bg-white/8",
     );
 
   const sectionLabel = (label: string, bordered = false) => (
     <p
       className={cn(
-        "px-3 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35",
+        "site-search-label px-3 pt-2.5 pb-1 text-[10px] font-mono uppercase tracking-widest text-muted-foreground dark:text-white/35",
         bordered && "border-t border-border/60 dark:border-white/[0.06]",
       )}
     >
@@ -249,7 +249,7 @@ const SearchBar = ({
 
   return (
     <div ref={containerRef} className={cn("relative w-full", className)}>
-      <div className="relative flex items-center">
+      <div className="site-search-field relative flex items-center">
         <SearchIcon className="absolute left-3 h-4 w-4 text-muted-foreground dark:text-white/40 pointer-events-none" />
         <input
           ref={inputRef}
@@ -269,7 +269,7 @@ const SearchBar = ({
           onFocus={() => setIsOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={t("search.placeholder")}
-          className="w-full h-9 pl-9 pr-8 bg-accent dark:bg-white/[0.06] border border-border dark:border-white/[0.1] rounded-xl text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground dark:placeholder:text-white/35 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
+          className="site-search-input w-full h-9 pl-9 pr-8 bg-accent dark:bg-white/[0.06] border border-border dark:border-white/[0.1] rounded-xl text-sm text-foreground dark:text-white/90 placeholder:text-muted-foreground dark:placeholder:text-white/35 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/20 transition-all"
         />
         {searchValue && (
           <button
@@ -290,9 +290,9 @@ const SearchBar = ({
           className={cn(
             "overflow-y-auto overscroll-contain w-full",
             inline
-              ? "site-search-results mt-2 max-h-[min(60vh,28rem)] rounded-xl border border-border/60 dark:border-white/[0.07] bg-transparent"
+              ? "site-search-popout site-search-results mt-2 max-h-[min(60vh,28rem)] rounded-xl border border-border/60 dark:border-white/[0.07]"
               : cn(
-                  "absolute left-0 z-50 max-h-[70vh] rounded-2xl border border-border dark:border-white/[0.08] bg-[#09090b] shadow-[0_16px_48px_rgba(0,0,0,0.7)]",
+                  "site-search-popout absolute left-0 z-50 max-h-[70vh] rounded-2xl border border-border dark:border-white/[0.08]",
                   dropUp ? "bottom-[calc(100%+8px)]" : "top-[calc(100%+8px)]",
                 ),
           )}
@@ -614,7 +614,7 @@ const SearchBar = ({
                     onMouseEnter={() => setActiveIndex(viewAllIndex)}
                     onClick={handleSelect}
                     className={cn(
-                      "flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 transition-colors text-sm font-medium",
+                      "site-search-view-all flex items-center justify-between px-3 py-2.5 border-t border-border dark:border-white/10 text-muted-foreground dark:text-white/50 hover:text-foreground/90 dark:hover:text-white/80 transition-colors text-sm font-medium",
                       activeIndex === viewAllIndex
                         ? "bg-muted/50 dark:bg-white/5 text-foreground/90 dark:text-white/80"
                         : "hover:bg-muted/50 dark:hover:bg-white/5",

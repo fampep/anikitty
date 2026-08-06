@@ -200,8 +200,8 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
   return (
     <>
       {/* Toolbar */}
-      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1 flex items-center gap-2 bg-muted/30 dark:bg-white/[0.03] border border-border dark:border-white/10 rounded-lg px-3 py-2">
+      <div className="profile-library-toolbar flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="profile-library-search flex-1 flex items-center gap-2 bg-muted/30 dark:bg-white/[0.03] border border-border dark:border-white/10 rounded-lg px-3 py-2">
           <Search className="h-4 w-4 text-muted-foreground/50" />
           <input
             ref={searchRef}
@@ -226,10 +226,10 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
 
         <div className="flex items-center gap-2">
           <Select value={sortBy} onValueChange={(val) => setSortBy(val as SortBy)}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="profile-library-select w-40">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="profile-library-select-content">
               {SORT_OPTIONS.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
@@ -238,7 +238,7 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
             </SelectContent>
           </Select>
 
-          <div className="flex border border-border dark:border-white/10 rounded-lg">
+          <div className="profile-view-toggle flex border border-border dark:border-white/10 rounded-lg">
             <button
               onClick={() => setViewMode("list")}
               className={cn(
