@@ -87,14 +87,24 @@ export default function HomeAmbientBackdrop({
           sizes="20vw"
           quality={35}
           className={cn(
-            "object-cover scale-105 brightness-[0.55] dark:brightness-[0.28] saturate-[0.85]",
+            "object-cover scale-105",
             isPage ? "object-center" : "object-top",
+            isPage
+              ? "brightness-[0.55] dark:brightness-[0.28] saturate-[0.85]"
+              : "brightness-[0.82] dark:brightness-[0.58] saturate-[1.08]",
           )}
           // Never compete with the real hero poster for LCP.
           priority={false}
         />
       </div>
-      <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/70 to-background dark:from-[#09090b]/40 dark:via-[#09090b]/80 dark:to-[#09090b]" />
+      <div
+        className={cn(
+          "absolute inset-0 bg-gradient-to-b",
+          isPage
+            ? "from-background/30 via-background/70 to-background dark:from-[#09090b]/40 dark:via-[#09090b]/80 dark:to-[#09090b]"
+            : "from-background/10 via-background/20 to-background dark:from-[#09090b]/[0.18] dark:via-[#09090b]/[0.36] dark:to-[#09090b]",
+        )}
+      />
     </div>
   );
 }

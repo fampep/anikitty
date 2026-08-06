@@ -7,7 +7,7 @@ import { IAuthStore } from "@/store/auth-store";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import Link from "next/link";
 import {
-  User, LogOut, BookMarked, Settings, Zap, Coins, History, Star,
+  User, LogOut, BookMarked, Settings, Coins, History, Star, Sparkles,
 } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
 import { accountAuth, clearAccountToken } from "@/lib/oauth/account";
@@ -73,20 +73,19 @@ function NavbarAvatar({ auth }: Props) {
       <PopoverContent
         side="bottom"
         align="end"
-        className="w-60 mt-2 p-0 bg-[#0d0d0d] border border-border dark:border-white/10 rounded-xl shadow-2xl shadow-black/70 overflow-hidden"
+        className="nav-profile-menu site-overlay-surface w-[min(calc(100vw-1rem),18rem)] mt-3 p-0 overflow-hidden"
       >
         {/* User header */}
-        <div className="relative px-4 py-3.5 border-b border-border dark:border-white/8 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent pointer-events-none" />
+        <div className="nav-profile-menu__hero relative px-4 pb-3.5 pt-4 overflow-hidden">
           <div className="relative flex items-center gap-3">
             <div className="relative shrink-0">
               <FramedAvatar
                 username={session.username}
                 url={session.avatar || undefined}
                 frameSlug={frameSlug}
-                className="w-9 h-9"
+                className="w-10 h-10"
               />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border-2 border-[#0d0d0d]" />
+              <span className="nav-profile-menu__status absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -99,16 +98,16 @@ function NavbarAvatar({ auth }: Props) {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1 mt-0.5">
-                <Zap className="w-2.5 h-2.5 text-zinc-400/60 shrink-0" />
-                <p className="text-muted-foreground/80 dark:text-white/25 text-[10px] font-mono truncate">{t("nav.brand")}</p>
+              <div className="mt-1 flex items-center gap-1.5">
+                <Sparkles className="w-3 h-3 text-primary/70 shrink-0" />
+                <p className="text-muted-foreground/80 dark:text-white/45 text-[10px] font-semibold uppercase tracking-[0.14em] truncate">{t("nav.brand")}</p>
               </div>
             </div>
           </div>
 
           {/* Level badge + XP bar */}
           {level && tier && rgb && (
-            <div className="mt-3">
+            <div className="nav-profile-menu__level mt-3">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
                   <TierIcon tier={tier} className="w-3 h-3" />
@@ -127,7 +126,7 @@ function NavbarAvatar({ auth }: Props) {
                 </span>
               </div>
               {/* XP progress bar */}
-              <div className="h-1 w-full rounded-full bg-accent dark:bg-white/10 overflow-hidden">
+              <div className="nav-profile-menu__bar h-1.5 w-full rounded-full bg-accent dark:bg-white/10 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-none"
                   style={{
@@ -153,18 +152,18 @@ function NavbarAvatar({ auth }: Props) {
         <Link
           href={ROUTES.SHOP}
           onClick={close}
-          className="mx-4 mt-3 mb-1 flex items-center justify-between gap-2 rounded-xl border border-amber-400/20 bg-amber-500/10 px-3 py-2.5 text-amber-200/90 transition-colors hover:bg-amber-500/15"
+          className="nav-profile-menu__coins mx-3.5 mt-3 mb-1 flex items-center justify-between gap-2 rounded-2xl border px-3.5 py-3 text-amber-200/90 transition"
         >
           <span className="inline-flex items-center gap-2 text-[12px] font-bold">
             <Coins className="w-3.5 h-3.5" />
             {t("nav.kittycoins")}
           </span>
           <span className="text-sm font-black tabular-nums">
-            {loaded ? balance.toLocaleString() : "—"}
+            {loaded ? balance.toLocaleString() : "-"}
           </span>
         </Link>
 
-        <div className="py-1.5">
+        <div className="nav-profile-menu__links py-1.5">
           <MenuItem
             href={`/profile/${session.username}`}
             icon={<User className="w-3.5 h-3.5" />}
@@ -197,10 +196,10 @@ function NavbarAvatar({ auth }: Props) {
           />
         </div>
 
-        <div className="border-t border-border dark:border-white/8 py-1.5">
+        <div className="nav-profile-menu__footer py-1.5">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-colors"
+            className="nav-profile-menu__signout mx-2 w-[calc(100%-1rem)] rounded-xl flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-400/85 transition"
           >
             <LogOut className="w-3.5 h-3.5" />
             {t("nav.signOut")}
@@ -221,10 +220,10 @@ function MenuItem({ href, icon, label, onClick }: {
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 px-4 py-2 text-sm text-muted-foreground dark:text-white/55 hover:bg-muted/60 dark:hover:bg-white/6 hover:text-foreground dark:hover:text-white/90 transition-colors"
+      className="nav-profile-menu__item group relative isolate mx-2 flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-muted-foreground dark:text-white/[0.58] transition"
     >
-      <span className="text-muted-foreground dark:text-white/30">{icon}</span>
-      {label}
+      <span className="nav-profile-menu__item-icon text-muted-foreground dark:text-white/35 transition">{icon}</span>
+      <span className="relative z-[1]">{label}</span>
     </Link>
   );
 }

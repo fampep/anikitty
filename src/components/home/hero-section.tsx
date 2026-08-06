@@ -291,7 +291,7 @@ const HeroCarouselItem = ({
     : `${ROUTES.WATCH}?anime=${anime.id}`;
 
   return (
-    <div className="relative w-full max-h-[var(--home-hero-max-h)] min-h-[42lvh] sm:min-h-[40lvh] aspect-video overflow-hidden bg-black">
+    <div className="home-hero-slide relative w-full min-h-[64lvh] sm:min-h-[66lvh] lg:min-h-[70lvh] overflow-hidden bg-black">
       <div className="absolute inset-0 overflow-hidden">
         {isNearActive && anime?.poster ? (
           <Image
@@ -300,14 +300,14 @@ const HeroCarouselItem = ({
             fill
             priority={priority}
             sizes="100vw"
-            className="object-cover object-center scale-110"
+            className="object-cover object-center scale-[1.03]"
           />
         ) : null}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-transparent z-10" />
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/45 to-transparent dark:from-black dark:via-black/55 z-10" />
-      <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent dark:from-black/70 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-transparent z-10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent dark:from-black/80 dark:via-black/25 z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-background/72 via-background/12 to-transparent dark:from-black/68 dark:via-black/10 z-10" />
 
       <div className="absolute inset-0 z-20 flex items-end">
         <Container className="w-full pb-16 sm:pb-20 pointer-events-none">
