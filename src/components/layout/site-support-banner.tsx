@@ -8,7 +8,6 @@ import { kofiDonationUrl } from "@/lib/social/donation-config";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-status";
 import { useAuthStore } from "@/store/auth-store";
 import { ROUTES } from "@/constants/routes";
-import { useT } from "@/providers/i18n-provider";
 import { cn } from "@/lib/core/utils";
 import { isPublicAdminUiPath } from "@/lib/security/admin-panel-path-public";
 
@@ -51,7 +50,7 @@ export default function SiteSupportBanner({ className }: Props) {
       <Heart className="w-4 h-4 shrink-0 text-amber-400 fill-amber-400" />
       <div className="flex-1 min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
         <p className="text-[12px] font-bold text-amber-50">
-          Please support us in Kifu to help cover server costs
+          Please support us on Ko-Fi to help cover server costs
         </p>
         <p className="text-[11px] text-amber-100/70 line-clamp-2 sm:truncate sm:line-clamp-1">
           Your contribution helps us maintain free streaming for everyone
@@ -63,7 +62,7 @@ export default function SiteSupportBanner({ className }: Props) {
         rel="noopener noreferrer"
         className="shrink-0 inline-flex items-center gap-1 text-[11.5px] font-semibold px-3 py-1.5 rounded-lg border border-amber-500/50 bg-amber-500 dark:bg-amber-600 text-white hover:bg-amber-600 dark:hover:bg-amber-700 transition-colors"
       >
-        Donate Now
+        Donate on Ko-Fi
         <ArrowRight className="w-3 h-3" />
       </a>
       <Link
