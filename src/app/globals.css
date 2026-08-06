@@ -247,6 +247,7 @@ body {
 
   .home-cinema {
     --home-hero-max-h: 56lvh;
+    --home-hero-pull: calc(var(--nav-total-height) + var(--banner-offset));
     --home-section-gap: 3.25rem;
     overflow-anchor: none;
     @apply relative isolate;
@@ -720,6 +721,20 @@ body {
 
   .home-rail-fade-right {
     @apply right-0 bg-gradient-to-l from-background to-transparent dark:from-zinc-950;
+  }
+
+  .home-hero-carousel {
+    margin-top: calc(-1 * var(--home-hero-pull));
+  }
+
+  .home-cinema .home-hero-slide {
+    min-height: calc(70lvh + var(--home-hero-pull));
+  }
+
+  @media (max-width: 639px) {
+    .home-cinema .home-hero-slide {
+      min-height: calc(64lvh + var(--home-hero-pull));
+    }
   }
 
   .profile-subnav-shell {

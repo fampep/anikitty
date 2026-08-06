@@ -290,16 +290,16 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
   },
   {
     id: "UniqueStream",
-    label: "Unique",
+    label: "XAnime",
     group: "featured",
     supportsSub: true,
-    supportsDub: false,
-    // Direct M3U8 streams via UniqueStream API
-    softSub: false,
+    supportsDub: true,
+    // XAnime display name; UniqueStream remains the API provider id.
+    softSub: true,
     hardSub: false,
-    nativeSubs: false,
+    nativeSubs: true,
     kittySubs: false,
-    hint: "SUB · Direct HLS streams",
+    hint: "SUB · DUB · soft subs",
   },
   {
     id: "AnimeGG",
@@ -317,7 +317,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
  * tries these before anything else. All fourteen are Recommended:
- * 1 Delta, 2 Echo (Miruro), 3 Mike (MegaVid), 4 Unique (UniqueStream),
+ * 1 Delta, 2 Echo (Miruro), 3 Mike (MegaVid), 4 XAnime (UniqueStream),
  * 5 Uniform (KickAssAnime), 6 Neko, 7 Kilo, 8 Vibe, 9 Waves (AniWaves),
  * 10 Senshi, 11 Mkissa, 12 Alpha, 13 Sierra, 14 Golf (AnimeGG).
  * Juliet (AniWatch) retired from Recommended. */
@@ -385,6 +385,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Senshi",
   "Miruro",
   "MegaVid",
+  "UniqueStream",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -410,6 +411,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
   if (value === "Golf" || value === "AnimeGG") return "AnimeGG";
   if (value === "Mike" || value === "MegaVid") return "MegaVid";
+  if (value === "XAnime" || value === "Unique") return "UniqueStream";
   if (value === "Heaven" || value === "AnimeHeaven") return DEFAULT_KITTY_PROVIDER;
   if (value === "Megu" || value === "MeguAnimes" || value === "MeguAnime") return DEFAULT_KITTY_PROVIDER;
   if (value === "Ya" || value === "VidNest" || value === "Mp4Upload" || value === "MP4Upload") {
@@ -421,7 +423,7 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Sierra" || value === "Snatch") return "AniSnatch";
   if (value === "Vibe" || value === "AniVibeLive") return "AniVibe";
   if (value === "Alpha") return "AniKuro";
-  // Lima was AniKura — retired, map to UniqueStream
+  // Lima was AniKura - retired, map to XAnime's API provider id.
   if (value === "Lima" || value === "AniKura") return "UniqueStream";
   if (
     value === "Delta" ||

@@ -142,6 +142,13 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-blue-400",
     glow: "from-blue-500/20",
   },
+  UniqueStream: {
+    chip: "border-cyan-400/30 bg-cyan-500/10 text-cyan-100/90",
+    pillActive: "border-cyan-400/45 bg-cyan-500/20 text-cyan-50 shadow-[0_0_12px_-4px_rgba(34,211,238,0.35)]",
+    pillIdle: "border-transparent text-cyan-300/45 hover:text-cyan-200/80 hover:bg-cyan-500/[0.06]",
+    dot: "bg-cyan-400",
+    glow: "from-cyan-500/20",
+  },
   AnimeGG: {
     chip: "border-emerald-400/30 bg-emerald-500/10 text-emerald-100/90",
     pillActive: "border-emerald-400/45 bg-emerald-500/20 text-emerald-50 shadow-[0_0_12px_-4px_rgba(52,211,153,0.35)]",
