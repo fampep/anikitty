@@ -51,6 +51,8 @@ export interface KittyStreamResponse {
   kittyNode?: KittyApiNodeId;
   /** Wall-clock ms for the CDN race when kittyNode=auto. */
   raceMs?: number;
+  /** Provider that won an all-provider stream race. */
+  provider?: KittyProvider;
 }
 
 /** Keep resolved streams briefly — long GC stacks episode/provider payloads in RAM. */
@@ -69,6 +71,7 @@ export const getKittyStream = async (
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
   refresh?: boolean,
+  providerRace?: "all" | null,
 ): Promise<KittyStreamResponse> => {
   const res = await api.get("/api/kitty/stream", {
     params: {
@@ -84,6 +87,7 @@ export const getKittyStream = async (
         ? { excludeKittyNodes: excludeKittyNodes.join(",") }
         : {}),
       ...(refresh ? { refresh: "1" } : {}),
+      ...(providerRace === "all" ? { providerRace: "all" } : {}),
     },
     signal,
     // Cached hits are fast; cold extract can still need headroom.
@@ -105,6 +109,7 @@ export function buildKittyStreamQueryKey(
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
   refreshNonce = 0,
+  providerRace?: "all" | null,
 ) {
   return [
     KITTY_STREAM_QUERY_KEY,
@@ -118,6 +123,7 @@ export function buildKittyStreamQueryKey(
     linkId ?? "",
     excludeKittyNodes?.length ? excludeKittyNodes.slice().sort().join(",") : "",
     refreshNonce,
+    providerRace ?? "",
   ];
 }
 
@@ -177,6 +183,7 @@ export const useGetKittyStream = (
   linkId?: string | null,
   excludeKittyNodes?: readonly KittyApiNodeId[],
   refreshNonce = 0,
+  providerRace?: "all" | null,
 ) => {
   const abortRef = useRef<AbortController | null>(null);
 
@@ -199,6 +206,7 @@ export const useGetKittyStream = (
       linkId,
       excludeKittyNodes,
       refreshNonce,
+      providerRace,
     ),
     queryFn: async () => {
       abortRef.current?.abort();
@@ -217,6 +225,7 @@ export const useGetKittyStream = (
           linkId,
           excludeKittyNodes,
           refreshNonce > 0,
+          providerRace,
         );
       } finally {
         if (abortRef.current === controller) {

@@ -1014,7 +1014,9 @@ const VideoPlayerSection = () => {
     streamLinkId,
     excludeKittyNodes,
     streamRefreshNonce,
+    streamKittyNode === "auto" && !streamLinkId ? "all" : null,
   );
+  const activeStreamProvider = normalizeKittyProvider(streamData?.provider ?? provider);
 
   // Remember the race winner for labels / remints — not when the user pinned a DNS.
   useEffect(() => {
@@ -1641,11 +1643,11 @@ const VideoPlayerSection = () => {
       // reliability score the stream-fetch-failure path already records, so
       // both the picker's outcome dots and auto-fallback ordering learn from
       // HLS-level failures too, not just "API never returned a stream".
-      recordProviderOutcome(provider, false);
+      recordProviderOutcome(activeStreamProvider, false);
 
       if (!providerAutoFallback) {
         trackEvent("playback_failed", {
-          provider,
+          provider: activeStreamProvider,
           type: info?.type ?? "unknown",
           status: info?.status ?? 0,
         });
@@ -1658,7 +1660,7 @@ const VideoPlayerSection = () => {
       const switched = attemptProviderFallback(t("watch.playbackFailed"));
       if (!switched) {
         trackEvent("playback_failed", {
-          provider,
+          provider: activeStreamProvider,
           type: info?.type ?? "unknown",
           status: info?.status ?? 0,
         });
@@ -1674,6 +1676,7 @@ const VideoPlayerSection = () => {
       preservePlaybackPosition,
       retryStream,
       streamData?.kittyNode,
+      activeStreamProvider,
       kittyProxyNode,
       streamKittyNode,
       t,
@@ -1883,7 +1886,7 @@ const VideoPlayerSection = () => {
   const watchingHardSub = isHardSubPlayback({
     audioMode,
     streamAudio,
-    provider,
+    provider: activeStreamProvider,
     serverName: streamData?.server,
   });
   // Softsubs are optional on every provider, including DUB — users can turn them on
@@ -1981,7 +1984,7 @@ const VideoPlayerSection = () => {
         qualities={displayQualities}
         headers={displayHeaders}
         kittyNodeId={kittyProxyNode}
-        provider={provider}
+        provider={activeStreamProvider}
         preferSubtitles={subtitlesEnabled}
         preferDubAudio={streamAudio === "dub"}
         onSelectQuality={handlePickQuality}
@@ -2023,9 +2026,9 @@ const VideoPlayerSection = () => {
           className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/65 backdrop-blur-[3px] pointer-events-none"
           aria-live="polite"
         >
-          <span className={cn(providerChipClass(provider), "mb-4 px-3 py-1.5 text-[11px]")}>
-            <span className={cn("h-2 w-2 rounded-full shrink-0 animate-pulse", getProviderAccent(provider).dot)} />
-            {getKittyProviderLabel(provider)}
+          <span className={cn(providerChipClass(activeStreamProvider), "mb-4 px-3 py-1.5 text-[11px]")}>
+            <span className={cn("h-2 w-2 rounded-full shrink-0 animate-pulse", getProviderAccent(activeStreamProvider).dot)} />
+            {getKittyProviderLabel(activeStreamProvider)}
             <span className="opacity-40">·</span>
             {streamAudio === "dub" ? t("card.dub") : t("card.sub")}
           </span>
@@ -2033,7 +2036,7 @@ const VideoPlayerSection = () => {
           <p className="mt-3 text-[11px] font-mono text-white/55">
             {currentEpisodeInfo
               ? t("watch.loadingEpisode", { n: currentEpisodeInfo.number })
-              : t("watch.loadingStreamProvider", { provider: getKittyProviderLabel(provider) })}
+              : t("watch.loadingStreamProvider", { provider: getKittyProviderLabel(activeStreamProvider) })}
           </p>
         </div>
       )}
@@ -2078,7 +2081,7 @@ const VideoPlayerSection = () => {
         episodeNo={episodeNo}
         episodes={allEpisodes?.episodes}
         streamAudio={streamAudio}
-        provider={provider}
+        provider={activeStreamProvider}
         w2gCode={w2gCode}
         w2gIsMember={w2g.isMember}
         auth={Boolean(auth)}
@@ -2089,11 +2092,11 @@ const VideoPlayerSection = () => {
     </div>
 
     <WatchPlayerToolbar
-      provider={provider}
-      providerLabel={getKittyProviderLabel(provider)}
+      provider={activeStreamProvider}
+      providerLabel={getKittyProviderLabel(activeStreamProvider)}
       streamAudio={streamAudio}
-      dubEnabled={providerSupportsDub(provider)}
-      onAudioChange={(audio) => handleProviderGridSelect(provider, audio)}
+      dubEnabled={providerSupportsDub(activeStreamProvider)}
+      onAudioChange={(audio) => handleProviderGridSelect(activeStreamProvider, audio)}
       showProviderControls={showPlayerControls}
       hasPrev={Boolean(prevEpisode)}
       hasNext={Boolean(nextEpisode)}
@@ -2116,11 +2119,11 @@ const VideoPlayerSection = () => {
 
     {!showPlayerControls && (
       <WatchStreamInfoBar
-        providerLabel={getKittyProviderLabel(provider)}
+        providerLabel={getKittyProviderLabel(activeStreamProvider)}
         streamAudio={streamAudio}
         watchingHardSub={watchingHardSub && streamAudio === "sub"}
         serverName={streamData?.server}
-        provider={provider}
+        provider={activeStreamProvider}
         qualityLabel={activeQualityLabel}
         proxyNodeLabel={proxyNodeLabel}
         raceMs={raceMs}
@@ -2148,7 +2151,7 @@ const VideoPlayerSection = () => {
             <div className="space-y-2.5">
               {providerControlsBlock}
               <WatchServerPicker
-                provider={provider}
+                provider={activeStreamProvider}
                 streamAudio={streamAudio}
                 audioMode={audioMode}
                 activeLinkId={streamLinkId}
@@ -2177,15 +2180,15 @@ const VideoPlayerSection = () => {
             {t("watch.chapters")}
           </span>
         )}
-        {streamData?.miruroPipe && provider === "Miruro" && (
+        {streamData?.miruroPipe && activeStreamProvider === "Miruro" && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-primary/10 border border-primary/20 text-zinc-300/90">
             {streamData.miruroPipe}
           </span>
         )}
-        {providerHasNativeSubs(provider) &&
-          resolveServerCodename(provider, streamData?.server) && (
+        {providerHasNativeSubs(activeStreamProvider) &&
+          resolveServerCodename(activeStreamProvider, streamData?.server) && (
             <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-mono bg-zinc-500/10 border border-zinc-400/20 text-zinc-300/90">
-              {resolveServerCodename(provider, streamData?.server)}
+              {resolveServerCodename(activeStreamProvider, streamData?.server)}
             </span>
           )}
         {watchingHardSub && streamAudio === "sub" && (

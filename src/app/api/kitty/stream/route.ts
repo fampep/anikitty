@@ -64,6 +64,8 @@ import {
   KITTY_PROVIDERS,
   normalizeKittyProvider,
   providerHasNativeSubs,
+  providerSupportsDub,
+  providerSupportsSub,
   type KittyProvider,
 } from "@/lib/kitty/kitty-providers";
 import type { MiruroSkipTimes } from "@/lib/providers/miruro-types";
@@ -132,6 +134,8 @@ type StreamPayload = {
   kittyNode?: KittyApiNodeId;
   /** Wall-clock ms for the CDN race (health + first valid stream-direct). */
   raceMs?: number;
+  /** Provider that won a multi-provider race. */
+  provider?: KittyProvider;
 };
 
 function parseExcludeKittyNodes(raw: string | null): KittyApiNodeId[] {
@@ -161,6 +165,7 @@ export async function GET(req: Request) {
   const titleParam = searchParams.get("title")?.trim().slice(0, MAX_TITLE_LEN) || undefined;
   const refreshStream =
     searchParams.get("refresh") === "1" || searchParams.get("refresh") === "true";
+  const raceEveryProvider = searchParams.get("providerRace") === "all";
   const raceCandidates = kittyNodeRaceOrder(parseExcludeKittyNodes(searchParams.get("excludeKittyNodes")));
 
   if (!anilistId || !episode || !SAFE_ID.test(anilistId) || !SAFE_ID.test(episode)) {
@@ -356,6 +361,7 @@ export async function GET(req: Request) {
     data.servedAudio = servedAudio;
     data.audioFallback = audioFallback;
     data.kittyNode = nodeId ?? getKittyRequestNodeId();
+    data.provider = providerName;
     if (typeof raceMeta?.raceMs === "number" && Number.isFinite(raceMeta.raceMs)) {
       data.raceMs = Math.max(0, Math.round(raceMeta.raceMs));
     }
@@ -396,7 +402,7 @@ export async function GET(req: Request) {
     return finalizeStreamResponse(payload, providerName, servedAudio, audioFallback, raceMeta);
   }
 
-  async function fetchStreamDirectPlayback(providerName: KittyProvider): Promise<{
+  async function fetchStreamDirectPlayback(providerName: KittyProvider, signal?: AbortSignal): Promise<{
     result: StreamPayload | null;
     servedAudio: "sub" | "dub";
     audioFallback: boolean;
@@ -420,6 +426,7 @@ export async function GET(req: Request) {
             preferHardSub,
             refresh: refreshStream,
             backend: backendHint,
+            signal,
           },
           raceCandidates,
         );
@@ -446,6 +453,7 @@ export async function GET(req: Request) {
         preferHardSub,
         refresh: refreshStream,
         backend: backendHint,
+        signal,
       });
 
       if (!streamResult?.file) return null;
@@ -462,6 +470,52 @@ export async function GET(req: Request) {
     return { ...attempt, nodeId: wonNode, raceMs };
   }
 
+  async function raceEveryProviderStream(): Promise<{
+    providerName: KittyProvider;
+    attempt: Awaited<ReturnType<typeof fetchStreamDirectPlayback>>;
+  } | null> {
+    const providers = [provider, ...KITTY_PROVIDERS].filter((p, index, list) => {
+      if (list.indexOf(p) !== index) return false;
+      if (subtitleCtx.audio === "dub") return providerSupportsDub(p);
+      return providerSupportsSub(p);
+    });
+    if (providers.length === 0) return null;
+
+    return new Promise((resolve) => {
+      let settled = false;
+      let pending = providers.length;
+      const controllers = providers.map(() => new AbortController());
+
+      const finish = (
+        value: { providerName: KittyProvider; attempt: Awaited<ReturnType<typeof fetchStreamDirectPlayback>> } | null,
+      ) => {
+        if (settled) return;
+        settled = true;
+        for (const controller of controllers) controller.abort();
+        resolve(value);
+      };
+
+      providers.forEach((providerName, index) => {
+        const controller = controllers[index]!;
+        void fetchStreamDirectPlayback(providerName, controller.signal)
+          .then((attempt) => {
+            if (settled) return;
+            if (attempt.result?.file) {
+              finish({ providerName, attempt });
+              return;
+            }
+            pending -= 1;
+            if (pending <= 0) finish(null);
+          })
+          .catch(() => {
+            if (settled) return;
+            pending -= 1;
+            if (pending <= 0) finish(null);
+          });
+      });
+    });
+  }
+
   // kittyNode=auto: race stream-direct across healthy static-IP nodes first.
   // Dedicated handlers below are fallbacks (linkId / servers / mirrors).
   // Alpha dedicated (`animepower`) often has empty soft-sub tracks — do not defer
@@ -469,6 +523,21 @@ export async function GET(req: Request) {
   let deferredRaceAttempt: Awaited<
     ReturnType<typeof fetchStreamDirectPlayback>
   > | null = null;
+
+  if (raceMode && raceEveryProvider && !linkIdParam) {
+    const providerRace = await raceEveryProviderStream();
+    if (providerRace) {
+      const racedResponse = await respondWithStream(
+        providerRace.attempt.result,
+        providerRace.providerName,
+        providerRace.attempt.servedAudio,
+        providerRace.attempt.audioFallback,
+        providerRace.attempt.nodeId,
+        providerRace.attempt.raceMs,
+      );
+      if (racedResponse) return racedResponse;
+    }
+  }
 
   if (raceMode && !STREAM_RACE_SKIP.has(provider)) {
     const racedAttempt = await fetchStreamDirectPlayback(provider);
