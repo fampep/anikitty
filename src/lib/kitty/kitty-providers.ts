@@ -25,7 +25,6 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniKuro",
   "AniNeko",
   "Senshi",
-  "AnimeGG",
   "AnimeHeaven",
   "AniHQ",
   // Normalize-only aliases / legacy (retired from picker)
@@ -74,7 +73,7 @@ export const KITTY_PROVIDERS = [
   "AniSnatch",
   "KickAssAnime",
   "Miruro",
-  "AnimeGG",
+  "AnimeHeaven",
   "MegaVid",
   "XAnime",
 ] as const;
@@ -86,7 +85,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 14;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 111;
+export const PROVIDER_ORDER_SYNC_VERSION = 112;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -303,8 +302,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "AnimeGG",
-    label: "Golf",
+    id: "AnimeHeaven",
+    label: "AnimeHeaven",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -320,9 +319,12 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. All fourteen are Recommended:
  * 1 Delta, 2 Echo (Miruro), 3 Mike (MegaVid), 4 XAnime,
  * 5 Uniform (KickAssAnime), 6 Neko, 7 Kilo, 8 Vibe, 9 Waves (AniWaves),
- * 10 Senshi, 11 Mkissa, 12 Alpha, 13 Sierra, 14 Golf (AnimeGG).
+ * 1 AnimeHeaven, 2 Delta, 3 Echo (Miruro), 4 Mike (MegaVid), 5 XAnime,
+ * 6 Uniform (KickAssAnime), 7 Neko, 8 Kilo, 9 Vibe, 10 Waves (AniWaves),
+ * 11 Senshi, 12 Mkissa, 13 Alpha, 14 Sierra.
  * Juliet (AniWatch) retired from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
+  "AnimeHeaven",
   "AniDelta",
   "Miruro",
   "MegaVid",
@@ -336,7 +338,6 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "MKissa",
   "AniKuro",
   "AniSnatch",
-  "AnimeGG",
 ];
 
 /** 1-based rank in the given order (0 if missing). */
@@ -410,10 +411,11 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Mkissa" || value === "MKissa") return "MKissa";
   if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return DEFAULT_KITTY_PROVIDER;
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
-  if (value === "Golf" || value === "AnimeGG") return "AnimeGG";
+  if (value === "Golf" || value === "AnimeGG" || value === "Heaven" || value === "AnimeHeaven") {
+    return "AnimeHeaven";
+  }
   if (value === "Mike" || value === "MegaVid") return "MegaVid";
   if (value === "XAnime" || value === "Unique" || value === "UniqueStream") return "XAnime";
-  if (value === "Heaven" || value === "AnimeHeaven") return DEFAULT_KITTY_PROVIDER;
   if (value === "Megu" || value === "MeguAnimes" || value === "MeguAnime") return DEFAULT_KITTY_PROVIDER;
   if (value === "Ya" || value === "VidNest" || value === "Mp4Upload" || value === "MP4Upload") {
     return DEFAULT_KITTY_PROVIDER;

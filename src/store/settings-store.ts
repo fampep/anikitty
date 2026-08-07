@@ -528,7 +528,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 111,
+      version: 112,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1332,6 +1332,11 @@ export const useSettingsStore = create<ISettingsStore>()(
           // XAnime replaces UniqueStream in Recommended #4.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 112) {
+          // AnimeHeaven replaces AnimeGG and becomes the default provider.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AnimeHeaven", next.providerOrder);
         }
         return next as ISettingsStore;
       },

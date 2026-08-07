@@ -78,8 +78,8 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("Senshi");
         continue;
       }
-      if (item === "AnimeGG" || item === "Golf") {
-        push("AnimeGG");
+      if (item === "AnimeGG" || item === "Golf" || item === "AnimeHeaven" || item === "Heaven") {
+        push("AnimeHeaven");
         continue;
       }
       if (item === "MegaVid" || item === "Mike") {
@@ -104,7 +104,6 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         item === "Anitaku" ||
         item === "MeguAnime" ||
         item === "AniNeko" ||
-        item === "AnimeHeaven" ||
         item === "EarnVids"
       ) {
         continue;
