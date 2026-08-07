@@ -957,7 +957,7 @@ body {
   }
 
   .home-support-panel__button {
-    @apply inline-flex h-9 items-center gap-2 rounded-xl border border-amber-300/45 bg-amber-400/15 px-3 text-xs font-bold text-amber-950 transition-all hover:-translate-y-0.5 hover:border-amber-300/70 hover:bg-amber-300/25 dark:border-amber-300/30 dark:bg-amber-300/12 dark:text-amber-100 dark:hover:bg-amber-300/18;
+    @apply inline-flex h-9 items-center gap-2 rounded-xl border border-amber-300/[0.45] bg-amber-400/[0.15] px-3 text-xs font-bold text-amber-950 transition-all hover:-translate-y-0.5 hover:border-amber-300/[0.70] hover:bg-amber-300/[0.25] dark:border-amber-300/[0.30] dark:bg-amber-300/[0.12] dark:text-amber-100 dark:hover:bg-amber-300/[0.18];
   }
 
   .home-dispatch-layout {
