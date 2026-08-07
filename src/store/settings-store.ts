@@ -528,7 +528,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 112,
+      version: 113,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1334,9 +1334,14 @@ export const useSettingsStore = create<ISettingsStore>()(
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }
         if (version < 112) {
-          // AnimeHeaven replaces AnimeGG and becomes the default provider.
+          // AnimeHeaven replaces AnimeGG in the old GG slot.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
-          next.defaultProvider = sanitizeDefaultProvider("AnimeHeaven", next.providerOrder);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 113) {
+          // Kilo becomes second choice; Delta remains the default.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }
         return next as ISettingsStore;
       },

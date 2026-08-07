@@ -85,7 +85,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 14;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 112;
+export const PROVIDER_ORDER_SYNC_VERSION = 113;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -317,27 +317,25 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
  * tries these before anything else. All fourteen are Recommended:
- * 1 Delta, 2 Echo (Miruro), 3 Mike (MegaVid), 4 XAnime,
- * 5 Uniform (KickAssAnime), 6 Neko, 7 Kilo, 8 Vibe, 9 Waves (AniWaves),
- * 1 AnimeHeaven, 2 Delta, 3 Echo (Miruro), 4 Mike (MegaVid), 5 XAnime,
- * 6 Uniform (KickAssAnime), 7 Neko, 8 Kilo, 9 Vibe, 10 Waves (AniWaves),
- * 11 Senshi, 12 Mkissa, 13 Alpha, 14 Sierra.
+ * 1 Delta, 2 Kilo (Anikoto), 3 Echo (Miruro), 4 Mike (MegaVid), 5 XAnime,
+ * 6 Uniform (KickAssAnime), 7 Neko, 8 Vibe, 9 Waves (AniWaves),
+ * 10 Senshi, 11 Mkissa, 12 Alpha, 13 Sierra, 14 AnimeHeaven.
  * Juliet (AniWatch) retired from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
-  "AnimeHeaven",
   "AniDelta",
+  "Anikoto",
   "Miruro",
   "MegaVid",
   "XAnime",
   "KickAssAnime",
   "AniNeko",
-  "Anikoto",
   "AniVibe",
   "AniWaves",
   "Senshi",
   "MKissa",
   "AniKuro",
   "AniSnatch",
+  "AnimeHeaven",
 ];
 
 /** 1-based rank in the given order (0 if missing). */
