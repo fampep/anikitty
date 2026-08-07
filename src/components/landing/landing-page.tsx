@@ -14,15 +14,12 @@ import LandingCompletedRow from "@/components/landing/landing-completed-row";
 import LandingFooter from "@/components/landing/landing-footer";
 
 const LandingFeatures = dynamic(() => import("@/components/landing/landing-features"));
-const LandingWhy = dynamic(() => import("@/components/landing/landing-why"));
 const LandingPlayerPreview = dynamic(() => import("@/components/landing/landing-player-preview"));
 const LandingScheduleStrip = dynamic(() => import("@/components/landing/landing-schedule-strip"));
 const LandingSyncStory = dynamic(() => import("@/components/landing/landing-sync-story"));
-const LandingPersonalized = dynamic(() => import("@/components/landing/landing-personalized"));
 const LandingSearchDemo = dynamic(() => import("@/components/landing/landing-search-demo"));
 const LandingCommunity = dynamic(() => import("@/components/landing/landing-community"));
 const LandingFaq = dynamic(() => import("@/components/landing/landing-faq"));
-const LandingTestimonials = dynamic(() => import("@/components/landing/landing-testimonials"));
 const LandingSupportPerks = dynamic(() => import("@/components/landing/landing-support-perks"));
 const LandingFinalCta = dynamic(() => import("@/components/landing/landing-final-cta"));
 
@@ -56,9 +53,17 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="relative min-h-screen bg-[#09090b] text-white overflow-x-hidden flex flex-col">
+    <div className="landing-console relative min-h-screen bg-[#050507] text-white overflow-x-hidden flex flex-col">
       <LandingHero poster={spotlight?.poster ?? null} />
+      <LandingStats />
+      <LazyMount keepMounted retainMinHeight minHeight={460} rootMargin="350px 0px">
+        <LandingPlayerPreview />
+      </LazyMount>
+      <LandingWatchYourWay />
       <LandingTrendingRow anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
+      <LazyMount keepMounted retainMinHeight minHeight={280} rootMargin="350px 0px">
+        <LandingScheduleStrip />
+      </LazyMount>
       <LandingCompletedRow anime={discoveryData?.latestCompletedAnimes ?? []} loading={discoveryLoading} />
 
       <LazyMount
@@ -73,10 +78,26 @@ export default function LandingPage() {
       </LazyMount>
 
       <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
+        <LandingSearchDemo />
+      </LazyMount>
+
+      <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
+        <LandingSupportPerks />
+      </LazyMount>
+
+      <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
         <LandingFaq />
       </LazyMount>
 
       <LandingCommunity />
+
+      <LazyMount keepMounted retainMinHeight minHeight={320} rootMargin="400px 0px">
+        <LandingSyncStory />
+      </LazyMount>
+
+      <LazyMount keepMounted retainMinHeight minHeight={260} rootMargin="400px 0px">
+        <LandingFinalCta />
+      </LazyMount>
 
       <LandingFooter />
     </div>

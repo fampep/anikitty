@@ -399,7 +399,7 @@ export function ProviderQuickPick({
             <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 text-white/35" />
           </button>
         </PopoverTrigger>
-        <PopoverContent align="start" sideOffset={8} className="anikitty-source-menu w-[13.5rem] p-1.5">
+        <PopoverContent align="end" sideOffset={8} className="anikitty-source-menu w-[13.5rem] p-1.5">
           <div className="space-y-1">
             {modeChoices.map(({ mode, label: modeLabel, count }) => {
               const styles = TAB_STYLES[mode];
@@ -451,7 +451,7 @@ export function ProviderQuickPick({
           </button>
         </PopoverTrigger>
         <PopoverContent
-          align="start"
+          align="end"
           sideOffset={8}
           className="anikitty-source-menu w-[min(24rem,calc(100vw-1.5rem))] p-0"
         >

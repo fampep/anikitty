@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Compass, Search, UserPlus } from "lucide-react";
+import { ArrowRight, Captions, Compass, Play, Search, Server, UserPlus, Zap } from "lucide-react";
 import { DiscordLogoIcon } from "@radix-ui/react-icons";
 import { cn } from "@/lib/core/utils";
 import { nightTokyo } from "@/utils/fonts";
@@ -15,7 +15,6 @@ import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta"
 import TelegramIcon from "@/icons/telegram";
 import { trackEvent } from "@/lib/analytics";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import LandingAmbient from "@/components/landing/landing-ambient";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 
 type Props = {
@@ -29,8 +28,7 @@ export default function LandingHero({ poster }: Props) {
   const reducedMotion = usePrefersReducedMotion();
 
   return (
-    <div className="relative min-h-[min(92lvh,900px)] flex flex-col overflow-hidden">
-      {/* Full-bleed cinematic backdrop */}
+    <div className="landing-hero-console relative min-h-[min(94lvh,920px)] flex flex-col overflow-hidden">
       <div className="absolute inset-0" aria-hidden>
         {poster ? (
           <div
@@ -52,9 +50,9 @@ export default function LandingHero({ poster }: Props) {
             </div>
           </div>
         ) : null}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/55 via-[#09090b]/78 to-[#09090b]" />
-        <LandingAmbient />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#09090b] to-transparent" />
+        <div className="landing-hero-console__veil absolute inset-0" />
+        <div className="landing-hero-console__grid absolute inset-0" />
+        <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[#050507] to-transparent" />
       </div>
 
       <nav className="relative z-20 flex items-center justify-between px-4 sm:px-6 md:px-12 py-4 sm:py-5">
@@ -75,7 +73,7 @@ export default function LandingHero({ poster }: Props) {
             href={ROUTES.SEARCH}
             prefetch
             onClick={() => trackEvent("landing_search")}
-            className="inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center gap-1.5 rounded-xl border border-white/12 bg-white/[0.04] text-white/50 text-xs font-semibold hover:text-white/80 hover:border-white/20 transition-colors"
+            className="landing-nav-chip inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center gap-1.5"
             aria-label={t("nav.search")}
           >
             <Search className="w-3.5 h-3.5" />
@@ -86,7 +84,7 @@ export default function LandingHero({ poster }: Props) {
             href={ROUTES.HOME}
             prefetch
             onClick={() => trackEvent("landing_browse")}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white text-black text-sm font-bold rounded-xl hover:bg-white/90 active:scale-95 transition-all shadow-xl shadow-black/30"
+            className="landing-nav-primary flex items-center gap-1.5 px-3 sm:px-4 py-2"
           >
             {t("landing.browse")}
             <ArrowRight className="w-3.5 h-3.5" />
@@ -94,23 +92,20 @@ export default function LandingHero({ poster }: Props) {
         </div>
       </nav>
 
-      <section className="relative z-10 flex flex-1 flex-col items-center justify-center text-center px-4 sm:px-6 pt-6 sm:pt-10 pb-16 sm:pb-20">
+      <section className="relative z-10 flex flex-1 items-center px-4 sm:px-6 md:px-12 pt-6 sm:pt-10 pb-16 sm:pb-20">
+        <div className="mx-auto grid w-full max-w-7xl items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,30rem)]">
+        <div className="text-center lg:text-left">
         <div
           className={cn(
-            "mb-6 sm:mb-8",
+            "mb-5 flex justify-center lg:justify-start",
             !reducedMotion &&
               "motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 motion-safe:duration-700",
           )}
         >
-          <Image
-            src={SITE_LOGO}
-            alt="AniKitty"
-            width={112}
-            height={112}
-            className="mx-auto h-20 w-20 sm:h-28 sm:w-28 drop-shadow-2xl"
-            priority
-            unoptimized
-          />
+          <div className="landing-signal-badge">
+            <Zap className="h-3.5 w-3.5 text-teal-200" />
+            <span>Sub · Dub · Soft Sub</span>
+          </div>
         </div>
 
         <h1
@@ -129,7 +124,7 @@ export default function LandingHero({ poster }: Props) {
 
         <p
           className={cn(
-            "text-white/60 text-base sm:text-lg md:text-xl font-light mb-3 leading-relaxed tracking-wide max-w-lg",
+            "text-white/68 text-base sm:text-lg md:text-xl font-light mb-3 leading-relaxed tracking-wide max-w-xl mx-auto lg:mx-0",
             !reducedMotion &&
               "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:delay-150",
           )}
@@ -138,7 +133,7 @@ export default function LandingHero({ poster }: Props) {
         </p>
         <p
           className={cn(
-            "text-white/40 text-sm sm:text-[15px] font-light mb-8 sm:mb-10 leading-relaxed max-w-md",
+            "text-white/42 text-sm sm:text-[15px] font-light mb-8 sm:mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0",
             !reducedMotion &&
               "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:delay-200",
           )}
@@ -148,7 +143,7 @@ export default function LandingHero({ poster }: Props) {
 
         <div
           className={cn(
-            "flex flex-col items-center gap-3 w-full max-w-md sm:max-w-none",
+            "flex flex-col items-center gap-3 w-full max-w-md sm:max-w-none lg:items-start",
             !reducedMotion &&
               "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:delay-300",
           )}
@@ -238,6 +233,37 @@ export default function LandingHero({ poster }: Props) {
               {t("footer.discord")}
             </a>
           </div>
+        </div>
+        </div>
+
+        <div className="landing-hero-panel hidden lg:block">
+          <div className="landing-hero-panel__top">
+            <span className="h-2 w-2 rounded-full bg-teal-300" />
+            <span className="text-[10px] font-mono uppercase tracking-[0.16em] text-white/35">Live Source Console</span>
+          </div>
+          <div className="landing-hero-screen">
+            {poster ? (
+              <Image
+                src={poster}
+                alt=""
+                fill
+                sizes="420px"
+                className="object-cover"
+                priority
+                unoptimized
+              />
+            ) : null}
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+            <button type="button" className="absolute left-4 bottom-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-black shadow-2xl shadow-black/40" aria-hidden>
+              <Play className="h-4 w-4 fill-current" />
+            </button>
+          </div>
+          <div className="landing-source-grid">
+            <span><Captions className="h-3.5 w-3.5" /> Sub</span>
+            <span><Server className="h-3.5 w-3.5" /> 14 Servers</span>
+            <span><Zap className="h-3.5 w-3.5" /> Fast Race</span>
+          </div>
+        </div>
         </div>
       </section>
     </div>
