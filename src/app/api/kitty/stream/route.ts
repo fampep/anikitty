@@ -402,7 +402,11 @@ export async function GET(req: Request) {
     return finalizeStreamResponse(payload, providerName, servedAudio, audioFallback, raceMeta);
   }
 
-  async function fetchStreamDirectPlayback(providerName: KittyProvider, signal?: AbortSignal): Promise<{
+  async function fetchStreamDirectPlayback(
+    providerName: KittyProvider,
+    signal?: AbortSignal,
+    opts?: { singleNodeOnly?: boolean },
+  ): Promise<{
     result: StreamPayload | null;
     servedAudio: "sub" | "dub";
     audioFallback: boolean;
@@ -411,10 +415,11 @@ export async function GET(req: Request) {
   }> {
     let wonNode: KittyApiNodeId | undefined;
     let raceMs: number | undefined;
+    const startedAt = Date.now();
     const attempt = await fetchWithSubAudioFallback(subtitleCtx.audio, async (streamAudio) => {
       const backendHint =
         providerName === "AniKuro" && anikuroServer ? anikuroServer : undefined;
-      if (raceMode) {
+      if (raceMode && !opts?.singleNodeOnly) {
         const raced = await raceKittyProviderStream(
           {
             provider: providerName,
@@ -453,6 +458,9 @@ export async function GET(req: Request) {
         preferHardSub,
         refresh: refreshStream,
         backend: backendHint,
+        nodeId: opts?.singleNodeOnly ? raceCandidates[0] : undefined,
+        failover: opts?.singleNodeOnly ? false : undefined,
+        timeoutMs: opts?.singleNodeOnly ? 12_000 : undefined,
         signal,
       });
 
@@ -467,10 +475,18 @@ export async function GET(req: Request) {
       }
       return payload;
     });
-    return { ...attempt, nodeId: wonNode, raceMs };
+    const singleNode = opts?.singleNodeOnly ? raceCandidates[0] : undefined;
+    return {
+      ...attempt,
+      nodeId: wonNode ?? singleNode,
+      raceMs: raceMs ?? (attempt.result?.file ? Date.now() - startedAt : undefined),
+    };
   }
 
-  async function raceEveryProviderStream(): Promise<{
+  async function raceEveryProviderStream(opts?: {
+    singleNodeOnly?: boolean;
+    abortLosers?: boolean;
+  }): Promise<{
     providerName: KittyProvider;
     attempt: Awaited<ReturnType<typeof fetchStreamDirectPlayback>>;
   } | null> {
@@ -491,13 +507,15 @@ export async function GET(req: Request) {
       ) => {
         if (settled) return;
         settled = true;
-        for (const controller of controllers) controller.abort();
+        if (opts?.abortLosers !== false) {
+          for (const controller of controllers) controller.abort();
+        }
         resolve(value);
       };
 
       providers.forEach((providerName, index) => {
         const controller = controllers[index]!;
-        void fetchStreamDirectPlayback(providerName, controller.signal)
+        void fetchStreamDirectPlayback(providerName, controller.signal, opts)
           .then((attempt) => {
             if (settled) return;
             if (attempt.result?.file) {
@@ -525,15 +543,31 @@ export async function GET(req: Request) {
   > | null = null;
 
   if (raceMode && raceEveryProvider && !linkIdParam) {
-    const providerRace = await raceEveryProviderStream();
-    if (providerRace) {
+    const instantProviderRace = await raceEveryProviderStream({
+      singleNodeOnly: true,
+      abortLosers: false,
+    });
+    if (instantProviderRace) {
       const racedResponse = await respondWithStream(
-        providerRace.attempt.result,
-        providerRace.providerName,
-        providerRace.attempt.servedAudio,
-        providerRace.attempt.audioFallback,
-        providerRace.attempt.nodeId,
-        providerRace.attempt.raceMs,
+        instantProviderRace.attempt.result,
+        instantProviderRace.providerName,
+        instantProviderRace.attempt.servedAudio,
+        instantProviderRace.attempt.audioFallback,
+        instantProviderRace.attempt.nodeId,
+        instantProviderRace.attempt.raceMs,
+      );
+      if (racedResponse) return racedResponse;
+    }
+
+    const deepProviderRace = await raceEveryProviderStream();
+    if (deepProviderRace) {
+      const racedResponse = await respondWithStream(
+        deepProviderRace.attempt.result,
+        deepProviderRace.providerName,
+        deepProviderRace.attempt.servedAudio,
+        deepProviderRace.attempt.audioFallback,
+        deepProviderRace.attempt.nodeId,
+        deepProviderRace.attempt.raceMs,
       );
       if (racedResponse) return racedResponse;
     }
