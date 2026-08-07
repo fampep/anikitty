@@ -50,7 +50,7 @@ export type MetadataProviderPreference = "anilist" | "tmdb" | "tvdb" | "mal" | "
 export const DEFAULT_METADATA_PROVIDER: MetadataProviderPreference = "anilist";
 
 /** Compact: tighter gaps and a narrower playlist column. */
-export const DEFAULT_WATCH_LAYOUT: WatchLayout = "compact";
+export const DEFAULT_WATCH_LAYOUT: WatchLayout = "default";
 
 export function sanitizeWatchLayout(value: unknown): WatchLayout {
   if (value === "default" || value === "theater" || value === "compact" || value === "focus") {
@@ -512,10 +512,10 @@ export const useSettingsStore = create<ISettingsStore>()(
       watchSidebarCollapsed: false,
       setWatchSidebarCollapsed: (watchSidebarCollapsed) => set({ watchSidebarCollapsed }),
 
-      watchSidebarWidth: 320,
+      watchSidebarWidth: 360,
       setWatchSidebarWidth: (width) =>
         set({
-          watchSidebarWidth: Math.min(440, Math.max(260, Math.round(width))),
+          watchSidebarWidth: Math.min(480, Math.max(280, Math.round(width))),
         }),
 
       metadataProvider: DEFAULT_METADATA_PROVIDER,

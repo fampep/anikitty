@@ -1,4 +1,10 @@
-import { anilistSettingsRedirect, completeAniListOAuth } from "@/lib/oauth/anilist-oauth";
+import {
+  anilist2faRedirect,
+  anilistLinkRedirect,
+  anilistLoginErrorRedirect,
+  anilistLoginSuccessRedirect,
+  completeAniListOAuth,
+} from "@/lib/oauth/anilist-oauth";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -6,9 +12,13 @@ export async function GET(req: Request) {
   const state = searchParams.get("state");
 
   if (!code || !state) {
-    return anilistSettingsRedirect(req, "error");
+    return anilistLinkRedirect(req, "error");
   }
 
-  const status = await completeAniListOAuth(code, state, req);
-  return anilistSettingsRedirect(req, status);
+  const result = await completeAniListOAuth(code, state, req);
+
+  if (result.type === "link") return anilistLinkRedirect(req, "connected");
+  if (result.type === "success") return anilistLoginSuccessRedirect(req, result.token);
+  if (result.type === "2fa") return anilist2faRedirect(req, result.pendingToken);
+  return anilistLoginErrorRedirect(req, result.reason);
 }

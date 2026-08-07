@@ -82,10 +82,7 @@ export async function POST(req: Request) {
       /* best-effort */
     }
 
-    const authData = await buildAuthResponse(
-      { ...user, passwordHash, passwordSetAt: new Date() },
-      req,
-    );
+    const authData = await buildAuthResponse(user, req);
     return jsonWithAuthCookie(
       {
         ...authData,

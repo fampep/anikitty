@@ -531,6 +531,10 @@ body {
     --watch-panel-radius: 1rem;
   }
 
+  [data-watch-layout="default"].watch-page-container {
+    --watch-panel-radius: 0.65rem;
+  }
+
   .watch-main-grid {
     position: relative;
   }
@@ -861,6 +865,128 @@ body {
   .watch-source-card__header,
   .watch-episode-playlist__toolbar {
     background: linear-gradient(90deg, hsl(var(--primary) / 0.06), transparent);
+  }
+
+  [data-watch-layout="default"] .watch-main-grid::before {
+    inset: -0.45rem;
+    border-radius: 1rem;
+    background:
+      linear-gradient(90deg, rgb(255 255 255 / 0.025), transparent 28%, transparent 72%, rgb(255 255 255 / 0.02)),
+      radial-gradient(52% 72% at 0% 0%, hsl(var(--primary) / 0.07), transparent 62%);
+    opacity: 0.58;
+  }
+
+  [data-watch-layout="default"] .watch-player-column {
+    gap: 0.75rem;
+  }
+
+  [data-watch-layout="default"] .watch-content-panel,
+  [data-watch-layout="default"] .watch-sidebar-panel,
+  [data-watch-layout="default"] .watch-episode-playlist {
+    border-radius: 0.65rem;
+    border-color: rgb(255 255 255 / 0.075);
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / 0.038), rgb(255 255 255 / 0.012)),
+      rgb(8 8 8 / 0.9);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.055),
+      0 16px 42px rgb(0 0 0 / 0.28);
+  }
+
+  [data-watch-layout="default"] .watch-sidebar-panel {
+    max-height: calc(100dvh - var(--nav-total-height) - 1.2rem);
+  }
+
+  [data-watch-layout="default"] .watch-episode-playlist__toolbar {
+    background:
+      linear-gradient(90deg, rgb(255 255 255 / 0.04), transparent),
+      rgb(5 5 5 / 0.92);
+  }
+
+  [data-watch-layout="default"] .watch-episode-playlist [role="region"] {
+    max-height: none;
+  }
+
+  [data-watch-layout="default"] .watch-anime-info-card {
+    min-height: 12rem;
+  }
+
+  .watch-related-banner-section {
+    position: relative;
+    isolation: isolate;
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.055),
+      0 16px 42px rgb(0 0 0 / 0.24);
+  }
+
+  .watch-related-banner-section__title {
+    background:
+      linear-gradient(90deg, rgb(255 255 255 / 0.04), transparent),
+      rgb(5 5 5 / 0.74);
+  }
+
+  .watch-related-banner-card {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    min-height: 5.25rem;
+    align-items: center;
+    gap: 0.625rem;
+    overflow: hidden;
+    border-radius: 0.55rem;
+    border: 1px solid rgb(255 255 255 / 0.055);
+    background: rgb(255 255 255 / 0.035);
+    padding: 0.5rem;
+    transition:
+      transform 170ms ease,
+      border-color 170ms ease,
+      background-color 170ms ease;
+  }
+
+  .watch-related-banner-card:hover {
+    transform: translateY(-1px);
+    border-color: rgb(45 212 191 / 0.24);
+    background: rgb(255 255 255 / 0.055);
+  }
+
+  .watch-related-banner-card__backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    opacity: 0.28;
+    filter: saturate(0.85) contrast(1.05);
+    transform: scale(1.05);
+    transition:
+      opacity 170ms ease,
+      transform 260ms ease;
+  }
+
+  .watch-related-banner-card:hover .watch-related-banner-card__backdrop {
+    opacity: 0.38;
+    transform: scale(1.09);
+  }
+
+  .watch-related-banner-card__shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      linear-gradient(90deg, rgb(5 5 6 / 0.96) 0%, rgb(5 5 6 / 0.74) 46%, rgb(5 5 6 / 0.34) 100%),
+      linear-gradient(180deg, rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.52));
+  }
+
+  .watch-related-banner-card__poster {
+    height: 4.1rem;
+    width: 2.95rem;
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 0.42rem;
+    border: 1px solid rgb(255 255 255 / 0.11);
+    background: rgb(255 255 255 / 0.06);
+    box-shadow: 0 8px 18px rgb(0 0 0 / 0.34);
   }
 
   .watch-stream-info {

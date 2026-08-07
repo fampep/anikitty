@@ -182,6 +182,7 @@ export interface RelatedAnime {
   name: string;
   jname: string;
   poster: string;
+  banner?: string | null;
   episodes: Episodes3;
   type: string;
   relationType?: string;
@@ -202,6 +203,7 @@ export interface RecommendedAnime {
   name: string;
   jname: string;
   poster: string;
+  banner?: string | null;
   duration: string;
   type: string;
   rating?: string;

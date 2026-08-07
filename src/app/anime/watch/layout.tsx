@@ -520,11 +520,11 @@ const Layout = (props: Props) => {
     <Container
       data-watch-layout={theatreMode ? "theatre" : watchLayout}
       className={cn(
-      "watch-page-container relative z-[1] pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.65rem)] sm:mt-[calc(var(--nav-total-height)+1rem)]",
+      "watch-page-container relative z-[1] pb-20 pb-safe mt-[calc(var(--nav-total-height)+0.45rem)] sm:mt-[calc(var(--nav-total-height)+0.7rem)]",
       // Theatre: pin under the nav only — exit stays on the player toolbar (T / Esc).
       theatreMode && "max-w-[min(100%,96rem)] mx-auto relative z-[40] mt-[var(--theatre-chrome-h)] pb-4",
       // Default + theater: near full-bleed player column.
-      (isTheaterLayout || isDefaultLayout) && "max-w-[min(100%,96rem)]",
+      (isTheaterLayout || isDefaultLayout) && "max-w-[min(100%,104rem)]",
       isCompactLayout && "watch-layout-compact",
       isFocusLayout && "watch-layout-focus",
       isDefaultLayout && "watch-layout-default",
@@ -545,12 +545,6 @@ const Layout = (props: Props) => {
           <div className="shrink-0">{listSelector}</div>
         </div>
       )}
-      {!theatreMode && isDefaultLayout && (
-        <div className="flex items-center justify-end gap-2 mb-2 min-w-0">
-          <div className="shrink-0">{listSelector}</div>
-        </div>
-      )}
-
       {/* Main grid: player + sidebar */}
       <div
         className={cn(
@@ -597,7 +591,7 @@ const Layout = (props: Props) => {
                 "watch-sticky-chrome -mx-4 px-4 sm:mx-0 sm:px-0 py-1.5 sm:py-2",
                 // Default (Miruro-like): keep tabs in flow under the player, not sticky over content.
                 isDefaultLayout
-                  ? "relative z-10"
+                  ? "relative z-10 lg:hidden"
                   : "lg:sticky lg:top-[var(--nav-total-height)] z-20",
                 isCompactLayout && "py-1 sm:py-1.5",
               )}
@@ -690,6 +684,21 @@ const Layout = (props: Props) => {
           {!theatreMode && (
           <>
           {/* Comments (desktop — mobile uses the bottom sheet) */}
+          <section id="watch-tab-info" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-3 mt-0.5 hidden lg:block">
+            <div className="watch-content-panel rounded-xl border border-border/50 dark:border-white/[0.06] bg-transparent p-3.5 sm:p-4 space-y-4">
+              <WatchInfoDetails
+                info={info}
+                moreInfo={moreInfo}
+                stats={stats}
+                poster={info.poster || mappingData?.images?.poster}
+                malMeta={malMeta}
+                malScoreLabel={malScoreLabel}
+                externalLinks={externalLinks}
+                t={t}
+              />
+            </div>
+          </section>
+
           <section id="watch-comments-panel" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] hidden lg:block space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
               <div className="flex items-center gap-2">
@@ -723,25 +732,6 @@ const Layout = (props: Props) => {
           </section>
 
           {/* Info section (desktop — mobile uses sheet) */}
-          <section id="watch-tab-info" className="scroll-mt-[calc(var(--nav-total-height)+3.5rem)] space-y-3 mt-0.5 hidden lg:block">
-            <div className="flex items-center gap-2">
-              <Info className="w-3.5 h-3.5 text-muted-foreground dark:text-white/35" />
-              <h2 className="text-[13px] font-semibold tracking-tight text-foreground/85 dark:text-white/80">{t("watch.tabs.info")}</h2>
-            </div>
-
-            <div className="watch-content-panel rounded-xl border border-border/50 dark:border-white/[0.06] bg-transparent p-3.5 sm:p-4 space-y-4">
-              <WatchInfoDetails
-                info={info}
-                moreInfo={moreInfo}
-                stats={stats}
-                malMeta={malMeta}
-                malScoreLabel={malScoreLabel}
-                externalLinks={externalLinks}
-                t={t}
-              />
-            </div>
-          </section>
-
           </>
           )}
 
@@ -770,7 +760,7 @@ const Layout = (props: Props) => {
               </button>
             )}
 
-            <div className={cn("flex items-center shrink-0", sidebarCollapsed ? "justify-center" : "justify-end px-2 pt-2")}>
+            <div className={cn("flex items-center shrink-0", sidebarCollapsed ? "justify-center" : "justify-end px-2 pt-2", isDefaultLayout && !sidebarCollapsed && "hidden")}>
               <button
                 type="button"
                 onClick={() => setWatchSidebarCollapsed(!watchSidebarCollapsed)}
@@ -889,6 +879,7 @@ const Layout = (props: Props) => {
           info={info}
           moreInfo={moreInfo}
           stats={stats}
+          poster={info.poster || mappingData?.images?.poster}
           malMeta={malMeta}
           malScoreLabel={malScoreLabel}
           externalLinks={externalLinks}
@@ -932,6 +923,7 @@ function WatchInfoDetails({
   info,
   moreInfo,
   stats,
+  poster,
   malMeta,
   malScoreLabel,
   externalLinks,
@@ -940,6 +932,7 @@ function WatchInfoDetails({
   info: { id: string; name: string; description?: string | null };
   moreInfo?: import("@/types/anime-details").MoreInfo | null;
   stats?: { type?: string; episodes?: { sub?: number; dub?: number } } | null;
+  poster?: string | null;
   malMeta?: {
     rank?: number | null;
     popularity?: number | null;
@@ -952,32 +945,42 @@ function WatchInfoDetails({
   t: ReturnType<typeof useT>;
 }) {
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-base sm:text-lg font-semibold tracking-tight text-foreground dark:text-white/95">{info.name}</h3>
-        {moreInfo?.japanese ? (
-          <p className="mt-0.5 text-[12px] italic text-muted-foreground/65 dark:text-white/30">{moreInfo.japanese as string}</p>
-        ) : null}
-        {Array.isArray(moreInfo?.genres) && (moreInfo!.genres as string[]).length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {(moreInfo!.genres as string[]).map((g) => (
-              <Link
-                key={g}
-                href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
-                className="rounded-md border border-border/60 dark:border-white/[0.08] bg-muted/30 dark:bg-white/[0.03] px-2 py-0.5 text-[10px] font-medium text-muted-foreground dark:text-white/50 transition-colors hover:bg-muted/55 dark:hover:bg-white/[0.06] hover:text-foreground dark:hover:text-white/75"
-              >
-                {g}
-              </Link>
-            ))}
-          </div>
-        )}
+    <div className="watch-anime-info-card grid gap-4 sm:grid-cols-[8.25rem_minmax(0,1fr)]">
+      <div className="hidden sm:block">
+        <div className="relative aspect-[2/3] overflow-hidden rounded-xl border border-border/60 bg-muted/40 dark:border-white/[0.08] dark:bg-white/[0.04]">
+          {poster ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={poster} alt={info.name} loading="lazy" className="h-full w-full object-cover" />
+          ) : null}
+        </div>
       </div>
 
-      {info.description && (
+      <div className="min-w-0 space-y-4">
         <div>
+          <h3 className="text-base sm:text-xl font-bold tracking-tight text-foreground dark:text-white/95">{info.name}</h3>
+          {moreInfo?.japanese ? (
+            <p className="mt-0.5 text-[12px] italic text-muted-foreground/65 dark:text-white/35">{moreInfo.japanese as string}</p>
+          ) : null}
+          {Array.isArray(moreInfo?.genres) && (moreInfo!.genres as string[]).length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {(moreInfo!.genres as string[]).map((g) => (
+                <Link
+                  key={g}
+                  href={`${ROUTES.SEARCH}?genres=${g.toLowerCase().replace(/\s+/g, "-")}`}
+                  className="rounded-md border border-border/60 bg-muted/30 px-2 py-0.5 text-[10px] font-bold text-muted-foreground transition-colors hover:bg-muted/55 hover:text-foreground dark:border-white/[0.08] dark:bg-white/[0.04] dark:text-white/55 dark:hover:bg-white/[0.08] dark:hover:text-white/80"
+                >
+                  {g}
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
+      {info.description && (
+        <div className="rounded-xl border border-border/50 bg-background/35 p-3 dark:border-white/[0.06] dark:bg-black/20">
           <AniListRichText
             text={info.description as string}
-            className="text-[13px] text-muted-foreground dark:text-white/55 leading-7"
+            className="text-[12.5px] text-muted-foreground dark:text-white/55 leading-6"
           />
           <Link
             href={`${ROUTES.ANIME_DETAILS}/${info.id}`}
@@ -1033,6 +1036,7 @@ function WatchInfoDetails({
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

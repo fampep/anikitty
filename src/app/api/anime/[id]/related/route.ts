@@ -21,6 +21,7 @@ const RELATED_QUERY = `
             id
             title { english romaji }
             coverImage { extraLarge }
+            bannerImage
             episodes
             format
             genres
@@ -36,6 +37,7 @@ const RELATED_QUERY = `
             id
             title { english romaji native }
             coverImage { extraLarge }
+            bannerImage
             type
             episodes
             format
@@ -83,6 +85,7 @@ type MappedAnime = {
   name: string;
   jname: string;
   poster: string;
+  banner?: string | null;
   episodes: { sub: number; dub: number };
   type: string;
   duration: string;
@@ -114,6 +117,7 @@ function mapAnime(node: any, extra?: Partial<MappedAnime>): MappedAnime | null {
     name: toTitle(node.title ?? {}),
     jname: node.title?.romaji ?? "",
     poster: node.coverImage?.extraLarge ?? "",
+    banner: node.bannerImage ?? null,
     episodes: { sub: node.episodes ?? 0, dub: 0 },
     type: toFormat(node.format),
     duration: "",

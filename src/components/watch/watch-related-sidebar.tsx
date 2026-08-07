@@ -10,7 +10,9 @@ type Row = {
   id: string;
   name: string;
   poster?: string;
+  banner?: string | null;
   meta: string;
+  detail?: string;
 };
 
 /** Relations we surface as their own labelled block, in display order. */
@@ -24,48 +26,71 @@ function relatedRow(item: RelatedAnime): Row {
   const meta = [item.relationType || item.type, item.seasonYear]
     .filter(Boolean)
     .join(" · ");
-  return { id: item.id, name: item.name, poster: item.poster, meta };
+  return { id: item.id, name: item.name, poster: item.poster, banner: item.banner, meta };
 }
 
 function recommendedRow(item: RecommendedAnime): Row {
   const meta = [item.type, item.episodes?.sub ? `${item.episodes.sub} ep` : null]
     .filter(Boolean)
     .join(" · ");
-  return { id: item.id, name: item.name, poster: item.poster, meta };
+  return {
+    id: item.id,
+    name: item.name,
+    poster: item.poster,
+    banner: item.banner,
+    meta,
+    detail: item.genres?.slice(0, 2).join(" / "),
+  };
 }
 
 function SidebarSection({ title, rows }: { title: string; rows: Row[] }) {
   if (!rows.length) return null;
 
   return (
-    <section className="shrink-0 overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm">
-      <h3 className="border-b border-border/50 dark:border-white/[0.06] px-3 py-2 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70 dark:text-white/30">
+    <section className="watch-related-banner-section shrink-0 overflow-hidden rounded-xl border border-border/60 bg-card/50 backdrop-blur-sm dark:border-white/[0.08] dark:bg-[#0a0a0a]/95">
+      <h3 className="watch-related-banner-section__title border-b border-border/50 px-3 py-2 text-[10px] font-mono uppercase tracking-[0.14em] text-muted-foreground/70 dark:border-white/[0.06] dark:text-white/35">
         {title}
       </h3>
-      <div className="divide-y divide-border/40 dark:divide-white/[0.04]">
+      <div className="space-y-1.5 p-2">
         {rows.map((row) => (
           <Link
             key={`${title}-${row.id}`}
             href={`${ROUTES.ANIME_DETAILS}/${row.id}`}
-            className="flex items-center gap-2.5 px-2.5 py-2 transition-colors hover:bg-muted/50 dark:hover:bg-white/[0.04]"
+            className="watch-related-banner-card group"
           >
-            <div className="relative h-[3.15rem] w-9 shrink-0 overflow-hidden rounded ring-1 ring-border dark:ring-white/10 bg-muted/40 dark:bg-white/[0.04]">
-              {row.poster && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={row.poster}
-                  alt={row.name}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              )}
+            {(row.banner || row.poster) ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.banner || row.poster}
+                alt=""
+                loading="lazy"
+                aria-hidden
+                className="watch-related-banner-card__backdrop"
+              />
+            ) : null}
+            <span className="watch-related-banner-card__shade" aria-hidden />
+            <div className="watch-related-banner-card__poster">
+              {row.poster ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={row.poster}
+                alt={row.name}
+                loading="lazy"
+                className="h-full w-full object-cover"
+              />
+              ) : null}
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-2 text-[12px] font-medium leading-snug text-foreground/90 dark:text-white/85">
+            <div className="relative min-w-0 flex-1">
+              <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-foreground/95 dark:text-white/90">
                 {row.name}
               </p>
+              {row.detail ? (
+                <p className="mt-0.5 truncate text-[10px] text-muted-foreground/80 dark:text-white/45">
+                  {row.detail}
+                </p>
+              ) : null}
               {row.meta && (
-                <p className="mt-0.5 truncate text-[10px] font-mono text-muted-foreground/70 dark:text-white/30">
+                <p className="mt-1 truncate text-[10px] font-mono text-muted-foreground/70 dark:text-white/35">
                   {row.meta}
                 </p>
               )}

@@ -10,7 +10,7 @@ import {
 import { isCollectionCategory } from "@/lib/collections/collection-shared";
 import { and, desc, eq, gte, ilike, or, sql } from "drizzle-orm";
 
-export const DISCOVER_SORTS = [
+const DISCOVER_SORTS = [
   "trending",
   "most-liked",
   "most-followed",
@@ -19,7 +19,7 @@ export const DISCOVER_SORTS = [
   "featured",
   "hidden-gems",
 ] as const;
-export type DiscoverSort = (typeof DISCOVER_SORTS)[number];
+type DiscoverSort = (typeof DISCOVER_SORTS)[number];
 
 const PAGE_SIZE = 24;
 

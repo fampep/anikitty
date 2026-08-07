@@ -364,36 +364,6 @@ const EpisodePlaylist = ({
           </div>
         ) : (
           <>
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <h3 className="text-[14px] font-semibold tracking-tight text-foreground dark:text-white leading-none">
-                  {t("watch.playlist.title")}
-                  <span className="ml-1.5 font-mono text-[12px] font-medium text-muted-foreground dark:text-white/40">
-                    ({total})
-                  </span>
-                </h3>
-              </div>
-
-              <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-lg p-0.5 border border-border dark:border-white/8 shrink-0">
-                {LAYOUT_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setEpisodeLayout(opt.value)}
-                    title={t(opt.labelKey)}
-                    className={cn(
-                      "p-1.5 rounded-md transition-all duration-150",
-                      episodeLayout === opt.value
-                        ? "bg-teal-500/20 text-teal-100"
-                        : "text-muted-foreground/80 dark:text-white/25 hover:text-muted-foreground dark:hover:text-white/55",
-                    )}
-                  >
-                    {opt.icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             <div className="flex items-center gap-1.5">
               {hasMultipleGroups && (
                 <Select
@@ -403,7 +373,7 @@ const EpisodePlaylist = ({
                 >
                   <SelectTrigger
                     aria-label={t("anime.episodes.range")}
-                    className="h-8 w-[7.25rem] shrink-0 rounded-md bg-muted/50 dark:bg-white/5 border-border dark:border-white/10 px-2.5 text-[11px] font-mono text-muted-foreground dark:text-white/70 hover:bg-muted/70 dark:hover:bg-white/[0.07] disabled:opacity-40"
+                    className="h-9 w-[5.8rem] shrink-0 rounded-lg bg-muted/50 px-2.5 text-[11px] font-bold tabular-nums text-muted-foreground hover:bg-muted/70 disabled:opacity-40 dark:bg-white/[0.045] dark:border-white/10 dark:text-white/75 dark:hover:bg-white/[0.07]"
                   >
                     <SelectValue placeholder={t("anime.episodes.range")} />
                   </SelectTrigger>
@@ -429,13 +399,13 @@ const EpisodePlaylist = ({
                   placeholder={t("watch.playlist.searchPlaceholder")}
                   value={search}
                   onChange={handleSearch}
-                  className="w-full h-8 pl-7 pr-3 rounded-md bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-[12px] text-muted-foreground dark:text-white/70 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 focus:outline-none focus:border-primary/40 dark:focus:border-white/25 transition-colors"
+                  className="w-full h-9 pl-7 pr-3 rounded-lg bg-muted/50 border border-border text-[12px] text-muted-foreground placeholder:text-muted-foreground/70 transition-colors focus:outline-none focus:border-primary/40 dark:bg-white/[0.045] dark:border-white/10 dark:text-white/70 dark:placeholder:text-white/20 dark:focus:border-white/25"
                 />
               </div>
-            </div>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
-              {filterToolbar}
+              <div className="flex items-center gap-1 [&_button]:h-9 [&_button]:w-9 [&_button]:rounded-lg">
+                {filterToolbar}
+              </div>
             </div>
           </>
         )}

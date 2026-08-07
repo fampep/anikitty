@@ -7,7 +7,6 @@ import {
 import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { coerceKittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import type { KittyProvider, ProviderAudioMode } from "@/lib/kitty/kitty-providers";
-import { PROVIDER_ORDER_SYNC_VERSION } from "@/lib/kitty/kitty-providers";
 import { sanitizeDefaultProvider, sanitizeProviderOrder } from "@/lib/kitty/provider-order";
 
 import type { InterfaceDensity, UiFontScale } from "@/lib/core/site-display";
@@ -174,7 +173,7 @@ export function sanitizeSyncedPreferences(raw: unknown): SyncedUserPreferences {
     typeof input.watchSidebarWidth === "number" &&
     Number.isFinite(input.watchSidebarWidth)
   ) {
-    out.watchSidebarWidth = Math.min(440, Math.max(260, Math.round(input.watchSidebarWidth)));
+    out.watchSidebarWidth = Math.min(480, Math.max(280, Math.round(input.watchSidebarWidth)));
   }
 
   return out;
