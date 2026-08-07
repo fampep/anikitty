@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
 import { ArrowRight, Heart } from "lucide-react";
+import TelegramIcon from "@/icons/telegram";
+import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
 import { kofiDonationUrl } from "@/lib/social/donation-config";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-status";
 import { useAuthStore } from "@/store/auth-store";
@@ -16,9 +19,12 @@ type Props = {
   className?: string;
 };
 
+const ICON_BTN =
+  "inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all hover:text-foreground hover:border-border/80 hover:bg-accent/60 dark:border-white/10 dark:text-white/45 dark:hover:text-white/85 dark:hover:border-white/20 dark:hover:bg-white/[0.06]";
+
 /**
  * Permanent support banner for all pages.
- * Replaces ads with a persistent request for Kifu support.
+ * Replaces ads with a calmer AniKitty support panel.
  */
 export default function SiteSupportBanner({ className }: Props) {
   const t = useT();
@@ -31,6 +37,7 @@ export default function SiteSupportBanner({ className }: Props) {
   }, []);
 
   const hidePath =
+    pathname === ROUTES.HOME ||
     pathname === ROUTES.DONATE ||
     pathname?.startsWith("/anime/watch") ||
     isPublicAdminUiPath(pathname) ||
@@ -43,35 +50,71 @@ export default function SiteSupportBanner({ className }: Props) {
   return (
     <div
       className={cn(
-        "pointer-events-auto mx-auto w-full max-w-[1400px] flex items-center gap-2.5 px-3 py-2 rounded-lg border backdrop-blur-md shadow-lg shadow-black/20",
-        "border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10",
+        "home-support-panel pointer-events-auto mx-auto flex w-full max-w-[1400px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4",
         className,
       )}
     >
-      <Heart className="w-4 h-4 shrink-0 text-amber-400 fill-amber-400" />
-      <div className="flex-1 min-w-0 flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-        <p className="text-[12px] font-bold text-amber-50">
-          Please support us on Ko-Fi to help cover server costs
-        </p>
-        <p className="text-[11px] text-amber-100/70 line-clamp-2 sm:truncate sm:line-clamp-1">
-          Your contribution helps us maintain free streaming for everyone
-        </p>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-foreground/70 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/70">
+          <Heart className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-foreground dark:text-white/85">
+            {t("home.socialBannerTitle")}
+          </p>
+          <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground dark:text-white/40 sm:line-clamp-1">
+            {t("home.socialBannerBody")}
+          </p>
+        </div>
       </div>
-      <a
-        href={kofiDonationUrl()}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 inline-flex items-center gap-1 text-[11.5px] font-semibold px-3 py-1.5 rounded-lg border border-amber-500/50 bg-amber-500 dark:bg-amber-600 text-white hover:bg-amber-600 dark:hover:bg-amber-700 transition-colors"
-      >
-        Donate on Ko-Fi
-        <ArrowRight className="w-3 h-3" />
-      </a>
-      <Link
-        href={ROUTES.DONATE}
-        className="hidden sm:inline-flex shrink-0 text-[11px] font-medium text-amber-100/60 hover:text-amber-50 transition-colors"
-      >
-        Learn more
-      </Link>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <a
+          href={kofiDonationUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="home-support-panel__button site-focus"
+        >
+          <Heart className="h-3.5 w-3.5" />
+          <span>Support on Ko-Fi</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </a>
+        <Link
+          href={ROUTES.DONATE}
+          className="inline-flex h-9 items-center rounded-xl border border-border px-3 text-xs font-semibold text-muted-foreground transition-all hover:border-border/80 hover:bg-accent/60 hover:text-foreground dark:border-white/10 dark:text-white/45 dark:hover:border-white/20 dark:hover:bg-white/[0.06] dark:hover:text-white/85"
+        >
+          Learn more
+        </Link>
+        <a
+          href={DISCORD_INVITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t("footer.discord")}
+          title={t("footer.discord")}
+          className={ICON_BTN}
+        >
+          <DiscordLogoIcon width="16" height="16" />
+        </a>
+        <a
+          href={TELEGRAM_CHANNEL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t("footer.telegram")}
+          title={t("footer.telegram")}
+          className={ICON_BTN}
+        >
+          <TelegramIcon className="h-4 w-4" />
+        </a>
+        <a
+          href="https://github.com/fampep/anikitty"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={t("footer.github")}
+          title={t("footer.github")}
+          className={ICON_BTN}
+        >
+          <GitHubLogoIcon width="16" height="16" />
+        </a>
+      </div>
     </div>
   );
 }

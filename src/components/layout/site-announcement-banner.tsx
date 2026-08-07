@@ -9,8 +9,6 @@ import { useSettingsStore } from "@/store/settings-store";
 import { useT } from "@/providers/i18n-provider";
 import { ANNOUNCEMENT_STYLES, PRIORITY_ANNOUNCEMENT_SEVERITIES } from "@/lib/announcements/announcement-styles";
 import { cn } from "@/lib/core/utils";
-import SiteFundingBanner from "@/components/layout/site-funding-banner";
-import SiteSupportBanner from "@/components/layout/site-support-banner";
 
 interface Announcement {
   id: string;
@@ -139,8 +137,6 @@ export default function SiteAnnouncementBanner() {
         ref={bannerRef}
         className="pointer-events-none fixed left-0 right-0 top-[var(--nav-height)] z-[90] flex flex-col gap-1 px-2 pt-2 sm:px-4"
       >
-        <SiteFundingBanner />
-        <SiteSupportBanner />
         {visible.map((a) => {
           const style = STYLES[a.severity] ?? STYLES.info;
           const Icon = style.icon;

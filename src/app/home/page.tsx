@@ -7,15 +7,19 @@ import {
   ArrowRight,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
   Compass,
   Flame,
+  Grid2X2,
   PlayCircle,
   RefreshCw,
   Sparkles,
   Tv2,
   WifiOff,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import AnimeCard from "@/components/anime/anime-card";
 import ContinueWatching from "@/components/home/continue-watching";
 import HeroSection from "@/components/home/hero-section";
 import HomeAmbientBackdrop from "@/components/home/home-ambient-backdrop";
@@ -63,6 +67,20 @@ const HomeJustCompleted = dynamic(() => import("@/components/home/home-just-comp
 const HomeDiscoveryRows = dynamic(() => import("@/components/home/home-discovery-rows"));
 
 const HOME_RAIL_LIMIT = 12;
+const HOME_GENRES = [
+  "Drama",
+  "Ecchi",
+  "Fantasy",
+  "Horror",
+  "Mahou Shoujo",
+  "Mecha",
+  "Music",
+  "Mystery",
+  "Psychological",
+  "Romance",
+  "Sci-Fi",
+  "Slice of Life",
+];
 
 type HomeGroupId = "whats-new" | "top-anime" | "more";
 
@@ -233,6 +251,242 @@ function BrowseGenresLink() {
           {t("home.allGenres")}
         </span>
       </Link>
+    </Container>
+  );
+}
+
+function HomeGenreRibbon() {
+  return (
+    <Container className="relative z-[7] mt-3 sm:mt-4">
+      <nav className="home-genre-ribbon" aria-label="Featured genres">
+        <Link href={ROUTES.GENRE} className="home-genre-ribbon__edge site-focus" aria-label="Browse genres">
+          <Compass className="h-3.5 w-3.5" />
+        </Link>
+        <div className="home-genre-ribbon__track">
+          {HOME_GENRES.map((genre) => (
+            <Link key={genre} href={ROUTES.genre(genre)} className="home-genre-chip site-focus">
+              {genre}
+            </Link>
+          ))}
+        </div>
+        <Link href={ROUTES.GENRE} className="home-genre-ribbon__edge site-focus" aria-label="All genres">
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </nav>
+    </Container>
+  );
+}
+
+function HomeFeatureBoard({
+  newest,
+  popular,
+  rated,
+  loading,
+}: {
+  newest: IAnime[];
+  popular: IAnime[];
+  rated: IAnime[];
+  loading: boolean;
+}) {
+  const tabs = [
+    { id: "newest", label: "Newest", items: newest },
+    { id: "popular", label: "Popular", items: popular },
+    { id: "rated", label: "Top Rated", items: rated },
+  ] as const;
+  const [active, setActive] = useState<(typeof tabs)[number]["id"]>("newest");
+  const selected = tabs.find((tab) => tab.id === active) ?? tabs[0];
+  const items = selected.items.length ? selected.items : newest;
+
+  return (
+    <section className="home-feature-board" aria-label="Anime feed">
+      <div className="home-feature-board__bar">
+        <div>
+          <p className="text-[11px] font-semibold text-muted-foreground dark:text-white/35">Explore Anime</p>
+          <h2 className="text-xl font-black tracking-tight text-foreground dark:text-white sm:text-2xl">
+            Fresh Picks
+          </h2>
+        </div>
+        <div className="home-feature-board__tabs" role="tablist" aria-label="Anime feed filters">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={tab.id === active}
+              onClick={() => setActive(tab.id)}
+              className={cn("home-feature-board__tab site-focus", tab.id === active && "is-active")}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="home-poster-grid">
+        {loading && items.length === 0
+          ? Array.from({ length: 10 }).map((_, index) => (
+              <div key={index} className="aspect-[2/3] animate-pulse rounded-xl bg-muted/45 dark:bg-white/[0.035]" />
+            ))
+          : items.slice(0, 14).map((anime, index) => (
+              <AnimeCard
+                key={`${selected.id}-${anime.id}`}
+                href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                poster={anime.poster}
+                title={anime.name}
+                compact
+                score={anime.score}
+                year={anime.year}
+                status={anime.status}
+                sub={anime.episodes?.sub}
+                dub={anime.episodes?.dub}
+                subTitle={anime.type}
+                rank={active !== "newest" ? index + 1 : undefined}
+                className="home-poster-grid__card"
+              />
+            ))}
+      </div>
+    </section>
+  );
+}
+
+function HomeBannerList({
+  title,
+  icon,
+  animes,
+  href,
+  accent = "cyan",
+  loading,
+}: {
+  title: string;
+  icon: ReactNode;
+  animes: IAnime[];
+  href?: string;
+  accent?: "cyan" | "lime" | "amber" | "violet";
+  loading: boolean;
+}) {
+  const items = animes.slice(0, 5);
+  if (!loading && items.length === 0) return null;
+
+  return (
+    <section className={cn("home-banner-list", `home-banner-list--${accent}`)} aria-label={title}>
+      <div className="home-banner-list__header">
+        <span className="home-banner-list__icon">{icon}</span>
+        <h2>{title}</h2>
+        {href ? (
+          <Link href={href} className="ml-auto text-[11px] font-semibold text-muted-foreground hover:text-foreground dark:text-white/35 dark:hover:text-white/80">
+            View all
+          </Link>
+        ) : null}
+      </div>
+      <div className="home-banner-list__items">
+        {loading && items.length === 0
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-20 animate-pulse rounded-xl bg-muted/45 dark:bg-white/[0.035]" />
+            ))
+          : items.map((anime, index) => (
+              <Link
+                key={anime.id}
+                href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
+                className="home-banner-row site-focus"
+                style={{
+                  ["--home-row-poster" as string]: `url("${anime.poster}")`,
+                }}
+              >
+                <span className="home-banner-row__poster">
+                  <Image
+                    src={anime.poster}
+                    alt=""
+                    fill
+                    sizes="72px"
+                    className="object-cover"
+                    loading={index < 2 ? "eager" : "lazy"}
+                  />
+                </span>
+                <span className="home-banner-row__body">
+                  <span className="home-banner-row__title">{anime.name}</span>
+                  <span className="home-banner-row__meta">
+                    {anime.type ? <span>{anime.type}</span> : null}
+                    {anime.year ? <span>{anime.year}</span> : null}
+                    {anime.episodes?.sub ? <span>EP {anime.episodes.sub}</span> : null}
+                    {anime.score ? <span>{Math.round(anime.score)}%</span> : null}
+                  </span>
+                </span>
+              </Link>
+            ))}
+      </div>
+      <button type="button" className="home-banner-list__more site-focus" aria-label={`Show more ${title}`}>
+        <ChevronDown className="h-4 w-4" />
+      </button>
+    </section>
+  );
+}
+
+function HomeMagazineLayout({
+  newest,
+  popular,
+  rated,
+  trending,
+  upcoming,
+  completed,
+  loading,
+}: {
+  newest: IAnime[];
+  popular: IAnime[];
+  rated: IAnime[];
+  trending: IAnime[];
+  upcoming: IAnime[];
+  completed: IAnime[];
+  loading: boolean;
+}) {
+  return (
+    <Container>
+      <div className="home-magazine-layout">
+        <main className="min-w-0">
+          <HomeFeatureBoard newest={newest} popular={popular} rated={rated} loading={loading} />
+          <div className="home-lower-boards">
+            <HomeBannerList
+              title="Just Finished"
+              icon={<CheckCircle2 className="h-4 w-4" />}
+              animes={completed}
+              accent="cyan"
+              loading={loading}
+            />
+            <HomeBannerList
+              title="Top Movies"
+              icon={<PlayCircle className="h-4 w-4" />}
+              animes={rated}
+              accent="violet"
+              loading={loading}
+            />
+          </div>
+        </main>
+        <aside className="home-magazine-rail">
+          <HomeBannerList
+            title="Top Airing"
+            icon={<Flame className="h-4 w-4" />}
+            href={ROUTES.TRENDING}
+            animes={trending}
+            accent="lime"
+            loading={loading}
+          />
+          <HomeBannerList
+            title="Upcoming"
+            icon={<CalendarClock className="h-4 w-4" />}
+            animes={upcoming}
+            accent="amber"
+            loading={loading}
+          />
+          <section className="home-schedule-shell" aria-label="Airing schedule">
+            <div className="home-banner-list__header px-4 pt-4">
+              <span className="home-banner-list__icon">
+                <Grid2X2 className="h-4 w-4" />
+              </span>
+              <h2>Airing Schedule</h2>
+            </div>
+            <HomeSchedulePanel />
+          </section>
+        </aside>
+      </div>
     </Container>
   );
 }
@@ -520,9 +774,7 @@ export default function Home() {
         loading={isLoading}
       />
 
-      <div className="relative z-[7] mt-3 sm:mt-4">
-        <HomeSocialBanner />
-      </div>
+      <HomeGenreRibbon />
 
       {isHomeSectionVisible(prefs, "continue") ? (
         <div
@@ -532,6 +784,10 @@ export default function Home() {
           <ContinueWatching />
         </div>
       ) : null}
+
+      <div className="relative z-[7] mt-3 sm:mt-4">
+        <HomeSocialBanner />
+      </div>
 
       <div className="relative z-[7] mt-2">
         <HomeQuickNav />
@@ -543,6 +799,16 @@ export default function Home() {
           prefs.compact ? "gap-6 sm:gap-8" : "gap-[var(--home-section-gap)]",
         )}
       >
+
+        <HomeMagazineLayout
+          newest={recentlyAdded.length ? recentlyAdded : latestEpisodes}
+          popular={popular.length ? popular : trending}
+          rated={topRated.length ? topRated : trending}
+          trending={trending}
+          upcoming={upcoming}
+          completed={completed.length ? completed : recentlyAdded}
+          loading={isLoading || discoveryLoadingState}
+        />
 
         {/* Content column with a trending rail down the right on desktop. The
             rail sits alongside every section rather than inside any one of
