@@ -417,7 +417,7 @@ body {
     @apply inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3.5 py-2 text-[11px] font-semibold text-muted-foreground transition-all dark:border-white/10 dark:bg-white/[0.03] dark:text-white/45;
   }
   .site-chip:hover {
-    @apply border-zinc-400/35 bg-zinc-500/[0.08] text-foreground dark:border-white/25 dark:bg-white/[0.08] dark:text-white/85;
+    @apply border-zinc-400/35 bg-zinc-500/[0.08] text-foreground dark:border-white/25 dark:bg-white/[0.08] dark:text-white/[0.85];
   }
   .site-chip-active {
     @apply border-zinc-500/40 bg-zinc-900/10 text-foreground dark:border-white/30 dark:bg-white/10 dark:text-white/90;
@@ -1248,7 +1248,7 @@ body {
 
   .home-genre-ribbon__edge,
   .home-genre-chip {
-    @apply inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-transparent bg-muted/45 px-4 text-[11px] font-bold text-muted-foreground transition-all dark:bg-white/[0.035] dark:text-white/55;
+    @apply inline-flex h-8 shrink-0 items-center justify-center rounded-lg border border-transparent bg-muted/45 px-4 text-[11px] font-bold text-muted-foreground transition-all dark:bg-white/[0.035] dark:text-white/[0.55];
   }
 
   .home-genre-ribbon__edge {
@@ -1383,7 +1383,7 @@ body {
   }
 
   .home-banner-row__title {
-    @apply line-clamp-2 text-sm font-semibold leading-snug text-foreground dark:text-white/88;
+    @apply line-clamp-2 text-sm font-semibold leading-snug text-foreground dark:text-white/[0.88];
   }
 
   .home-banner-row__meta {
@@ -1458,7 +1458,7 @@ body {
     }
 
     .home-signal-card:hover .home-signal-card__icon {
-      @apply text-foreground dark:text-white/85;
+      @apply text-foreground dark:text-white/[0.85];
       border-color: hsl(var(--signal-hue) 68% 58% / 0.32);
       transform: translateY(-1px) rotate(-4deg) scale(1.04);
     }
