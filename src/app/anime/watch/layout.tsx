@@ -106,6 +106,12 @@ const Layout = (props: Props) => {
   const showTheaterPlaylist = false;
   const sidebarCollapsed = showSideSidebar && watchSidebarCollapsed;
 
+  useEffect(() => {
+    if (showSideSidebar && watchSidebarCollapsed) {
+      setWatchSidebarCollapsed(false);
+    }
+  }, [setWatchSidebarCollapsed, showSideSidebar, watchSidebarCollapsed]);
+
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
   const episodeId = searchParams.get("episode");
   const watchType = searchParams.get("type");
