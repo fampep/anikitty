@@ -1066,6 +1066,29 @@ body {
       #09090b;
   }
 
+  @media (max-width: 639px) {
+    .watch-playlist-sheet {
+      inset: auto 0.5rem 0.5rem 0.5rem !important;
+      height: min(82dvh, 42rem) !important;
+      width: auto !important;
+      border-width: 1px !important;
+      border-radius: 1rem !important;
+      box-shadow: 0 24px 80px rgb(0 0 0 / 0.65);
+    }
+
+    .watch-playlist-sheet__header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: hsl(var(--background) / 0.95);
+      backdrop-filter: blur(18px);
+    }
+
+    .dark .watch-playlist-sheet__header {
+      background: rgb(9 9 11 / 0.95);
+    }
+  }
+
   .site-focus {
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400/50 focus-visible:ring-offset-1 focus-visible:ring-offset-background dark:focus-visible:ring-white/40;
   }

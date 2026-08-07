@@ -744,6 +744,7 @@ const Layout = (props: Props) => {
           <aside
             className={cn(
               "watch-sidebar watch-sidebar-panel relative flex flex-col gap-0 lg:max-h-[min(62vh,34rem)] lg:overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08] bg-card/50 dark:bg-[#0a0a0a]/95 backdrop-blur-sm",
+              !sidebarCollapsed && "lg:min-h-[min(34rem,62vh)]",
               isCompactLayout && "watch-sidebar--compact",
               isDefaultLayout && "rounded-xl border-border/50 dark:border-white/[0.07]",
               sidebarCollapsed && "items-center px-1 py-2",

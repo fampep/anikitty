@@ -55,9 +55,9 @@ export default function WatchPlaylistSheet({
       <SheetContent
         side="right"
         hideCloseButton
-        className="flex w-full flex-col gap-0 overflow-hidden border-border/60 bg-background p-0 dark:border-white/[0.08] dark:bg-[#09090b] max-sm:inset-x-2 max-sm:bottom-2 max-sm:top-auto max-sm:h-[min(82dvh,42rem)] max-sm:w-[calc(100%-1rem)] max-sm:rounded-2xl max-sm:border max-sm:shadow-2xl max-sm:shadow-black/60 sm:max-w-md"
+        className="watch-playlist-sheet flex w-full flex-col gap-0 overflow-hidden border-border/60 bg-background p-0 dark:border-white/[0.08] dark:bg-[#09090b] sm:w-3/4 sm:max-w-md"
       >
-        <div className="flex shrink-0 items-center gap-2 border-b border-border/60 px-4 py-3 pr-12 dark:border-white/[0.07] max-sm:sticky max-sm:top-0 max-sm:z-10 max-sm:bg-background/95 max-sm:backdrop-blur-xl max-sm:dark:bg-[#09090b]/95">
+        <div className="watch-playlist-sheet__header flex shrink-0 items-center gap-2 border-b border-border/60 px-4 py-3 pr-12 dark:border-white/[0.07]">
           <span className="absolute left-1/2 top-1.5 hidden h-1 w-10 -translate-x-1/2 rounded-full bg-muted-foreground/25 max-sm:block" aria-hidden />
           <ListVideo className="h-4 w-4 text-muted-foreground dark:text-white/40" />
           <div className="min-w-0">
