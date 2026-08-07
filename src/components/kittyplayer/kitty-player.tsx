@@ -4951,17 +4951,17 @@ export function KittyPlayer({
                     {captionsOpen ? (
                       <PlayerOverlayPortal
                         host={
-                          coarsePointer
+                          coarsePointer || compactChrome
                             ? (getFullscreenTarget() ?? rootRef.current)
                             : undefined
                         }
                       >
-                        {coarsePointer ? (
-                          <div className={PLAYER_SHEET_LAYER_CLASS}>
+                        {coarsePointer || compactChrome ? (
+                          <div className="absolute inset-0 z-[90] flex items-center justify-center overflow-hidden p-3 sm:p-4">
                             <button
                               type="button"
                               aria-label="Close captions"
-                              className="absolute inset-0 bg-black/55"
+                              className="absolute inset-0 bg-black/45"
                               onClick={() => setCaptionsOpen(false)}
                             />
                             <div
@@ -4969,16 +4969,11 @@ export function KittyPlayer({
                               role="dialog"
                               aria-label="Captions"
                               className={cn(
-                                PLAYER_SHEET_CLASS,
-                                !reduceMotion && PLAYER_POPOVER_MOTION_CLASS,
+                                "relative z-[80] flex max-h-[min(58%,19rem)] w-[min(17.5rem,82%)] flex-col overflow-hidden overscroll-contain py-0.5",
+                                PLAYER_POPOVER_CLASS,
+                                !reduceMotion && "animate-in fade-in zoom-in-95 duration-200",
                               )}
                             >
-                              <div
-                                className="flex justify-center pb-1 pt-2.5"
-                                aria-hidden
-                              >
-                                <div className="h-1 w-10 rounded-full bg-white/25" />
-                              </div>
                               <div className="flex items-center justify-between border-b border-white/[0.08] px-3 py-2">
                                 <p className="text-[11px] font-semibold tracking-wide text-white">
                                   Captions

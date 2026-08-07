@@ -120,13 +120,13 @@ export default function WatchPlayerToolbar({
   const audioLabel = streamAudio === "dub" ? t("card.dub") : t("card.sub");
 
   return (
-    <div className="watch-chrome flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg border border-border/50 dark:border-white/[0.07] bg-muted/20 dark:bg-white/[0.025] px-2.5 py-2 sm:px-3">
+    <div className="watch-chrome anikitty-watch-toolbar flex flex-wrap items-center gap-x-2 gap-y-1.5 px-2.5 py-2 sm:px-3">
       <div className="flex flex-wrap items-center gap-1.5 min-w-0 flex-1 basis-[min(100%,18rem)]">
         <button
           type="button"
           onClick={onShowShortcuts}
           aria-label={t("watch.toolbar.shortcuts")}
-          className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
+          className="anikitty-toolbar-button site-focus hidden md:inline-flex items-center gap-1.5 shrink-0"
         >
           <Keyboard className="w-3.5 h-3.5 shrink-0" />
           <span className="hidden sm:inline">{t("watch.toolbar.shortcuts")}</span>
@@ -136,7 +136,7 @@ export default function WatchPlayerToolbar({
             type="button"
             onClick={onTogglePip}
             aria-label={t("watch.toolbar.pip")}
-            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0 lg:hidden"
+            className="anikitty-toolbar-button site-focus inline-flex items-center gap-1.5 shrink-0 lg:hidden"
           >
             <PictureInPicture2 className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.pip")}</span>
@@ -146,7 +146,7 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onSubmitSkipTimes}
-            className="site-focus hidden md:inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 hover:border-teal-400/25 transition-colors shrink-0"
+            className="anikitty-toolbar-button site-focus hidden md:inline-flex items-center gap-1.5 shrink-0"
           >
             <SkipForward className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.submitSkip")}</span>
@@ -156,7 +156,7 @@ export default function WatchPlayerToolbar({
           <button
             type="button"
             onClick={onOpenComments}
-            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/12 bg-muted/40 dark:bg-white/[0.05] text-muted-foreground dark:text-white/70 hover:text-foreground dark:hover:text-white hover:bg-muted/60 dark:hover:bg-white/[0.08] transition-colors shrink-0"
+            className="anikitty-toolbar-button anikitty-toolbar-button--primary site-focus inline-flex items-center gap-1.5 shrink-0"
           >
             <MessageSquare className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.comments")}</span>
@@ -168,7 +168,7 @@ export default function WatchPlayerToolbar({
             onClick={onShare}
             aria-label={t("watch.toolbar.share")}
             title={t("watch.toolbar.share")}
-            className="site-focus inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg text-[11px] font-semibold border border-border dark:border-white/10 bg-muted/30 dark:bg-white/[0.03] text-muted-foreground dark:text-white/45 hover:text-foreground dark:hover:text-white/75 transition-colors shrink-0"
+            className="anikitty-toolbar-button site-focus inline-flex items-center gap-1.5 shrink-0"
           >
             <Link2 className="w-3.5 h-3.5 shrink-0" />
             <span className="hidden sm:inline">{t("watch.toolbar.share")}</span>
@@ -219,7 +219,7 @@ export default function WatchPlayerToolbar({
             dubLabel={t("card.dub")}
           />
         )}
-        <div className="flex items-center rounded-lg border border-border dark:border-white/12 overflow-hidden bg-muted/25 dark:bg-white/[0.03]">
+        <div className="anikitty-episode-stepper flex items-center overflow-hidden">
           <button
             type="button"
             onClick={onPrev}

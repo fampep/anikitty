@@ -326,10 +326,8 @@ export function ProviderQuickPick({
   audioMode = "sub",
   onSelect,
   className,
-  compact,
   streamCaps,
   capsLoading,
-  sheetTrigger,
 }: {
   value: KittyProvider;
   audioMode?: ProviderAudioMode;
@@ -375,153 +373,138 @@ export function ProviderQuickPick({
     });
   }, [selectedMode, showAdultContent, providerOrder, defaultProvider, streamCaps]);
 
-  if (sheetTrigger || compact) {
-    return (
-      <div
-        className={cn(
-          "flex w-full flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-[#070708]/85 p-2 shadow-[0_18px_45px_-28px_rgba(0,0,0,0.9)] dark:border-white/[0.08]",
-          className,
-        )}
-      >
-        <Popover open={audioOpen} onOpenChange={setAudioOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "site-focus inline-flex h-9 min-w-[8.5rem] flex-1 items-center gap-2 rounded-lg border px-3 text-[12px] font-mono font-bold transition-colors sm:flex-none",
-                "border-white/[0.08] bg-white/[0.04] text-white/85 hover:bg-white/[0.08]",
-              )}
-            >
-              <span className={cn("text-white/55", selectedModeMeta.label)}>{selectedModeMeta.icon}</span>
-              <span className="truncate">
-                {selectedMode === "dub"
-                  ? t("watch.providerTabDub")
-                  : selectedMode === "hardsub"
-                    ? t("watch.providerTabHSubs")
-                    : t("watch.providerTabSub")}
-              </span>
-              <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 text-white/35" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent align="start" sideOffset={8} className="w-[13.5rem] rounded-xl border-white/[0.09] bg-[#070708]/98 p-1.5">
-            <div className="space-y-1">
-              {modeChoices.map(({ mode, label: modeLabel, count }) => {
-                const styles = TAB_STYLES[mode];
-                const active = mode === selectedMode;
-                return (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => {
-                      onSelect(value, mode);
-                      setAudioOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[12px] font-mono font-bold transition-colors",
-                      active
-                        ? styles.active
-                        : "border-transparent text-white/65 hover:bg-white/[0.06] hover:text-white",
-                    )}
-                  >
-                    <span className={cn(!active && styles.label)}>{styles.icon}</span>
-                    <span className="min-w-0 flex-1 truncate">{modeLabel}</span>
-                    <span className="rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] text-white/45">
-                      {count}
-                    </span>
-                    {active && <Check className="h-3.5 w-3.5 shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Popover open={serverOpen} onOpenChange={setServerOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                "site-focus inline-flex h-9 min-w-[11rem] flex-[2] items-center gap-2 rounded-lg border px-3 text-[12px] font-mono font-bold transition-colors sm:flex-none sm:min-w-[14rem]",
-                selectedAccent.chip,
-                "hover:bg-white/[0.08]",
-              )}
-            >
-              <Server className="h-3.5 w-3.5 shrink-0 text-white/50" />
-              <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", selectedAccent.dot)} />
-              <span className="min-w-0 flex-1 truncate">{label}</span>
-              <span className="hidden rounded-md bg-black/20 px-1.5 py-0.5 text-[10px] text-white/45 sm:inline">
-                {serverItems.length}
-              </span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/35" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            align="start"
-            sideOffset={8}
-            className="w-[min(24rem,calc(100vw-1.5rem))] rounded-xl border-white/[0.09] bg-[#070708]/98 p-0"
-          >
-            <div className="flex items-center justify-between border-b border-white/[0.07] px-3 py-2.5">
-              <div className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-[0.12em] text-white/45">
-                <Server className="h-3.5 w-3.5" />
-                {t("watch.providerPickTitle")} ({serverItems.length})
-              </div>
-              {capsLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-white/30" />}
-            </div>
-            <div className="max-h-[min(24rem,62vh)] overflow-y-auto overscroll-contain p-1.5">
-              {serverItems.map((p) => {
-                const active = p.id === value;
-                const accent = getProviderAccent(p.id);
-                const num = getKittyProviderNumber(p.id, providerOrder);
-                const rowCaps = resolveProviderBadgeCaps(streamCaps, p.id);
-                const badges = providerCapabilityBadges(rowCaps);
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      onSelect(p.id, selectedMode);
-                      setServerOpen(false);
-                    }}
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
-                      active
-                        ? cn(providerPillAccentClass(p.id, true), "border-opacity-100")
-                        : "border-transparent text-white/70 hover:border-white/[0.08] hover:bg-white/[0.055] hover:text-white",
-                    )}
-                  >
-                    <ProviderRankIcon rank={num} compact />
-                    <ProviderAvailabilityIcon
-                      provider={p.id}
-                      mode={selectedMode}
-                      streamCaps={streamCaps}
-                      capsLoading={capsLoading}
-                    />
-                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent.dot)} />
-                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold tracking-wide">
-                      {p.label}
-                    </span>
-                    <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
-                    <ProviderDefaultBadge id={p.id} compact />
-                    {active && <Check className="h-3.5 w-3.5 shrink-0 text-white/80" />}
-                  </button>
-                );
-              })}
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-    );
-  }
-
   return (
-    <ProviderGrid
-      provider={value}
-      audioMode={audioMode}
-      onSelect={onSelect}
-      className={className}
-      streamCaps={streamCaps}
-      capsLoading={capsLoading}
-    />
+    <div
+      className={cn(
+        "anikitty-source-deck flex w-full flex-wrap items-center gap-2",
+        className,
+      )}
+    >
+      <Popover open={audioOpen} onOpenChange={setAudioOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "anikitty-source-trigger anikitty-source-trigger--audio site-focus inline-flex min-w-[8.5rem] flex-1 items-center gap-2 sm:flex-none",
+            )}
+          >
+            <span className={cn("text-white/55", selectedModeMeta.label)}>{selectedModeMeta.icon}</span>
+            <span className="truncate">
+              {selectedMode === "dub"
+                ? t("watch.providerTabDub")
+                : selectedMode === "hardsub"
+                  ? t("watch.providerTabHSubs")
+                  : t("watch.providerTabSub")}
+            </span>
+            <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 text-white/35" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" sideOffset={8} className="anikitty-source-menu w-[13.5rem] p-1.5">
+          <div className="space-y-1">
+            {modeChoices.map(({ mode, label: modeLabel, count }) => {
+              const styles = TAB_STYLES[mode];
+              const active = mode === selectedMode;
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    onSelect(value, mode);
+                    setAudioOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[12px] font-mono font-bold transition-all",
+                    active
+                      ? styles.active
+                      : "border-transparent text-white/65 hover:translate-x-0.5 hover:bg-white/[0.06] hover:text-white",
+                  )}
+                >
+                  <span className={cn(!active && styles.label)}>{styles.icon}</span>
+                  <span className="min-w-0 flex-1 truncate">{modeLabel}</span>
+                  <span className="rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] text-white/45">
+                    {count}
+                  </span>
+                  {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Popover open={serverOpen} onOpenChange={setServerOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              "anikitty-source-trigger anikitty-source-trigger--server site-focus inline-flex min-w-[11rem] flex-[2] items-center gap-2 sm:flex-none sm:min-w-[14rem]",
+              selectedAccent.chip,
+            )}
+          >
+            <Server className="h-3.5 w-3.5 shrink-0 text-white/50" />
+            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", selectedAccent.dot)} />
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+            <span className="hidden rounded-md bg-black/20 px-1.5 py-0.5 text-[10px] text-white/45 sm:inline">
+              {serverItems.length}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/35" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          sideOffset={8}
+          className="anikitty-source-menu w-[min(24rem,calc(100vw-1.5rem))] p-0"
+        >
+          <div className="flex items-center justify-between border-b border-white/[0.07] px-3 py-2.5">
+            <div className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-[0.12em] text-white/45">
+              <Server className="h-3.5 w-3.5" />
+              {t("watch.providerPickTitle")} ({serverItems.length})
+            </div>
+            {capsLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-white/30" />}
+          </div>
+          <div className="max-h-[min(24rem,62vh)] overflow-y-auto overscroll-contain p-1.5">
+            {serverItems.map((p) => {
+              const active = p.id === value;
+              const accent = getProviderAccent(p.id);
+              const num = getKittyProviderNumber(p.id, providerOrder);
+              const rowCaps = resolveProviderBadgeCaps(streamCaps, p.id);
+              const badges = providerCapabilityBadges(rowCaps);
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => {
+                    onSelect(p.id, selectedMode);
+                    setServerOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-all",
+                    active
+                      ? cn(providerPillAccentClass(p.id, true), "border-opacity-100")
+                      : "border-transparent text-white/70 hover:translate-x-0.5 hover:border-white/[0.08] hover:bg-white/[0.055] hover:text-white",
+                  )}
+                >
+                  <ProviderRankIcon rank={num} compact />
+                  <ProviderAvailabilityIcon
+                    provider={p.id}
+                    mode={selectedMode}
+                    streamCaps={streamCaps}
+                    capsLoading={capsLoading}
+                  />
+                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent.dot)} />
+                  <span className="min-w-0 flex-1 truncate text-[12px] font-semibold tracking-wide">
+                    {p.label}
+                  </span>
+                  <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
+                  <ProviderDefaultBadge id={p.id} compact />
+                  {active && <Check className="h-3.5 w-3.5 shrink-0 text-white/80" />}
+                </button>
+              );
+            })}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
 

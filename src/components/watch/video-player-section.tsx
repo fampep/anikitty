@@ -1957,12 +1957,12 @@ const VideoPlayerSection = () => {
         />
     )}
 
-    {/* Player + under-chrome as one composition (AniDap-style stack) */}
+    {/* Player + under-chrome as one composition */}
     <div className={cn(
-      "watch-player-stack flex flex-col overflow-hidden rounded-none sm:rounded-2xl ring-0 sm:ring-1 ring-border dark:ring-white/[0.09] shadow-none sm:shadow-[0_28px_80px_-24px_rgba(0,0,0,0.8)] bg-black",
+      "watch-player-stack anikitty-player-frame flex flex-col overflow-hidden rounded-none sm:rounded-2xl bg-black",
       watchLayout === "default" && "sm:rounded-xl",
     )}>
-    <div className="watch-player-stage flex flex-col overflow-hidden bg-black">
+    <div className="watch-player-stage anikitty-player-stage flex flex-col overflow-hidden bg-black">
       {/* Persistent wrapper — a real (non-`contents`) element so it can hold
           native fullscreen across episode transitions without dropping out. */}
       <div ref={playerWrapperRef} className="anikitty-fs-host relative w-full bg-black">
@@ -2060,8 +2060,7 @@ const VideoPlayerSection = () => {
     )}
     </div>
 
-    {/* Title + actions row (AniDap: sits outside the black player frame) */}
-    <div className="watch-title-row flex flex-wrap items-start justify-between gap-2.5 sm:gap-3">
+    <div className="watch-title-row anikitty-watch-title flex flex-wrap items-start justify-between gap-2.5 sm:gap-3">
       <div className="min-w-0 flex-1">
         <h2 className="truncate text-[15px] sm:text-[17px] font-semibold tracking-tight text-foreground dark:text-white/95">
           {animeName ?? t("watch.selectEpisode")}
