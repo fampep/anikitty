@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
 import { ROUTES } from "@/constants/routes";
-import { cn } from "@/lib/core/utils";
 
 function SectionCard({ children }: { children: React.ReactNode }) {
   return (
@@ -35,60 +34,7 @@ function SectionHeader({
   );
 }
 
-function ToggleRow({
-  icon,
-  label,
-  description,
-  value,
-  onChange,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  description: string;
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={value}
-      aria-label={label}
-      onClick={() => onChange(!value)}
-      className="flex w-full items-center justify-between gap-4 px-4 py-3 rounded-xl bg-muted/30 dark:bg-white/3 border border-border dark:border-white/8 hover:border-border dark:border-white/14 transition-colors cursor-pointer text-left"
-    >
-      <div className="flex items-center gap-3">
-        <span className="text-muted-foreground dark:text-white/30" aria-hidden>
-          {icon}
-        </span>
-        <div>
-          <p className="text-sm font-medium text-foreground/85 dark:text-white/75">{label}</p>
-          <p className="text-[10px] text-muted-foreground/80 dark:text-white/25 font-mono mt-0.5">
-            {description}
-          </p>
-        </div>
-      </div>
-      <div
-        aria-hidden
-        className={cn(
-          "relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0",
-          value ? "bg-muted/60 dark:bg-white/60" : "bg-accent dark:bg-white/12",
-        )}
-      >
-        <div
-          className={cn(
-            "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-            value ? "translate-x-5" : "translate-x-0.5",
-          )}
-        />
-      </div>
-    </button>
-  );
-}
-
 export default function AdsSettingsSection() {
-  const t = useT();
-
   return (
     <SectionCard>
       <SectionHeader
@@ -98,7 +44,7 @@ export default function AdsSettingsSection() {
       />
       <div className="px-5 py-4 space-y-3">
         <p className="text-sm text-foreground dark:text-white/75 leading-relaxed">
-          We've removed intrusive ads and replaced them with a permanent support banner asking for Kifu donations. This helps cover our server costs while maintaining a better viewing experience for everyone.
+          We&apos;ve removed intrusive ads and replaced them with a permanent support banner asking for Kifu donations. This helps cover our server costs while maintaining a better viewing experience for everyone.
         </p>
         <p className="text-[11px] text-muted-foreground dark:text-white/50 leading-relaxed">
           Thank you for supporting us! Every contribution helps keep AniKitty free and accessible.{" "}

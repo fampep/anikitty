@@ -102,8 +102,8 @@ const Layout = (props: Props) => {
   const isCompactLayout = !theatreMode && watchLayout === "compact";
   const isFocusLayout = !theatreMode && watchLayout === "focus";
   const isDefaultLayout = !theatreMode && watchLayout === "default";
-  const showSideSidebar = !theatreMode && (watchLayout === "default" || watchLayout === "compact");
-  const showTheaterPlaylist = isTheaterLayout;
+  const showSideSidebar = !theatreMode;
+  const showTheaterPlaylist = false;
   const sidebarCollapsed = showSideSidebar && watchSidebarCollapsed;
 
   const currentAnimeId = useMemo(() => searchParams.get("anime"), [searchParams]);
