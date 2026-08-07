@@ -1,10 +1,11 @@
 "use client";
 
 import { DiscordLogoIcon, GitHubLogoIcon } from "@radix-ui/react-icons";
-import { Heart } from "lucide-react";
+import { ArrowRight, Heart } from "lucide-react";
 import Container from "@/components/layout/container";
 import TelegramIcon from "@/icons/telegram";
 import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta";
+import { kofiDonationUrl } from "@/lib/social/donation-config";
 import { useT } from "@/providers/i18n-provider";
 
 const ICON_BTN =
@@ -15,7 +16,7 @@ export default function HomeSocialBanner() {
 
   return (
     <Container className="py-1 sm:py-1.5">
-      <div className="site-panel flex flex-col gap-3 rounded-2xl px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
+      <div className="home-support-panel flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:gap-4">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50 text-foreground/70 dark:border-white/10 dark:bg-white/[0.04] dark:text-white/70">
             <Heart className="h-4 w-4" />
@@ -29,7 +30,17 @@ export default function HomeSocialBanner() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <a
+            href={kofiDonationUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="home-support-panel__button site-focus"
+          >
+            <Heart className="h-3.5 w-3.5" />
+            <span>Support on Ko-Fi</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </a>
           <a
             href={DISCORD_INVITE_URL}
             target="_blank"

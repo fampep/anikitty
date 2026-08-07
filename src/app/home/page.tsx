@@ -54,7 +54,6 @@ import { cn } from "@/lib/core/utils";
 
 const LatestComments = dynamic(() => import("@/components/home/latest-comments"));
 const HomeQuickNav = dynamic(() => import("@/components/home/home-quick-nav"), { ssr: false });
-const HomeWelcomeBar = dynamic(() => import("@/components/home/home-welcome-bar"), { ssr: false });
 const HomeRecommendations = dynamic(() => import("@/components/home/home-recommendations"));
 const RecentlyViewed = dynamic(() => import("@/components/home/recently-viewed"));
 const HomeUpcomingRail = dynamic(() => import("@/components/home/home-upcoming-rail"));
@@ -62,8 +61,6 @@ const AnimeSections = dynamic(() => import("@/components/home/anime-sections"));
 const HomeRankings = dynamic(() => import("@/components/home/home-rankings"));
 const HomeJustCompleted = dynamic(() => import("@/components/home/home-just-completed"));
 const HomeDiscoveryRows = dynamic(() => import("@/components/home/home-discovery-rows"));
-const HomeLiveStats = dynamic(() => import("@/components/home/home-live-stats"), { ssr: false });
-const HomeDiscoveryHub = dynamic(() => import("@/components/home/home-discovery-hub"), { ssr: false });
 
 const HOME_RAIL_LIMIT = 12;
 
@@ -477,7 +474,7 @@ export default function Home() {
 
   const visibleOrder = orderedVisibleSections(prefs).filter((id) => id !== "continue");
 
-  const grouped = useMemo(() => {
+  const grouped = (() => {
     const buckets: Record<HomeGroupId, HomeSectionId[]> = {
       "whats-new": [],
       "top-anime": [],
@@ -491,7 +488,7 @@ export default function Home() {
       group,
       ids: buckets[group],
     })).filter((g) => g.ids.length > 0);
-  }, [visibleOrder]);
+  })();
 
   const groupCopy: Record<HomeGroupId, { title: string; subtitle?: string }> = {
     "whats-new": { title: t("home.feedSections.fresh"), subtitle: t("home.sectionWhatsNewDesc") },
@@ -522,6 +519,10 @@ export default function Home() {
         trending={trending}
         loading={isLoading}
       />
+
+      <div className="relative z-[7] mt-3 sm:mt-4">
+        <HomeSocialBanner />
+      </div>
 
       {isHomeSectionVisible(prefs, "continue") ? (
         <div

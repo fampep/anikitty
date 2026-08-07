@@ -57,6 +57,7 @@ export default function SiteAnnouncementBanner() {
   const bannerRef = useRef<HTMLDivElement>(null);
   const spacerRef = useRef<HTMLDivElement>(null);
   const lastOffsetRef = useRef(0);
+  const isHomePage = pathname === ROUTES.HOME;
 
   useEffect(() => {
     setDismissed(readDismissed());
@@ -78,19 +79,27 @@ export default function SiteAnnouncementBanner() {
     });
   };
 
-  const isRestrictedPage = pathname === "/" || pathname?.startsWith("/anime/watch");
+  const isRestrictedPage = pathname === "/" || isHomePage || pathname?.startsWith("/anime/watch");
 
   const visible = useMemo(() => {
     if (!hydrated || !showAnnouncementBanner) return [];
+    if (isHomePage) return [];
     const filtered = items.filter((a) => !(a.dismissible && dismissed.has(a.id)));
     if (!isRestrictedPage) return filtered;
     return filtered.filter((a) => PRIORITY_ANNOUNCEMENT_SEVERITIES.has(a.severity));
-  }, [hydrated, showAnnouncementBanner, isRestrictedPage, items, dismissed]);
+  }, [hydrated, showAnnouncementBanner, isHomePage, isRestrictedPage, items, dismissed]);
 
   const visibleKey = useMemo(() => visible.map((a) => a.id).join(","), [visible]);
 
   useLayoutEffect(() => {
     if (!hydrated) return;
+
+    if (isHomePage) {
+      lastOffsetRef.current = 0;
+      document.documentElement.style.setProperty("--banner-offset", "0px");
+      if (spacerRef.current) spacerRef.current.style.height = "0px";
+      return;
+    }
 
     const applyOffset = (rawHeight: number) => {
       const offset = rawHeight > 0 ? rawHeight + 8 : 0;
@@ -119,9 +128,9 @@ export default function SiteAnnouncementBanner() {
       document.documentElement.style.setProperty("--banner-offset", "0px");
       if (spacerRef.current) spacerRef.current.style.height = "0px";
     };
-  }, [hydrated, visibleKey, visible.length, pathname]);
+  }, [hydrated, visibleKey, visible.length, pathname, isHomePage]);
 
-  if (!hydrated) return null;
+  if (!hydrated || isHomePage) return null;
 
   return (
     <>

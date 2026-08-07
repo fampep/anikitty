@@ -1746,14 +1746,15 @@ const VideoPlayerSection = () => {
   }
 
   const providerControlsBlock = compactProviderPicker ? (
-    <WatchSimpleProviderRow
-      provider={provider}
-      streamAudio={streamAudio}
-      audioMode={audioMode}
-      onSelect={handleProviderGridSelect}
-      streamCaps={streamCaps}
-      capsLoading={capsFetching}
-    />
+      <WatchSimpleProviderRow
+        provider={provider}
+        streamAudio={streamAudio}
+        audioMode={audioMode}
+        onSelect={handleProviderGridSelect}
+        streamCaps={streamCaps}
+        capsLoading={capsFetching}
+        className="sm:ml-auto sm:w-fit"
+      />
   ) : (
     <ProviderQuickPick
       value={provider}
@@ -1762,6 +1763,7 @@ const VideoPlayerSection = () => {
       onSelect={handleProviderGridSelect}
       streamCaps={streamCaps}
       capsLoading={capsFetching}
+      className="sm:ml-auto sm:w-fit"
     />
   );
 
@@ -2148,7 +2150,7 @@ const VideoPlayerSection = () => {
         <WatchNowWatchingCard
           servers={
             <div className="space-y-2.5">
-              {providerControlsBlock}
+              <div className="flex justify-end">{providerControlsBlock}</div>
               <WatchServerPicker
                 provider={activeStreamProvider}
                 streamAudio={streamAudio}

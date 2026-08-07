@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Captions, Flame, Mic } from "lucide-react";
 import type { KittyStreamQuality } from "@/lib/kitty/stream-quality";
-import { formatStreamQualityLabel } from "@/lib/kitty/stream-quality";
 import {
   fetchAnilistSiteServers,
   type AnilistSiteServer,
@@ -55,32 +54,6 @@ const SECTION_STYLES: Record<
     idle: "border-white/8 bg-[#131313] text-white/55 hover:bg-[#1b1b1b] hover:text-white/80",
   },
 };
-
-function QualityChip({
-  q,
-  active,
-  onPick,
-}: {
-  q: KittyStreamQuality;
-  active: boolean;
-  onPick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onPick}
-      aria-pressed={active}
-      className={cn(
-        "inline-flex min-h-8 min-w-[4.5rem] items-center justify-center gap-1 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-colors touch-manipulation",
-        active
-          ? "border-zinc-400/40 bg-zinc-500/20 text-zinc-50"
-          : "border-white/8 bg-[#131313] text-white/55 hover:bg-[#1b1b1b] hover:text-white/80",
-      )}
-    >
-      {formatStreamQualityLabel(q.quality)}
-    </button>
-  );
-}
 
 function ServerRow({
   mode,
@@ -150,7 +123,6 @@ export default function WatchServerPicker({
   streamAudio,
   audioMode = "sub",
   activeLinkId,
-  qualities = [],
   activeFile,
   dataIds,
   onPickQuality,
@@ -163,12 +135,7 @@ export default function WatchServerPicker({
   const [dubServers, setDubServers] = useState<AnilistSiteServer[]>([]);
   const [loadingSite, setLoadingSite] = useState(false);
 
-  const uniqueQualities = useMemo(
-    () => qualities.filter((q, i, arr) => arr.findIndex((x) => x.file === q.file) === i),
-    [qualities],
-  );
   const canFetchSite = isAnilistSiteProvider(provider) && Boolean(dataIds);
-  const hasQualities = uniqueQualities.length > 1;
 
   const softSubServers = useMemo(
     () => subServers.filter((s) => !isHardSubServerName(s.name)),
@@ -216,30 +183,14 @@ export default function WatchServerPicker({
   const hasServerSections =
     softSubServers.length > 0 || hardSubServers.length > 0 || dubServers.length > 0;
 
-  if (!hasQualities && !canFetchSite) return null;
-  if (!hasQualities && canFetchSite && !loadingSite && !hasServerSections) return null;
+  void activeFile;
+  void onPickQuality;
 
-  const qualityRow = hasQualities && (
-    <div className="flex items-center gap-2.5 min-w-0">
-      <div className="flex w-[4.25rem] shrink-0 items-center text-[11px] font-bold font-mono uppercase tracking-wide text-zinc-300/70">
-        {t("watch.serverPickerTitle")}
-      </div>
-      <div className="flex min-w-0 flex-1 flex-wrap gap-1.5">
-        {uniqueQualities.map((q) => (
-          <QualityChip
-            key={q.file}
-            q={q}
-            active={activeFile === q.file}
-            onPick={() => onPickQuality(q)}
-          />
-        ))}
-      </div>
-    </div>
-  );
+  if (!canFetchSite) return null;
+  if (!loadingSite && !hasServerSections) return null;
 
   const body = (
     <div className={cn("flex flex-col gap-2", !embedded && "space-y-0")}>
-      {qualityRow}
       {loadingSite && (
         <p className="px-0.5 text-[10px] font-mono text-muted-foreground dark:text-white/35">
           {t("watch.serverPickerLoading")}
