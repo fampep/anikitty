@@ -3,8 +3,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Captions,
+  ChevronDown,
   Check,
+  CircleCheck,
+  CircleX,
   Flame,
+  Loader2,
   Mic,
   Server,
   Sparkles,
@@ -19,12 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DEFAULT_KITTY_PROVIDER,
   getKittyProviderLabel,
@@ -181,6 +180,47 @@ function OutcomeDot({
   return <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", meta.className)} title={meta.title} />;
 }
 
+function ProviderAvailabilityIcon({
+  provider,
+  mode,
+  streamCaps,
+  capsLoading,
+}: {
+  provider: KittyProvider;
+  mode: ProviderAudioMode;
+  streamCaps?: EpisodeStreamCapabilities;
+  capsLoading?: boolean;
+}) {
+  const t = useT();
+  const hasCaps = Boolean(streamCaps?.providers && Object.keys(streamCaps.providers).length > 0);
+  if (!hasCaps) {
+    return capsLoading ? (
+      <Loader2
+        className="h-3.5 w-3.5 shrink-0 animate-spin text-white/30"
+        aria-label={t("watch.episodeSourceChecking", { episode: "" })}
+      />
+    ) : (
+      <span
+        className="h-2 w-2 rounded-full bg-white/25"
+        title={t("watch.providerStatusMixed")}
+      />
+    );
+  }
+
+  const available = isProviderAvailableForMode(provider, mode, streamCaps);
+  return available ? (
+    <CircleCheck
+      className="h-3.5 w-3.5 shrink-0 text-emerald-300"
+      aria-label={t("watch.providerAvailable")}
+    />
+  ) : (
+    <CircleX
+      className="h-3.5 w-3.5 shrink-0 text-rose-300/80"
+      aria-label={t("watch.providerUnavailable")}
+    />
+  );
+}
+
 export default function ProviderSelect({
   value,
   onChange,
@@ -301,54 +341,175 @@ export function ProviderQuickPick({
   /** When true, render a compact SOURCE button that opens a bottom sheet. */
   sheetTrigger?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [audioOpen, setAudioOpen] = useState(false);
+  const [serverOpen, setServerOpen] = useState(false);
   const t = useT();
   const label = getKittyProviderLabel(value);
+  const { providerOrder, defaultProvider, showAdultContent } = useSettingsStore();
+  const selectedAccent = getProviderAccent(value);
+  const selectedMode = audioMode === "dub" ? "dub" : audioMode === "hardsub" ? "hardsub" : "sub";
+  const selectedModeMeta = TAB_STYLES[selectedMode];
+  const modeChoices = useMemo(
+    () =>
+      (["sub", "hardsub", "dub"] as ProviderAudioMode[]).map((mode) => {
+        const providers = kittyProvidersForAudioMode(mode, { includeAdult: showAdultContent });
+        return {
+          mode,
+          count: providers.length,
+          label:
+            mode === "dub"
+              ? t("watch.providerTabDub")
+              : mode === "hardsub"
+                ? t("watch.providerTabHSubs")
+                : t("watch.providerTabSub"),
+        };
+      }),
+    [showAdultContent, t],
+  );
+  const serverItems = useMemo(() => {
+    const providers = kittyProvidersForAudioMode(selectedMode, { includeAdult: showAdultContent });
+    return sortProvidersForPicker(providers, {
+      priorityOrder: providerOrder,
+      defaultProvider,
+      availableIds: buildAvailableProviderSet(streamCaps, selectedMode),
+    });
+  }, [selectedMode, showAdultContent, providerOrder, defaultProvider, streamCaps]);
 
   if (sheetTrigger || compact) {
     return (
-      <>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={cn(
-            "site-focus inline-flex items-center gap-2 h-10 w-full min-w-0 rounded-lg border px-3 text-[12px] font-mono",
-            "bg-muted/40 dark:bg-black/25 border-border dark:border-white/10 text-foreground/85 dark:text-white/75",
-            "hover:bg-accent dark:hover:bg-white/[0.06] shadow-sm transition-colors",
-            className,
-          )}
-        >
-          <Server className="w-3.5 h-3.5 shrink-0 opacity-60" />
-          <span className="truncate font-semibold tracking-wide">
-            {t("watch.providerSourceCompact", { label })}
-          </span>
-          <ProviderRankIcon rank={getKittyProviderNumber(value)} compact className="ml-auto" />
-        </button>
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetContent
-            side="bottom"
-            className="max-h-[min(88vh,40rem)] rounded-t-2xl border-border dark:border-white/10 bg-[#0a0a0c] p-0 gap-0"
-          >
-            <SheetHeader className="px-4 pt-4 pb-2 border-b border-border/60 dark:border-white/[0.06]">
-              <SheetTitle className="text-sm font-semibold tracking-tight text-foreground dark:text-white/90">
-                {t("watch.providerPickTitle")}
-              </SheetTitle>
-            </SheetHeader>
-            <div className="overflow-y-auto overscroll-contain px-3 py-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <ProviderGrid
-                provider={value}
-                audioMode={audioMode}
-                onSelect={(p, mode) => {
-                  onSelect(p, mode);
-                  setOpen(false);
-                }}
-                streamCaps={streamCaps}
-                capsLoading={capsLoading}
-              />
+      <div
+        className={cn(
+          "flex w-full flex-wrap items-center gap-2 rounded-xl border border-border/70 bg-[#070708]/85 p-2 shadow-[0_18px_45px_-28px_rgba(0,0,0,0.9)] dark:border-white/[0.08]",
+          className,
+        )}
+      >
+        <Popover open={audioOpen} onOpenChange={setAudioOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "site-focus inline-flex h-9 min-w-[8.5rem] flex-1 items-center gap-2 rounded-lg border px-3 text-[12px] font-mono font-bold transition-colors sm:flex-none",
+                "border-white/[0.08] bg-white/[0.04] text-white/85 hover:bg-white/[0.08]",
+              )}
+            >
+              <span className={cn("text-white/55", selectedModeMeta.label)}>{selectedModeMeta.icon}</span>
+              <span className="truncate">
+                {selectedMode === "dub"
+                  ? t("watch.providerTabDub")
+                  : selectedMode === "hardsub"
+                    ? t("watch.providerTabHSubs")
+                    : t("watch.providerTabSub")}
+              </span>
+              <ChevronDown className="ml-auto h-3.5 w-3.5 shrink-0 text-white/35" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" sideOffset={8} className="w-[13.5rem] rounded-xl border-white/[0.09] bg-[#070708]/98 p-1.5">
+            <div className="space-y-1">
+              {modeChoices.map(({ mode, label: modeLabel, count }) => {
+                const styles = TAB_STYLES[mode];
+                const active = mode === selectedMode;
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => {
+                      onSelect(value, mode);
+                      setAudioOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-[12px] font-mono font-bold transition-colors",
+                      active
+                        ? styles.active
+                        : "border-transparent text-white/65 hover:bg-white/[0.06] hover:text-white",
+                    )}
+                  >
+                    <span className={cn(!active && styles.label)}>{styles.icon}</span>
+                    <span className="min-w-0 flex-1 truncate">{modeLabel}</span>
+                    <span className="rounded-md bg-white/[0.07] px-1.5 py-0.5 text-[10px] text-white/45">
+                      {count}
+                    </span>
+                    {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
-          </SheetContent>
-        </Sheet>
-      </>
+          </PopoverContent>
+        </Popover>
+
+        <Popover open={serverOpen} onOpenChange={setServerOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                "site-focus inline-flex h-9 min-w-[11rem] flex-[2] items-center gap-2 rounded-lg border px-3 text-[12px] font-mono font-bold transition-colors sm:flex-none sm:min-w-[14rem]",
+                selectedAccent.chip,
+                "hover:bg-white/[0.08]",
+              )}
+            >
+              <Server className="h-3.5 w-3.5 shrink-0 text-white/50" />
+              <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", selectedAccent.dot)} />
+              <span className="min-w-0 flex-1 truncate">{label}</span>
+              <span className="hidden rounded-md bg-black/20 px-1.5 py-0.5 text-[10px] text-white/45 sm:inline">
+                {serverItems.length}
+              </span>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-white/35" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            sideOffset={8}
+            className="w-[min(24rem,calc(100vw-1.5rem))] rounded-xl border-white/[0.09] bg-[#070708]/98 p-0"
+          >
+            <div className="flex items-center justify-between border-b border-white/[0.07] px-3 py-2.5">
+              <div className="flex items-center gap-2 text-[11px] font-mono font-bold uppercase tracking-[0.12em] text-white/45">
+                <Server className="h-3.5 w-3.5" />
+                {t("watch.providerPickTitle")} ({serverItems.length})
+              </div>
+              {capsLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-white/30" />}
+            </div>
+            <div className="max-h-[min(24rem,62vh)] overflow-y-auto overscroll-contain p-1.5">
+              {serverItems.map((p) => {
+                const active = p.id === value;
+                const accent = getProviderAccent(p.id);
+                const num = getKittyProviderNumber(p.id, providerOrder);
+                const rowCaps = resolveProviderBadgeCaps(streamCaps, p.id);
+                const badges = providerCapabilityBadges(rowCaps);
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      onSelect(p.id, selectedMode);
+                      setServerOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
+                      active
+                        ? cn(providerPillAccentClass(p.id, true), "border-opacity-100")
+                        : "border-transparent text-white/70 hover:border-white/[0.08] hover:bg-white/[0.055] hover:text-white",
+                    )}
+                  >
+                    <ProviderRankIcon rank={num} compact />
+                    <ProviderAvailabilityIcon
+                      provider={p.id}
+                      mode={selectedMode}
+                      streamCaps={streamCaps}
+                      capsLoading={capsLoading}
+                    />
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", accent.dot)} />
+                    <span className="min-w-0 flex-1 truncate text-[12px] font-semibold tracking-wide">
+                      {p.label}
+                    </span>
+                    <ProviderCapabilityBadge caps={badges} compact loading={capsLoading} />
+                    <ProviderDefaultBadge id={p.id} compact />
+                    {active && <Check className="h-3.5 w-3.5 shrink-0 text-white/80" />}
+                  </button>
+                );
+              })}
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
     );
   }
 
@@ -436,20 +597,15 @@ export function ProviderGrid({
     const out: Partial<Record<ProviderAudioMode, number>> = {};
     for (const mode of tabs) {
       const base = kittyProvidersForAudioMode(mode, { includeAdult: showAdultContent });
-      const available = buildAvailableProviderSet(streamCaps, mode);
-      const filtered = available
-        ? base.filter((p) => available.has(p.id))
-        : base;
-      out[mode] = filtered.length;
+      out[mode] = base.length;
     }
     return out;
-  }, [tabs, showAdultContent, streamCaps]);
+  }, [tabs, showAdultContent]);
 
   const items = useMemo(() => {
     const base = kittyProvidersForAudioMode(tab, { includeAdult: showAdultContent });
     const available = buildAvailableProviderSet(streamCaps, tab);
-    const filtered = available ? base.filter((p) => available.has(p.id)) : base;
-    return sortProvidersForPicker(filtered, {
+    return sortProvidersForPicker(base, {
       priorityOrder: providerOrder,
       defaultProvider,
       availableIds: available,
