@@ -19,7 +19,7 @@ type Props = {
   episode: Episode;
   showCard?: boolean;
   animeId: string;
-  variant?: "card" | "list" | "thumbnail";
+  variant?: "card" | "list" | "thumbnail" | "text";
   subOrDub?: { sub: number; dub: number };
   watchedEpisodes?: WatchHistory[] | null;
   animePoster?: string;
@@ -83,7 +83,8 @@ const EpisodeCard = memo(function EpisodeCard({
         <div
           title={props.episode.isFiller ? `Episode ${props.episode.number} · Filler` : undefined}
           className={cn(
-            "relative aspect-square rounded-lg w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+            "relative rounded-lg w-full flex flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+            props.activeStyle === "play" ? "h-9" : "aspect-square",
             playable ? "cursor-pointer" : "cursor-not-allowed opacity-45",
             playActive
               ? "bg-zinc-200 text-zinc-950 ring-1 ring-zinc-100/80 shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
@@ -112,6 +113,45 @@ const EpisodeCard = memo(function EpisodeCard({
   }
 
   // ── Thumbnail card ────────────────────────────────────────────────
+  if (variant === "text") {
+    const listHistory = props.watchedEpisodes?.find((w) => w.episodeId === props.episode.episodeId);
+    const current = listHistory?.current ?? 0;
+    const duration = listHistory?.duration ?? 0;
+    const progressPct = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
+    const isCompleted = progressPct >= 95 || hasWatchedEpisode;
+    const playActive = isActive && props.activeStyle === "play";
+
+    return (
+      <EpisodeCardShell playable={playable} href={href} title={unreleasedTitle}>
+        <div
+          className={cn(
+            "group relative mx-1 mb-1 flex h-9 items-center gap-2 overflow-hidden rounded-lg border px-2.5 text-[12px] transition-all",
+            playable ? "cursor-pointer" : "cursor-not-allowed opacity-50",
+            playActive
+              ? "border-violet-300/45 bg-violet-400/70 text-white shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
+              : isActive
+                ? "border-violet-300/35 bg-violet-400/18 text-white"
+                : "border-border/70 bg-muted/35 text-muted-foreground hover:border-white/14 hover:bg-white/[0.055] dark:border-white/[0.07] dark:bg-white/[0.025] dark:text-white/38",
+            hasWatchedEpisode && !isActive && "opacity-55",
+          )}
+        >
+          {playActive ? (
+            <Play className="h-3.5 w-3.5 shrink-0 fill-white text-white" />
+          ) : (
+            <span className="w-5 shrink-0 text-right font-mono tabular-nums opacity-70">
+              {props.episode.number}.
+            </span>
+          )}
+          <span className="min-w-0 flex-1 truncate font-medium">
+            {hasMeaningfulTitle ? props.episode.title : `Episode ${props.episode.number}`}
+          </span>
+          <EpisodeAudioMarks episodeNumber={props.episode.number} subOrDub={props.subOrDub} />
+          {isCompleted ? <Check className="h-3 w-3 shrink-0 opacity-70" /> : null}
+        </div>
+      </EpisodeCardShell>
+    );
+  }
+
   if (variant === "thumbnail") {
     const history = props.watchedEpisodes?.find(
       (w) => w.episodeId === props.episode.episodeId,

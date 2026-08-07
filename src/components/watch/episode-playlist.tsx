@@ -4,7 +4,6 @@ import EpisodeCard from "@/components/common/episode-card";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { useAnimeStore } from "@/store/anime-store";
 import { useSettingsStore, EpisodeLayout } from "@/store/settings-store";
 import { Episode, IEpisodes } from "@/types/episodes";
 import { useEpisodeProgress } from "@/hooks/use-episode-progress";
@@ -67,7 +66,6 @@ const EpisodePlaylist = ({
   const searchParams = useSearchParams();
   const episodeId = searchParams.get("episode");
 
-  const animePoster = useAnimeStore((s) => s.anime?.anime?.info?.poster ?? "");
   const episodeLayout = useSettingsStore((s) => s.episodeLayout);
   const setEpisodeLayout = useSettingsStore((s) => s.setEpisodeLayout);
   const hideFillers = useSettingsStore((s) => s.hideFillers);
@@ -214,8 +212,8 @@ const EpisodePlaylist = ({
 
   const ranges = groupRanges;
   const hasMultipleGroups = ranges.length > 1;
-  const layout = isWatch && episodeLayout === "list" ? "compact" : episodeLayout;
-  const gridCols = isWatch ? "grid-cols-4 sm:grid-cols-6 md:grid-cols-8" : "grid-cols-4 sm:grid-cols-5";
+  const layout = episodeLayout;
+  const gridCols = isWatch ? "grid-cols-4 sm:grid-cols-6 md:grid-cols-8" : "grid-cols-5";
 
   const assignEpisodeRef = (episode: Episode) => (el: HTMLDivElement | null) => {
     const idx = episodes.episodes.findIndex((e) => e.episodeId === episode.episodeId);
@@ -343,7 +341,7 @@ const EpisodePlaylist = ({
               </div>
 
               <div className="flex items-center gap-0.5 bg-muted/50 dark:bg-white/5 rounded-xl p-1 border border-border dark:border-white/8 shrink-0">
-                {LAYOUT_OPTIONS.filter((o) => o.value !== "list").map((opt) => (
+                {LAYOUT_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     type="button"
@@ -406,6 +404,25 @@ const EpisodePlaylist = ({
               <div className="flex items-center gap-1 [&_button]:h-9 [&_button]:w-9 [&_button]:rounded-lg">
                 {filterToolbar}
               </div>
+
+              <div className="flex items-center gap-0.5 rounded-lg border border-border bg-muted/35 p-0.5 dark:border-white/8 dark:bg-white/[0.035]">
+                {LAYOUT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setEpisodeLayout(opt.value)}
+                    title={t(opt.labelKey)}
+                    className={cn(
+                      "site-focus flex h-8 w-8 items-center justify-center rounded-md transition-all",
+                      layout === opt.value
+                        ? "bg-white/12 text-white"
+                        : "text-muted-foreground/80 hover:bg-white/[0.055] hover:text-foreground dark:text-white/35 dark:hover:text-white/70",
+                    )}
+                  >
+                    {opt.icon}
+                  </button>
+                ))}
+              </div>
             </div>
           </>
         )}
@@ -438,7 +455,7 @@ const EpisodePlaylist = ({
               </p>
             )}
           </div>
-        ) : layout === "compact" ? (
+        ) : layout === "thumbnail" ? (
           <div className={cn("grid gap-1 px-2 pb-2", gridCols)}>
             {filteredEpisodes.map((episode) => (
               <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
@@ -446,27 +463,21 @@ const EpisodePlaylist = ({
                   {...cardProps(episode)}
                   variant="card"
                   showCard={false}
-                  activeStyle={isWatch ? "play" : "default"}
+                  activeStyle="play"
                 />
               </div>
             ))}
           </div>
-        ) : layout === "thumbnail" ? (
-          <div className="grid grid-cols-2 gap-1.5 px-2 pb-2 pt-0.5">
-            {filteredEpisodes.map((episode) => (
-              <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
-                <EpisodeCard
-                  {...cardProps(episode)}
-                  variant="thumbnail"
-                  animePoster={animePoster}
-                />
-              </div>
-            ))}
-          </div>
-        ) : (
+        ) : layout === "compact" ? (
           filteredEpisodes.map((episode) => (
             <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
               <EpisodeCard {...cardProps(episode)} variant="list" />
+            </div>
+          ))
+        ) : (
+          filteredEpisodes.map((episode) => (
+            <div key={episode.episodeId} ref={assignEpisodeRef(episode)}>
+              <EpisodeCard {...cardProps(episode)} variant="text" activeStyle="play" />
             </div>
           ))
         )}

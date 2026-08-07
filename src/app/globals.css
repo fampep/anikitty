@@ -989,6 +989,77 @@ body {
     box-shadow: 0 8px 18px rgb(0 0 0 / 0.34);
   }
 
+  .watch-related-show-more {
+    display: flex;
+    height: 2.35rem;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.55rem;
+    border: 1px solid rgb(255 255 255 / 0.045);
+    background: rgb(255 255 255 / 0.035);
+    color: rgb(255 255 255 / 0.38);
+    transition:
+      background-color 160ms ease,
+      border-color 160ms ease,
+      color 160ms ease;
+  }
+
+  .watch-related-show-more:hover {
+    border-color: rgb(255 255 255 / 0.09);
+    background: rgb(255 255 255 / 0.065);
+    color: rgb(255 255 255 / 0.66);
+  }
+
+  .watch-season-banner-card {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    min-height: 4.85rem;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 0.55rem;
+    border: 1px solid rgb(255 255 255 / 0.075);
+    background: rgb(255 255 255 / 0.04);
+    transition:
+      transform 170ms ease,
+      border-color 170ms ease,
+      filter 170ms ease;
+  }
+
+  .watch-season-banner-card:hover {
+    transform: translateY(-1px);
+    border-color: rgb(181 168 255 / 0.42);
+    filter: brightness(1.08);
+  }
+
+  .watch-season-banner-card__image {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    opacity: 0.58;
+    filter: saturate(0.9) contrast(1.05);
+    transform: scale(1.08);
+    transition: transform 260ms ease;
+  }
+
+  .watch-season-banner-card:hover .watch-season-banner-card__image {
+    transform: scale(1.13);
+  }
+
+  .watch-season-banner-card__shade {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(80% 100% at 50% 20%, rgb(181 168 255 / 0.18), transparent 58%),
+      linear-gradient(180deg, rgb(0 0 0 / 0.18), rgb(0 0 0 / 0.62));
+  }
+
   .watch-stream-info {
     background:
       linear-gradient(90deg, rgb(255 255 255 / 0.04), transparent),

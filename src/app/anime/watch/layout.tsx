@@ -40,7 +40,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useGetAnimeDetails } from "@/query/anime/get-anime-details";
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IAnime } from "@/types/anime";
-import type { RecommendedAnime, RelatedAnime } from "@/types/anime-details";
+import type { RecommendedAnime, RelatedAnime, Season } from "@/types/anime-details";
 import useBookMarks from "@/hooks/use-get-bookmark";
 import { accountContinue } from "@/lib/oauth/account";
 import { useAuthStore } from "@/store/auth-store";
@@ -256,6 +256,7 @@ const Layout = (props: Props) => {
   const malMeta = extMeta?.mal;
   const relatedAnimes = relatedData?.relatedAnimes ?? anime?.relatedAnimes ?? [];
   const recommendedAnimes = relatedData?.recommendedAnimes ?? anime?.recommendedAnimes ?? [];
+  const franchiseSeasons = relatedData?.seasons ?? anime?.seasons ?? [];
 
   const externalLinks: { label: string; url: string; color: string }[] = [];
   if (anilistId)              externalLinks.push({ ...DB_LINKS[0], url: DB_LINKS[0].url(anilistId) });
@@ -816,6 +817,7 @@ const Layout = (props: Props) => {
             <WatchRelatedSidebar
               relatedAnimes={relatedAnimes as RelatedAnime[]}
               recommendedAnimes={recommendedAnimes as RecommendedAnime[]}
+              seasons={franchiseSeasons as Season[]}
             />
           )}
           </div>
