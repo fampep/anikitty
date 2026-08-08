@@ -3,6 +3,7 @@
 import { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowRight,
   ChevronDown,
   Film,
   Loader2,
@@ -43,14 +44,14 @@ function PosterThumb({
         height={80}
         loading="lazy"
         decoding="async"
-        className={cn("rounded object-cover bg-zinc-900/80", className)}
+        className={cn("rounded-xl object-cover bg-zinc-900/80", className)}
       />
     );
   }
   return (
     <div
       className={cn(
-        "rounded bg-zinc-900/80 flex items-center justify-center text-white/20",
+        "rounded-xl bg-zinc-900/80 flex items-center justify-center text-white/20",
         className,
       )}
     >
@@ -72,18 +73,18 @@ function TimeChip({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded px-2 py-1 text-[11px] font-mono tabular-nums border",
+        "timestamp-chip inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-mono tabular-nums border",
         has
           ? tone === "intro"
-            ? "border-teal-500/25 bg-teal-500/10 text-teal-200/90"
+            ? "border-teal-500/25 bg-teal-500/10 text-teal-200/90 timestamp-chip--intro"
             : tone === "recap"
-              ? "border-sky-500/25 bg-sky-500/10 text-sky-200/90"
+              ? "border-sky-500/25 bg-sky-500/10 text-sky-200/90 timestamp-chip--recap"
               : tone === "preview"
-                ? "border-violet-500/25 bg-violet-500/10 text-violet-200/90"
+                ? "border-violet-500/25 bg-violet-500/10 text-violet-200/90 timestamp-chip--preview"
                 : tone === "none"
-                  ? "border-amber-500/25 bg-amber-500/10 text-amber-200/90"
-                  : "border-zinc-500/30 bg-zinc-500/10 text-zinc-200/85"
-          : "border-white/8 bg-white/[0.02] text-white/25",
+                  ? "border-amber-500/25 bg-amber-500/10 text-amber-200/90 timestamp-chip--none"
+                  : "border-zinc-500/30 bg-zinc-500/10 text-zinc-200/85 timestamp-chip--outro"
+          : "border-white/8 bg-white/[0.02] text-white/25 timestamp-chip--empty",
       )}
     >
       <span className="text-[9px] uppercase tracking-wider opacity-70">{label}</span>
@@ -102,7 +103,7 @@ const EpisodeRow = memo(function EpisodeRow({
   const t = useT();
 
   return (
-    <div className="flex gap-3 py-2.5 border-t border-white/[0.06] first:border-t-0">
+    <div className="timestamp-episode-row flex gap-3 rounded-2xl px-3 py-3">
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
@@ -128,7 +129,7 @@ const EpisodeRow = memo(function EpisodeRow({
             ) : null}
             <Link
               href={ep.watchUrl}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-white/80 hover:text-white transition-colors"
+              className="timestamp-watch-link inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-white/80 transition-colors"
             >
               <Play className="w-3 h-3" />
               {t("timestamps.watch")}
@@ -183,35 +184,65 @@ const EpisodeRow = memo(function EpisodeRow({
 const AnimeGroup = memo(function AnimeGroup({
   group,
   mode,
+  index,
 }: {
   group: SkipDatabaseAnimeGroup;
   mode: Tab;
+  index: number;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const episodeCount = group.episodes.length;
+  const firstEpisode = group.episodes[0];
+  const liveCount = group.episodes.filter((ep) => ep.hasIntro || ep.hasOutro || ep.segments?.length).length;
 
   return (
-    <article className="border-b border-white/[0.07] last:border-b-0">
+    <article
+      className="timestamp-anime-card group relative isolate overflow-hidden rounded-[1.35rem] border border-border/60 bg-card/70 dark:border-white/[0.08] dark:bg-[#0b0b0b]"
+      style={{ ["--genre-index" as string]: index }}
+    >
+      {group.posterUrl ? (
+        <span
+          className="timestamp-anime-card__art"
+          style={{ ["--timestamp-poster" as string]: `url("${group.posterUrl}")` }}
+          aria-hidden
+        />
+      ) : (
+        <span className="timestamp-anime-card__wash" aria-hidden />
+      )}
+      <span className="timestamp-anime-card__scrim" aria-hidden />
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 py-4 text-left transition-colors hover:bg-white/[0.02]"
+        className="relative z-[2] w-full flex items-center gap-3 p-3 text-left transition-colors sm:p-4"
         aria-expanded={open}
       >
         <PosterThumb
           src={group.posterUrl}
           alt={group.animeTitle}
-          className="w-12 h-[4.25rem] shrink-0 shadow-lg shadow-black/40"
+          className="w-14 h-20 shrink-0 shadow-lg shadow-black/40 ring-1 ring-white/10"
         />
         <div className="min-w-0 flex-1">
           <p className="text-[15px] sm:text-base font-semibold text-white leading-snug line-clamp-2 tracking-tight">
             {group.animeTitle}
           </p>
-          <p className="text-[11px] font-mono text-white/35 mt-1">
-            {t("timestamps.episodeCount", { count: episodeCount })}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-mono text-white/42">
+            <span className="timestamp-mini-pill">
+              {t("timestamps.episodeCount", { count: episodeCount })}
+            </span>
+            <span className="timestamp-mini-pill">
+              {liveCount} {mode === "live" ? t("timestamps.tabLive") : t("timestamps.tabPending")}
+            </span>
+          </div>
         </div>
+        <Link
+          href={firstEpisode?.animeUrl ?? `/anime/${group.anilistId}`}
+          className="timestamp-anime-card__details hidden items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold text-white/55 transition-colors hover:text-white sm:inline-flex"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {t("timestamps.animePage")}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
         <ChevronDown
           className={cn(
             "w-4 h-4 shrink-0 text-white/30 transition-transform duration-200",
@@ -221,11 +252,11 @@ const AnimeGroup = memo(function AnimeGroup({
       </button>
 
       {open ? (
-        <div className="pb-4 pl-0 sm:pl-[3.75rem]">
-          <div className="flex items-center gap-3 mb-1">
+        <div className="relative z-[2] space-y-2 px-3 pb-4 sm:px-4">
+          <div className="flex items-center gap-3">
             <Link
               href={group.episodes[0]?.animeUrl ?? `/anime/${group.anilistId}`}
-              className="text-[11px] font-mono text-white/40 hover:text-teal-300 transition-colors"
+              className="inline-flex rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1.5 text-[11px] font-mono text-white/45 transition-colors hover:border-teal-300/25 hover:text-teal-300"
             >
               {t("timestamps.animePage")}
             </Link>
@@ -291,24 +322,25 @@ export default function SkipDatabaseBrowser() {
   const hasMore = visibleCount < groups.length;
 
   return (
-    <div className="relative min-h-[70vh]">
+    <div className="timestamps-page relative min-h-[70vh]">
       <div
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
         aria-hidden
       >
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(45,212,191,0.12),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_90%_20%,rgba(251,146,60,0.06),transparent_50%)]" />
+        <div className="timestamps-page__glow timestamps-page__glow--top" />
+        <div className="timestamps-page__glow timestamps-page__glow--side" />
       </div>
 
-      <Container className="pt-20 sm:pt-24 pb-[calc(var(--mobile-nav-total)+3rem)] sm:pb-20 max-w-3xl">
-        <header className="mb-10 sm:mb-12">
-          <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-teal-300/70 mb-3">
+      <Container className="pt-[calc(var(--nav-total-height)+1.5rem)] pb-[calc(var(--mobile-nav-total)+3rem)] sm:pb-20">
+        <header className="timestamp-hero mb-5 rounded-[1.7rem] border border-border/60 p-5 dark:border-white/[0.08] sm:p-7">
+          <p className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-white/12 bg-black/35 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/70 backdrop-blur-sm">
+            <Timer className="h-3.5 w-3.5" />
             AniKitty
           </p>
-          <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-white leading-[1.05]">
+          <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-white leading-[1.05] sm:text-5xl">
             {t("timestamps.title")}
           </h1>
-          <p className="mt-3 text-base sm:text-lg text-white/50 max-w-xl leading-relaxed">
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/58 sm:text-base">
             {t("timestamps.subtitle")}
           </p>
 
@@ -334,14 +366,14 @@ export default function SkipDatabaseBrowser() {
           </p>
         </header>
 
-        <div className="sticky top-[calc(var(--nav-total-height)+0.35rem)] z-20 -mx-4 px-4 py-2 mb-2 backdrop-blur-md bg-background/80 border-b border-white/[0.06] sm:mx-0 sm:px-0">
+        <div className="timestamp-toolbar sticky top-[calc(var(--nav-total-height)+0.35rem)] z-20 mb-4 rounded-[1.15rem] border border-border/60 bg-background/[0.88] p-2 backdrop-blur-xl dark:border-white/[0.08] dark:bg-[#090909]/[0.88]">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
-            <div className="inline-flex gap-1 text-sm">
+            <div className="timestamp-tabs inline-flex gap-1 rounded-full border border-border/55 bg-muted/35 p-1 text-sm dark:border-white/[0.08] dark:bg-black/35">
               <button
                 type="button"
                 onClick={() => setTab("live")}
                 className={cn(
-                  "px-3 py-1.5 rounded-md font-medium transition-colors",
+                  "rounded-full px-3 py-1.5 font-semibold transition-colors",
                   tab === "live"
                     ? "text-white bg-white/10"
                     : "text-white/40 hover:text-white/70",
@@ -353,7 +385,7 @@ export default function SkipDatabaseBrowser() {
                 type="button"
                 onClick={() => setTab("pending")}
                 className={cn(
-                  "px-3 py-1.5 rounded-md font-medium transition-colors",
+                  "rounded-full px-3 py-1.5 font-semibold transition-colors",
                   tab === "pending"
                     ? "text-white bg-white/10"
                     : "text-white/40 hover:text-white/70",
@@ -370,7 +402,7 @@ export default function SkipDatabaseBrowser() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("timestamps.searchPlaceholder")}
-                className="w-full rounded-md pl-9 pr-3 py-2 text-sm bg-white/[0.04] border border-white/10 text-white placeholder:text-white/30 focus:outline-none focus:border-teal-400/40 focus:ring-1 focus:ring-teal-400/20 transition-colors"
+                className="site-focus h-10 w-full rounded-full border border-white/10 bg-white/[0.04] pl-9 pr-3 text-sm text-white placeholder:text-white/30 transition-colors focus:border-teal-400/40 focus:ring-1 focus:ring-teal-400/20"
               />
             </div>
           </div>
@@ -399,20 +431,21 @@ export default function SkipDatabaseBrowser() {
             </p>
           </div>
         ) : (
-          <div>
-            {visibleGroups.map((group) => (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {visibleGroups.map((group, index) => (
               <AnimeGroup
                 key={`${tab}-${group.anilistId}`}
                 group={group}
                 mode={tab}
+                index={index}
               />
             ))}
             {hasMore ? (
-              <div className="pt-6 pb-2 flex justify-center">
+              <div className="pt-3 pb-2 flex justify-center lg:col-span-2">
                 <button
                   type="button"
                   onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-                  className="text-sm font-medium text-teal-300/90 hover:text-teal-200 transition-colors"
+                  className="rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm font-semibold text-teal-300/90 transition-colors hover:border-teal-300/25 hover:bg-teal-300/10 hover:text-teal-200"
                 >
                   {t("timestamps.showMore", {
                     remaining: groups.length - visibleCount,
