@@ -49,7 +49,13 @@ export function middleware(req: NextRequest) {
 
   // Retired domain — send every path to the new home before anything else runs.
   if (LEGACY_HOSTS.has(requestHost(req))) {
-    return NextResponse.redirect(LEGACY_REDIRECT_TARGET, 301);
+    const res = NextResponse.redirect(LEGACY_REDIRECT_TARGET, 301);
+    // The old host served real pages before this existed, so caches upstream
+    // may still hold a 200 for it. Refuse to be cached so every hit re-asks and
+    // gets the redirect instead of a stale copy of the old site.
+    res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+    res.headers.set("Pragma", "no-cache");
+    return res;
   }
 
   const pathname = req.nextUrl.pathname;
