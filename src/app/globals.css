@@ -1282,6 +1282,10 @@ body {
     @apply grid gap-4;
   }
 
+  .home-clean-discovery {
+    @apply flex flex-col gap-7 sm:gap-9;
+  }
+
   .home-feature-board,
   .home-banner-list,
   .home-schedule-shell {
