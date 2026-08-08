@@ -9,6 +9,22 @@ import {
 const BLOCKED_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 const isProd = process.env.NODE_ENV === "production";
 
+/**
+ * Retired domains. DNS alone cannot redirect — pointing the old name at this
+ * origin just serves the app under it — so the move happens here, at the HTTP
+ * layer, and works regardless of registrar or CDN.
+ */
+const LEGACY_HOSTS = new Set(["anikitty.moe", "www.anikitty.moe"]);
+const LEGACY_REDIRECT_TARGET = "https://anikitty.site/home";
+
+/** Forwarded host first — behind a proxy, `host` is the internal address. */
+function requestHost(req: NextRequest): string {
+  const raw =
+    req.headers.get("x-forwarded-host") ?? req.headers.get("host") ?? "";
+  // Split off any port, and take the first entry if a proxy chained them.
+  return raw.split(",")[0]!.trim().toLowerCase().split(":")[0]!;
+}
+
 const PRIVATE_API_PREFIXES = [
   "/api/account",
   "/api/admin",
@@ -29,6 +45,11 @@ export function middleware(req: NextRequest) {
       url.protocol = "https:";
       return NextResponse.redirect(url, 308);
     }
+  }
+
+  // Retired domain — send every path to the new home before anything else runs.
+  if (LEGACY_HOSTS.has(requestHost(req))) {
+    return NextResponse.redirect(LEGACY_REDIRECT_TARGET, 301);
   }
 
   const pathname = req.nextUrl.pathname;
