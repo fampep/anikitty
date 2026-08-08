@@ -263,8 +263,14 @@ function HomeGenreRibbon() {
           <Compass className="h-3.5 w-3.5" />
         </Link>
         <div className="home-genre-ribbon__track">
-          {HOME_GENRES.map((genre) => (
-            <Link key={genre} href={ROUTES.genre(genre)} className="home-genre-chip site-focus">
+          {HOME_GENRES.map((genre, index) => (
+            <Link
+              key={genre}
+              href={ROUTES.genre(genre)}
+              className="home-genre-chip site-focus"
+              style={{ ["--genre-index" as string]: index }}
+            >
+              <span className="genre-pill__dot" aria-hidden />
               {genre}
             </Link>
           ))}
@@ -274,6 +280,30 @@ function HomeGenreRibbon() {
         </Link>
       </nav>
     </Container>
+  );
+}
+
+function HomeBoardPosterStack({ items }: { items: IAnime[] }) {
+  const posters = items.filter((anime) => anime.poster).slice(0, 3);
+
+  if (posters.length === 0) {
+    return (
+      <span className="genre-card__empty-posters home-feature-board__posters" aria-hidden>
+        <span />
+        <span />
+        <span />
+      </span>
+    );
+  }
+
+  return (
+    <span className="genre-card__posters home-feature-board__posters" aria-hidden>
+      {posters.map((anime, i) => (
+        <span key={anime.id} style={{ ["--poster-index" as string]: i }}>
+          <Image src={anime.poster} alt="" fill sizes="64px" className="object-cover" />
+        </span>
+      ))}
+    </span>
   );
 }
 
@@ -296,9 +326,28 @@ function HomeFeatureBoard({
   const [active, setActive] = useState<(typeof tabs)[number]["id"]>("newest");
   const selected = tabs.find((tab) => tab.id === active) ?? tabs[0];
   const items = selected.items.length ? selected.items : newest;
+  const backdrop = items.find((anime) => anime.poster)?.poster;
+  const activeIndex = tabs.findIndex((tab) => tab.id === selected.id);
 
   return (
-    <section className="home-feature-board" aria-label="Anime feed">
+    <section
+      className="home-feature-board"
+      aria-label="Anime feed"
+      style={{ ["--genre-index" as string]: Math.max(0, activeIndex + 2) }}
+    >
+      {backdrop ? (
+        <Image
+          src={backdrop}
+          alt=""
+          fill
+          sizes="(max-width: 768px) 100vw, 70vw"
+          className="home-feature-board__art object-cover"
+        />
+      ) : (
+        <span className="home-feature-board__wash" aria-hidden />
+      )}
+      <span className="home-feature-board__scrim" aria-hidden />
+
       <div className="home-feature-board__bar">
         <div>
           <p className="text-[11px] font-semibold text-muted-foreground dark:text-white/35">Explore Anime</p>
@@ -306,6 +355,7 @@ function HomeFeatureBoard({
             Fresh Picks
           </h2>
         </div>
+        <HomeBoardPosterStack items={items} />
         <div className="home-feature-board__tabs" role="tablist" aria-label="Anime feed filters">
           {tabs.map((tab) => (
             <button
@@ -389,6 +439,7 @@ function HomeBannerList({
                 href={`${ROUTES.ANIME_DETAILS}/${anime.id}`}
                 className="home-banner-row site-focus"
                 style={{
+                  ["--genre-index" as string]: index,
                   ["--home-row-poster" as string]: `url("${anime.poster}")`,
                 }}
               >
