@@ -24,6 +24,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "KickAssAnime",
   "AniKuro",
   "AniNeko",
+  "AniChan",
   "AniCine",
   "Senshi",
   "AnimeHeaven",
@@ -67,6 +68,7 @@ export const KITTY_PROVIDERS = [
   "AniNeko",
   "AniVibe",
   "AniWaves",
+  "AniChan",
   "AniCine",
   "MKissa",
   "AniKuro",
@@ -80,7 +82,7 @@ export const KITTY_PROVIDERS = [
 ] as const;
 
 /** First N providers in {@link DEFAULT_PROVIDER_PRIORITY} are shown under Recommended. */
-export const RECOMMENDED_PROVIDER_COUNT = 14;
+export const RECOMMENDED_PROVIDER_COUNT = 15;
 
 /**
  * Bump when Recommended order / default must force-override saved + synced prefs.
@@ -164,6 +166,18 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     nativeSubs: true,
     kittySubs: false,
     hint: "SUB · DUB · soft subs",
+  },
+  {
+    id: "AniChan",
+    label: "Chan",
+    group: "featured",
+    supportsSub: true,
+    supportsDub: true,
+    softSub: true,
+    hardSub: false,
+    nativeSubs: true,
+    kittySubs: false,
+    hint: "SUB · DUB · multi-source aggregator",
   },
   {
     id: "AniCine",
@@ -317,10 +331,10 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
 ];
 
 /** Preferred providers - the first is what loads by default, and auto-fallback
- * tries these before anything else. All fourteen are Recommended:
+ * tries these before anything else. All fifteen are Recommended:
  * 1 Delta, 2 Kilo (Anikoto), 3 Echo (Miruro), 4 Mike (MegaVid), 5 XAnime,
  * 6 Uniform (KickAssAnime), 7 Neko, 8 Vibe, 9 Waves (AniWaves),
- * 10 Cine (AniCine), 11 Mkissa, 12 Alpha, 13 Sierra, 14 AnimeHeaven.
+ * 10 Chan (AniChan), 11 Cine (AniCine), 12 Mkissa, 13 Alpha, 14 Sierra, 15 AnimeHeaven.
  * Juliet (AniWatch) retired from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
@@ -332,6 +346,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniNeko",
   "AniVibe",
   "AniWaves",
+  "AniChan",
   "AniCine",
   "MKissa",
   "AniKuro",
@@ -383,6 +398,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniSnatch",
   "AniVibe",
   "AniWaves",
+  "AniChan",
   "AniCine",
   "Miruro",
   "MegaVid",
