@@ -74,8 +74,9 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("AniKuro");
         continue;
       }
-      if (item === "Guard") {
-        push("Senshi");
+      // Senshi's slot is AniCine's now — old saved orders resolve forward.
+      if (item === "Guard" || item === "Senshi" || item === "Cine") {
+        push("AniCine");
         continue;
       }
       if (item === "AnimeGG" || item === "Golf" || item === "AnimeHeaven" || item === "Heaven") {

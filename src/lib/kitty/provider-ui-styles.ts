@@ -86,7 +86,7 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-rose-400",
     glow: "from-rose-500/20",
   },
-  Senshi: {
+  AniCine: {
     chip: "border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-100/90",
     pillActive: "border-fuchsia-400/45 bg-fuchsia-500/20 text-fuchsia-50 shadow-[0_0_12px_-4px_rgba(232,121,249,0.35)]",
     pillIdle: "border-transparent text-fuchsia-300/45 hover:text-fuchsia-200/80 hover:bg-fuchsia-500/[0.06]",

@@ -24,6 +24,7 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "KickAssAnime",
   "AniKuro",
   "AniNeko",
+  "AniCine",
   "Senshi",
   "AnimeHeaven",
   "AniHQ",
@@ -66,7 +67,7 @@ export const KITTY_PROVIDERS = [
   "AniNeko",
   "AniVibe",
   "AniWaves",
-  "Senshi",
+  "AniCine",
   "MKissa",
   "AniKuro",
   "Anikoto",
@@ -85,7 +86,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 14;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 113;
+export const PROVIDER_ORDER_SYNC_VERSION = 114;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -165,8 +166,8 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "Senshi",
-    label: "Senshi",
+    id: "AniCine",
+    label: "Cine",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
@@ -319,7 +320,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. All fourteen are Recommended:
  * 1 Delta, 2 Kilo (Anikoto), 3 Echo (Miruro), 4 Mike (MegaVid), 5 XAnime,
  * 6 Uniform (KickAssAnime), 7 Neko, 8 Vibe, 9 Waves (AniWaves),
- * 10 Senshi, 11 Mkissa, 12 Alpha, 13 Sierra, 14 AnimeHeaven.
+ * 10 Cine (AniCine), 11 Mkissa, 12 Alpha, 13 Sierra, 14 AnimeHeaven.
  * Juliet (AniWatch) retired from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
@@ -331,7 +332,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniNeko",
   "AniVibe",
   "AniWaves",
-  "Senshi",
+  "AniCine",
   "MKissa",
   "AniKuro",
   "AniSnatch",
@@ -382,7 +383,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "AniSnatch",
   "AniVibe",
   "AniWaves",
-  "Senshi",
+  "AniCine",
   "Miruro",
   "MegaVid",
   "XAnime",
@@ -437,7 +438,16 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   }
   // HQ retired from default roster — map saved HQ prefs onto Mkissa (same slot).
   if (value === "HQ" || value === "AniHQ") return "MKissa";
-  if (value === "Guard" || value === "Senshi") return "Senshi";
+  // Senshi was replaced by AniCine — keep the old ids resolving so saved prefs
+  // and shared links land on its replacement instead of falling back to first.
+  if (
+    value === "Cine" ||
+    value === "AniCine" ||
+    value === "Guard" ||
+    value === "Senshi"
+  ) {
+    return "AniCine";
+  }
   if (value === "BD" || value === "AniBd" || value === "Anibd") return "Anikoto";
   if (value === "Waves" || value === "Whiskey" || value === "AniWaves") return "AniWaves";
   if (
