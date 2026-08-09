@@ -421,7 +421,8 @@ export function useGoogleCast(
     setLastError(null);
 
     // requestSession must run in the same user-gesture turn as the tap/click.
-    let sessionPromise: Promise<void>;
+    // requestSession resolves with an ErrorCode on failure; we only await it.
+    let sessionPromise: Promise<unknown>;
     try {
       sessionPromise = ctx.requestSession();
     } catch (err) {

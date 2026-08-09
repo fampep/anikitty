@@ -310,8 +310,8 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
       {!isLoading && visible && visible.length > 0 && viewMode === "list" && (
         <div className="space-y-1 mb-4">
           {visible.map((bookmark) => {
-            const title = bookmark.animeTitle || bookmark.anime?.title?.english || bookmark.anime?.title?.romaji || "Unknown";
-            const addedDate = bookmark.addedAt ? new Date(bookmark.addedAt).toLocaleDateString() : "—";
+            const title = bookmark.animeTitle || "Unknown";
+            const addedDate = bookmark.created ? new Date(bookmark.created).toLocaleDateString() : "—";
             return (
             <div
               key={bookmark.animeId}
@@ -341,9 +341,9 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
               )}
 
               <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded bg-muted/40 dark:bg-white/[0.04]">
-                {bookmark.thumbnail || bookmark.anime?.cover_image?.large ? (
+                {bookmark.thumbnail ? (
                   <Image
-                    src={bookmark.thumbnail || bookmark.anime?.cover_image?.large || ""}
+                    src={bookmark.thumbnail}
                     alt=""
                     fill
                     sizes="36px"
@@ -399,7 +399,7 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
       {!isLoading && visible && visible.length > 0 && viewMode === "grid" && (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 mb-4">
           {visible.map((bookmark) => {
-            const title = bookmark.animeTitle || bookmark.anime?.title?.english || bookmark.anime?.title?.romaji || "Unknown";
+            const title = bookmark.animeTitle || "Unknown";
             return (
             <div
               key={bookmark.animeId}
@@ -433,9 +433,9 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
                 className="flex flex-col gap-1.5 group cursor-pointer"
               >
                 <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-muted/40 dark:bg-white/[0.04]">
-                  {bookmark.thumbnail || bookmark.anime?.cover_image?.large ? (
+                  {bookmark.thumbnail ? (
                     <Image
-                      src={bookmark.thumbnail || bookmark.anime?.cover_image?.large || ""}
+                      src={bookmark.thumbnail}
                       alt=""
                       fill
                       sizes="120px"

@@ -137,7 +137,9 @@ export default function HomeScheduleStrip() {
         >
           {items.map((item) => {
             const aired = item.secondsUntilAiring <= 0;
-            const audioTypes = item.audio?.length ? item.audio : (["sub"] as const);
+            const audioTypes: readonly ("sub" | "dub")[] = item.audio?.length
+              ? item.audio
+              : ["sub"];
             const hasSub = audioTypes.includes("sub");
             const hasDub = audioTypes.includes("dub");
             return (

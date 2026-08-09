@@ -28,7 +28,9 @@ export function ScheduleAnimeRow({ anime, compact = false, watchHref }: Props) {
   const href = watchHref ?? `${ROUTES.WATCH}?anime=${anime.id}`;
   const thumbW = compact ? 40 : 48;
   const thumbH = compact ? 56 : 68;
-  const audioTypes = anime.audio?.length ? anime.audio : (["sub"] as const);
+  const audioTypes: readonly ("sub" | "dub")[] = anime.audio?.length
+    ? anime.audio
+    : ["sub"];
   const hasSub = audioTypes.includes("sub");
   const hasDub = audioTypes.includes("dub");
 

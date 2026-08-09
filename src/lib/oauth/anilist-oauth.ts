@@ -71,7 +71,8 @@ async function findOrCreateUserFromAniList(
       anilistUserId: anilistId,
       anilistUsername,
       anilistAccessToken: accessToken,
-      emailVerified: true,
+      // AniList already verified the account; column is a timestamp, not a flag.
+      emailVerifiedAt: new Date(),
       passwordSetAt: null,
     })
     .returning();

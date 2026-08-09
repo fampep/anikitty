@@ -215,7 +215,8 @@ export function useAirPlay({
 
     const open = () => {
       try {
-        video.webkitShowPlaybackTargetPicker();
+        // Optional call: the guard above narrows `video`, not the captured method.
+        video.webkitShowPlaybackTargetPicker?.();
       } catch {
         /* ignore user-gesture / unsupported errors */
       }

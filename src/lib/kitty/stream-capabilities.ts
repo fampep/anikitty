@@ -371,8 +371,9 @@ export async function fetchActiveProviderStreamCapabilities(
     const episodeCaps = await probeAnisnatchEpisodeCapabilities(anilistId, episode, title);
     return {
       providers: { AniSnatch: episodeCaps.provider },
-      anisnatchServers: {},
       ...EMPTY_MULTI_SERVER_FIELDS,
+      // Spread first so the probed servers win — mirrors the MKissa branch below.
+      anisnatchServers: episodeCaps.servers,
     };
   }
 
@@ -396,7 +397,6 @@ export async function fetchActiveProviderStreamCapabilities(
   const caps = await probeDirectProviderCapabilities(provider, anilistId, episode, title);
   return {
     providers: { [provider]: caps },
-    anisnatchServers: {},
     ...EMPTY_MULTI_SERVER_FIELDS,
   };
 }

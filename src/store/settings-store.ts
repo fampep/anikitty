@@ -40,6 +40,20 @@ import {
   type PlayerTheme,
 } from "@/lib/player/player-theme";
 
+/**
+ * Retired ids that older `migrate` steps still reference. They are no longer in
+ * the live unions, but stored settings from those versions can contain them and
+ * the migration chain reads them before later steps normalize the value — the
+ * `version < 115` step coerces `kittyProxyNode` back onto a live node, and
+ * `sanitizeProviderOrder` drops unknown providers.
+ */
+// Typed as `string`, not `KittyProvider`: these arrays get narrowed by
+// `filter(id => id !== "…")` (TS infers a type predicate), so a full-union
+// constant would not be assignable back into them.
+const LEGACY_ANIMEGG: string = "AnimeGG";
+const LEGACY_FIFTH_CHOICE = "fifth-choice" as KittyApiNodeId;
+const LEGACY_SIXTH_CHOICE = "sixth-choice" as KittyApiNodeId;
+
 export type EpisodeLayout = "list" | "compact" | "thumbnail";
 
 /** Watch page structure: player + playlist arrangement (not theatre chrome). */
@@ -713,7 +727,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Switzerland removed; Netherlands is primary; Canada moved sixth → fifth.
           const raw = typeof next.kittyProxyNode === "string" ? String(next.kittyProxyNode) : "";
           if (raw === "sixth-choice") {
-            next.kittyProxyNode = "fifth-choice";
+            next.kittyProxyNode = LEGACY_FIFTH_CHOICE;
           } else if (raw === "fifth-choice") {
             // Former Netherlands slot is now primary.
             next.kittyProxyNode = "primary";
@@ -758,7 +772,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           const raw = typeof next.kittyProxyNode === "string" ? String(next.kittyProxyNode) : "";
           if (raw === "fifth-choice") {
             // While NL was removed, fifth-choice meant Montreal — remap to sixth.
-            next.kittyProxyNode = "sixth-choice";
+            next.kittyProxyNode = LEGACY_SIXTH_CHOICE;
           } else {
             next.kittyProxyNode = coerceKittyApiNodeId(raw);
           }
@@ -956,13 +970,13 @@ export const useSettingsStore = create<ISettingsStore>()(
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
           const dropped = new Set(["WCOStream", "GogoAnime"]);
           const without = order.filter(
-            (id) => id !== "AnimeGG" && !dropped.has(id),
+            (id) => id !== LEGACY_ANIMEGG && !dropped.has(id),
           );
           const hqAt = without.indexOf("AniHQ");
           const insertAt = hqAt >= 0 ? hqAt + 1 : 1;
           next.providerOrder = sanitizeProviderOrder([
             ...without.slice(0, insertAt),
-            "AnimeGG",
+            LEGACY_ANIMEGG,
             ...without.slice(insertAt),
           ]);
           next.defaultProvider = sanitizeDefaultProvider(
@@ -974,7 +988,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Yenime (Yen) sits right after GG.
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
           const without = order.filter((id) => id !== "Yenime");
-          const ggAt = without.indexOf("AnimeGG");
+          const ggAt = without.findIndex((id) => id === LEGACY_ANIMEGG);
           const hqAt = without.indexOf("AniHQ");
           const insertAt = ggAt >= 0 ? ggAt + 1 : hqAt >= 0 ? hqAt + 1 : 1;
           next.providerOrder = sanitizeProviderOrder([
@@ -1017,7 +1031,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
           const without = order.filter((id) => id !== "Lunar" && id !== "FlixCloud");
           const yenAt = without.indexOf("Yenime");
-          const ggAt = without.indexOf("AnimeGG");
+          const ggAt = without.findIndex((id) => id === LEGACY_ANIMEGG);
           const hqAt = without.indexOf("AniHQ");
           const insertAt =
             yenAt >= 0 ? yenAt + 1 : ggAt >= 0 ? ggAt + 1 : hqAt >= 0 ? hqAt + 1 : 1;
@@ -1051,7 +1065,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           // AnimeHeaven (Heaven) sits right after GG.
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
           const without = order.filter((id) => id !== "AnimeHeaven");
-          const ggAt = without.indexOf("AnimeGG");
+          const ggAt = without.findIndex((id) => id === LEGACY_ANIMEGG);
           const hqAt = without.indexOf("AniHQ");
           const insertAt = ggAt >= 0 ? ggAt + 1 : hqAt >= 0 ? hqAt + 1 : 1;
           next.providerOrder = sanitizeProviderOrder([
@@ -1077,7 +1091,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
           const without = order.filter((id) => id !== "AnimeLok");
           const heavenAt = without.indexOf("AnimeHeaven");
-          const ggAt = without.indexOf("AnimeGG");
+          const ggAt = without.findIndex((id) => id === LEGACY_ANIMEGG);
           const hqAt = without.indexOf("AniHQ");
           const insertAt =
             heavenAt >= 0
@@ -1137,7 +1151,7 @@ export const useSettingsStore = create<ISettingsStore>()(
           const order = sanitizeProviderOrder(next.providerOrder ?? DEFAULT_PROVIDER_PRIORITY);
           const without = order.filter((id) => id !== "MeguAnime");
           const heavenAt = without.indexOf("AnimeHeaven");
-          const ggAt = without.indexOf("AnimeGG");
+          const ggAt = without.findIndex((id) => id === LEGACY_ANIMEGG);
           const hqAt = without.indexOf("AniHQ");
           const insertAt =
             heavenAt >= 0
