@@ -528,7 +528,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 114,
+      version: 115,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1340,6 +1340,15 @@ export const useSettingsStore = create<ISettingsStore>()(
         }
         if (version < 113) {
           // Kilo becomes second choice; Delta remains the default.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 115) {
+          // Netherlands node decommissioned — coerce saved picks onto a live node.
+          next.kittyProxyNode = coerceKittyApiNodeId(
+            typeof next.kittyProxyNode === "string" ? next.kittyProxyNode : undefined,
+          );
+          // Chan (AniChan) joins Recommended as #10; expand to 15 defaults.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
         }

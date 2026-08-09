@@ -15,10 +15,12 @@ import {
 export const KITTY_API_NODE_ORIGIN_IPS: Record<KittyApiNodeId, string> = {
   primary: "91.208.206.177",
   "third-choice": "37.221.65.155",
-  "seventh-choice": "92.119.165.226",
 };
 
 const RETIRED_ORIGIN_IPS = new Set([
+  // Netherlands node decommissioned 2026-08-09 — host offline, IP blacklisted
+  // by an upstream provider for scraper traffic.
+  "92.119.165.226",
   // Bulgaria node cancelled 2026-08-05; node 3 is now Moldova.
   "131.123.42.153",
   "45.150.111.153",

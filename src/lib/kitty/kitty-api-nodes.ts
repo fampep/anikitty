@@ -1,7 +1,6 @@
 export type KittyApiNodeId =
   | "primary"
-  | "third-choice"
-  | "seventh-choice";
+  | "third-choice";
 
 export type KittyApiNodeMeta = {
   id: KittyApiNodeId;
@@ -56,7 +55,6 @@ export const PUBLIC_KITTY_DNS_ZONE = "anikitty.online";
 export const KITTY_API_NODE_DNS_SLUGS: Record<KittyApiNodeId, string> = {
   primary: "main",
   "third-choice": "moldova",
-  "seventh-choice": "netherlands",
 };
 
 export function kittyApiNodePublicHost(id: KittyApiNodeId): string {
@@ -123,38 +121,27 @@ export function extractKittyOriginIpv4(value: string | null | undefined): string
 
 const PRIMARY_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_PRIMARY, "primary");
 const THIRD_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_THIRD, "third-choice");
-const SEVENTH_URL = nodeUrl(process.env.NEXT_PUBLIC_KITTY_NODE_SEVENTH, "seventh-choice");
 
 export const KITTY_API_NODES: readonly KittyApiNodeMeta[] = [
   {
     id: "primary",
     index: 1,
-    label: "Main",
+    label: "Moldova",
     dnsSlug: KITTY_API_NODE_DNS_SLUGS.primary,
     url: PRIMARY_URL,
     host: nodeHost(PRIMARY_URL),
-    location: "Main",
-    timezone: "UTC",
-  },
-  {
-    id: "third-choice",
-    index: 2,
-    label: "Moldova",
-    dnsSlug: KITTY_API_NODE_DNS_SLUGS["third-choice"],
-    url: THIRD_URL,
-    host: nodeHost(THIRD_URL),
     location: "Moldova",
     timezone: "Europe/Chisinau",
   },
   {
-    id: "seventh-choice",
-    index: 3,
-    label: "Netherlands",
-    dnsSlug: KITTY_API_NODE_DNS_SLUGS["seventh-choice"],
-    url: SEVENTH_URL,
-    host: nodeHost(SEVENTH_URL),
-    location: "Netherlands",
-    timezone: "Europe/Amsterdam",
+    id: "third-choice",
+    index: 2,
+    label: "Moldova backup",
+    dnsSlug: KITTY_API_NODE_DNS_SLUGS["third-choice"],
+    url: THIRD_URL,
+    host: nodeHost(THIRD_URL),
+    location: "Moldova backup",
+    timezone: "Europe/Chisinau",
   },
 ];
 
@@ -173,7 +160,9 @@ const LEGACY_KITTY_NODE_ALIASES: Record<string, KittyApiNodeId> = {
   singapore: "primary",
   canada: "primary",
   switzerland: "primary",
-  netherlands: "seventh-choice",
+  // Netherlands node decommissioned 2026-08-09 (host offline, IP blacklisted).
+  netherlands: "primary",
+  "seventh-choice": "primary",
 };
 
 export function getKittyApiNode(id: KittyApiNodeId): KittyApiNodeMeta {
@@ -202,7 +191,7 @@ const API_NODE_ID_ALIASES: Record<string, KittyApiNodeId> = {
   "fourth-choice": "primary",
   "fifth-choice": "primary",
   "sixth-choice": "primary",
-  "seventh-choice": "seventh-choice",
+  "seventh-choice": "primary",
 };
 
 export function resolveKittyNodeIdFromOrigin(origin: string | null | undefined): KittyApiNodeId | null {
@@ -239,15 +228,6 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
   }
 
   if (
-    normalized === "seventh-choice" ||
-    normalized === "seventhchoice" ||
-    normalized === "3" ||
-    normalized === "netherlands" ||
-    normalized === "proxy"
-  ) {
-    return "seventh-choice";
-  }
-  if (
     normalized === "third-choice" ||
     normalized === "thirdchoice" ||
     normalized === "2" ||
@@ -265,6 +245,11 @@ export function parseKittyNodeParam(value: string | null | undefined): KittyApiN
     normalized === "fourth-choice" ||
     normalized === "fifth-choice" ||
     normalized === "sixth-choice" ||
+    normalized === "seventh-choice" ||
+    normalized === "seventhchoice" ||
+    normalized === "netherlands" ||
+    normalized === "proxy" ||
+    normalized === "3" ||
     normalized === "4" ||
     normalized === "5" ||
     normalized === "6"

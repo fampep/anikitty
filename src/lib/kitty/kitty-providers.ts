@@ -88,7 +88,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 15;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 114;
+export const PROVIDER_ORDER_SYNC_VERSION = 115;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 

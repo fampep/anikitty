@@ -5,6 +5,7 @@ const LOCATION_FLAGS: Record<string, string> = {
   Switzerland: "🇨🇭",
   "Zug, Switzerland": "🇨🇭",
   Netherlands: "🇳🇱",
+  Moldova: "🇲🇩",
   Bulgaria: "🇧🇬",
   Singapore: "🇸🇬",
   Canada: "🇨🇦",
