@@ -96,31 +96,21 @@ export default function WatchHistoryContent() {
   }, [calendarDate, dash.filtered]);
 
   return (
-    <div className="relative min-h-screen overflow-hidden pb-28 pt-8">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.08),transparent_55%),radial-gradient(ellipse_at_80%_0%,rgba(16,185,129,0.06),transparent_45%)]"
-      />
-
+    <div className="relative min-h-screen overflow-hidden pb-28 pt-[calc(var(--nav-total-height)+1.5rem)]">
       <Container className="relative max-w-6xl">
-        <header className="mb-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04]">
-              <History className="h-5 w-5 text-sky-300/90" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground dark:text-white md:text-3xl">
-                {t("history.title")}
-              </h1>
-              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground dark:text-white/40">
-                {t("history.subtitle")}
-              </p>
-            </div>
+        <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground dark:text-white sm:text-3xl">
+              {t("history.title")}
+            </h1>
+            <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-muted-foreground dark:text-white/45">
+              {t("history.subtitle")}
+            </p>
           </div>
         </header>
 
         {!dash.auth ? (
-          <div className="flex flex-col gap-3 rounded-2xl border border-border bg-gradient-to-r from-white/[0.03] to-sky-500/[0.04] px-5 py-6 dark:border-white/8 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card/70 px-5 py-6 dark:border-white/[0.08] dark:bg-[#0b0b0b] sm:flex-row sm:items-center">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <History className="h-5 w-5 shrink-0 text-muted-foreground/70 dark:text-white/25" />
               <p className="text-sm text-muted-foreground dark:text-white/45">
@@ -130,13 +120,13 @@ export default function WatchHistoryContent() {
             <LoginPopoverButton />
           </div>
         ) : dash.loading ? (
-          <div className="space-y-4">
-            <div className="h-24 animate-pulse rounded-2xl border border-white/8 bg-white/[0.03]" />
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
+          <div className="space-y-5">
+            <div className="h-[16rem] animate-pulse rounded-2xl border border-border/60 bg-card/70 dark:border-white/[0.08] dark:bg-[#0b0b0b] sm:h-[18rem]" />
+            <div className="flex gap-2">
+              {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-video animate-pulse rounded-xl border border-white/6 bg-white/[0.03]"
+                  className="h-9 w-28 shrink-0 animate-pulse rounded-full border border-border/60 bg-card/70 dark:border-white/[0.08] dark:bg-white/[0.04]"
                 />
               ))}
             </div>
@@ -144,7 +134,7 @@ export default function WatchHistoryContent() {
               {Array.from({ length: 5 }).map((_, i) => (
                 <div
                   key={i}
-                  className="h-[88px] animate-pulse rounded-xl border border-white/6 bg-white/[0.03]"
+                  className="h-[88px] animate-pulse rounded-xl border border-border/60 bg-card/70 dark:border-white/[0.08] dark:bg-[#0b0b0b]"
                 />
               ))}
             </div>
@@ -230,16 +220,19 @@ export default function WatchHistoryContent() {
                 />
                 {calendarDate ? (
                   <div className="space-y-2">
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-white/45">
+                    <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground dark:text-white/45">
                       {t("history.calendar.forDate", { date: calendarDate })}
                     </h3>
                     {calendarItems.length === 0 ? (
-                      <p className="text-xs text-white/30">{t("history.calendar.noItems")}</p>
+                      <p className="text-xs text-muted-foreground dark:text-white/30">
+                        {t("history.calendar.noItems")}
+                      </p>
                     ) : (
-                      calendarItems.map((item) => (
+                      calendarItems.map((item, i) => (
                         <HistoryCard
                           key={item.animeId}
                           item={item}
+                          index={i}
                           onNoteSave={dash.saveNote}
                         />
                       ))

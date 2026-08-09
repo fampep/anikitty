@@ -28,10 +28,12 @@ import { toast } from "sonner";
 type Props = {
   item: AnimeAggregate;
   variant?: "row" | "grid";
+  /** Feeds the genre-directory hue rotation so a list reads as a gradient. */
+  index?: number;
   onNoteSave?: (animeId: string, note: string) => void;
 };
 
-export default function HistoryCard({ item, variant = "row", onNoteSave }: Props) {
+export default function HistoryCard({ item, variant = "row", index = 0, onNoteSave }: Props) {
   const t = useT();
   const [expanded, setExpanded] = useState(false);
   const [note, setNote] = useState(item.note);
@@ -139,51 +141,54 @@ export default function HistoryCard({ item, variant = "row", onNoteSave }: Props
 
   if (variant === "grid") {
     return (
-      <article className="site-panel-hover group relative overflow-hidden rounded-xl">
+      <article
+        className="history-tile group relative isolate overflow-hidden rounded-xl border border-border/60 dark:border-white/[0.08]"
+        style={{ ["--history-index" as string]: index }}
+      >
         <Link href={href} className="block">
-          <div className="relative aspect-[2/3] overflow-hidden bg-black/40">
+          <div className="relative aspect-[2/3] overflow-hidden">
             {item.poster ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={item.poster}
                 alt=""
                 loading="lazy"
-                className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
               />
             ) : (
-              <div className="flex h-full items-center justify-center text-white/15">?</div>
+              <span className="history-tile__wash absolute inset-0" aria-hidden />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-transparent" />
             {pct > 0 ? (
-              <div className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
-                <div className="h-full bg-sky-400" style={{ width: `${pct}%` }} />
+              <div className="history-progress absolute inset-x-0 bottom-0 h-1">
+                <span style={{ width: `${pct}%` }} />
               </div>
             ) : null}
             {ep?.episodeNumber != null ? (
-              <span className="absolute bottom-2 left-2 rounded-md border border-white/15 bg-black/55 px-1.5 py-0.5 font-mono text-[10px] text-white/80">
+              <span className="history-badge absolute bottom-2 left-2 rounded-full px-2 py-0.5 font-mono text-[10px]">
                 {t("history.episode", { n: ep.episodeNumber })}
               </span>
             ) : null}
             {item.score != null ? (
-              <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-md border border-amber-400/25 bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-200">
+              <span className="history-badge absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold tabular-nums">
                 <Star className="h-2.5 w-2.5" />
                 {item.score}
               </span>
             ) : null}
           </div>
-          <div className="space-y-1 p-2.5">
-            <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-white/88">
+          <div className="relative z-[2] space-y-1 p-2.5">
+            <p className="line-clamp-2 text-[12px] font-semibold leading-snug text-foreground dark:text-white">
               {item.title}
             </p>
-            <p className="font-mono text-[10px] text-white/30">
+            <p className="font-mono text-[10px] text-muted-foreground dark:text-white/35">
               {relativeTime(item.lastWatched)}
             </p>
           </div>
         </Link>
-        <div className="flex gap-1 px-2 pb-2">
+        <div className="relative z-[2] flex gap-1 px-2 pb-2">
           <Link
             href={href}
-            className="site-ghost-btn inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-lg text-[10px] font-semibold"
+            className="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-lg bg-white text-[10px] font-semibold text-black transition-opacity hover:opacity-90"
           >
             <Play className="h-3 w-3" />
             {t("history.resume")}
@@ -222,54 +227,64 @@ export default function HistoryCard({ item, variant = "row", onNoteSave }: Props
   }
 
   return (
-    <article className="site-panel-hover overflow-hidden rounded-xl">
-      <div className="flex items-center gap-3 p-2.5">
-        <Link href={href} className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-black/40 ring-1 ring-white/8 sm:w-32">
+    <article
+      className="history-row overflow-hidden rounded-xl border border-border/60 bg-card/70 dark:border-white/[0.08] dark:bg-[#0b0b0b]"
+      style={{ ["--history-index" as string]: index }}
+    >
+      <div className="flex items-stretch gap-3 p-2.5">
+        <span className="history-row__mark" aria-hidden />
+        <Link
+          href={href}
+          className="relative aspect-video w-28 shrink-0 self-center overflow-hidden rounded-lg bg-black/40 ring-1 ring-black/5 dark:ring-white/10 sm:w-32"
+        >
           {item.poster ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.poster} alt="" loading="lazy" className="h-full w-full object-cover" />
           ) : null}
           {pct > 0 ? (
-            <div className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
-              <div className="h-full bg-sky-400" style={{ width: `${pct}%` }} />
+            <div className="history-progress absolute inset-x-0 bottom-0 h-1">
+              <span style={{ width: `${pct}%` }} />
             </div>
           ) : null}
         </Link>
-        <div className="min-w-0 flex-1">
-          <Link href={detailHref} className="truncate text-sm font-semibold text-white/90 hover:text-white">
+        <div className="min-w-0 flex-1 self-center">
+          <Link
+            href={detailHref}
+            className="truncate text-sm font-semibold text-foreground transition-colors hover:text-foreground/70 dark:text-white/90 dark:hover:text-white"
+          >
             {item.title}
           </Link>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             {ep?.episodeNumber != null ? (
-              <span className="rounded-md border border-sky-500/20 bg-sky-500/10 px-1.5 py-0.5 font-mono text-[10px] text-sky-300/80">
+              <span className="rounded-full border border-border/60 bg-muted/50 px-2 py-0.5 font-mono text-[10px] text-muted-foreground dark:border-white/10 dark:bg-white/[0.06] dark:text-white/70">
                 {t("history.episode", { n: ep.episodeNumber })}
               </span>
             ) : null}
             {item.status ? (
-              <span className="rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-white/45">
+              <span className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/45">
                 {item.status}
               </span>
             ) : null}
             {item.score != null ? (
-              <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-300/80">
+              <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-500 dark:text-amber-300/80">
                 <Star className="h-2.5 w-2.5" />
                 {item.score}
               </span>
             ) : null}
-            <span className="font-mono text-[10px] text-white/25">
+            <span className="font-mono text-[10px] text-muted-foreground dark:text-white/25">
               {relativeTime(item.lastWatched)}
             </span>
             {item.totalWatchedSeconds > 0 ? (
-              <span className="font-mono text-[10px] text-white/25">
+              <span className="font-mono text-[10px] text-muted-foreground dark:text-white/25">
                 · {formatWatchTime(item.totalWatchedSeconds)}
               </span>
             ) : null}
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1 self-center">
           <Link
             href={href}
-            className="site-ghost-btn hidden h-8 items-center gap-1.5 rounded-lg px-3 text-[11px] font-semibold sm:inline-flex"
+            className="hidden h-8 items-center gap-1.5 rounded-lg bg-white px-3 text-[11px] font-semibold text-black transition-opacity hover:opacity-90 sm:inline-flex"
           >
             <Play className="h-3 w-3" />
             {t("history.resume")}
@@ -345,7 +360,7 @@ function ExpandedBody({
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
   return (
-    <div className="animate-in fade-in slide-in-from-top-1 border-t border-white/[0.06] bg-black/20 px-3 py-3 duration-200">
+    <div className="animate-in fade-in slide-in-from-top-1 relative z-[2] border-t border-border/60 bg-muted/30 px-3 py-3 duration-200 dark:border-white/[0.06] dark:bg-black/20">
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="relative hidden aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-lg sm:block">
           {item.poster ? (
@@ -358,7 +373,7 @@ function ExpandedBody({
             {item.genres.map((g) => (
               <span
                 key={g}
-                className="rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-white/50"
+                className="rounded-full border border-border/60 bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground dark:border-white/10 dark:bg-white/[0.04] dark:text-white/50"
               >
                 {g}
               </span>
@@ -366,7 +381,7 @@ function ExpandedBody({
             {item.studios.map((s) => (
               <span
                 key={s}
-                className="rounded-md border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-300/70"
+                className="rounded-full border border-foreground/15 bg-foreground/[0.06] px-2 py-0.5 text-[10px] font-medium text-foreground/70 dark:border-white/20 dark:bg-white/[0.08] dark:text-white/75"
               >
                 {s}
               </span>
@@ -383,7 +398,7 @@ function ExpandedBody({
           ) : null}
 
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-white/35">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">
               {t("history.expand.timeline")}
             </p>
             <ul className="max-h-28 space-y-1 overflow-y-auto">
@@ -404,7 +419,7 @@ function ExpandedBody({
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-white/35">
+            <label className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground dark:text-white/35">
               {t("history.expand.notes")}
             </label>
             <textarea
@@ -414,7 +429,7 @@ function ExpandedBody({
               rows={2}
               maxLength={2000}
               placeholder={t("history.expand.notesPlaceholder")}
-              className="w-full rounded-lg border border-white/10 bg-black/30 px-2.5 py-2 text-xs text-white/80 outline-none placeholder:text-white/25 focus:border-sky-500/40"
+              className="site-input w-full px-2.5 py-2 text-xs"
             />
           </div>
 

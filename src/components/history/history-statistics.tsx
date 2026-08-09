@@ -153,16 +153,16 @@ export default function HistoryStatisticsView({ stats, streaks, milestones }: Pr
               className={cn(
                 "rounded-xl border px-3 py-2.5",
                 m.unlocked
-                  ? "border-emerald-400/25 bg-emerald-500/10"
+                  ? "border-foreground/20 bg-foreground/[0.06] dark:border-white/25 dark:bg-white/[0.07]"
                   : "border-white/[0.06] bg-white/[0.02]",
               )}
             >
               <p className="text-[12px] font-semibold text-white/80">
                 {t(MILESTONE_KEYS[m.id] ?? m.id)}
               </p>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-black/40">
-                <div
-                  className={cn("h-full rounded-full", m.unlocked ? "bg-emerald-400" : "bg-sky-400/70")}
+              <div className="history-progress mt-2 h-1.5 overflow-hidden rounded-full">
+                <span
+                  className={cn(!m.unlocked && "opacity-55")}
                   style={{ width: `${Math.min(100, (m.progress / m.target) * 100)}%` }}
                 />
               </div>
