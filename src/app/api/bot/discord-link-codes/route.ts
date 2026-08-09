@@ -6,7 +6,7 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { parseDiscordSnowflake } from "@/lib/bot/discord-sync-roles";
 
 const CODE_TTL_MS = 15 * 60 * 1000;
-const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://anikitty.moe";
+const SITE_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://anikitty.site";
 
 /**
  * POST /api/bot/discord-link-codes

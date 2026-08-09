@@ -224,7 +224,7 @@ export default async function Image({ params }: { params: { slug: string } }) {
                 letterSpacing: "1px",
               }}
             >
-              anikitty.moe
+              anikitty.site
             </span>
           </div>
         </div>

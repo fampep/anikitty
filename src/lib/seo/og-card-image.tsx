@@ -271,7 +271,7 @@ export function renderOgCard(config: OgCardConfig, iconSrc: string, bannerSrc?: 
             letterSpacing: "1px",
           }}
         >
-          anikitty.moe
+          anikitty.site
         </span>
       </div>
     </div>

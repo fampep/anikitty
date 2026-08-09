@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const APP_NAME = "AniKitty";
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.moe";
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://anikitty.site";
 export const APP_DESCRIPTION = "Free anime streaming. Sub & dub. Ad-free.";
 export const APP_DEFAULT_TITLE = "AniKitty — Free Anime Streaming";
 

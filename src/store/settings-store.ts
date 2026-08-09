@@ -542,7 +542,7 @@ export const useSettingsStore = create<ISettingsStore>()(
     }),
     {
       name: "kitty-settings",
-      version: 115,
+      version: 116,
       partialize: (state) => ({
         episodeLayout: state.episodeLayout,
         watchLayout: state.watchLayout,
@@ -1365,6 +1365,14 @@ export const useSettingsStore = create<ISettingsStore>()(
           // Chan (AniChan) joins Recommended as #10; expand to 15 defaults.
           next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
           next.defaultProvider = sanitizeDefaultProvider("AniDelta", next.providerOrder);
+        }
+        if (version < 116) {
+          // Guts replaces AnimeHeaven in Recommended #15.
+          next.providerOrder = sanitizeProviderOrder(DEFAULT_PROVIDER_PRIORITY);
+          next.defaultProvider = sanitizeDefaultProvider(
+            next.defaultProvider ?? "AniDelta",
+            next.providerOrder,
+          );
         }
         return next as ISettingsStore;
       },

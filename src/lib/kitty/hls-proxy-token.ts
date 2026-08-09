@@ -268,15 +268,15 @@ function hostFromUrl(value: string): string | null {
   }
 }
 
-const SITE_HOST = hostFromUrl(APP_URL) ?? "anikitty.moe";
+const SITE_HOST = hostFromUrl(APP_URL) ?? "anikitty.site";
 
 function allowedSiteHosts(): Set<string> {
   const hosts = new Set<string>([
     SITE_HOST,
     `www.${SITE_HOST.replace(/^www\./, "")}`,
-    // Common AniKitty hosts — APP_URL may be .moe while users browse .online.
-    "anikitty.moe",
-    "www.anikitty.moe",
+    // Common AniKitty hosts — APP_URL may be .site while users browse .online.
+    "anikitty.site",
+    "www.anikitty.site",
     "anikitty.online",
     "www.anikitty.online",
   ]);

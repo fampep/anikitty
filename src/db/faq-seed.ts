@@ -389,7 +389,7 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "captions"
     ],
     "title": "How do sub, hard subs, and dub work?",
-    "answer": "The watch page splits sources into **Sub**, **Hard Subs**, and **Dub**:\n\n| Mode | What it does |\n| --- | --- |\n| Sub | Prefers soft-subtitle lines |\n| Hard Subs | Burn-in / hard-only sources (Heaven) |\n| Dub | English audio where the source supports it |\n\nHeaven has no dub. If you pick Dub but that episode has no dub file, AniKitty can fall back to Sub on the same source. Use player settings to auto-enable soft subtitles or overlay soft subs on hard-sub streams if needed.",
+    "answer": "The watch page splits sources into **Sub**, **Hard Subs**, and **Dub**:\n\n| Mode | What it does |\n| --- | --- |\n| Sub | Prefers soft-subtitle lines |\n| Hard Subs | Burn-in / hard-only sources |\n| Dub | English audio where the source supports it |\n\nIf you pick Dub but that episode has no dub file, AniKitty can fall back to Sub on the same source. Use player settings to auto-enable soft subtitles or overlay soft subs on hard-sub streams if needed.",
     "updatedAt": "2026-07-25",
     "order": 30,
     "popularity": 80,

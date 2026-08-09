@@ -10,7 +10,7 @@ const KOFI_PAGE_ID = process.env.KOFI_PAGE_ID?.trim() ?? "";
 const FEED_CACHE_MS = 2 * 60 * 1000;
 const KOFI_TOOLS_FEED = "https://api.ko-fi.tools/feed";
 const KOFI_FEED_REFERER =
-  process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://anikitty.moe";
+  process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://anikitty.site";
 
 export type KofiFeedPayment = {
   id: string;

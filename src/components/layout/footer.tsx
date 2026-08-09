@@ -146,7 +146,7 @@ const Footer = () => {
           <div className="flex flex-col items-center gap-2 sm:items-end shrink-0">
             <SiteVersionLabel />
             <p className="text-[11px] text-muted-foreground/70 font-mono dark:text-white/15">
-              © {new Date().getFullYear()} anikitty.moe
+              © {new Date().getFullYear()} anikitty.site
             </p>
           </div>
         </div>

@@ -79,8 +79,14 @@ export function sanitizeProviderOrder(raw: unknown): KittyProvider[] {
         push("AniCine");
         continue;
       }
-      if (item === "AnimeGG" || item === "Golf" || item === "AnimeHeaven" || item === "Heaven") {
-        push("AnimeHeaven");
+      // AnimeHeaven's slot is Guts' now — old saved orders resolve forward.
+      if (
+        item === "AnimeGG" ||
+        item === "Golf" ||
+        item === "AnimeHeaven" ||
+        item === "Heaven"
+      ) {
+        push("Guts");
         continue;
       }
       if (item === "MegaVid" || item === "Mike") {

@@ -247,7 +247,7 @@ const VideoPlayerSection = () => {
     applyStreamAudio("dub");
   }, [dubSearchParam, applyStreamAudio]);
 
-  // Default / restored hard-only providers (Heaven, …) highlight under Hard Subs.
+  // Default / restored hard-only providers highlight under Hard Subs.
   useEffect(() => {
     if (streamAudio === "dub" || audioMode === "dub" || audioMode === "hardsub") return;
     if (!providerIsHardSubOnly(provider)) return;
@@ -280,7 +280,7 @@ const VideoPlayerSection = () => {
       if (normalized === "hardsub") {
         return providerHasHardSub(p) ? "hardsub" : "sub";
       }
-      // Soft-sub row → hard-only providers (Heaven, …) still land on Hard Subs.
+      // Soft-sub row → hard-only providers still land on Hard Subs.
       if (providerIsHardSubOnly(p)) return "hardsub";
       return "sub";
     },

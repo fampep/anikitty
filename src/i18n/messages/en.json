@@ -441,7 +441,7 @@
     "previewTitle": "A player made for anime",
     "previewDesc": "Multi-source streams, resume playback, skip intro, theatre mode, and keyboard shortcuts — all in one place.",
     "preview": {
-      "mock": "anikitty.moe/anime/watch",
+      "mock": "anikitty.site/anime/watch",
       "player": { "title": "Multi-source player", "desc": "Switch providers without leaving the episode." },
       "skip": { "title": "Skip intro & outro", "desc": "Auto-detected chapter markers when available." },
       "theatre": { "title": "Theatre mode", "desc": "Expand the player and hide distractions." },

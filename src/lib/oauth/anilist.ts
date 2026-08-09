@@ -93,7 +93,7 @@ async function fetchAniListOnce(
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
-      "User-Agent": "AniKitty/1.0 (+https://anikitty.moe)",
+      "User-Agent": "AniKitty/1.0 (+https://anikitty.site)",
     },
     body: JSON.stringify({ query, variables }),
     signal: anilistSignal(timeoutMs),

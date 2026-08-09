@@ -39,7 +39,6 @@ import {
   onPlayerOrientationChange,
   resolvePlayerOrientClass,
   tryLockLandscapeOrientation,
-  tryUnlockScreenOrientation,
   type PlayerOrientClass,
 } from "@/lib/kitty/player-orientation";
 import {
@@ -100,10 +99,12 @@ import {
   removeBookmark,
   type PlayerBookmark,
 } from "@/lib/player/player-bookmarks";
-import {
-  attachAnime4k,
-  isWebGpuSupported,
-} from "@/lib/player/anime4k";
+import { useBufferSpinner } from "./features/playback/use-buffer-spinner";
+import { useOfflineRetry } from "./features/playback/use-offline-retry";
+import { useAnime4kOverlay } from "./features/enhance/use-anime4k-overlay";
+import { useOrientationLock } from "./features/fullscreen/use-orientation-lock";
+import { useCompactChrome } from "./features/chrome/use-compact-chrome";
+import { useMenuFocusTrap } from "./features/chrome/use-menu-focus-trap";
 import { useSettingsStore } from "@/store/settings-store";
 import { useEffectiveLiteMode } from "@/hooks/use-effective-lite-mode";
 import {
@@ -145,7 +146,6 @@ import {
   VOLUME_BOOST_MIN,
 } from "./audio-boost";
 import {
-  BUFFER_SPINNER_MS,
   CLICK_DELAY_MS,
   EMPTY_HEADERS,
   EMPTY_QUALITIES,
@@ -360,7 +360,6 @@ export function KittyPlayer({
   const applyingW2gRef = useRef(false);
   const lastW2gReportRef = useRef(0);
   const autoFsRef = useRef(false);
-  const anime4kDetachRef = useRef<(() => void) | null>(null);
   const autoSkipIntro = useSettingsStore((s) => s.autoSkipIntro);
   const autoPlay = useSettingsStore((s) => s.autoPlay);
   const anime4kEnabled = useSettingsStore((s) => s.anime4kEnabled);
@@ -446,14 +445,12 @@ export function KittyPlayer({
     ratio: number;
   } | null>(null);
   const [buffering, setBuffering] = useState(false);
-  const [spinnerArmed, setSpinnerArmed] = useState(false);
   const [sourceLoading, setSourceLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [seekFlash, setSeekFlash] = useState<"left" | "right" | null>(null);
   const [seekFlashSecs, setSeekFlashSecs] = useState(0);
   const [gestureHint, setGestureHint] = useState<GestureHint | null>(null);
   const [playbackIssue, setPlaybackIssue] = useState<string | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [liveRegionAnnouncement, setLiveRegionAnnouncement] = useState("");
   const [playbackRate, setPlaybackRateState] = useState(
@@ -475,8 +472,6 @@ export function KittyPlayer({
   const playLongPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playLongPressFiredRef = useRef(false);
   const [orientClass, setOrientClass] = useState<PlayerOrientClass>("");
-  /** Narrow player chrome (minimized / side column) — hide non-essential bar icons. */
-  const [compactChrome, setCompactChrome] = useState(false);
   const [iosVolumeLocked] = useState(() => isAppleTouchDevice());
   const [attachNonce, setAttachNonce] = useState(0);
   /** Cookie-free absolute URL for AirPlay native HLS (MSE cannot be AirPlayed). */
@@ -485,7 +480,6 @@ export function KittyPlayer({
   const airPlayRemintCacheRef = useRef<{ src: string; url: string } | null>(null);
   const [activeSkip, setActiveSkip] = useState<SkipSegmentKind | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [anime4kActive, setAnime4kActive] = useState(false);
 
   const skipSegments = useMemo(() => buildSkipSegments(skipTimes), [skipTimes]);
 
@@ -722,48 +716,24 @@ export function KittyPlayer({
     }, GESTURE_HINT_MS);
   }, []);
 
-  // Debounce the buffering spinner so quick seeks don't flash; skip while scrubbing.
-  useEffect(() => {
-    if (sourceLoading) {
-      setSpinnerArmed(true);
-      return;
-    }
-    if (mediaSeeking && !seeking) {
-      setSpinnerArmed(true);
-      return;
-    }
-    if (!buffering || seeking) {
-      setSpinnerArmed(false);
-      return;
-    }
-    const timer = setTimeout(() => setSpinnerArmed(true), BUFFER_SPINNER_MS);
-    return () => clearTimeout(timer);
-  }, [buffering, sourceLoading, seeking, mediaSeeking]);
+  const spinnerArmed = useBufferSpinner({
+    buffering,
+    sourceLoading,
+    seeking,
+    mediaSeeking,
+  });
 
-  // Soft-retry the stream when connectivity returns after a fatal error.
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const syncOffline = () => setIsOffline(!window.navigator.onLine);
-    const onOnline = () => {
-      setIsOffline(false);
-      if (!playbackIssue) return;
-      mediaRetryRef.current = false;
-      setPlaybackIssue(null);
-      setAttachNonce((n) => n + 1);
-      showGestureHint({
-        label: t("watch.offlineBackOnline"),
-        detail: t("watch.offlineRetrying"),
-      });
-    };
-    const onOffline = () => setIsOffline(true);
-    syncOffline();
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-    return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
-    };
-  }, [playbackIssue, showGestureHint, t]);
+  const retryAfterOffline = useCallback(() => {
+    mediaRetryRef.current = false;
+    setPlaybackIssue(null);
+    setAttachNonce((n) => n + 1);
+    showGestureHint({
+      label: t("watch.offlineBackOnline"),
+      detail: t("watch.offlineRetrying"),
+    });
+  }, [showGestureHint, t]);
+
+  const isOffline = useOfflineRetry({ playbackIssue, onRetry: retryAfterOffline });
 
   bumpControlsRef.current = bumpControls;
   showGestureHintRef.current = showGestureHint;
@@ -1455,87 +1425,21 @@ export function KittyPlayer({
     return () => window.clearTimeout(timer);
   }, [countdown]);
 
-  // Anime4K WebGPU upscale overlay (player-only; must detach RVFC loop on cleanup).
-  useEffect(() => {
-    const video = videoRef.current;
-    const layer =
-      rootRef.current?.querySelector<HTMLElement>("[data-ak-video-layer]") ??
-      null;
-    const effective =
-      anime4kEnabled &&
-      !liteMode &&
-      !casting &&
-      !castConnecting &&
-      isWebGpuSupported();
-    let cancelled = false;
-
-    anime4kDetachRef.current?.();
-    anime4kDetachRef.current = null;
-    setAnime4kActive(false);
-
-    if (!effective || !video || !layer) return;
-
-    void attachAnime4k({
-      video,
-      videoContainer: layer,
-      mode: anime4kMode,
-    })
-      .then((attachment) => {
-        if (cancelled) {
-          attachment.detach();
-          return;
-        }
-        anime4kDetachRef.current = attachment.detach;
-        setAnime4kActive(true);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        console.warn("[anime4k] attach failed:", err);
-        setAnime4kActive(false);
-      });
-
-    return () => {
-      cancelled = true;
-      anime4kDetachRef.current?.();
-      anime4kDetachRef.current = null;
-      setAnime4kActive(false);
-    };
-  }, [
-    anime4kEnabled,
-    anime4kMode,
+  const anime4kActive = useAnime4kOverlay({
+    videoRef,
+    rootRef,
+    enabled: anime4kEnabled,
+    mode: anime4kMode,
     liteMode,
     casting,
     castConnecting,
     src,
     attachNonce,
-  ]);
+  });
 
-  useEffect(() => {
-    if (fullscreen || cssFullscreen) {
-      void tryLockLandscapeOrientation();
-      return () => {
-        void tryUnlockScreenOrientation();
-      };
-    }
-    void tryUnlockScreenOrientation();
-  }, [fullscreen, cssFullscreen]);
+  useOrientationLock({ fullscreen, cssFullscreen });
 
-  /** Match embed players: slim the bar by player width, not viewport. */
-  useEffect(() => {
-    const root = rootRef.current;
-    if (!root || typeof ResizeObserver === "undefined") return;
-    const COMPACT_MAX_PX = 580;
-    const update = (width: number) => {
-      setCompactChrome(width > 0 && width < COMPACT_MAX_PX);
-    };
-    update(root.getBoundingClientRect().width);
-    const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? 0;
-      update(w);
-    });
-    ro.observe(root);
-    return () => ro.disconnect();
-  }, []);
+  const compactChrome = useCompactChrome(rootRef);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -3473,57 +3377,13 @@ export function KittyPlayer({
     togglePlay();
   }, [togglePlay]);
 
-  // Focus trap for opaque menus (Tab cycles; Escape closes via keyboard handler).
-  useEffect(() => {
-    if (!moreOpen && !captionsOpen && !qualityOpen && !speedOpen && !audioOpen) {
-      return;
-    }
-    const menu = moreOpen
-      ? moreMenuRef.current
-      : qualityOpen
-        ? qualityMenuRef.current
-        : speedOpen
-          ? speedMenuRef.current
-          : audioOpen
-            ? audioMenuRef.current
-            : captionsMenuRef.current;
-    if (!menu) return;
-    const focusables = Array.from(
-      menu.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      ),
-    );
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    focusables[0]?.focus({ preventScroll: true });
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab" || focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (!first || !last) return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-    menu.addEventListener("keydown", onKeyDown);
-    return () => {
-      menu.removeEventListener("keydown", onKeyDown);
-      const restore = moreOpen
-        ? moreTriggerRef.current
-        : qualityOpen
-          ? qualityTriggerRef.current
-          : speedOpen
-            ? speedTriggerRef.current
-            : audioOpen
-              ? audioTriggerRef.current
-              : captionsTriggerRef.current;
-      (restore ?? previouslyFocused)?.focus?.({ preventScroll: true });
-    };
-  }, [moreOpen, captionsOpen, qualityOpen, speedOpen, audioOpen]);
+  useMenuFocusTrap([
+    { open: moreOpen, menuRef: moreMenuRef, triggerRef: moreTriggerRef },
+    { open: qualityOpen, menuRef: qualityMenuRef, triggerRef: qualityTriggerRef },
+    { open: speedOpen, menuRef: speedMenuRef, triggerRef: speedTriggerRef },
+    { open: audioOpen, menuRef: audioMenuRef, triggerRef: audioTriggerRef },
+    { open: captionsOpen, menuRef: captionsMenuRef, triggerRef: captionsTriggerRef },
+  ]);
 
   const handleVideoClick = useCallback(() => {
     // Coarse pointers use touch double-tap handler instead.

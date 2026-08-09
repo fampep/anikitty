@@ -149,7 +149,7 @@ const ACCENTS: Partial<Record<KittyProvider, ProviderAccent>> = {
     dot: "bg-cyan-400",
     glow: "from-cyan-500/20",
   },
-  AnimeHeaven: {
+  Guts: {
     chip: "border-rose-400/30 bg-rose-500/10 text-rose-100/90",
     pillActive: "border-rose-400/45 bg-rose-500/20 text-rose-50 shadow-[0_0_12px_-4px_rgba(251,113,133,0.35)]",
     pillIdle: "border-transparent text-rose-300/45 hover:text-rose-200/80 hover:bg-rose-500/[0.06]",

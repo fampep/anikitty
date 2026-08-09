@@ -1,5 +1,5 @@
 Name: AniKitty
-URLs: https://anikitty.moe
+URLs: https://anikitty.site
 ---
 Type: mix (self-hosted site + scraper-based streaming from third-party anime sites)
 Scrapers: 34 third-party anime site sources (AniKitty does not host video files; availability depends entirely on these upstream sites)

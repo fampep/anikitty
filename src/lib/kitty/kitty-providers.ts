@@ -27,9 +27,10 @@ export const ALL_KITTY_PROVIDER_IDS = [
   "AniChan",
   "AniCine",
   "Senshi",
-  "AnimeHeaven",
+  "Guts",
   "AniHQ",
   // Normalize-only aliases / legacy (retired from picker)
+  "AnimeHeaven",
   "VidNest",
   "Miruro",
   "AniWaves",
@@ -76,7 +77,7 @@ export const KITTY_PROVIDERS = [
   "AniSnatch",
   "KickAssAnime",
   "Miruro",
-  "AnimeHeaven",
+  "Guts",
   "MegaVid",
   "XAnime",
 ] as const;
@@ -88,7 +89,7 @@ export const RECOMMENDED_PROVIDER_COUNT = 15;
  * Bump when Recommended order / default must force-override saved + synced prefs.
  * Kept in sync with `settings-store` persist migrate version for provider resets.
  */
-export const PROVIDER_ORDER_SYNC_VERSION = 115;
+export const PROVIDER_ORDER_SYNC_VERSION = 116;
 
 export type KittyProviderGroup = "featured" | "subs" | "other";
 
@@ -317,16 +318,16 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
     hint: "SUB · DUB · soft subs",
   },
   {
-    id: "AnimeHeaven",
-    label: "AnimeHeaven",
+    id: "Guts",
+    label: "Guts",
     group: "featured",
     supportsSub: true,
     supportsDub: true,
-    softSub: false,
+    softSub: true,
     hardSub: false,
-    nativeSubs: false,
+    nativeSubs: true,
     kittySubs: false,
-    hint: "SUB · DUB · up to 1080p",
+    hint: "SUB · DUB · soft subs",
   },
 ];
 
@@ -334,7 +335,7 @@ export const KITTY_PROVIDER_META: KittyProviderMeta[] = [
  * tries these before anything else. All fifteen are Recommended:
  * 1 Delta, 2 Kilo (Anikoto), 3 Echo (Miruro), 4 Mike (MegaVid), 5 XAnime,
  * 6 Uniform (KickAssAnime), 7 Neko, 8 Vibe, 9 Waves (AniWaves),
- * 10 Chan (AniChan), 11 Cine (AniCine), 12 Mkissa, 13 Alpha, 14 Sierra, 15 AnimeHeaven.
+ * 10 Chan (AniChan), 11 Cine (AniCine), 12 Mkissa, 13 Alpha, 14 Sierra, 15 Guts.
  * Juliet (AniWatch) retired from Recommended. */
 export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "AniDelta",
@@ -351,7 +352,7 @@ export const DEFAULT_PROVIDER_PRIORITY: KittyProvider[] = [
   "MKissa",
   "AniKuro",
   "AniSnatch",
-  "AnimeHeaven",
+  "Guts",
 ];
 
 /** 1-based rank in the given order (0 if missing). */
@@ -403,6 +404,7 @@ export const KITTY_NATIVE_SUB_PROVIDERS = new Set<KittyProvider>([
   "Miruro",
   "MegaVid",
   "XAnime",
+  "Guts",
 ]);
 
 /** True for any provider id AniKitty knows about (including retired ones). */
@@ -426,8 +428,16 @@ export function normalizeKittyProvider(value: string | null | undefined): KittyP
   if (value === "Mkissa" || value === "MKissa") return "MKissa";
   if (value === "ReAnime" || value === "KuroHost" || value === "Hotel") return DEFAULT_KITTY_PROVIDER;
   if (value === "Xray" || value === "Animex") return DEFAULT_KITTY_PROVIDER;
-  if (value === "Golf" || value === "AnimeGG" || value === "Heaven" || value === "AnimeHeaven") {
-    return "AnimeHeaven";
+  // AnimeHeaven retired — its slot (and the older GG/Golf ids that fed into it)
+  // resolves forward to Guts so saved prefs and shared links keep working.
+  if (
+    value === "Golf" ||
+    value === "AnimeGG" ||
+    value === "Heaven" ||
+    value === "AnimeHeaven" ||
+    value === "Guts"
+  ) {
+    return "Guts";
   }
   if (value === "Mike" || value === "MegaVid") return "MegaVid";
   if (value === "XAnime" || value === "Unique" || value === "UniqueStream") return "XAnime";
@@ -547,15 +557,15 @@ export function normalizeProviderAudioMode(
   return fallback;
 }
 
-/** Burned-in only — no soft tracks (Heaven). */
+/** Burned-in only — no soft tracks. */
 export function providerIsHardSubOnly(provider: KittyProvider): boolean {
   return providerHasHardSub(provider) && !providerHasSoftSub(provider);
 }
 
 /**
  * Soft sub · Hard Subs · Dub rows.
- * Hard-only (Heaven) → Hard Subs only.
- * Soft providers → Soft only (hardSub cleared site-wide except Heaven).
+ * Hard-only providers → Hard Subs only.
+ * Soft providers → Soft only (hardSub cleared site-wide).
  */
 const DUAL_HARD_SUB_PROVIDER_IDS = new Set<string>([]);
 

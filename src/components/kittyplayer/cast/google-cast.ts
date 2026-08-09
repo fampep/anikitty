@@ -273,7 +273,7 @@ export function isCastUrlReachableFromDevice(url: string): boolean {
 
 /**
  * Absolute HTTPS URL for the AniKitty wordmark the Chromecast can fetch.
- * Prefers the current origin when public; otherwise production anikitty.moe.
+ * Prefers the current origin when public; otherwise production anikitty.site.
  * Used as MediaInfo image art on the free Default Media Receiver (no Cast Console app).
  */
 export function getCastBrandLogoUrl(): string {

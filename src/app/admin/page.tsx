@@ -1358,7 +1358,7 @@ function AdminPanel({ onLogout }: { onLogout: () => void }) {
         <Container className="py-3.5 flex items-center gap-3">
           <ShieldCheck className="w-4 h-4 text-[#ff4d6d] shrink-0" />
           <span className="text-sm font-bold text-foreground dark:text-white tracking-tight">Admin Panel</span>
-          <span className="text-[11px] font-mono text-muted-foreground/70 dark:text-white/20 hidden sm:block">· anikitty.moe</span>
+          <span className="text-[11px] font-mono text-muted-foreground/70 dark:text-white/20 hidden sm:block">· anikitty.site</span>
           <button
             onClick={refreshAll}
             disabled={refreshing}

@@ -12,7 +12,7 @@ export const TELEGRAM_CHANNEL_URL = "https://t.me/Anikittymoe";
 
 /** Canonical public hostnames — use these when listing legitimate AniKitty sites. */
 export const OFFICIAL_DOMAINS = [
-  { host: "anikitty.moe", href: "https://anikitty.moe" },
+  { host: "anikitty.site", href: "https://anikitty.site" },
   { host: "anikitty.online", href: "https://anikitty.online" },
 ] as const;
 
