@@ -2,14 +2,12 @@ import "server-only";
 import { AsyncLocalStorage } from "async_hooks";
 import {
   DEFAULT_KITTY_API_NODE_ID,
-  getKittyApiNodeUrl,
   parseKittyNodeParam,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";
 import { getKittyApiNodeDirectUrl } from "@/lib/kitty/kitty-api-node-origins.server";
 import {
   kittyApiFetch as kittyApiFetchCore,
-  kittyApiPath,
   type KittyApiFetchOptions,
 } from "@/lib/kitty/kitty-api-core";
 

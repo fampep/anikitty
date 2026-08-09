@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { chatMessages, users, roles } from "@/db/schema";
 import { verifyToken, extractToken } from "@/lib/auth/auth-jwt";

@@ -5,7 +5,6 @@ import { sanitizeBody, rateLimit, maybeSweep } from "@/lib/social/comment-helper
 import { attachLevelRole, getUsersXpStats } from "@/lib/user/user-xp";
 import {
   assertMessageEncryptionConfigured,
-  decryptStoredMessage,
   encryptStoredMessage,
 } from "@/lib/security/message-crypto";
 import { eq } from "drizzle-orm";

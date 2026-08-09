@@ -162,7 +162,7 @@ export default function SkipTimesSubmitDialog({
     };
   }, [open, auth, anilistId, episode]);
 
-  const useNow = (setter: (v: string) => void) => {
+  const markNow = (setter: (v: string) => void) => {
     setter(formatSkipSeconds(livePlayerTime()));
   };
 
@@ -330,7 +330,7 @@ export default function SkipTimesSubmitDialog({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => useNow(setStart)}
+                    onClick={() => markNow(setStart)}
                     className="rounded-md border border-teal-400/30 bg-teal-500/15 px-3 py-2.5 text-[12px] font-semibold text-teal-100 hover:bg-teal-500/25 transition-colors"
                   >
                     {t("skipSubmit.markStart")}
@@ -342,7 +342,7 @@ export default function SkipTimesSubmitDialog({
                   </button>
                   <button
                     type="button"
-                    onClick={() => useNow(setEnd)}
+                    onClick={() => markNow(setEnd)}
                     className="rounded-md border border-teal-400/30 bg-teal-500/15 px-3 py-2.5 text-[12px] font-semibold text-teal-100 hover:bg-teal-500/25 transition-colors"
                   >
                     {t("skipSubmit.markEnd")}
@@ -360,7 +360,7 @@ export default function SkipTimesSubmitDialog({
                   label={t("skipSubmit.start")}
                   value={start}
                   onChange={setStart}
-                  onUseNow={() => useNow(setStart)}
+                  onUseNow={() => markNow(setStart)}
                   nowLabel={t("skipSubmit.usePlayer")}
                   placeholder={t("skipSubmit.startPlaceholder")}
                 />
@@ -368,7 +368,7 @@ export default function SkipTimesSubmitDialog({
                   label={t("skipSubmit.end")}
                   value={end}
                   onChange={setEnd}
-                  onUseNow={() => useNow(setEnd)}
+                  onUseNow={() => markNow(setEnd)}
                   nowLabel={t("skipSubmit.usePlayer")}
                   required
                   placeholder={t("skipSubmit.endPlaceholder")}

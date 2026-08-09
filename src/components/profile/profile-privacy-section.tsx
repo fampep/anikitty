@@ -88,7 +88,7 @@ export default function ProfilePrivacySection() {
       <button
         type="button"
         role="switch"
-        aria-pressed={profilePrivate}
+        aria-checked={profilePrivate}
         aria-label={profilePrivate ? "Profile is hidden (ninja mode)" : "Profile is public"}
         onClick={toggle}
         disabled={busy}

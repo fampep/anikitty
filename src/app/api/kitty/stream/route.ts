@@ -3,7 +3,6 @@ import {
   mergeCachedSubtitleTracks,
 } from "@/lib/subtitles/subtitle-cache-store";
 import {
-  DEFAULT_ALLANIME_MIRROR,
   DEFAULT_MKISSA_MIRROR,
   fetchAllanimeVideoStream,
   isAllanimeMirrorId,
@@ -39,7 +38,7 @@ import {
   getKittyRequestNodeId,
   withKittyApiNodeAsync,
 } from "@/lib/kitty/kitty-api-server";
-import { isKittyProxiedUrl, resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
+import { resolveKittyStreamUrl } from "@/lib/kitty/kitty-api-core";
 import {
   createHlsPlaybackSessionId,
   HLS_SESSION_COOKIE,

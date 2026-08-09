@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Play, Star, MessageCircle, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { HistoryBarChart } from "@/components/history/history-charts";
-import { cn } from "@/lib/core/utils";
 
 type EpisodeStatRow = {
   episode: number;

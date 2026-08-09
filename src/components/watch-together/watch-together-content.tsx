@@ -132,7 +132,7 @@ export default function WatchTogetherContent() {
   const [rooms, setRooms] = useState<W2gRoomListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [joiningCode, setJoiningCode] = useState<string | null>(null);
-  const [deletingCode, setDeletingCode] = useState<string | null>(null);
+  const [, setDeletingCode] = useState<string | null>(null);
 
   const loadRooms = useCallback(async () => {
     try {

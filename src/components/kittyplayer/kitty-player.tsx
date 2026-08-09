@@ -8,7 +8,6 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
 } from "react";
 import Hls from "hls.js";
 
@@ -32,12 +31,9 @@ import {
   requestElementFullscreen,
 } from "@/lib/kitty/fullscreen";
 import {
-  consumePersistCssFullscreen,
-  isCssFullscreenActive,
   markPersistCssFullscreen,
   peekPersistCssFullscreen,
 } from "@/lib/kitty/fullscreen-persist";
-import type { KittyApiNodeId } from "@/lib/kitty/kitty-api-nodes";
 import { buildKittyHlsUrl } from "@/lib/kitty/kitty-hls-url";
 import {
   onPlayerOrientationChange,
@@ -56,19 +52,16 @@ import { cn } from "@/lib/core/utils";
 import { useT } from "@/providers/i18n-provider";
 import {
   createHtmlVideoPlayerController,
-  type PlayerController,
 } from "@/lib/player/player-controller";
 import {
   getTrackFile,
   isSubtitleTrack,
   labelToLanguage,
-  type StreamTrack,
 } from "@/lib/subtitles/subtitle-track-utils";
 import { useStoryboardCues } from "@/hooks/use-storyboard-cues";
 import {
   findStoryboardCue,
   pickStoryboardUrl,
-  type StoryboardCue,
 } from "@/lib/player/storyboard-vtt";
 
 import {
@@ -106,8 +99,6 @@ import {
   removeBookmark,
   type PlayerBookmark,
 } from "@/lib/player/player-bookmarks";
-import type { SkipTimes } from "@/hooks/use-aniskip";
-import type { W2gSyncState } from "@/lib/kitty/video-player-types";
 import {
   attachAnime4k,
   isWebGpuSupported,
@@ -162,7 +153,6 @@ import {
   GESTURE_HINT_MS,
   HOLD_SPEED_RATE,
   IDLE_AFTER_PLAY_MS,
-  IDLE_MS,
   LONG_PRESS_MS,
   PREFS_SAVE_MS,
   SEEK_FLASH_MS,
@@ -175,7 +165,6 @@ import {
   buildSkipSegments,
   segmentAtTime,
   skipKindLabel,
-  type SkipSegment,
   type SkipSegmentKind,
 } from "./skip-segments";
 import {
@@ -184,10 +173,8 @@ import {
   resolveTrackSrc,
 } from "./quality";
 import type {
-  AniKittyPlayerProps,
   BufferedRange,
   CaptionOption,
-  CustomVideoPlayerProps,
   GestureHint,
   HlsAudioOption,
   HlsLevelOption,

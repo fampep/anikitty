@@ -3,7 +3,6 @@ import { getDb, rowsOf } from "@/db";
 import { sql } from "drizzle-orm";
 
 const VALID_METRICS = ["episodes", "completed", "watchTime", "streak", "reviews"] as const;
-const VALID_PERIODS = ["weekly", "monthly", "yearly", "all"] as const;
 
 function periodFilter(period: string): string {
   switch (period) {

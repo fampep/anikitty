@@ -218,7 +218,6 @@ export async function GET(request: Request) {
   const demographicParam = searchParams.get("demographic") || "";
   const scoreMinParam = searchParams.get("scoreMin") || "";
   const ratedParam = searchParams.get("rated") || "";
-  const languageParam = searchParams.get("language") || "";
   const episodesPreset = searchParams.get("episodes") || "";
   const runtimePreset = searchParams.get("runtime") || "";
   const episodeMin = searchParams.get("episodeMin");

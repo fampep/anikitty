@@ -4,7 +4,7 @@ import { dmConversations, dmMessages, users } from "@/db/schema";
 import { extractToken, verifyToken } from "@/lib/auth/auth-jwt";
 import { markConversationRead, buildConversationSummary } from "@/lib/social/dm-server";
 import { decryptStoredMessage } from "@/lib/security/message-crypto";
-import { and, asc, desc, eq, gt, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt } from "drizzle-orm";
 
 type Params = { params: Promise<{ id: string }> };
 

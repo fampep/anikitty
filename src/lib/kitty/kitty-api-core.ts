@@ -5,7 +5,6 @@ import {
   KITTY_API_NODE_DNS_SLUGS,
   KITTY_API_NODES,
   PUBLIC_KITTY_API_HOST,
-  PUBLIC_KITTY_API_ORIGIN,
   PUBLIC_KITTY_DNS_ZONE,
   type KittyApiNodeId,
 } from "@/lib/kitty/kitty-api-nodes";

@@ -8,7 +8,6 @@ import { signPasskeyChallengeToken } from "@/lib/auth/auth-jwt";
 import { checkRateLimit } from "@/lib/security/rate-limit";
 import {
   defaultPasskeyDeviceName,
-  getWebAuthnOrigin,
   getWebAuthnRpId,
   getWebAuthnRpName,
   parsePasskeyTransports,

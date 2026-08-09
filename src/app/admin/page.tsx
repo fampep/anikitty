@@ -13,7 +13,7 @@ import {
   TrendingUp, Zap, BarChart2, Megaphone, History, Library, Info, AlertTriangle,
   AlertOctagon, CheckCircle2, ExternalLink, Send, MessageCircle, Key, ShieldOff,
   VolumeX, Ban, Clock, Coins, Sparkles, Calendar, Flag, ScrollText, SkipForward,
-  Globe, Heart, Wifi,
+  Globe, Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import { chatExpiresInLabel, formatChatTtlLabel } from "@/lib/social/chat-config";

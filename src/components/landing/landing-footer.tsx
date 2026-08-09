@@ -75,7 +75,7 @@ export default function LandingFooter() {
               <li><Link href={ROUTES.COMMUNITY} className={FOOTER_LINK}>{t("nav.community")}</Link></li>
               <li><Link href={ROUTES.FORUM} className={FOOTER_LINK}>{t("nav.forum")}</Link></li>
               <li><Link href={ROUTES.CHAT} className={FOOTER_LINK}>{t("nav.chat")}</Link></li>
-              <li><a href="/#support" className={FOOTER_LINK}>{t("nav.donate")}</a></li>
+              <li><Link href="/#support" className={FOOTER_LINK}>{t("nav.donate")}</Link></li>
             </ul>
           </div>
 

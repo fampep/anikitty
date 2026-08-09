@@ -6,6 +6,33 @@
   "rules": {
     "@typescript-eslint/no-non-null-asserted-optional-chain": "off",
     "@typescript-eslint/no-explicit-any": "off",
-    "react-hooks/exhaustive-deps": "off"
-  }
+    "react-hooks/exhaustive-deps": "off",
+    // Honour the `_name` convention already used across the codebase for
+    // params/bindings that must stay for signature or destructuring shape.
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "ignoreRestSiblings": true
+      }
+    ]
+  },
+  "overrides": [
+    // Ambient declarations mirror third-party SDK surfaces. `declare var` is the
+    // correct idiom for globals (lib.dom.d.ts does the same), and Function /
+    // Object appear because the upstream API is typed that way — rewriting them
+    // would misdescribe the runtime.
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "no-var": "off",
+        "@typescript-eslint/no-unsafe-function-type": "off",
+        "@typescript-eslint/no-wrapper-object-types": "off",
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ]
 }

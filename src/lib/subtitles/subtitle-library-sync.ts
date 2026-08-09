@@ -14,7 +14,6 @@ import {
 } from "@/lib/subtitles/subtitle-library-enrich";
 import {
   SUBTITLE_API_INTERVAL_MS,
-  SUBTITLE_AUTO_SYNC_INTERVAL_MS,
   SUBTITLE_SYNC_ANIME_PER_TICK,
   SUBTITLE_SYNC_DISCOVER_PER_TICK,
   SUBTITLE_SYNC_EPISODES_PER_TICK,
@@ -182,11 +181,6 @@ export async function runSubtitleLibrarySyncTick(
   return result;
 }
 
-const BACKGROUND_COOLDOWN_MS = 3_000;
-
-let lastBackgroundSyncAt = 0;
-let backgroundSyncInFlight = false;
-let autoSyncLoopStarted = false;
 
 /** Fire-and-forget sync — disabled; subtitles cache on playback only. */
 export function triggerBackgroundSubtitleLibrarySync(

@@ -18,7 +18,10 @@ export async function GET(req: Request) {
   const folder = searchParams.get("folder")?.toUpperCase();
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20"), 250);
   const offset = parseInt(searchParams.get("offset") ?? "0");
-  const sort = (searchParams.get("sort") ?? "updated") as typeof VALID_SORTS[number];
+  const rawSort = searchParams.get("sort") ?? "updated";
+  const sort = (VALID_SORTS as readonly string[]).includes(rawSort)
+    ? (rawSort as (typeof VALID_SORTS)[number])
+    : "updated";
   const search = searchParams.get("search")?.trim();
 
   const db = getDb();

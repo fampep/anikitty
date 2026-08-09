@@ -4,7 +4,6 @@ import {
   KITTY_API_NODES,
   resolveKittyNodeIdFromOrigin,
   type KittyApiNodeMeta,
-  type KittyApiNodeId,
   type KittyNodePingResult,
 } from "@/lib/kitty/kitty-api-nodes";
 import {

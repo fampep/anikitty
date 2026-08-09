@@ -10,7 +10,6 @@ import {
   ThumbsUp, ThumbsDown, EyeOff, Pencil, Check, Reply, ChevronDown, ChevronUp, Pin, Flag,
   Link2, Brackets, MoreHorizontal, ArrowUp, Image as ImageIcon, ShieldCheck,
 } from "lucide-react";
-import CommentBody from "@/components/comments/comment-body";
 import { CommentFeedBody } from "@/components/comments/comment-feed-body";
 import { useMentionSuggestions } from "@/hooks/use-mention-suggestions";
 import { toast } from "sonner";

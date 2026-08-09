@@ -8,8 +8,6 @@ import {
   isSubtitleTrack,
   SUBTITLE_CACHE_PROVIDERS,
   SUBTITLE_LIBRARY_PROVIDERS,
-  SUBTITLE_SOURCE_PROVIDER,
-  normalizeSubtitleLabel,
   normalizeSubtitleLanguage,
   dedupeSubtitleTracks,
   subtitleProviderRank,
@@ -191,12 +189,6 @@ async function loadStoredPlaybackSubtitleTracks(
   return tracks;
 }
 
-async function hasFreshCachedSubtitles(
-  ctx: Pick<SubtitleCacheContext, "anilistId" | "episode" | "audio">,
-): Promise<boolean> {
-  const tracks = await loadStoredPlaybackSubtitleTracks(ctx);
-  return tracks.length > 0;
-}
 
 function subtitleProviderFilter() {
   return inArray(episodeSubtitles.provider, [...SUBTITLE_LIBRARY_PROVIDERS]);

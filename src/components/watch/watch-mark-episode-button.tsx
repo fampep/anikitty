@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Loader2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/core/utils";
 import { useProgressStore } from "@/store/progress-store";
 import { useT } from "@/providers/i18n-provider";

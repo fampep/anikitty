@@ -1,6 +1,5 @@
 import {
   KITTY_API_NODES,
-  type KittyApiNodeId,
   type KittyNodePingResult,
 } from "@/lib/kitty/kitty-api-nodes";
 import { buildKittySpeedtestPath } from "@/lib/kitty/kitty-api-core";

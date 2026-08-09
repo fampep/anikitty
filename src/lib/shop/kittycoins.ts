@@ -4,7 +4,6 @@ import {
   FREE_FRAME_SLUG,
   getShopItem,
   SHOP_CATALOG,
-  type ShopItem,
   type ShopItemType,
 } from "@/lib/shop/catalog";
 import { hasActiveDonatorStatus } from "@/lib/social/supporter-access";

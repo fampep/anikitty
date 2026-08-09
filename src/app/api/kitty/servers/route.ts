@@ -8,8 +8,6 @@ import {
   type AnilistSiteProviderId,
 } from "@/lib/kitty/anilist-site-providers";
 
-const SAFE_ID = /^\d{1,10}$/;
-
 export async function GET(req: Request) {
   return handleKittyApiRequest(req, async () => {
     const { searchParams } = new URL(req.url);

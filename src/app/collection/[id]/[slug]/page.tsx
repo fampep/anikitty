@@ -17,7 +17,7 @@ type Params = { params: Promise<{ id: string; slug: string }> };
  * a leaked id doesn't expose the description or counts to a crawler.
  */
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const { id, slug } = await params;
+  const { id } = await params;
   try {
     const collection = await loadCollection(getDb(), id);
     if (!collection || collection.visibility === "private") {

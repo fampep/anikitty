@@ -113,10 +113,10 @@ function parseKittyAudioBody(
   // the aggregated top-level numbers, which include every other provider.
   const useBreakdownOnly = trustedOnly && sawBreakdownEntry;
   // Fall back to top-level counts if no breakdown.
-  let sub = useBreakdownOnly
+  const sub = useBreakdownOnly
     ? maxSub
     : maxSub || (typeof row.sub === "number" ? row.sub : Number(row.sub));
-  let dub = useBreakdownOnly
+  const dub = useBreakdownOnly
     ? maxDub
     : maxDub || (typeof row.dub === "number" ? row.dub : Number(row.dub));
 
