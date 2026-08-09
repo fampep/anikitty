@@ -59,6 +59,7 @@ import {
   labelToLanguage,
 } from "@/lib/subtitles/subtitle-track-utils";
 import { useStoryboardCues } from "@/hooks/use-storyboard-cues";
+import { useScrubFramePreviews } from "./hooks/use-scrub-frame-previews";
 import {
   findStoryboardCue,
   pickStoryboardUrl,
@@ -1198,6 +1199,18 @@ export function KittyPlayer({
       ? 0
       : volume;
   const chromeVisible = controlsVisible || seeking || !effectivePlaying;
+
+  // No storyboard VTT from this provider? Decode preview frames ourselves.
+  // Desktop pointers only — a shadow decode is far too costly to spend on a
+  // touch scrub, and it would fight the real player for bandwidth on mobile.
+  const frameCue = useScrubFramePreviews({
+    src: activeSrc,
+    enabled:
+      storyboardCues.length === 0 && !coarsePointer && !casting && !sourceLoading,
+    hoverTime: hoverPreview?.time ?? null,
+    duration: effectiveDuration,
+  });
+  const seekPreviewCue = hoverStoryboardCue ?? frameCue;
 
   // Cast resume doesn't fire the local <video> "play" event — hide chrome promptly.
   useEffect(() => {
@@ -4692,7 +4705,7 @@ export function KittyPlayer({
                 <SeekPreviewCard
                   ratio={hoverPreview?.ratio ?? progressRatio}
                   time={hoverPreview?.time ?? displayTime}
-                  cue={hoverStoryboardCue}
+                  cue={seekPreviewCue}
                   skipKind={hoverSkip?.kind ?? null}
                   bufferAheadSecs={
                     !casting && bufferedRanges.length > 0
