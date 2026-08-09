@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -8,18 +8,14 @@ import {
   Search,
   Grid3x3,
   List,
-  ChevronUp,
-  ChevronDown,
   X,
   Star,
   Repeat,
   Check,
   Trash2,
-  FolderOpen,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/core/utils";
-import { useT } from "@/providers/i18n-provider";
 import type { Bookmark } from "@/hooks/use-get-bookmark";
 import { withAuth } from "@/lib/auth/auth-fetch";
 import { useAuthStore } from "@/store/auth-store";
@@ -60,7 +56,6 @@ type Props = {
 };
 
 export default function LibraryListView({ status, username, isOwn }: Props) {
-  const t = useT();
   const { auth } = useAuthStore();
   const watchlistVersion = useWatchlistStore((s) => s.version);
   const bumpWatchlist = useWatchlistStore((s) => s.bump);
@@ -69,7 +64,7 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
   const [sortBy, setSortBy] = useState<SortBy>("updated");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(25);
+  const [perPage] = useState(25);
 
   const [bookmarks, setBookmarks] = useState<Bookmark[] | null>(null);
   const [totalPages, setTotalPages] = useState(0);
@@ -113,7 +108,13 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
       ...(searchTerm && { search: searchTerm }),
     });
 
-    fetch(`/api/account/watchlist?${params.toString()}`, withAuth())
+    // Another user's profile reads the public list; only your own page may use
+    // the account endpoint, which always resolves to the signed-in user.
+    const endpoint = isOwn
+      ? `/api/account/watchlist?${params.toString()}`
+      : `/api/users/${encodeURIComponent(username)}/watchlist?${params.toString()}`;
+
+    fetch(endpoint, withAuth())
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -129,7 +130,7 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
         setBookmarks(null);
       })
       .finally(() => setIsLoading(false));
-  }, [auth, status, sortBy, searchTerm, currentPage, perPage, watchlistVersion]);
+  }, [auth, status, sortBy, searchTerm, currentPage, perPage, watchlistVersion, isOwn, username]);
 
   useEffect(() => {
     setSelected(new Set());
@@ -176,14 +177,6 @@ export default function LibraryListView({ status, username, isOwn }: Props) {
   const handleBulkRemove = () => {
     if (selected.size === 0) return;
     setBulkOpen(true);
-    setBulkFolder(null);
-  };
-
-  const handleBulkMove = () => {
-    if (!bulkFolder || selected.size === 0) return;
-    // TODO: implement move to folder
-    toast.info("Move not yet implemented");
-    setBulkOpen(false);
     setBulkFolder(null);
   };
 

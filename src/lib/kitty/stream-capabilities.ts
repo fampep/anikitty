@@ -1,7 +1,6 @@
 import { buildKittyStreamDirectPath, kittyApiFetch, kittyStreamHeaders, parseKittyStreamAudio, parseKittyStreamJson } from "@/lib/kitty/kitty-api-server";
 import { fetchKittyAudio } from "@/lib/kitty/kitty-audio-api";
 import {
-  EMPTY_STREAM_CAPABILITIES,
   capabilitiesFromProbes,
   mergeEpisodeStreamCapabilities,
   mergeStreamCapabilities,
@@ -32,7 +31,6 @@ import {
   isAllanimeMirrorId,
   probeAllanimeEpisodeCapabilities,
   type AllanimeKittyServer,
-  type AllanimeMirrorId,
 } from "@/lib/providers/allanime-api";
 import {
   probeAnisnatchEpisodeCapabilities,
