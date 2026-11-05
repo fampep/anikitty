@@ -11,6 +11,8 @@
     "build": "node --max-old-space-size=4096 ./node_modules/next/dist/bin/next build --no-lint",
     "postbuild": "node prepare-standalone.mjs",
     "typecheck": "tsc --noEmit",
+    "app:typecheck": "npm --prefix apps/mobile run typecheck",
+    "app:android": "npm --prefix apps/mobile run android:export",
     "start": "node .next/standalone/server.js",
     "lint": "next lint",
     "db:push": "drizzle-kit push",

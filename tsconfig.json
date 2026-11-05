@@ -38,6 +38,7 @@
     "node_modules",
     "drizzle",
     "scripts",
-    ".open-next"
+    ".open-next",
+    "apps"
   ]
 }
