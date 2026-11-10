@@ -12,6 +12,7 @@ import LandingWatchYourWay from "@/components/landing/landing-watch-your-way";
 import LandingTrendingRow from "@/components/landing/landing-trending-row";
 import LandingCompletedRow from "@/components/landing/landing-completed-row";
 import LandingFooter from "@/components/landing/landing-footer";
+import { useAuthHydrated, useAuthStore } from "@/store/auth-store";
 
 const LandingFeatures = dynamic(() => import("@/components/landing/landing-features"));
 const LandingPlayerPreview = dynamic(() => import("@/components/landing/landing-player-preview"));
@@ -27,15 +28,23 @@ const LANDING_HASH_IDS = new Set(["features", "support"]);
 
 export default function LandingPage() {
   const router = useRouter();
-  const { data: homeData, isLoading: homeLoading } = useGetHomeCriticalData();
-  const { data: discoveryData, isLoading: discoveryLoading } = useGetHomeDiscoveryData();
+  const hydrated = useAuthHydrated();
+  const isLoggedIn = !!useAuthStore((s) => s.auth);
+  const canLoadCatalog = hydrated && isLoggedIn;
+  const { data: homeData, isLoading: homeLoading } = useGetHomeCriticalData({
+    enabled: canLoadCatalog,
+  });
+  const { data: discoveryData, isLoading: discoveryLoading } = useGetHomeDiscoveryData({
+    enabled: canLoadCatalog,
+  });
   const spotlight = homeData?.spotlightAnimes?.[0] ?? null;
 
   useEffect(() => {
+    if (!canLoadCatalog) return;
     router.prefetch(ROUTES.HOME);
     router.prefetch(ROUTES.SEARCH);
     router.prefetch(ROUTES.TRENDING);
-  }, [router]);
+  }, [router, canLoadCatalog]);
 
   // One-shot hash scroll, then clear — sticky #features/#support + LazyMount
   // remounts were yanking scroll back up (same class of bug as home quick nav).
@@ -60,11 +69,18 @@ export default function LandingPage() {
         <LandingPlayerPreview />
       </LazyMount>
       <LandingWatchYourWay />
-      <LandingTrendingRow anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
-      <LazyMount keepMounted retainMinHeight minHeight={280} rootMargin="350px 0px">
-        <LandingScheduleStrip />
-      </LazyMount>
-      <LandingCompletedRow anime={discoveryData?.latestCompletedAnimes ?? []} loading={discoveryLoading} />
+      {canLoadCatalog ? (
+        <>
+          <LandingTrendingRow anime={homeData?.trendingAnimes ?? []} loading={homeLoading} />
+          <LazyMount keepMounted retainMinHeight minHeight={280} rootMargin="350px 0px">
+            <LandingScheduleStrip />
+          </LazyMount>
+          <LandingCompletedRow
+            anime={discoveryData?.latestCompletedAnimes ?? []}
+            loading={discoveryLoading}
+          />
+        </>
+      ) : null}
 
       <LazyMount
         id="features"
@@ -77,9 +93,11 @@ export default function LandingPage() {
         <LandingFeatures />
       </LazyMount>
 
-      <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
-        <LandingSearchDemo />
-      </LazyMount>
+      {canLoadCatalog ? (
+        <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
+          <LandingSearchDemo />
+        </LazyMount>
+      ) : null}
 
       <LazyMount keepMounted retainMinHeight minHeight={360} rootMargin="400px 0px">
         <LandingSupportPerks />

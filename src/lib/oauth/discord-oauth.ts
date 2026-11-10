@@ -149,7 +149,11 @@ async function uniqueUsername(base: string, discordId: string): Promise<string> 
 
 export async function findOrCreateUserFromDiscord(
   discordUser: DiscordUser,
-): Promise<{ user: typeof users.$inferSelect; created: boolean } | "email_conflict"> {
+): Promise<
+  | { user: typeof users.$inferSelect; created: boolean }
+  | "email_conflict"
+  | "signups_closed"
+> {
   const db = getDb();
   const discordId = discordUser.id;
   const discordUsername = discordDisplayName(discordUser);
@@ -200,6 +204,11 @@ export async function findOrCreateUserFromDiscord(
         created: false,
       };
     }
+  }
+
+  const { isOpenSignupsEnabled } = await import("@/lib/auth/open-signups");
+  if (!isOpenSignupsEnabled()) {
+    return "signups_closed";
   }
 
   const username = await uniqueUsername(siteUsernameFromDiscord(discordUser), discordId);
@@ -297,6 +306,9 @@ export async function completeDiscordLogin(
     if (result === "email_conflict") {
       return { type: "error", reason: "email_conflict" };
     }
+    if (result === "signups_closed") {
+      return { type: "error", reason: "signups_closed" };
+    }
 
     const { user } = result;
 
@@ -331,7 +343,8 @@ export function appOrigin(req: Request): string {
 }
 
 export function discordLoginErrorRedirect(req: Request, reason: string) {
-  return NextResponse.redirect(`${appOrigin(req)}/home?discord=${reason}`);
+  // Landing is public under the access gate; /home is not for guests.
+  return NextResponse.redirect(`${appOrigin(req)}/?discord=${reason}`);
 }
 
 export function discordLoginSuccessRedirect(req: Request, token: string) {

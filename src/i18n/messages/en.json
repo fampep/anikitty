@@ -380,16 +380,19 @@
     "person": "person",
     "people": "people",
     "headline": "Watch Anime Beautifully.",
-    "tagline": "Free anime streaming — no account needed. Sub & dub, ad-free player, community when you want it.",
+    "tagline": "Free anime streaming with an account. Sub & dub, ad-free player, and community tools.",
+    "taglineSignupsClosed": "Signups are paused. Join Telegram to get notified when accounts open again — existing members can still sign in.",
     "socialHint": "More updates and emergency notices on Telegram · Discord for community chat.",
     "officialDomains": "Official domains",
     "telegramCta": "Telegram updates",
+    "telegramWaitlistCta": "Join Telegram for signup updates",
     "noAds": "Ad-free",
     "noSubscriptions": "No subscriptions",
     "subDub": "Sub & Dub",
     "startWatching": "Start Watching",
     "exploreAnime": "Explore Anime",
     "createAccount": "Create Account",
+    "signInToWatch": "Sign in to watch",
     "learnMore": "Learn More",
     "signIn": "Sign in",
     "continueAs": "Continue as {username}",
@@ -422,11 +425,12 @@
     "howSteps": {
       "browse": { "title": "Find a title", "desc": "Search or browse the catalog — sub and dub where available." },
       "watch": { "title": "Hit play", "desc": "Fast streams with resume and skip intro when available." },
-      "join": { "title": "Optional extras", "desc": "Sign in to sync progress, comment, or watch together." }
+      "join": { "title": "Create an account", "desc": "Sign in to sync progress, comment, or watch together." }
     },
     "scheduleTitle": "What's airing today",
     "finalCtaTitle": "Ready when you are",
-    "finalCtaDesc": "Jump into the catalog — no signup wall. Create an account anytime to sync progress.",
+    "finalCtaDesc": "Create an account (or sign in) to open the catalog and sync your progress.",
+    "finalCtaDescClosed": "Signups are closed for now. Join Telegram for updates, or sign in if you already have an account.",
     "finalCtaButton": "Open catalog",
     "communityLabel": "Live from the community",
     "communityTitle": "Fans are talking right now",
@@ -465,8 +469,8 @@
         "them": "Subscriptions or premium tiers to unlock HD"
       },
       "account": {
-        "us": "No account required to browse or watch",
-        "them": "Forced signup walls before playback"
+        "us": "Free accounts — watch, sync, and join community",
+        "them": "Accounts bolted on for comments only"
       },
       "player": {
         "us": "Multi-source anime player with skip & resume",
@@ -873,6 +877,9 @@
     "backToSignIn": "Back to sign in",
     "verify": "Verify",
     "accountHint": "Sign in with your AniKitty account",
+    "signupsClosedHint": "New accounts are closed right now. Join Telegram to hear when signups open again — existing members can still sign in below.",
+    "signupsClosedToast": "New signups are closed. Join Telegram for updates, or sign in with an existing account.",
+    "joinTelegram": "Join Telegram",
     "signInSubmit": "Sign in",
     "createAccountSubmit": "Create account",
     "usernamePlaceholder": "username or email",

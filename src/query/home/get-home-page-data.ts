@@ -66,11 +66,12 @@ export const useGetHomePageData = () => {
   return { ...query, data };
 };
 
-export const useGetHomeCriticalData = () => {
+export const useGetHomeCriticalData = (opts?: { enabled?: boolean }) => {
   const allowAdult = useSettingsStore((s) => s.showAdultContent);
   const query = useQuery({
     queryFn: getHomeCriticalData,
     queryKey: [GET_HOME_CRITICAL],
+    enabled: opts?.enabled ?? true,
     ...homeQueryDefaults,
   });
   const data = useMemo(() => {
@@ -87,8 +88,10 @@ export const useGetHomeCriticalData = () => {
   return { ...query, data };
 };
 
-export const useGetHomeDiscoveryData = (enabled = true) => {
+export const useGetHomeDiscoveryData = (enabledOrOpts: boolean | { enabled?: boolean } = true) => {
   const allowAdult = useSettingsStore((s) => s.showAdultContent);
+  const enabled =
+    typeof enabledOrOpts === "boolean" ? enabledOrOpts : (enabledOrOpts.enabled ?? true);
   const query = useQuery({
     queryFn: getHomeDiscoveryData,
     queryKey: [GET_HOME_DISCOVERY],

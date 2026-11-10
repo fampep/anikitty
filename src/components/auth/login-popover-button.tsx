@@ -10,8 +10,11 @@ import { useT } from "@/providers/i18n-provider";
 import { DiscordIcon } from "@/components/auth/discord-connect";
 import AnilistIcon from "@/icons/anilist";
 import { useDiscordAuthEnabled } from "@/hooks/use-discord-auth-enabled";
+import { useOpenSignups } from "@/hooks/use-open-signups";
 import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 import { RecoveryCodesReveal } from "@/components/auth/recovery-codes-reveal";
+import TelegramIcon from "@/icons/telegram";
+import { trackEvent } from "@/lib/analytics";
 
 type Tab = "login" | "signup" | "2fa" | "recover";
 
@@ -64,6 +67,19 @@ function LoginPopoverButton({
     setAuth(authFromMeResponse(data));
   };
 
+  const redirectAfterAuth = () => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) {
+      window.location.assign(next);
+      return;
+    }
+    if (window.location.pathname === "/") {
+      window.location.assign("/home");
+    }
+  };
+
   const handleLogin = async () => {
     if (!identifier.trim() || !password) {
       toast.error(t("auth.enterCredentials"));
@@ -82,6 +98,7 @@ function LoginPopoverButton({
       toast.success(t("auth.welcomeBack"));
       setOpen(false);
       reset();
+      redirectAfterAuth();
     } catch (e: any) {
       toast.error(e?.body?.error ?? t("auth.invalidCredentials"));
     } finally {
@@ -101,6 +118,7 @@ function LoginPopoverButton({
       toast.success(t("auth.welcomeBack"));
       setOpen(false);
       reset();
+      redirectAfterAuth();
     } catch (e: any) {
       toast.error(e?.body?.error ?? t("auth.invalidTotp"));
     } finally {
@@ -135,8 +153,14 @@ function LoginPopoverButton({
       } else {
         setOpen(false);
         reset();
+        redirectAfterAuth();
       }
     } catch (e: any) {
+      if (e?.status === 403 || e?.body?.code === "signups_closed") {
+        toast.error(t("auth.signupsClosedToast"));
+        setTab("login");
+        return;
+      }
       const msg = e?.body?.error ?? t("auth.signupFailed");
       toast.error(
         msg.toLowerCase().includes("taken") || e?.status === 409
@@ -177,6 +201,7 @@ function LoginPopoverButton({
       toast.success(t("auth.recoverSuccess"));
       setOpen(false);
       reset();
+      redirectAfterAuth();
     } catch {
       toast.error(t("auth.recoverFailed"));
     } finally {
@@ -185,6 +210,12 @@ function LoginPopoverButton({
   };
 
   const discordEnabled = useDiscordAuthEnabled();
+  const { open: openSignups, telegramUrl, loaded: signupStatusLoaded } = useOpenSignups();
+
+  useEffect(() => {
+    if (!signupStatusLoaded) return;
+    if (!openSignups && tab === "signup") setTab("login");
+  }, [signupStatusLoaded, openSignups, tab]);
 
   const handleDiscordLogin = () => {
     window.location.href = "/api/account/auth/discord/start";
@@ -210,6 +241,7 @@ function LoginPopoverButton({
       toast.success(t("auth.welcomeBack"));
       setOpen(false);
       reset();
+      redirectAfterAuth();
     } catch (e: unknown) {
       const err = e as { name?: string; body?: { error?: string }; message?: string };
       if (err?.name === "NotAllowedError") {
@@ -227,8 +259,13 @@ function LoginPopoverButton({
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (o) setTab(defaultTab);
-        else reset();
+        if (o) {
+          const next =
+            defaultTab === "signup" && signupStatusLoaded && !openSignups
+              ? "login"
+              : defaultTab;
+          setTab(next);
+        } else reset();
       }}
     >
       <PopoverTrigger asChild>
@@ -252,8 +289,8 @@ function LoginPopoverButton({
         <div className="px-5 pt-5 pb-0 flex flex-col gap-3">
           <p className="text-muted-foreground dark:text-white/50 text-xs font-mono">{t("auth.accountHint")}</p>
 
-          {/* Tabs */}
-          {tab !== "2fa" && tab !== "recover" && !issuedCodes && (
+          {/* Tabs — signup tab only while open signups are enabled */}
+          {tab !== "2fa" && tab !== "recover" && !issuedCodes && openSignups && (
           <div className="flex rounded-lg bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 p-0.5">
             <button
               onClick={() => setTab("login")}
@@ -278,6 +315,22 @@ function LoginPopoverButton({
               {t("auth.createAccount")}
             </button>
           </div>
+          )}
+
+          {tab !== "2fa" && tab !== "recover" && !issuedCodes && signupStatusLoaded && !openSignups && (
+            <div className="rounded-lg border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-[11px] leading-relaxed text-sky-100/85 font-mono">
+              <p className="mb-2">{t("auth.signupsClosedHint")}</p>
+              <a
+                href={telegramUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackEvent("auth_signups_closed_telegram")}
+                className="inline-flex items-center gap-1.5 font-semibold text-sky-100 hover:text-white transition-colors"
+              >
+                <TelegramIcon className="h-3.5 w-3.5" />
+                {t("auth.joinTelegram")}
+              </a>
+            </div>
           )}
         </div>
 
@@ -400,6 +453,7 @@ function LoginPopoverButton({
                 setIssuedCodes(null);
                 setOpen(false);
                 reset();
+                redirectAfterAuth();
               }}
             />
           </div>
@@ -451,7 +505,7 @@ function LoginPopoverButton({
         )}
 
         {/* Signup form */}
-        {tab === "signup" && !issuedCodes && (
+        {tab === "signup" && openSignups && !issuedCodes && (
           <div className="p-5 flex flex-col gap-3.5">
             <Field
               label={t("auth.username")}

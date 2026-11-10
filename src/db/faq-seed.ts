@@ -125,8 +125,8 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "login"
     ],
     "title": "Do I need an account?",
-    "answer": "No — you can browse and watch without signing in.\n\nAn account unlocks:\n\n- Watchlist and synced progress across devices\n- Watch history\n- Episode comments, forum posts, and live chat\n- Friends, public profiles, levels and achievements\n- Kittycoins, optional AniList import, and reviews\n- Security options like 2FA and passkeys\n\nSign up from the **Log in** button in the navbar.",
-    "updatedAt": "2026-07-25",
+    "answer": "Yes — you need an AniKitty account to browse and watch.\n\nWith an account you also get:\n\n- Watchlist and synced progress across devices\n- Watch history\n- Episode comments, forum posts, and live chat\n- Friends, public profiles, levels and achievements\n- Kittycoins, optional AniList import, and reviews\n- Security options like 2FA and passkeys\n\nIf open signups are closed, join the Telegram channel for updates and sign in if you already have an account.",
+    "updatedAt": "2026-11-10",
     "order": 20,
     "popularity": 95,
     "relatedIds": [
@@ -166,8 +166,8 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "username"
     ],
     "title": "How do I create an account?",
-    "answer": "Click **Log in** in the navbar, switch to **Sign up**, and enter:\n\n- Username (3–25 letters, numbers, or underscores)\n- Email\n- Password (8+ characters)\n\nYour password is hashed before storage. After signing in you can add a **passkey** under Settings → Security for faster sign-in with Face ID, Touch ID, or Windows Hello.",
-    "updatedAt": "2026-07-25",
+    "answer": "When open signups are enabled, click **Log in**, switch to **Sign up**, and enter:\n\n- Username (3–25 letters, numbers, or underscores)\n- Email\n- Password (8+ characters)\n\nYou can also continue with Discord or AniList when those are configured.\n\nIf signups are closed, new accounts cannot be created — join Telegram for updates. Existing members can still sign in.\n\nYour password is hashed before storage. After signing in you can add a **passkey** under Settings → Security for faster sign-in with Face ID, Touch ID, or Windows Hello.",
+    "updatedAt": "2026-11-10",
     "order": 10,
     "popularity": 70,
     "relatedIds": [

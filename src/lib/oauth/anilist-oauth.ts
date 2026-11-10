@@ -35,7 +35,9 @@ async function uniqueUsername(base: string, anilistId: number): Promise<string> 
 async function findOrCreateUserFromAniList(
   viewer: { id: number; name: string },
   accessToken: string,
-): Promise<{ user: typeof users.$inferSelect; created: boolean } | null> {
+): Promise<
+  { user: typeof users.$inferSelect; created: boolean } | "signups_closed" | null
+> {
   const db = getDb();
   const anilistId = viewer.id;
   const anilistUsername = viewer.name;
@@ -55,6 +57,11 @@ async function findOrCreateUserFromAniList(
       return { user: { ...existing, anilistAccessToken: accessToken, anilistUsername }, created: false };
     }
     return { user: existing, created: false };
+  }
+
+  const { isOpenSignupsEnabled } = await import("@/lib/auth/open-signups");
+  if (!isOpenSignupsEnabled()) {
+    return "signups_closed";
   }
 
   // Create new user from AniList data
@@ -180,6 +187,7 @@ export async function completeAniListOAuth(
 
     // For login: find or create user from AniList data
     const result = await findOrCreateUserFromAniList(viewer, accessToken);
+    if (result === "signups_closed") return { type: "error", reason: "signups_closed" };
     if (!result) return { type: "error", reason: "user_creation" };
 
     const { user } = result;
@@ -209,7 +217,8 @@ export function anilistLoginErrorRedirect(req: Request, reason: string) {
     process.env.NEXT_PUBLIC_APP_URL ??
     req.headers.get("origin") ??
     new URL(req.url).origin;
-  return NextResponse.redirect(`${origin.replace(/\/$/, "")}/home?anilist=${reason}`);
+  // Landing is public under the access gate; /home is not for guests.
+  return NextResponse.redirect(`${origin.replace(/\/$/, "")}/?anilist=${reason}`);
 }
 
 export function anilistLoginSuccessRedirect(req: Request, token: string) {

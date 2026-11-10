@@ -5,10 +5,14 @@ import LoginPopoverButton from "@/components/auth/login-popover-button";
 import { useAuthStore } from "@/store/auth-store";
 import { useT } from "@/providers/i18n-provider";
 import { trackEvent } from "@/lib/analytics";
+import { useOpenSignups } from "@/hooks/use-open-signups";
+import TelegramIcon from "@/icons/telegram";
 
 export default function LandingSyncStory() {
   const t = useT();
   const isLoggedIn = !!useAuthStore((s) => s.auth);
+  const { open: openSignups, telegramUrl, loaded } = useOpenSignups();
+  const signupsClosed = loaded && !openSignups;
 
   return (
     <section className="relative z-10 px-4 sm:px-6 md:px-12 py-14 sm:py-16 border-t border-white/[0.06]">
@@ -21,7 +25,19 @@ export default function LandingSyncStory() {
           <p className="text-sm text-white/40 leading-relaxed mb-6 max-w-md">
             {t("landing.syncDesc")}
           </p>
-          {!isLoggedIn && (
+          {!isLoggedIn && signupsClosed && (
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackEvent("landing_sync_telegram")}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 text-white text-sm font-bold hover:bg-sky-400 transition-colors"
+            >
+              <TelegramIcon className="h-4 w-4" />
+              {t("landing.telegramWaitlistCta")}
+            </a>
+          )}
+          {!isLoggedIn && !signupsClosed && (
             <LoginPopoverButton
               defaultTab="signup"
               customTrigger={

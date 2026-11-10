@@ -12,11 +12,19 @@ import {
 } from "@/lib/auth/local-auth";
 import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
 import { assertAuthSecretsConfigured } from "@/lib/security/security";
+import { isOpenSignupsEnabled, SIGNUPS_CLOSED_MESSAGE } from "@/lib/auth/open-signups";
 
 export async function POST(req: Request) {
   const misconfigured = assertAuthSecretsConfigured();
   if (misconfigured) {
     return NextResponse.json({ error: misconfigured }, { status: 503 });
+  }
+
+  if (!isOpenSignupsEnabled()) {
+    return NextResponse.json(
+      { error: SIGNUPS_CLOSED_MESSAGE, code: "signups_closed" },
+      { status: 403 },
+    );
   }
 
   const ip = getClientIp(req);
