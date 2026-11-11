@@ -45,6 +45,11 @@ class SegmentStripDataSource(
             ?.joinToString(",")
             .orEmpty()
             .lowercase()
+        // Never strip subtitle / text fetches — PNG unwrap is HLS-segment only.
+        // Stripping VTT/SRT bytes makes captions selectable but blank on screen.
+        if (isSubtitleOrText(url, contentType)) {
+            return opened
+        }
         val urlSaysStrip = shouldStrip(url)
         val typeSaysStrip = contentType.contains("image/png") ||
             contentType.contains("image/x-png")
@@ -107,6 +112,20 @@ class SegmentStripDataSource(
     }
 
     private fun shouldStrip(url: String): Boolean = stripUrlRe.matcher(url).find()
+
+    private fun isSubtitleOrText(url: String, contentType: String): Boolean {
+        val lower = url.lowercase()
+        if (lower.contains(".vtt") || lower.contains(".srt") ||
+            lower.contains(".ass") || lower.contains(".ssa") ||
+            lower.contains("subtitle") || lower.contains("/subs")
+        ) {
+            return true
+        }
+        return contentType.contains("text/") ||
+            contentType.contains("vtt") ||
+            contentType.contains("subrip") ||
+            contentType.contains("ssa")
+    }
 
     private fun readFullyInto(buf: ByteArray): Int {
         var got = 0

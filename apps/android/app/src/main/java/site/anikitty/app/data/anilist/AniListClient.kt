@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Public AniList GraphQL — catalog metadata only.
+ * AniList GraphQL — public catalog + optional authenticated MediaList sync.
  * Cached + rate-limited so the app does not trip AniList's public API limits.
  */
 class AniListClient(
@@ -43,6 +43,111 @@ class AniListClient(
         averageScore
         description(asHtml: false)
     """.trimIndent()
+
+    suspend fun viewer(accessToken: String): AniListViewer? = withContext(Dispatchers.IO) {
+        val graphql = """
+            query {
+              Viewer {
+                id
+                name
+                avatar { large }
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject().put("query", graphql).toString()
+        val body = execute(payload, accessToken)
+        val viewer = JSONObject(body).optJSONObject("data")?.optJSONObject("Viewer")
+            ?: return@withContext null
+        AniListViewer(
+            id = viewer.getInt("id"),
+            name = viewer.optString("name").ifBlank { "AniList" },
+            avatarUrl = viewer.optJSONObject("avatar")?.nullableString("large"),
+        )
+    }
+
+    suspend fun mediaListEntries(
+        accessToken: String,
+        userId: Int,
+    ): List<AniListMediaListEntry> = withContext(Dispatchers.IO) {
+        val graphql = """
+            query (${'$'}userId: Int, ${'$'}type: MediaType) {
+              MediaListCollection(userId: ${'$'}userId, type: ${'$'}type) {
+                lists {
+                  status
+                  entries {
+                    status
+                    progress
+                    media { $mediaFields }
+                  }
+                }
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject()
+            .put("query", graphql)
+            .put(
+                "variables",
+                JSONObject()
+                    .put("userId", userId)
+                    .put("type", "ANIME"),
+            )
+            .toString()
+        val body = execute(payload, accessToken)
+        val lists = JSONObject(body)
+            .optJSONObject("data")
+            ?.optJSONObject("MediaListCollection")
+            ?.optJSONArray("lists")
+            ?: return@withContext emptyList()
+        buildList {
+            for (i in 0 until lists.length()) {
+                val list = lists.optJSONObject(i) ?: continue
+                val listStatus = list.optString("status").ifBlank { "CURRENT" }
+                val entries = list.optJSONArray("entries") ?: continue
+                for (j in 0 until entries.length()) {
+                    val row = entries.optJSONObject(j) ?: continue
+                    val media = row.optJSONObject("media") ?: continue
+                    add(
+                        AniListMediaListEntry(
+                            status = row.optString("status").ifBlank { listStatus },
+                            progress = row.optInt("progress", 0).coerceAtLeast(0),
+                            media = parseMedia(media),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    suspend fun saveProgress(
+        accessToken: String,
+        mediaId: Int,
+        progress: Int,
+        status: String = "CURRENT",
+    ): Boolean = withContext(Dispatchers.IO) {
+        val graphql = """
+            mutation (${'$'}mediaId: Int, ${'$'}status: MediaListStatus, ${'$'}progress: Int) {
+              SaveMediaListEntry(mediaId: ${'$'}mediaId, status: ${'$'}status, progress: ${'$'}progress) {
+                id
+                status
+                progress
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject()
+            .put("query", graphql)
+            .put(
+                "variables",
+                JSONObject()
+                    .put("mediaId", mediaId)
+                    .put("status", status)
+                    .put("progress", progress),
+            )
+            .toString()
+        runCatching {
+            val body = execute(payload, accessToken)
+            JSONObject(body).optJSONObject("data")?.optJSONObject("SaveMediaListEntry") != null
+        }.getOrDefault(false)
+    }
 
     suspend fun trending(page: Int = 1, perPage: Int = 24): List<AnimeSummary> =
         queryMedia(
@@ -115,7 +220,7 @@ class AniListClient(
             .put("query", graphql)
             .put("variables", JSONObject().put("id", id))
             .toString()
-        val body = execute(payload)
+        val body = execute(payload, accessToken = null)
         cache?.put(cacheKey, body)
         val media = JSONObject(body).optJSONObject("data")?.optJSONObject("Media")
             ?: return@withContext null
@@ -138,7 +243,7 @@ class AniListClient(
             .put("query", graphql)
             .put("variables", JSONObject(variables))
             .toString()
-        val body = execute(payload)
+        val body = execute(payload, accessToken = null)
         cache?.putList(cacheKey, body)
         val media = JSONObject(body)
             .getJSONObject("data")
@@ -151,7 +256,7 @@ class AniListClient(
         }
     }
 
-    private suspend fun execute(payload: String): String {
+    private suspend fun execute(payload: String, accessToken: String?): String {
         gate.withLock {
             val now = System.currentTimeMillis()
             val wait = MIN_INTERVAL_MS - (now - lastRequestAt.get())
@@ -160,12 +265,15 @@ class AniListClient(
             var lastError: Exception? = null
             while (attempt < 3) {
                 attempt++
-                val request = Request.Builder()
+                val requestBuilder = Request.Builder()
                     .url(ENDPOINT)
                     .post(payload.toRequestBody(jsonMedia))
                     .header("Accept", "application/json")
                     .header("Content-Type", "application/json")
-                    .build()
+                if (!accessToken.isNullOrBlank()) {
+                    requestBuilder.header("Authorization", "Bearer $accessToken")
+                }
+                val request = requestBuilder.build()
                 data class Attempt(val body: String? = null, val retryAfterSec: Long? = null, val error: Exception? = null)
                 val attemptResult = try {
                     http.newCall(request).execute().use { response ->
@@ -181,7 +289,19 @@ class AniListClient(
                                     "AniList HTTP ${response.code}: ${body.take(200)}",
                                 ),
                             )
-                            else -> Attempt(body = body)
+                            else -> {
+                                val err = JSONObject(body).optJSONArray("errors")
+                                if (err != null && err.length() > 0) {
+                                    Attempt(
+                                        error = IllegalStateException(
+                                            err.optJSONObject(0)?.optString("message")
+                                                ?: "AniList GraphQL error",
+                                        ),
+                                    )
+                                } else {
+                                    Attempt(body = body)
+                                }
+                            }
                         }
                     }
                 } catch (e: Exception) {

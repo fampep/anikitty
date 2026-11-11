@@ -37,6 +37,7 @@ suspend fun WatchHistoryDao.touchFromCatalog(anime: AnimeSummary) {
                 title = anime.title,
                 coverImageUrl = anime.coverImageUrl ?: existing.coverImageUrl,
                 updatedAtEpochMs = now,
+                malId = anime.malId ?: existing.malId,
             ),
         )
     } else {
@@ -49,6 +50,7 @@ suspend fun WatchHistoryDao.touchFromCatalog(anime: AnimeSummary) {
                 positionMs = 0L,
                 durationMs = 0L,
                 updatedAtEpochMs = now,
+                malId = anime.malId,
             ),
         )
     }
