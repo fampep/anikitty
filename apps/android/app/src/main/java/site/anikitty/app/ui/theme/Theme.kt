@@ -5,20 +5,25 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-private val Sky = Color(0xFF0EA5E9)
-private val Deep = Color(0xFF0284C7)
-private val Ink = Color(0xFF0B1220)
-private val Mist = Color(0xFFF1F5F9)
+/** Anilab-inspired dark + brand red (#e50914 / #141414). */
+private val BrandRed = Color(0xFFE50914)
+private val BrandDark = Color(0xFF141414)
+private val BrandSurface = Color(0xFF1F1F1F)
+private val BrandGray = Color(0xFF2F2F2F)
+private val OnDark = Color(0xFFF5F5F5)
+private val Muted = Color(0xFFB3B3B3)
 
-/** Always dark — AniKitty APK is dark-themed. */
 private val DarkColors = darkColorScheme(
-    primary = Sky,
-    secondary = Deep,
-    background = Ink,
-    surface = Color(0xFF111827),
+    primary = BrandRed,
     onPrimary = Color.White,
-    onBackground = Mist,
-    onSurface = Mist,
+    secondary = BrandGray,
+    onSecondary = OnDark,
+    background = BrandDark,
+    onBackground = OnDark,
+    surface = BrandSurface,
+    onSurface = OnDark,
+    onSurfaceVariant = Muted,
+    outline = BrandGray,
 )
 
 @Composable

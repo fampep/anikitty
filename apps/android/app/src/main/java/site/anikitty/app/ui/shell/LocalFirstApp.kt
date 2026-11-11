@@ -66,7 +66,6 @@ fun LocalFirstApp(
     historyDao: WatchHistoryDao,
     streamServers: ServerCatalog,
     username: String,
-    serverBaseUrl: String,
     onSignOut: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.Home) }
@@ -78,7 +77,7 @@ fun LocalFirstApp(
                     Column {
                         Text("AniKitty")
                         Text(
-                            "$username · streams on-device · auth @$serverBaseUrl",
+                            "$username · streams on-device",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
