@@ -23,7 +23,7 @@
 
 <br />
 
-AniKitty is moving to an **Android APK product** (Kotlin / Jetpack Compose under `apps/android/`). The Next.js deploy remains the **API/backend** (auth, catalog, streams, admin) and an optional web client — not a Capacitor/TWA wrap of the site.
+AniKitty’s product is the **Android APK** + **Go dedicated server** (`apps/android`, `apps/dedicated-server`). Sign-in is required against **your** server DB (no Discord/AniList accounts). Users **select a built-in watch server** (not third-party extensions); the phone resolves a playable URL and streams on-device. The old website is not the product focus.
 
 ---
 
@@ -31,13 +31,12 @@ AniKitty is moving to an **Android APK product** (Kotlin / Jetpack Compose under
 
 | | |
 |---|---|
-| **Android-first** | Native Compose scaffold in `apps/android/` — debug APK build path lives there |
+| **Android APK** | Compose app in `apps/android/` — sign in to your dedicated server |
+| **On-device data** | Watch history in Room; optional sync to Go server |
+| **Watch servers** | Built-in selectable servers (e.g. Anikoto) — URL resolve on phone, no 3rd-party installs |
+| **Streaming** | Media3 on the phone; dedicated server never carries stream bytes |
 | **No ads** | No popups, redirects, or trackers |
-| **Passphrase + passkeys** | New accounts use a one-time passphrase; sign-in is passkey-first (web today; Credential Manager planned on Android) |
-| **Access gating** | Catalog and watch require login; signups open or closed via `OPEN_SIGNUPS` |
-| **Player** | Web: Vidstack + HLS; Android playback (Media3) comes in a later milestone |
-| **Library** | Continue watching, bookmarks, schedule, search, profiles, comments |
-| **API backend** | Coolify-hosted Next.js serves `/api/**` for the APK (and current web UI) |
+| **Web (optional)** | Legacy site stack — separate from the APK product |
 
 ---
 
@@ -62,8 +61,8 @@ Set `OPEN_SIGNUPS` as a **runtime** Coolify variable (not build-time).
 
 | Layer | Technology |
 |---|---|
-| **Product (Android)** | Kotlin, Jetpack Compose, OkHttp (`apps/android/`) |
-| API / web backend | Next.js 15 (App Router), TypeScript |
+| **Product (Android)** | Kotlin, Jetpack Compose, Room, AniList GraphQL (`apps/android/`) |
+| API / web (optional) | Next.js 15 (App Router), TypeScript |
 | Styling (web) | Tailwind CSS + shadcn/ui |
 | Database | PostgreSQL via Drizzle ORM |
 | State (web) | Zustand + React Query |
@@ -75,7 +74,7 @@ Set `OPEN_SIGNUPS` as a **runtime** Coolify variable (not build-time).
 
 ---
 
-## Android APK (scaffold)
+## Android APK (local-first)
 
 ```bash
 cd apps/android
@@ -85,7 +84,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 Or from the repo root: `npm run android:assembleDebug`.
 
-See [`apps/android/README.md`](apps/android/README.md) for SDK setup, auth/API consumption, and signing placeholders. Full feature port is **not** done in the scaffold PR.
+See [`apps/android/README.md`](apps/android/README.md). No sign-in in the APK; history stays on the device.
 
 ---
 

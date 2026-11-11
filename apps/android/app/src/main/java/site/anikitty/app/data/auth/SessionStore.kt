@@ -4,14 +4,11 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
-/**
- * Stores the session JWT returned by `POST /api/account/auth/login` (`token` field).
- * The Next.js middleware accepts the same value as `Authorization: Bearer <token>`.
- */
-class TokenStore(context: Context) {
+/** JWT from the dedicated Go server. Sign-in is required. */
+class SessionStore(context: Context) {
     private val prefs = EncryptedSharedPreferences.create(
         context,
-        "anikitty_auth",
+        "anikitty_session",
         MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build(),
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
@@ -25,14 +22,22 @@ class TokenStore(context: Context) {
             }.apply()
         }
 
-    val isSignedIn: Boolean
-        get() = !token.isNullOrBlank()
+    var username: String?
+        get() = prefs.getString(KEY_USER, null)
+        set(value) {
+            prefs.edit().apply {
+                if (value.isNullOrBlank()) remove(KEY_USER) else putString(KEY_USER, value)
+            }.apply()
+        }
+
+    val isSignedIn: Boolean get() = !token.isNullOrBlank()
 
     fun clear() {
-        token = null
+        prefs.edit().clear().apply()
     }
 
     private companion object {
-        const val KEY_TOKEN = "session_jwt"
+        const val KEY_TOKEN = "jwt"
+        const val KEY_USER = "username"
     }
 }
