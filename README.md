@@ -9,6 +9,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Pre--release-1.0.0-orange?style=for-the-badge" alt="Pre-release 1.0.0" /></a>
   <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
   <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fampep/anikitty?style=for-the-badge&color=0284c7" alt="License" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24+-0ea5e9?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js 24+" /></a>
@@ -21,9 +22,12 @@
   <a href="https://github.com/fampep/anikitty/issues"><img src="https://img.shields.io/badge/Issues-welcome-0369a1?style=for-the-badge&logo=github&logoColor=white" alt="Issues" /></a>
 </p>
 
+> [!WARNING]
+> **Work in progress.** AniKitty is under active development. The Android app and dedicated server are unfinished: expect bugs, missing features, broken playback on some titles, and breaking changes. The first GitHub build ([**v1.0.0 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.0.0)) is for early testing only — not a finished product.
+
 <br />
 
-AniKitty’s product is the **Android APK** + **Go dedicated server** (`apps/android`, `apps/dedicated-server`). Sign-in is required against **your** server DB (no Discord/AniList accounts). Users **select a built-in watch server** (not third-party extensions); the phone resolves a playable URL and streams on-device. The old website is not the product focus.
+AniKitty’s product is the **Android APK** + **Go dedicated server** (`apps/android`, `apps/dedicated-server`). Sign-in is required against **your** server DB (password-only; no Discord/AniList accounts). Users **select a built-in watch server** (not third-party extensions); the phone resolves a playable URL and streams on-device. The old website is not the product focus.
 
 ---
 
@@ -76,15 +80,17 @@ Set `OPEN_SIGNUPS` as a **runtime** Coolify variable (not build-time).
 
 ## Android APK (local-first)
 
+> Still **WIP** — use the [v1.0.0 pre-release](https://github.com/fampep/anikitty/releases/tag/v1.0.0) APK for early installs, or build from source:
+
 ```bash
 cd apps/android
-./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+./gradlew :app:assembleRelease
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
 
 Or from the repo root: `npm run android:assembleDebug`.
 
-See [`apps/android/README.md`](apps/android/README.md). No sign-in in the APK; history stays on the device.
+See [`apps/android/README.md`](apps/android/README.md). Password-only sign-in against your dedicated server; watch history stays on-device (optional sync).
 
 ---
 
