@@ -42,9 +42,15 @@ object PlayerChrome {
     val Graphite = Paper.copy(alpha = 0.60f)
     val Faint = Paper.copy(alpha = 0.38f)
     val Smoke = Color(0xFF000000).copy(alpha = 0.82f)
+    val Sheet = Color(0xF0141416)
+    val SheetStroke = Color.White.copy(alpha = 0.12f)
+    val RowSelected = Color.White.copy(alpha = 0.12f)
     val Disc = Color(0xFF16171A).copy(alpha = 0.55f)
     val DiscStroke = Color.White.copy(alpha = 0.13f)
     val Accent = Color(0xFFFFFFFF)
+    val MarkerIntro = Paper.copy(alpha = 0.55f)
+    val MarkerCredits = Paper.copy(alpha = 0.35f)
+    val MarkerRecap = Paper.copy(alpha = 0.45f)
 }
 
 private val DarkColors = darkColorScheme(

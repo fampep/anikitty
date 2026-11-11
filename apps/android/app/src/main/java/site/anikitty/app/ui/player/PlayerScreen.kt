@@ -41,16 +41,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.FullscreenExit
 import androidx.compose.material.icons.rounded.Forward10
 import androidx.compose.material.icons.rounded.Hd
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
@@ -87,6 +91,7 @@ import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
@@ -113,7 +118,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-private enum class Panel { None, Quality, Subs, Style, Display }
+private enum class Panel { None, Quality, Subs, Style, Display, Speed }
 
 /**
  * Caption look. [sizeFraction] is a share of the player viewport height so
@@ -182,6 +187,9 @@ fun PlayerScreen(
     var selectedTextId by remember { mutableStateOf("auto") }
     var textOptions by remember { mutableStateOf<List<TextOption>>(emptyList()) }
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
+    var playbackSpeed by remember { mutableFloatStateOf(1f) }
+    var controlsLocked by remember { mutableStateOf(false) }
+    var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
 
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
@@ -270,12 +278,23 @@ fun PlayerScreen(
                 setMediaItem(itemBuilder.build())
                 playWhenReady = true
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+                playbackParameters = PlaybackParameters(playbackSpeed)
                 prepare()
             }
         PlayerBundle(exo, selector)
     }
     val player = playerBundle?.player
     val trackSelector = playerBundle?.trackSelector
+
+    LaunchedEffect(player, playbackSpeed) {
+        player?.playbackParameters = PlaybackParameters(playbackSpeed)
+    }
+
+    LaunchedEffect(seekFlashDir) {
+        if (seekFlashDir == 0) return@LaunchedEffect
+        delay(520)
+        seekFlashDir = 0
+    }
 
     DisposableEffect(playerBundle) {
         ready = false
@@ -441,7 +460,8 @@ fun PlayerScreen(
         val target = (p.currentPosition + deltaMs).coerceIn(0L, p.duration.coerceAtLeast(0L))
         p.seekTo(target)
         positionMs = target
-        controlsVisible = true
+        seekFlashDir = if (deltaMs < 0) -1 else 1
+        if (!controlsLocked) controlsVisible = true
     }
 
     fun skipTo(endMs: Long) {
@@ -473,9 +493,13 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(KittyInk)
-            .pointerInput(Unit) {
+            .pointerInput(controlsLocked) {
                 detectTapGestures(
                     onTap = {
+                        if (controlsLocked) {
+                            controlsVisible = true
+                            return@detectTapGestures
+                        }
                         if (panel != Panel.None) {
                             panel = Panel.None
                         } else {
@@ -483,11 +507,36 @@ fun PlayerScreen(
                         }
                     },
                     onDoubleTap = { offset ->
+                        if (controlsLocked) return@detectTapGestures
                         if (offset.x < size.width / 2f) seekBy(-10_000) else seekBy(10_000)
                     },
                 )
             },
     ) {
+        AnimatedVisibility(
+            visible = seekFlashDir != 0,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(if (seekFlashDir < 0) Alignment.CenterStart else Alignment.CenterEnd)
+                .padding(horizontal = 36.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .border(1.dp, PlayerChrome.DiscStroke, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    if (seekFlashDir < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward10,
+                    contentDescription = null,
+                    tint = PlayerChrome.Paper,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+        }
         if (player != null && error == null) {
             AndroidView(
                 factory = { ctx ->
@@ -543,8 +592,24 @@ fun PlayerScreen(
             }
         }
 
+        if (controlsLocked && controlsVisible) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(16.dp),
+            ) {
+                ChromeDisc(onClick = {
+                    controlsLocked = false
+                    controlsVisible = true
+                }, size = 48.dp) {
+                    Icon(Icons.Rounded.LockOpen, contentDescription = "Unlock", tint = PlayerChrome.Paper)
+                }
+            }
+        }
+
         AnimatedVisibility(
-            visible = controlsVisible || error != null || panel != Panel.None,
+            visible = !controlsLocked && (controlsVisible || error != null || panel != Panel.None),
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize(),
@@ -589,13 +654,22 @@ fun PlayerScreen(
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "EPISODE $episode",
-                            color = PlayerChrome.Accent,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.9.sp,
-                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(999.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                "EP $episode",
+                                color = PlayerChrome.Paper,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.8.sp,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             title,
                             color = PlayerChrome.Paper,
@@ -604,6 +678,14 @@ fun PlayerScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    ChromeDisc(onClick = {
+                        controlsLocked = true
+                        panel = Panel.None
+                        controlsVisible = false
+                    }) {
+                        Icon(Icons.Rounded.Lock, contentDescription = "Lock controls", tint = PlayerChrome.Paper)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
                     ChromeDisc(onClick = {
                         immersive = !immersive
                         controlsVisible = true
@@ -745,7 +827,7 @@ fun PlayerScreen(
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         ToolChip(
@@ -759,7 +841,7 @@ fun PlayerScreen(
                         )
                         ToolChip(
                             icon = Icons.Rounded.ClosedCaption,
-                            label = subLabel,
+                            label = subLabel.take(10),
                             active = panel == Panel.Subs || panel == Panel.Style,
                             onClick = {
                                 panel = if (panel == Panel.Subs || panel == Panel.Style) {
@@ -767,6 +849,15 @@ fun PlayerScreen(
                                 } else {
                                     Panel.Subs
                                 }
+                                controlsVisible = true
+                            },
+                        )
+                        ToolChip(
+                            icon = Icons.Rounded.Speed,
+                            label = speedLabel(playbackSpeed),
+                            active = panel == Panel.Speed,
+                            onClick = {
+                                panel = if (panel == Panel.Speed) Panel.None else Panel.Speed
                                 controlsVisible = true
                             },
                         )
@@ -779,10 +870,6 @@ fun PlayerScreen(
                                 controlsVisible = true
                             },
                         )
-                        Spacer(modifier = Modifier.weight(1f))
-                        if (!skipTimes.isEmpty) {
-                            Text("Timestamps", color = PlayerChrome.Faint, fontSize = 11.sp)
-                        }
                     }
                 }
 
@@ -827,6 +914,13 @@ fun PlayerScreen(
                                 onResize = { resizeMode = it },
                                 onImmersive = { immersive = it },
                             )
+                            Panel.Speed -> SpeedSheet(
+                                speed = playbackSpeed,
+                                onPick = {
+                                    playbackSpeed = it
+                                    panel = Panel.None
+                                },
+                            )
                             Panel.None -> Unit
                         }
                     }
@@ -845,8 +939,8 @@ private fun PlayerSheet(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xF0121212))
-            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+            .background(PlayerChrome.Sheet)
+            .border(1.dp, PlayerChrome.SheetStroke, RoundedCornerShape(18.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -857,6 +951,19 @@ private fun PlayerSheet(
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             content()
         }
+    }
+}
+
+@Composable
+private fun SpeedSheet(speed: Float, onPick: (Float) -> Unit) {
+    SheetTitle("Speed")
+    Spacer(modifier = Modifier.height(10.dp))
+    listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEach { rate ->
+        SheetRow(
+            label = speedLabel(rate),
+            selected = kotlin.math.abs(speed - rate) < 0.01f,
+            onClick = { onPick(rate) },
+        )
     }
 }
 
@@ -1129,8 +1236,8 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) Color.White.copy(alpha = 0.12f) else Color.Transparent)
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) PlayerChrome.RowSelected else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1143,7 +1250,12 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
             modifier = Modifier.weight(1f),
         )
         if (selected) {
-            Text("●", color = PlayerChrome.Accent, fontSize = 10.sp)
+            Icon(
+                Icons.Rounded.Check,
+                contentDescription = null,
+                tint = PlayerChrome.Paper,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }
@@ -1180,28 +1292,28 @@ private fun ToolChip(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (active) PlayerChrome.Paper else Color.White.copy(alpha = 0.1f))
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (active) PlayerChrome.Paper else Color.White.copy(alpha = 0.08f))
             .border(
                 1.dp,
-                if (active) PlayerChrome.Paper else Color.White.copy(alpha = 0.12f),
-                RoundedCornerShape(999.dp),
+                if (active) PlayerChrome.Paper else PlayerChrome.DiscStroke,
+                RoundedCornerShape(12.dp),
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp, vertical = 7.dp),
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Icon(
             icon,
             contentDescription = null,
             tint = if (active) PlayerChrome.Ink else PlayerChrome.Paper,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(15.dp),
         )
         Text(
             label,
             color = if (active) PlayerChrome.Ink else PlayerChrome.Paper,
-            fontSize = 12.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1223,10 +1335,10 @@ private fun SkipMarkers(skipTimes: SkipTimes, durationMs: Long) {
             val start = (iv.startMs / dur).coerceIn(0f, 1f)
             val end = (iv.endMs / dur).coerceIn(0f, 1f)
             val color = when (kind) {
-                "intro" -> Color(0xFF93C5FD)
-                "credits" -> Color(0xFFFDBA74)
-                "recap" -> Color(0xFFC4B5FD)
-                else -> Color.White.copy(alpha = 0.45f)
+                "intro" -> PlayerChrome.MarkerIntro
+                "credits" -> PlayerChrome.MarkerCredits
+                "recap" -> PlayerChrome.MarkerRecap
+                else -> PlayerChrome.Faint
             }
             Box(
                 modifier = Modifier
@@ -1442,6 +1554,14 @@ private fun resizeLabel(mode: Int): String = when (mode) {
     AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Fill"
     AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Stretch"
     else -> "Fit"
+}
+
+private fun speedLabel(speed: Float): String {
+    return when {
+        kotlin.math.abs(speed - 1f) < 0.01f -> "1×"
+        speed == speed.toInt().toFloat() -> "${speed.toInt()}×"
+        else -> String.format(Locale.US, "%.2g×", speed)
+    }
 }
 
 private fun formatClock(ms: Long): String {

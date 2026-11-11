@@ -39,10 +39,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyInk
+import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittySurface
+import site.anikitty.app.ui.theme.KittyText
 
-/** Web `HomeSectionLink` — left zinc gradient bar + bold title. */
+/** Web `HomeSectionLink` — left paper gradient bar + bold title. */
 @Composable
 fun KittySectionHeading(
     title: String,
@@ -60,14 +63,14 @@ fun KittySectionHeading(
         Box(
             modifier = Modifier
                 .width(2.dp)
-                .height(if (subtitle == null) 20.dp else 28.dp)
+                .height(if (subtitle == null) 22.dp else 30.dp)
                 .clip(RoundedCornerShape(999.dp))
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFFD4D4D8),
-                            Color(0xFF71717A),
-                            Color(0xFF3F3F46).copy(alpha = 0.30f),
+                            Color.White.copy(alpha = 0.90f),
+                            Color.White.copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.08f),
                         ),
                     ),
                 ),
@@ -77,13 +80,14 @@ fun KittySectionHeading(
                 title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = KittyText,
             )
             if (!subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.40f),
+                    color = KittyFaint,
                 )
             }
         }
@@ -107,7 +111,7 @@ fun KittyPosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3.05f)
-                .clip(RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(12.dp))
                 .background(KittySurface),
         ) {
             AsyncImage(
@@ -122,8 +126,8 @@ fun KittyPosterCard(
                     .background(
                         Brush.verticalGradient(
                             0f to Color.Transparent,
-                            0.72f to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.55f),
+                            0.55f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.72f),
                         ),
                     ),
             )
@@ -132,23 +136,23 @@ fun KittyPosterCard(
                     "★ $score",
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color.Black.copy(alpha = 0.72f))
+                        .padding(7.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(Color.White)
                         .padding(horizontal = 6.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
+                    color = KittyInk,
                     fontWeight = FontWeight.Bold,
                 )
             }
         }
         Text(
             anime.title,
-            modifier = Modifier.padding(top = 7.dp),
+            modifier = Modifier.padding(top = 8.dp),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White,
+            color = KittyText,
             fontWeight = FontWeight.Medium,
         )
         if (!subtitle.isNullOrBlank()) {
@@ -157,7 +161,7 @@ fun KittyPosterCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.40f),
+                color = KittyFaint,
             )
         } else {
             val meta = listOfNotNull(
@@ -170,8 +174,48 @@ fun KittyPosterCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.40f),
+                    color = KittyFaint,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun KittyPosterSkeletonRow(title: String = "Loading") {
+    Column(modifier = Modifier.padding(top = 22.dp)) {
+        KittySectionHeading(title = title, subtitle = "Fetching the catalog…")
+        Spacer(modifier = Modifier.height(12.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(6) {
+                Column(modifier = Modifier.width(120.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(2f / 3.05f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(KittySurface),
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.White.copy(alpha = 0.10f)),
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.45f)
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color.White.copy(alpha = 0.06f)),
+                    )
+                }
             }
         }
     }
@@ -216,7 +260,7 @@ fun KittyHero(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(300.dp)
             .clickable(onClick = onOpen),
     ) {
         AsyncImage(
@@ -230,9 +274,9 @@ fun KittyHero(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to KittyInk.copy(alpha = 0.35f),
-                        0.40f to KittyInk.copy(alpha = 0.15f),
-                        0.72f to KittyInk.copy(alpha = 0.78f),
+                        0f to KittyInk.copy(alpha = 0.42f),
+                        0.38f to KittyInk.copy(alpha = 0.12f),
+                        0.70f to KittyInk.copy(alpha = 0.82f),
                         1f to KittyInk,
                     ),
                 ),
@@ -242,8 +286,8 @@ fun KittyHero(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0f to KittyInk.copy(alpha = 0.40f),
-                        0.40f to Color.Transparent,
+                        0f to KittyInk.copy(alpha = 0.45f),
+                        0.42f to Color.Transparent,
                         1f to Color.Transparent,
                     ),
                 ),
@@ -256,21 +300,21 @@ fun KittyHero(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 18.dp, vertical = 18.dp),
+                .padding(horizontal = 18.dp, vertical = 20.dp),
         ) {
             Text(
                 eyebrow.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.72f),
+                color = KittyMuted,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp,
+                letterSpacing = 1.4.sp,
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 anime.title,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = KittyText,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -280,25 +324,25 @@ fun KittyHero(
                 anime.averageScore?.let { "★ $it" },
             ).joinToString(" · ")
             if (meta.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(5.dp))
                 Text(
                     meta,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = KittyMuted,
                 )
             }
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             Button(
                 onClick = onOpen,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black,
                 ),
-                shape = RoundedCornerShape(12.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                shape = RoundedCornerShape(14.dp),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
             ) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(4.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(cta, fontWeight = FontWeight.Bold)
             }
         }
@@ -380,22 +424,27 @@ fun KittyContinueCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Ep $episode",
+                    buildString {
+                        append("Ep $episode")
+                        if (durationMs > 0L) {
+                            append(" · ${(progress * 100f).toInt()}%")
+                        }
+                    },
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.65f),
+                    color = Color.White.copy(alpha = 0.70f),
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(7.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(3.dp)
+                        .height(2.5.dp)
                         .clip(RoundedCornerShape(999.dp))
                         .background(Color.White.copy(alpha = 0.18f)),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progress)
-                            .height(3.dp)
+                            .height(2.5.dp)
                             .clip(RoundedCornerShape(999.dp))
                             .background(Color.White),
                     )
