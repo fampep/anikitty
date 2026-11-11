@@ -16,11 +16,11 @@ export JWT_SECRET="$(openssl rand -base64 48)"
 go run ./cmd/server   # :8788
 ```
 
-Dedicated Server URL is **locked** in the APK to `http://198.50.123.153:8788` (not editable).
+Auth UI is Anilab-inspired (dark + brand red). The dedicated server URL stays locked in code and is **never shown** in the app UI.
 
-Login uses a **username + passphrase** against that host. You can generate a random passphrase on create, and optionally save it on the phone/tablet for quick sign-in — the same passphrase still works on the host.
+Login uses **username + passphrase**. Generate a random passphrase on create; optionally save it on-device. Same passphrase works on the host.
 
-Debug APKs allow cleartext HTTP for this host; release builds require HTTPS (plus emulator/`localhost` cleartext exceptions). The UI is always dark-themed.
+Debug APKs allow cleartext HTTP to the locked host; release builds prefer HTTPS.
 
 ## Build APK
 
