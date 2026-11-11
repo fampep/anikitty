@@ -178,6 +178,19 @@ export default function LandingHero({ poster }: Props) {
                   {t("landing.exploreAnime")}
                 </Link>
               </>
+            ) : !signupStatusLoaded ? (
+              <LoginPopoverButton
+                defaultTab="login"
+                customTrigger={
+                  <button
+                    type="button"
+                    onClick={() => trackEvent("landing_sign_in")}
+                    className="flex items-center justify-center gap-2 px-7 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 w-full sm:w-auto"
+                  >
+                    {t("landing.signInToWatch")}
+                  </button>
+                }
+              />
             ) : signupsClosed ? (
               <>
                 <a

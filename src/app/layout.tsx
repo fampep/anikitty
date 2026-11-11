@@ -25,6 +25,7 @@ import OnlinePresence from "@/components/common/online-presence";
 import { buildSurfaceFoucScript } from "@/lib/core/site-surface";
 import DisableDevtoolGuard from "@/components/security/disable-devtool-guard";
 import ClickAdsLoader from "@/components/ads/click-ads-loader";
+import PassphraseOnboardingModal from "@/components/auth/passphrase-onboarding-modal";
 
 import { Toaster } from "@/components/ui/sonner";
 import { LOCALE_COOKIE, resolveLocale } from "@/i18n/config";
@@ -199,6 +200,7 @@ export default async function RootLayout({
               <DiscordWelcomePrompt />
               <SettingsSync />
               <OnlinePresence />
+              <PassphraseOnboardingModal />
             </QueryProvider>
           </ThemeProvider>
         </I18nRoot>

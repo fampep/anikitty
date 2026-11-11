@@ -110,7 +110,10 @@ export function folderToStatus(folder: string): string {
 // ── Auth ─────────────────────────────────────────────────────────────
 export const accountAuth = {
   login: (identifier: string, password: string) =>
-    bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
+    bff<Record<string, unknown> & { requires2fa?: boolean; pendingToken?: string }>(
+      "/auth/login",
+      { method: "POST", body: JSON.stringify({ identifier, password }) },
+    ),
 
   loginWithPassphrase: (passphrase: string) =>
     bff<Record<string, unknown> & { requires2fa?: boolean; pendingToken?: string }>(

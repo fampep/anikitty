@@ -10,6 +10,7 @@ type SignupStatus = {
 /** Whether open signups are enabled (runtime check via status API). */
 export function useOpenSignups(): SignupStatus {
   const [state, setState] = useState<SignupStatus>({
+    // Fail closed until the status endpoint answers.
     open: false,
     telegramUrl: TELEGRAM_CHANNEL_URL,
     loaded: false,
@@ -21,7 +22,16 @@ export function useOpenSignups(): SignupStatus {
     void (async () => {
       try {
         const res = await fetch("/api/account/auth/signup-status", { cache: "no-store" });
-        if (!res.ok) return;
+        if (!res.ok) {
+          if (!cancelled) {
+            setState({
+              open: false,
+              telegramUrl: TELEGRAM_CHANNEL_URL,
+              loaded: true,
+            });
+          }
+          return;
+        }
         const data = await res.json();
         if (!cancelled) {
           setState({
@@ -34,7 +44,13 @@ export function useOpenSignups(): SignupStatus {
           });
         }
       } catch {
-        if (!cancelled) setState((prev) => ({ ...prev, loaded: true }));
+        if (!cancelled) {
+          setState({
+            open: false,
+            telegramUrl: TELEGRAM_CHANNEL_URL,
+            loaded: true,
+          });
+        }
       }
     })();
 
