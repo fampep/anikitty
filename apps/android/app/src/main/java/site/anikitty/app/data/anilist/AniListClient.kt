@@ -86,16 +86,17 @@ class AniListClient(
                 for (i in 0 until media.length()) {
                     val item = media.getJSONObject(i)
                     val titles = item.getJSONObject("title")
-                    val title = titles.optString("english").ifBlank { titles.optString("romaji") }
+                    val title = titles.nullableString("english")
+                        ?: titles.nullableString("romaji")
+                        ?: "Anime #${item.getInt("id")}"
                     add(
                         AnimeSummary(
                             id = item.getInt("id"),
-                            title = title.ifBlank { "Anime #${item.getInt("id")}" },
-                            coverImageUrl = item.optJSONObject("coverImage")?.optString("large"),
-                            episodes = item.optInt("episodes").takeIf { item.has("episodes") && !item.isNull("episodes") },
-                            format = item.optString("format").takeIf { it.isNotBlank() },
-                            averageScore = item.optInt("averageScore")
-                                .takeIf { item.has("averageScore") && !item.isNull("averageScore") },
+                            title = title,
+                            coverImageUrl = item.optJSONObject("coverImage")?.nullableString("large"),
+                            episodes = item.nullableInt("episodes"),
+                            format = item.nullableString("format"),
+                            averageScore = item.nullableInt("averageScore"),
                         ),
                     )
                 }
@@ -105,5 +106,16 @@ class AniListClient(
 
     private companion object {
         const val ENDPOINT = "https://graphql.anilist.co"
+
+        /** Avoid org.json optString turning JSON null into the literal "null". */
+        fun JSONObject.nullableString(key: String): String? {
+            if (!has(key) || isNull(key)) return null
+            return getString(key).takeIf { it.isNotBlank() }
+        }
+
+        fun JSONObject.nullableInt(key: String): Int? {
+            if (!has(key) || isNull(key)) return null
+            return getInt(key)
+        }
     }
 }

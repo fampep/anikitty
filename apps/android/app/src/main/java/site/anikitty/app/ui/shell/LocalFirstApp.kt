@@ -55,7 +55,7 @@ import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.extensions.ExtensionRegistry
 import site.anikitty.app.data.local.WatchHistoryDao
-import site.anikitty.app.data.local.WatchHistoryEntity
+import site.anikitty.app.data.local.touchFromCatalog
 
 private enum class Tab { Home, Search, History, Extensions }
 
@@ -114,21 +114,21 @@ fun LocalFirstApp(
     ) { padding ->
         when (tab) {
             Tab.Home -> HomeTab(
-                modifier = Modifier.padding(padding),
+                modifier = Modifier.padding(padding).fillMaxSize(),
                 aniList = aniList,
                 historyDao = historyDao,
             )
             Tab.Search -> SearchTab(
-                modifier = Modifier.padding(padding),
+                modifier = Modifier.padding(padding).fillMaxSize(),
                 aniList = aniList,
                 historyDao = historyDao,
             )
             Tab.History -> HistoryTab(
-                modifier = Modifier.padding(padding),
+                modifier = Modifier.padding(padding).fillMaxSize(),
                 historyDao = historyDao,
             )
             Tab.Extensions -> ExtensionsTab(
-                modifier = Modifier.padding(padding),
+                modifier = Modifier.padding(padding).fillMaxSize(),
                 registry = extensions,
             )
         }
@@ -146,6 +146,17 @@ private fun HomeTab(
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     val scope = rememberCoroutineScope()
 
+    fun reload() {
+        scope.launch {
+            loading = true
+            error = null
+            runCatching { aniList.trending() }
+                .onSuccess { items = it }
+                .onFailure { error = it.message ?: "Failed to load trending" }
+            loading = false
+        }
+    }
+
     LaunchedEffect(Unit) {
         loading = true
         error = null
@@ -162,30 +173,9 @@ private fun HomeTab(
         loading = loading,
         error = error,
         items = items,
-        onRetry = {
-            scope.launch {
-                loading = true
-                error = null
-                runCatching { aniList.trending() }
-                    .onSuccess { items = it }
-                    .onFailure { error = it.message ?: "Failed to load trending" }
-                loading = false
-            }
-        },
+        onRetry = { reload() },
         onOpen = { anime ->
-            scope.launch {
-                historyDao.upsert(
-                    WatchHistoryEntity(
-                        anilistId = anime.id,
-                        title = anime.title,
-                        coverImageUrl = anime.coverImageUrl,
-                        episode = 1,
-                        positionMs = 0L,
-                        durationMs = 0L,
-                        updatedAtEpochMs = System.currentTimeMillis(),
-                    ),
-                )
-            }
+            scope.launch { historyDao.touchFromCatalog(anime) }
         },
     )
 }
@@ -202,7 +192,20 @@ private fun SearchTab(
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     val scope = rememberCoroutineScope()
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+    fun runSearch(q: String) {
+        if (q.isBlank()) return
+        scope.launch {
+            loading = true
+            error = null
+            items = emptyList()
+            runCatching { aniList.search(q) }
+                .onSuccess { items = it }
+                .onFailure { error = it.message ?: "Search failed" }
+            loading = false
+        }
+    }
+
+    Column(modifier = modifier.padding(16.dp)) {
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
@@ -212,18 +215,7 @@ private fun SearchTab(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Button(
-            onClick = {
-                val q = query.trim()
-                if (q.isEmpty()) return@Button
-                scope.launch {
-                    loading = true
-                    error = null
-                    runCatching { aniList.search(q) }
-                        .onSuccess { items = it }
-                        .onFailure { error = it.message ?: "Search failed" }
-                    loading = false
-                }
-            },
+            onClick = { runSearch(query.trim()) },
             enabled = !loading && query.isNotBlank(),
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -237,21 +229,9 @@ private fun SearchTab(
             loading = loading,
             error = error,
             items = items,
-            onRetry = {},
+            onRetry = { runSearch(query.trim()) },
             onOpen = { anime ->
-                scope.launch {
-                    historyDao.upsert(
-                        WatchHistoryEntity(
-                            anilistId = anime.id,
-                            title = anime.title,
-                            coverImageUrl = anime.coverImageUrl,
-                            episode = 1,
-                            positionMs = 0L,
-                            durationMs = 0L,
-                            updatedAtEpochMs = System.currentTimeMillis(),
-                        ),
-                    )
-                }
+                scope.launch { historyDao.touchFromCatalog(anime) }
             },
             contentPadding = PaddingValues(0.dp),
         )
@@ -266,7 +246,7 @@ private fun HistoryTab(
     val history by historyDao.observeAll().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = modifier.padding(16.dp)) {
         Text("On this device", style = MaterialTheme.typography.titleMedium)
         Text(
             "Watch history stays local. Clearing app data or uninstalling removes it.",
@@ -290,7 +270,10 @@ private fun HistoryTab(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 items(history, key = { it.anilistId }) { entry ->
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Row(
@@ -357,7 +340,7 @@ private fun ExtensionsTab(
     val entries by registry.entries.collectAsState()
 
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -408,7 +391,7 @@ private fun CatalogPane(
     onOpen: (AnimeSummary) -> Unit,
     contentPadding: PaddingValues = PaddingValues(16.dp),
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
+    Column(modifier = modifier) {
         if (title != null) {
             Text(
                 title,
@@ -427,7 +410,7 @@ private fun CatalogPane(
         when {
             loading && items.isEmpty() -> {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -436,7 +419,7 @@ private fun CatalogPane(
             }
             error != null && items.isEmpty() -> {
                 Column(
-                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    modifier = Modifier.weight(1f).fillMaxWidth().padding(24.dp),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -446,12 +429,20 @@ private fun CatalogPane(
                 }
             }
             else -> {
+                if (error != null) {
+                    Text(
+                        error,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(120.dp),
                     contentPadding = contentPadding,
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                 ) {
                     items(items, key = { it.id }) { anime ->
                         AnimeCard(anime = anime, onClick = { onOpen(anime) })
