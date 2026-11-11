@@ -10,6 +10,7 @@ import { useT } from "@/providers/i18n-provider";
 import {
   readCurrentNextParam,
   safeInternalNextPath,
+  takeStashedOAuthNextPath,
 } from "@/lib/auth/safe-next-path";
 
 /**
@@ -28,7 +29,10 @@ export default function PassphraseOnboardingModal() {
 
   const finish = () => {
     clear();
-    const next = readCurrentNextParam() ?? safeInternalNextPath("/home");
+    const next =
+      readCurrentNextParam() ??
+      takeStashedOAuthNextPath() ??
+      safeInternalNextPath("/home");
     if (typeof window !== "undefined" && next) {
       window.location.assign(next);
     }

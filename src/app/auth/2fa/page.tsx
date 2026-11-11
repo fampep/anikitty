@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { accountAuth, authFromMeResponse } from "@/lib/oauth/account";
 import { useAuthStore } from "@/store/auth-store";
 import { useT } from "@/providers/i18n-provider";
+import { takeStashedOAuthNextPath } from "@/lib/auth/safe-next-path";
 
 function TwoFactorForm() {
   const t = useT();
@@ -32,7 +33,8 @@ function TwoFactorForm() {
       const data = await accountAuth.verify2fa(token, totpCode);
       setAuth(authFromMeResponse(data));
       toast.success(t("auth.welcomeBack"));
-      router.replace("/home");
+      const dest = takeStashedOAuthNextPath() ?? "/home";
+      router.replace(dest);
     } catch (e: unknown) {
       const err = e as { body?: { error?: string } };
       toast.error(err?.body?.error ?? t("auth.invalidTotp"));
