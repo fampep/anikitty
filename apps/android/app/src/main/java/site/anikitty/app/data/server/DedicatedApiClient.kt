@@ -10,7 +10,7 @@ import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
 /**
- * Talks only to the dedicated Go server (accounts + history).
+ * Talks only to the dedicated Go server (accounts, history, comments, favorites).
  * Scraping / streaming never hits this host.
  */
 class DedicatedApiClient(
@@ -25,6 +25,29 @@ class DedicatedApiClient(
 
     data class AuthResult(val token: String, val userId: String)
 
+    data class Profile(
+        val userId: String,
+        val displayName: String,
+        val favorites: Int,
+        val comments: Int,
+    )
+
+    data class Comment(
+        val id: String,
+        val userId: String,
+        val displayName: String,
+        val anilistId: Long,
+        val episode: Long?,
+        val body: String,
+        val createdAtEpochMs: Long,
+    )
+
+    data class Favorite(
+        val anilistId: Long,
+        val title: String,
+        val coverImageUrl: String?,
+    )
+
     suspend fun health(): Boolean = withContext(Dispatchers.IO) {
         val req = Request.Builder().url(url("/health")).get().build()
         http.newCall(req).execute().use { it.isSuccessful }
@@ -36,14 +59,30 @@ class DedicatedApiClient(
     suspend fun login(password: String): AuthResult =
         authPost("/api/v1/auth/login", password)
 
-    suspend fun me(): String = withContext(Dispatchers.IO) {
+    suspend fun me(): Profile = withContext(Dispatchers.IO) {
         val req = authed("/api/v1/auth/me").get().build()
         http.newCall(req).execute().use { res ->
             val body = res.body?.string().orEmpty()
             if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
-            JSONObject(body).optString("userId").ifBlank {
-                JSONObject(body).optString("username")
-            }
+            val json = JSONObject(body)
+            Profile(
+                userId = json.optString("userId"),
+                displayName = json.optString("displayName"),
+                favorites = json.optInt("favorites"),
+                comments = json.optInt("comments"),
+            )
+        }
+    }
+
+    suspend fun updateDisplayName(name: String): String = withContext(Dispatchers.IO) {
+        val payload = JSONObject().put("displayName", name).toString()
+        val req = authed("/api/v1/auth/me")
+            .patch(payload.toRequestBody(jsonMedia))
+            .build()
+        http.newCall(req).execute().use { res ->
+            val body = res.body?.string().orEmpty()
+            if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
+            JSONObject(body).optString("displayName")
         }
     }
 
@@ -54,6 +93,121 @@ class DedicatedApiClient(
             if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
             val json = JSONObject(body)
             json.optBoolean("available") to json.optString("reason")
+        }
+    }
+
+    suspend fun comments(anilistId: Int, episode: Int? = null): List<Comment> =
+        withContext(Dispatchers.IO) {
+            val q = buildString {
+                append("/api/v1/comments?anilistId=").append(anilistId)
+                if (episode != null) append("&episode=").append(episode)
+            }
+            val req = authed(q).get().build()
+            http.newCall(req).execute().use { res ->
+                val body = res.body?.string().orEmpty()
+                if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
+                val items = JSONObject(body).optJSONArray("items") ?: return@use emptyList()
+                buildList {
+                    for (i in 0 until items.length()) {
+                        val o = items.getJSONObject(i)
+                        add(
+                            Comment(
+                                id = o.optString("id"),
+                                userId = o.optString("userId"),
+                                displayName = o.optString("displayName"),
+                                anilistId = o.optLong("anilistId"),
+                                episode = if (o.has("episode") && !o.isNull("episode")) o.optLong("episode") else null,
+                                body = o.optString("body"),
+                                createdAtEpochMs = o.optLong("createdAtEpochMs"),
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+
+    suspend fun postComment(anilistId: Int, bodyText: String, episode: Int? = null): Comment =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+                .put("anilistId", anilistId)
+                .put("body", bodyText)
+                .also { if (episode != null) it.put("episode", episode) }
+                .toString()
+            val req = authed("/api/v1/comments")
+                .post(payload.toRequestBody(jsonMedia))
+                .build()
+            http.newCall(req).execute().use { res ->
+                val body = res.body?.string().orEmpty()
+                if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
+                val o = JSONObject(body).getJSONObject("item")
+                Comment(
+                    id = o.optString("id"),
+                    userId = o.optString("userId"),
+                    displayName = o.optString("displayName"),
+                    anilistId = o.optLong("anilistId"),
+                    episode = if (o.has("episode") && !o.isNull("episode")) o.optLong("episode") else null,
+                    body = o.optString("body"),
+                    createdAtEpochMs = o.optLong("createdAtEpochMs"),
+                )
+            }
+        }
+
+    suspend fun deleteComment(id: String) = withContext(Dispatchers.IO) {
+        val req = authed("/api/v1/comments/$id").delete().build()
+        http.newCall(req).execute().use { res ->
+            if (!res.isSuccessful) {
+                val body = res.body?.string().orEmpty()
+                throw ApiException(res.code, errorMessage(body))
+            }
+        }
+    }
+
+    suspend fun favorites(): List<Favorite> = withContext(Dispatchers.IO) {
+        val req = authed("/api/v1/favorites").get().build()
+        http.newCall(req).execute().use { res ->
+            val body = res.body?.string().orEmpty()
+            if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
+            val items = JSONObject(body).optJSONArray("items") ?: return@use emptyList()
+            buildList {
+                for (i in 0 until items.length()) {
+                    val o = items.getJSONObject(i)
+                    add(
+                        Favorite(
+                            anilistId = o.optLong("anilistId"),
+                            title = o.optString("title"),
+                            coverImageUrl = o.optString("coverImageUrl").takeIf { it.isNotBlank() },
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    suspend fun putFavorite(anilistId: Int, title: String, coverImageUrl: String?) =
+        withContext(Dispatchers.IO) {
+            val payload = JSONObject()
+                .put("anilistId", anilistId)
+                .put("title", title)
+                .also { if (!coverImageUrl.isNullOrBlank()) it.put("coverImageUrl", coverImageUrl) }
+                .toString()
+            val req = authed("/api/v1/favorites")
+                .put(payload.toRequestBody(jsonMedia))
+                .build()
+            http.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) {
+                    val body = res.body?.string().orEmpty()
+                    throw ApiException(res.code, errorMessage(body))
+                }
+            }
+        }
+
+    suspend fun deleteFavorite(anilistId: Int) = withContext(Dispatchers.IO) {
+        val req = authed("/api/v1/favorites/$anilistId").delete().build()
+        http.newCall(req).execute().use { res ->
+            if (!res.isSuccessful) {
+                val body = res.body?.string().orEmpty()
+                throw ApiException(res.code, errorMessage(body))
+            }
         }
     }
 

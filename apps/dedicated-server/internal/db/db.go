@@ -107,5 +107,34 @@ CREATE INDEX IF NOT EXISTS idx_passkeys_user ON passkeys(user_id);
 	if err != nil {
 		return fmt.Errorf("migrate passkeys: %w", err)
 	}
+	if _, err := db.Exec(`ALTER TABLE users ADD COLUMN display_name TEXT`); err != nil {
+		_ = err
+	}
+	_, err = db.Exec(`
+CREATE TABLE IF NOT EXISTS comments (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  anilist_id INTEGER NOT NULL,
+  episode INTEGER,
+  body TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_comments_anilist ON comments(anilist_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comments_user ON comments(user_id);
+
+CREATE TABLE IF NOT EXISTS favorites (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  anilist_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  cover_image_url TEXT,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, anilist_id)
+);
+CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id, created_at DESC);
+`)
+	if err != nil {
+		return fmt.Errorf("migrate social: %w", err)
+	}
 	return nil
 }

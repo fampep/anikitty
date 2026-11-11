@@ -13,9 +13,10 @@ import kotlinx.coroutines.flow.update
 class ServerCatalog(context: Context) {
     private val prefs = context.getSharedPreferences("anikitty_servers", Context.MODE_PRIVATE)
     private val resolveCache = ResolveCache(context)
+    private val megaPlayCrypto = MegaPlayCrypto(context)
 
     private val resolvers: List<StreamResolver> = listOf(
-        AnikotoServer(cache = resolveCache),
+        AnikotoServer(cache = resolveCache, crypto = megaPlayCrypto),
     )
 
     private val _selectedId = MutableStateFlow(

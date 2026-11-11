@@ -77,6 +77,7 @@ fun AppRoot(
             aniList = aniList,
             historyDao = historyDao,
             streamServers = streamServers,
+            api = api,
             accountLabel = session.userId?.takeLast(8)?.let { "••••$it" } ?: "signed in",
             onSignOut = {
                 val token = session.token

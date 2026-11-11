@@ -1,6 +1,5 @@
 package site.anikitty.app.data.servers
 
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -11,9 +10,6 @@ import org.json.JSONObject
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
-import javax.crypto.Cipher
-import javax.crypto.spec.IvParameterSpec
-import javax.crypto.spec.SecretKeySpec
 
 /**
  * On-device Anikoto → MegaPlay resolve.
@@ -21,6 +17,7 @@ import javax.crypto.spec.SecretKeySpec
  */
 class AnikotoServer(
     private val cache: ResolveCache? = null,
+    private val crypto: MegaPlayCrypto = MegaPlayCrypto(),
     private val http: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(8, TimeUnit.SECONDS)
         .readTimeout(12, TimeUnit.SECONDS)
@@ -52,13 +49,14 @@ class AnikotoServer(
         if (mode == "dub" && !ep.hasDub) error("Dub unavailable for episode $episode")
         if (mode != "dub" && !ep.hasSub) error("Sub unavailable for episode $episode")
         val referer = "${mapped.watchUrl.trimEnd('/')}/ep-$episode"
-        val embeds = resolveServerEmbeds(ep.ids, mode, mapped.watchUrl)
+        val embeds = prioritizeEmbeds(resolveServerEmbeds(ep.ids, mode, mapped.watchUrl))
         val out = ArrayList<PlayableSource>()
         val seen = HashSet<String>()
-        // First successful embed wins — keep playback starting snappy.
-        for ((embedUrl, label) in embeds.take(3)) {
+        // Collect a few working embeds so the player can fall back if one CDN flakes.
+        for ((embedUrl, label) in embeds.take(5)) {
             runCatching { resolveEmbed(embedUrl, referer) }
                 .onSuccess { resolved ->
+                    val strip = crypto.stripBytes(resolved.origin)
                     for ((url, quality) in resolved.labeled.ifEmpty {
                         listOf(resolved.file to "Stream")
                     }) {
@@ -67,10 +65,11 @@ class AnikotoServer(
                             url = url,
                             headers = streamHeaders(resolved.origin),
                             label = qualityLabel(label, quality),
+                            stripBytes = strip,
                         )
                     }
                 }
-            if (out.isNotEmpty()) break
+            if (out.size >= 3) break
         }
         if (out.isEmpty()) error("No playable $mode sources")
         out
@@ -198,6 +197,7 @@ class AnikotoServer(
         val srcBuilder = "$origin/stream/getSourcesNew?id=${enc(id)}".toHttpUrl().newBuilder()
         if (!sParam.isNullOrBlank()) srcBuilder.addQueryParameter("s", sParam)
         val srcJson = fetchJson(srcBuilder.build().toString(), pageUrl, origin)
+            .put("_anikittyOrigin", origin)
         val file = extractFile(srcJson) ?: error("MegaPlay file missing")
         val labeled = extractLabeled(srcJson).ifEmpty { listOf(file to "Stream") }
         return ResolvedEmbed(origin = origin, file = file, labeled = labeled)
@@ -215,7 +215,8 @@ class AnikotoServer(
         }
         val enc = data.optString("enc")
         if (enc.isNotBlank()) {
-            val decrypted = decryptMegaPlayEnc(enc)
+            val origin = data.optString("_anikittyOrigin").ifBlank { "https://megaplay.buzz" }
+            val decrypted = crypto.decryptEnc(enc, origin)
             decrypted.optString("file").takeIf { it.startsWith("http") }?.let { return it }
             decrypted.optJSONObject("sources")?.optString("file")
                 ?.takeIf { it.startsWith("http") }
@@ -245,21 +246,6 @@ class AnikotoServer(
             extractFile(data)?.let { out += it to "Stream" }
         }
         return out
-    }
-
-    /** AES-256-CBC of MegaPlay getSourcesNew `enc` (static key/IV in their public player JS). */
-    private fun decryptMegaPlayEnc(enc: String): JSONObject {
-        val padded = enc + "=".repeat((4 - enc.length % 4) % 4)
-        val raw = Base64.decode(padded, Base64.URL_SAFE or Base64.NO_WRAP)
-        val key = MEGAPLAY_KEY.copyOf(32)
-        val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
-        cipher.init(
-            Cipher.DECRYPT_MODE,
-            SecretKeySpec(key, "AES"),
-            IvParameterSpec(MEGAPLAY_IV),
-        )
-        val plain = String(cipher.doFinal(raw), StandardCharsets.UTF_8)
-        return JSONObject(plain)
     }
 
     private fun fetchText(url: String, referer: String): String {
@@ -300,10 +286,6 @@ class AnikotoServer(
         private const val ANIKOTO_BASE = "https://anikoto.cz"
         private const val CHROME_UA =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-
-        // Public MegaPlay player defaults (newclient.min.js) — not a secret.
-        private val MEGAPLAY_KEY = "i?LMTAx0Q6,:}50U".toByteArray(StandardCharsets.UTF_8)
-        private val MEGAPLAY_IV = "W0;27ToaUpl_P%'c".toByteArray(StandardCharsets.UTF_8)
 
         private val WATCH_ID = Regex(
             """(?i)id=["']watch-main["'][^>]*\bdata-id=["'](\d+)["']|data-id=["'](\d+)["'][^>]*\bid=["']watch-main["']""",
@@ -504,6 +486,15 @@ class AnikotoServer(
                 q.isEmpty() || q.equals("stream", true) -> s
                 else -> "$s $q"
             }
+        }
+
+        /** Prefer non-tcdn / non-shiora first, but keep tcdn (PNG-stripped) as fallback. */
+        private fun prioritizeEmbeds(embeds: List<Pair<String, String>>): List<Pair<String, String>> {
+            val (prefer, rest) = embeds.partition { (url, _) ->
+                !url.contains("s=tcdn", ignoreCase = true) &&
+                    !url.contains("tcdn", ignoreCase = true)
+            }
+            return prefer + rest
         }
     }
 }
