@@ -33,6 +33,7 @@ class AniListClient(
 
     private val mediaFields = """
         id
+        idMal
         title { romaji english }
         synonyms
         coverImage { large }
@@ -219,6 +220,7 @@ class AniListClient(
                 ?.replace(Regex("\\s+"), " ")
                 ?.trim(),
             romajiTitle = romaji?.takeIf { it != title },
+            malId = item.nullableInt("idMal"),
         )
     }
 

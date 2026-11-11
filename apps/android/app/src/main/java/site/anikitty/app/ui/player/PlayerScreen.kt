@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -78,6 +80,8 @@ import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
+import site.anikitty.app.data.skip.SkipTimes
+import site.anikitty.app.data.skip.SkipTimesClient
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.PlayerChrome
 import java.util.Locale
@@ -86,7 +90,7 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Full-bleed anime player with custom chrome (tap to toggle):
- * back + title, ±10s skip, paper play disc, scrubber.
+ * back + title, ±10s skip, paper play disc, scrubber, intro/credits skip.
  */
 @OptIn(UnstableApi::class)
 @Composable
@@ -94,8 +98,12 @@ fun PlayerScreen(
     title: String,
     episode: Int,
     sources: List<PlayableSource>,
+    anilistId: Int = 0,
+    malId: Int? = null,
+    startPositionMs: Long = 0L,
     onClose: () -> Unit,
     onNextEpisode: (() -> Unit)? = null,
+    onProgress: ((positionMs: Long, durationMs: Long) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -108,8 +116,12 @@ fun PlayerScreen(
     var scrubbing by remember { mutableStateOf(false) }
     var scrubValue by remember { mutableFloatStateOf(0f) }
     var sourceIndex by remember(sources) { mutableStateOf(0) }
+    var skipTimes by remember { mutableStateOf(SkipTimes()) }
+    var autoSkippedRecap by remember { mutableStateOf(false) }
+    var didSeekStart by remember { mutableStateOf(false) }
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
+    val skipClient = remember { SkipTimesClient() }
 
     BackHandler(onBack = onClose)
 
@@ -193,13 +205,48 @@ fun PlayerScreen(
     }
 
     LaunchedEffect(player, scrubbing) {
+        var ticks = 0
         while (player != null) {
             if (!scrubbing) {
                 positionMs = player.currentPosition.coerceAtLeast(0L)
                 val d = player.duration
                 if (d > 0) durationMs = d
+                if (!didSeekStart && ready && startPositionMs > 2_000L && durationMs > startPositionMs) {
+                    player.seekTo(startPositionMs.coerceAtMost(durationMs - 1_000L))
+                    didSeekStart = true
+                    positionMs = startPositionMs
+                }
+                val active = skipTimes.activeAt(positionMs)
+                if (active != null) {
+                    val (kind, iv) = active
+                    // Recap auto-skips once; intro/credits show the Skip chip.
+                    if (kind == "recap" && !autoSkippedRecap) {
+                        autoSkippedRecap = true
+                        player.seekTo(iv.endMs)
+                        positionMs = iv.endMs
+                    }
+                }
+                ticks++
+                if (ticks % 8 == 0) {
+                    onProgress?.invoke(positionMs, durationMs)
+                }
             }
             delay(250)
+        }
+    }
+
+    LaunchedEffect(anilistId, episode, malId, durationMs) {
+        if (anilistId <= 0 || episode <= 0) return@LaunchedEffect
+        val lengthSec = if (durationMs > 0) durationMs / 1000.0 else 1420.0
+        skipTimes = runCatching {
+            skipClient.load(anilistId, episode, malId, lengthSec)
+        }.getOrDefault(SkipTimes())
+        autoSkippedRecap = false
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            onProgress?.invoke(positionMs, durationMs)
         }
     }
 
@@ -217,6 +264,15 @@ fun PlayerScreen(
         positionMs = target
         controlsVisible = true
     }
+
+    fun skipTo(endMs: Long) {
+        val p = player ?: return
+        p.seekTo(endMs.coerceIn(0L, p.duration.coerceAtLeast(0L)))
+        positionMs = endMs
+        controlsVisible = true
+    }
+
+    val activeSkip = skipTimes.activeAt(positionMs)
 
     Box(
         modifier = Modifier
@@ -371,6 +427,44 @@ fun PlayerScreen(
                     }
                 }
 
+                if (activeSkip != null) {
+                    val (kind, iv) = activeSkip
+                    val label = when (kind) {
+                        "intro" -> "Skip intro"
+                        "credits" -> "Skip credits"
+                        "recap" -> "Skip recap"
+                        "preview" -> "Skip preview"
+                        else -> "Skip"
+                    }
+                    val remaining = ((iv.endMs - positionMs) / 1000L).coerceAtLeast(0L)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 20.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.Black.copy(alpha = 0.72f))
+                            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(14.dp))
+                            .clickable { skipTo(iv.endMs) }
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                    ) {
+                        Column {
+                            Text(
+                                kind.uppercase(),
+                                color = Color.White.copy(alpha = 0.45f),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                            )
+                            Text(label, color = PlayerChrome.Paper, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${remaining}s",
+                                color = Color.White.copy(alpha = 0.55f),
+                                fontSize = 11.sp,
+                            )
+                        }
+                    }
+                }
+
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -384,31 +478,41 @@ fun PlayerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(formatClock(positionMs), color = PlayerChrome.Graphite, fontSize = 12.sp)
-                        Text(
-                            "−${formatClock((durationMs - positionMs).coerceAtLeast(0L))}",
-                            color = PlayerChrome.Graphite,
-                            fontSize = 12.sp,
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (!skipTimes.isEmpty) {
+                                Text("Timestamps", color = PlayerChrome.Faint, fontSize = 11.sp)
+                            }
+                            Text(
+                                "−${formatClock((durationMs - positionMs).coerceAtLeast(0L))}",
+                                color = PlayerChrome.Graphite,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        if (durationMs > 0 && !skipTimes.isEmpty) {
+                            SkipMarkers(skipTimes = skipTimes, durationMs = durationMs)
+                        }
+                        Slider(
+                            value = progress,
+                            onValueChange = {
+                                scrubbing = true
+                                scrubValue = it
+                                controlsVisible = true
+                            },
+                            onValueChangeFinished = {
+                                player?.seekTo((scrubValue * durationMs).toLong())
+                                positionMs = (scrubValue * durationMs).toLong()
+                                scrubbing = false
+                            },
+                            colors = SliderDefaults.colors(
+                                thumbColor = PlayerChrome.Paper,
+                                activeTrackColor = PlayerChrome.Paper,
+                                inactiveTrackColor = PlayerChrome.Faint,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    Slider(
-                        value = progress,
-                        onValueChange = {
-                            scrubbing = true
-                            scrubValue = it
-                            controlsVisible = true
-                        },
-                        onValueChangeFinished = {
-                            player?.seekTo((scrubValue * durationMs).toLong())
-                            positionMs = (scrubValue * durationMs).toLong()
-                            scrubbing = false
-                        },
-                        colors = SliderDefaults.colors(
-                            thumbColor = PlayerChrome.Paper,
-                            activeTrackColor = PlayerChrome.Paper,
-                            inactiveTrackColor = PlayerChrome.Faint,
-                        ),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
                     if (sources.size > 1) {
                         Text(
                             sources.first().label,
@@ -418,6 +522,38 @@ fun PlayerScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun SkipMarkers(skipTimes: SkipTimes, durationMs: Long) {
+    val dur = durationMs.coerceAtLeast(1L).toFloat()
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(18.dp)
+            .padding(top = 10.dp),
+    ) {
+        val track = maxWidth
+        skipTimes.segments.forEach { (kind, iv) ->
+            val start = (iv.startMs / dur).coerceIn(0f, 1f)
+            val end = (iv.endMs / dur).coerceIn(0f, 1f)
+            val color = when (kind) {
+                "intro" -> Color(0xFF93C5FD)
+                "credits" -> Color(0xFFFDBA74)
+                "recap" -> Color(0xFFC4B5FD)
+                else -> Color.White.copy(alpha = 0.45f)
+            }
+            Box(
+                modifier = Modifier
+                    .offset(x = track * start)
+                    .width(track * (end - start).coerceAtLeast(0.012f))
+                    .height(3.dp)
+                    .align(Alignment.CenterStart)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(color.copy(alpha = 0.9f)),
+            )
         }
     }
 }

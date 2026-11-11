@@ -60,19 +60,19 @@ fun KittyBottomNav(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 10.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 6.dp, bottom = 8.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
-                .widthIn(max = 380.dp)
+                .widthIn(max = 360.dp)
                 .fillMaxWidth()
-                .height(60.dp)
-                .shadow(24.dp, RoundedCornerShape(30.dp), clip = false)
-                .clip(RoundedCornerShape(30.dp))
+                .height(54.dp)
+                .shadow(20.dp, RoundedCornerShape(27.dp), clip = false)
+                .clip(RoundedCornerShape(27.dp))
                 .background(KittyNavPillSurface)
-                .border(1.dp, KittyNavPillBorder, RoundedCornerShape(30.dp))
-                .padding(horizontal = 6.dp),
+                .border(1.dp, KittyNavPillBorder, RoundedCornerShape(27.dp))
+                .padding(horizontal = 5.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -91,8 +91,8 @@ fun KittyBottomNav(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(24.dp))
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(22.dp))
                         .background(bg)
                         .selectable(
                             selected = selected,
@@ -108,12 +108,12 @@ fun KittyBottomNav(
                         imageVector = if (selected) tab.selectedIcon else tab.icon,
                         contentDescription = tab.label,
                         tint = fg,
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(20.dp),
                     )
                     Text(
                         tab.label,
                         color = fg,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                         maxLines = 1,
                     )

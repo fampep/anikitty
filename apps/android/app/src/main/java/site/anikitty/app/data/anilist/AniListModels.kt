@@ -11,6 +11,8 @@ data class AnimeSummary(
     val description: String? = null,
     /** AniList romaji — often matches Anikoto page titles better than English. */
     val romajiTitle: String? = null,
+    /** MyAnimeList id — used for AniSkip intro/credits timestamps. */
+    val malId: Int? = null,
 ) {
     /** Titles to try when mapping a watch page / search (romaji first — matches Anikoto). */
     fun searchTitles(): List<String> =
