@@ -52,7 +52,7 @@ import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.KittyPage
 
-/** Password-only account gate → local-first browse + on-device streams. */
+/** Password-only account gate → anime browse + on-device streams. */
 @Composable
 fun AppRoot(
     api: DedicatedApiClient,
