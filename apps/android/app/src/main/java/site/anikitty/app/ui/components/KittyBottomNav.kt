@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +68,7 @@ fun KittyBottomNav(
                 .widthIn(max = 380.dp)
                 .fillMaxWidth()
                 .height(60.dp)
+                .shadow(24.dp, RoundedCornerShape(30.dp), clip = false)
                 .clip(RoundedCornerShape(30.dp))
                 .background(KittyNavPillSurface)
                 .border(1.dp, KittyNavPillBorder, RoundedCornerShape(30.dp))

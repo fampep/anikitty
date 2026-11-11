@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -34,10 +35,59 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.KittySurface
+
+/** Web `HomeSectionLink` — left zinc gradient bar + bold title. */
+@Composable
+fun KittySectionHeading(
+    title: String,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier,
+    padded: Boolean = true,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .then(if (padded) Modifier.padding(horizontal = 16.dp) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .height(if (subtitle == null) 20.dp else 28.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFFD4D4D8),
+                            Color(0xFF71717A),
+                            Color(0xFF3F3F46).copy(alpha = 0.30f),
+                        ),
+                    ),
+                ),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.40f),
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun KittyPosterCard(
@@ -77,8 +127,22 @@ fun KittyPosterCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.40f),
             )
+        } else {
+            val meta = listOfNotNull(
+                anime.format,
+                anime.averageScore?.let { "★ $it" },
+            ).joinToString(" · ")
+            if (meta.isNotBlank()) {
+                Text(
+                    meta,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.40f),
+                )
+            }
         }
     }
 }
@@ -88,17 +152,12 @@ fun KittyPosterRow(
     title: String,
     items: List<AnimeSummary>,
     onOpen: (AnimeSummary) -> Unit,
+    subtitle: String? = null,
     subtitleFor: ((AnimeSummary) -> String?)? = null,
 ) {
     if (items.isEmpty()) return
-    Column(modifier = Modifier.padding(top = 20.dp)) {
-        Text(
-            title,
-            modifier = Modifier.padding(horizontal = 16.dp),
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = Color.White,
-        )
+    Column(modifier = Modifier.padding(top = 22.dp)) {
+        KittySectionHeading(title = title, subtitle = subtitle)
         Spacer(modifier = Modifier.height(12.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -115,17 +174,18 @@ fun KittyPosterRow(
     }
 }
 
+/** Full-bleed cinema hero — mirrors web spotlight (edge-to-edge media + ink gradient). */
 @Composable
 fun KittyHero(
     anime: AnimeSummary,
-    eyebrow: String = "Featured",
+    eyebrow: String = "Spotlight",
     cta: String = "Watch now",
     onOpen: () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(320.dp)
             .clickable(onClick = onOpen),
     ) {
         AsyncImage(
@@ -140,8 +200,21 @@ fun KittyHero(
                 .background(
                     Brush.verticalGradient(
                         0f to Color.Transparent,
-                        0.45f to KittyInk.copy(alpha = 0.35f),
-                        1f to KittyInk.copy(alpha = 0.96f),
+                        0.35f to KittyInk.copy(alpha = 0.25f),
+                        0.72f to KittyInk.copy(alpha = 0.78f),
+                        1f to KittyInk,
+                    ),
+                ),
+        )
+        // Soft side fade like theatre letterbox
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        0f to KittyInk.copy(alpha = 0.45f),
+                        0.35f to Color.Transparent,
+                        1f to Color.Transparent,
                     ),
                 ),
         )
@@ -153,8 +226,9 @@ fun KittyHero(
             Text(
                 eyebrow.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+                color = Color.White.copy(alpha = 0.72f),
                 fontWeight = FontWeight.Bold,
+                letterSpacing = 1.2.sp,
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
@@ -165,16 +239,29 @@ fun KittyHero(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.height(12.dp))
+            val meta = listOfNotNull(
+                anime.format,
+                anime.episodes?.let { "$it eps" },
+                anime.averageScore?.let { "★ $it" },
+            ).joinToString(" · ")
+            if (meta.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    meta,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Color.White.copy(alpha = 0.55f),
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
             Button(
                 onClick = onOpen,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black,
                 ),
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(12.dp),
             ) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(cta, fontWeight = FontWeight.Bold)
             }
@@ -191,7 +278,7 @@ fun KittyContinueCard(
 ) {
     Row(
         modifier = Modifier
-            .width(260.dp)
+            .width(268.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(KittySurface)
             .clickable(onClick = onClick)
@@ -219,13 +306,22 @@ fun KittyContinueCard(
             Text(
                 "Continue · Ep $episode",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
+                color = Color.White.copy(alpha = 0.55f),
             )
         }
-        Icon(
-            Icons.Filled.PlayArrow,
-            contentDescription = null,
-            tint = Color.White,
-        )
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color.White),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.PlayArrow,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
