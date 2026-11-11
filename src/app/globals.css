@@ -3419,8 +3419,9 @@ html.density-compact .site-bottom-nav {
 .react-calendar-heatmap .color-scale-4 { fill: #a1a1aa; }
 .react-calendar-heatmap .color-scale-5 { fill: #e4e4e7; }
 
-/* Artplayer chrome — zinc sparse theme matching AniKittyPlayer */
-.art-kitty-player {
+/* AniKitty player overlay tokens (skip/next cards) */
+.anikitty-player,
+.custom-kitty-player {
   --kitty-dock-offset: 0px;
   --kitty-dock-height: 46px;
   --kitty-overlay-bottom: 132px;
@@ -3429,43 +3430,6 @@ html.density-compact .site-bottom-nav {
   --kitty-player-accent-soft: rgba(255, 255, 255, 0.18);
   --kitty-player-surface: rgba(9, 9, 11, 0.95);
   --kitty-player-border: rgba(255, 255, 255, 0.1);
-}
-
-.art-kitty-player .artplayer,
-.art-kitty-player .artplayer-app {
-  width: 100%;
-  height: 100%;
-  font-family: inherit;
-}
-
-/* Contain ArtPlayer internal z-index layers so overlay buttons stay clickable */
-.art-kitty-player-mount {
-  isolation: isolate;
-}
-
-/* Hide built-in spinner while LoadingGirl overlay is shown */
-.art-kitty-player .art-loading {
-  display: none !important;
-}
-
-/* Never blur the video layer — art-bottom spans the full player (inset: 0) */
-.art-kitty-player .art-backdrop-filter,
-.art-kitty-player .art-bottom {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-.art-kitty-player .art-video,
-.art-kitty-player video {
-  filter: none !important;
-}
-
-.art-kitty-player .art-video {
-  position: relative;
-}
-
-.art-kitty-player.anime4k-active .art-video video {
-  opacity: 0 !important;
 }
 
 .anikitty-player.anime4k-active video,
@@ -3481,247 +3445,6 @@ html.density-compact .site-bottom-nav {
   height: 100%;
   pointer-events: none;
   object-fit: contain;
-}
-
-/* Bottom control bar — a short, subtle dock behind the controls only.
-   Pixel stops (not %) so the fade never spans the frame or washes out the
-   subtitle regardless of player height / fullscreen. */
-.art-kitty-player .art-bottom {
-  background: linear-gradient(
-    to top,
-    rgba(6, 6, 10, 0.6) 0px,
-    rgba(6, 6, 10, 0.26) 34px,
-    transparent 64px
-  ) !important;
-}
-
-.art-kitty-player .art-progress {
-  border-radius: 999px;
-  overflow: visible;
-}
-
-.art-kitty-player .art-progress-loaded {
-  border-radius: 999px;
-}
-
-.art-kitty-player .art-progress-played {
-  border-radius: 999px;
-  background: linear-gradient(90deg, #a1a1aa, #fafafa, #e4e4e7) !important;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
-}
-
-.art-kitty-player .art-progress-indicator {
-  width: 14px !important;
-  height: 14px !important;
-  margin-top: -4.5px !important;
-  background: #fafafa !important;
-  border: 2px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow:
-    0 0 0 3px rgba(255, 255, 255, 0.15),
-    0 2px 8px rgba(0, 0, 0, 0.45) !important;
-}
-
-.art-kitty-player .art-control {
-  border-radius: 10px;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.15s ease;
-}
-
-.art-kitty-player .art-control:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #fafafa !important;
-}
-
-.art-kitty-player .art-control:active {
-  transform: scale(0.94);
-}
-
-.art-kitty-player .art-control-volume .art-volume-panel {
-  border-radius: 12px;
-  border: 1px solid var(--kitty-player-border);
-  background: var(--kitty-player-surface) !important;
-  box-shadow:
-    0 12px 40px rgba(0, 0, 0, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.art-kitty-player .art-volume-inner {
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-.art-kitty-player .art-volume-handle {
-  background: linear-gradient(180deg, #fafafa, #a1a1aa) !important;
-  border: 2px solid rgba(255, 255, 255, 0.85) !important;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
-}
-
-/* Center play/pause state */
-.art-kitty-player .art-state {
-  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.45));
-}
-
-.art-kitty-player .art-state .art-icon svg {
-  fill: rgba(250, 250, 250, 0.95);
-}
-
-/* Settings / quality / subtitle panels */
-.art-kitty-player .art-settings,
-.art-kitty-player .art-selector,
-.art-kitty-player .art-contextmenus {
-  border: 1px solid var(--kitty-player-border) !important;
-  border-radius: 14px !important;
-  background: var(--kitty-player-surface) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow:
-    0 18px 50px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 0 0 1px rgba(255, 255, 255, 0.04) !important;
-}
-
-.art-kitty-player .art-setting-panel,
-.art-kitty-player .art-selector-list,
-.art-kitty-player .art-contextmenu {
-  font-size: 12px;
-  letter-spacing: 0.01em;
-}
-
-.art-kitty-player .art-setting-panel .art-setting-item,
-.art-kitty-player .art-selector-item,
-.art-kitty-player .art-contextmenu .art-contextmenu-item {
-  border-radius: 10px;
-  transition: background-color 0.18s ease, color 0.18s ease;
-}
-
-.art-kitty-player .art-setting-panel .art-setting-item:hover,
-.art-kitty-player .art-selector-item:hover,
-.art-kitty-player .art-contextmenu .art-contextmenu-item:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-  color: #fafafa !important;
-}
-
-.art-kitty-player .art-selector-item.art-current,
-.art-kitty-player .art-setting-panel .art-setting-item.art-current {
-  background: rgba(255, 255, 255, 0.14) !important;
-  color: #fafafa !important;
-}
-
-/*
- * Keep the settings / quality / subtitle panels fully reachable and scrollable.
- * The player element uses `overflow: hidden`, and at a 16/9 aspect ratio the
- * player can be much shorter than a viewport-based max-height — so tall panels
- * used to overflow past the top edge and clip their bottom options with no way
- * to scroll to them. Bounding the height to the space above the control bar
- * (100% of the player minus the control row) guarantees the panel fits inside
- * the player and scrolls internally instead of being clipped.
- */
-.art-kitty-player .art-settings,
-.art-kitty-player .art-control-selector .art-selector-list {
-  max-height: calc(100% - var(--art-control-height) - 16px) !important;
-  overflow-y: auto !important;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-}
-
-/* Tooltips & notices */
-.art-kitty-player .art-tooltip,
-.art-kitty-player .art-notice-inner {
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 10px !important;
-  background: var(--kitty-player-surface) !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.art-kitty-player .art-notice-inner {
-  color: rgba(255, 255, 255, 0.88) !important;
-}
-
-/* Chapter / skip highlights on progress bar */
-.art-kitty-player .art-progress-highlight {
-  background: rgba(250, 250, 250, 0.75) !important;
-  border-radius: 999px;
-}
-
-/* External subtitle layer */
-.art-kitty-player .art-subtitle {
-  z-index: 40;
-  pointer-events: none;
-  color: var(--kitty-sub-color, #fff);
-  opacity: 1;
-  visibility: visible;
-  font-weight: var(--kitty-sub-font-weight, 600);
-  letter-spacing: var(--kitty-sub-letter-spacing, 0.01em);
-  line-height: var(--kitty-sub-line-height, 1.45);
-  font-family: var(--kitty-sub-font-family, inherit);
-  border-radius: var(--kitty-sub-border-radius, 0);
-  padding: var(--kitty-sub-padding, 0);
-  -webkit-text-stroke: var(--kitty-sub-text-stroke, unset);
-  text-shadow: var(--kitty-sub-text-shadow, 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 12px rgba(0, 0, 0, 0.65));
-}
-
-/* Per-line boxed subtitles (anime style) — background only behind text, not full width */
-.art-kitty-player.kitty-sub-boxed-lines .art-subtitle {
-  display: flex !important;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-  width: auto !important;
-  max-width: var(--kitty-sub-max-width, calc(100% - 2rem));
-  left: 50% !important;
-  right: auto !important;
-  transform: translateX(-50%);
-  background: transparent !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  text-shadow: none;
-  box-shadow: none;
-}
-
-.art-kitty-player.kitty-sub-boxed-lines .art-subtitle .kitty-sub-line {
-  display: inline-block;
-  width: fit-content;
-  max-width: min(var(--kitty-sub-max-width, 92vw), 42rem);
-  color: var(--kitty-sub-color, #fff);
-  background-color: var(--kitty-sub-line-bg, rgba(0, 0, 0, 0.72));
-  border-radius: var(--kitty-sub-border-radius, 4px);
-  padding: 2px 10px;
-  font-weight: inherit;
-  font-size: inherit;
-  font-family: inherit;
-  letter-spacing: inherit;
-  line-height: var(--kitty-sub-line-height, 1.35);
-  -webkit-text-stroke: var(--kitty-sub-text-stroke, unset);
-  text-shadow: var(--kitty-sub-text-shadow, 0 1px 2px rgba(0, 0, 0, 0.85));
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
-}
-
-.art-kitty-player.kitty-sub-boxed-lines video::cue {
-  background-color: var(--kitty-sub-line-bg, rgba(0, 0, 0, 0.72));
-  color: var(--kitty-sub-color, #fff);
-  border-radius: var(--kitty-sub-border-radius, 4px);
-  padding: 2px 10px;
-  line-height: var(--kitty-sub-line-height, 1.35);
-  text-shadow: var(--kitty-sub-text-shadow, 0 1px 2px rgba(0, 0, 0, 0.85));
-}
-
-.art-kitty-player video::cue {
-  font-size: var(--media-cue-font-size, 1.05em);
-  color: var(--media-cue-color, #fff);
-  line-height: var(--media-cue-line-height, 1.35);
-  background-color: var(--media-cue-bg, rgba(10, 10, 18, 0.78));
-  border-radius: var(--media-cue-border-radius, 4px);
-  padding: var(--media-cue-display-padding, 0 4px);
-  text-shadow: var(--media-cue-text-shadow, none);
 }
 
 .kitty-overlay {
@@ -3762,36 +3485,10 @@ html.density-compact .site-bottom-nav {
 }
 
 @media (max-width: 640px) {
-  .art-kitty-player {
+  .anikitty-player,
+  .custom-kitty-player {
     --kitty-overlay-bottom: 88px;
     --kitty-overlay-stacked: 140px;
-    --art-bottom-height: 44px;
-    --art-bottom-offset: 6px;
-    --art-bottom-gap: 6px;
-    --art-control-height: 32px;
-    --art-control-icon-size: 18px;
-    --art-padding: 8px;
-    --art-subtitle-font-size: clamp(15px, 4vw, 18px);
-    --art-subtitle-bottom: 52px;
-    --art-progress-top-gap: 4px;
-  }
-
-  .art-kitty-player .art-control-pip,
-  .art-kitty-player .art-control-screenshot,
-  .art-kitty-player .art-control-aspectRatio,
-  .art-kitty-player .art-control-playbackRate {
-    display: none !important;
-  }
-
-  .art-kitty-player .art-controls-left,
-  .art-kitty-player .art-controls-right {
-    gap: 2px !important;
-  }
-
-  .art-kitty-player .art-control-time {
-    font-size: 10px !important;
-    padding-left: 2px !important;
-    padding-right: 2px !important;
   }
 
   .kitty-skip-card,
@@ -3803,8 +3500,6 @@ html.density-compact .site-bottom-nav {
 }
 
 /* Rotation lock: device sideways but viewport still portrait */
-.art-kitty-player.kitty-orient-landscape,
-.art-kitty-player.kitty-orient-landscape-reverse,
 .anikitty-player.kitty-orient-landscape,
 .anikitty-player.kitty-orient-landscape-reverse,
 .custom-kitty-player.kitty-orient-landscape,
@@ -3823,13 +3518,11 @@ html.density-compact .site-bottom-nav {
   margin: 0 !important;
 }
 
-.art-kitty-player.kitty-orient-landscape,
 .anikitty-player.kitty-orient-landscape,
 .custom-kitty-player.kitty-orient-landscape {
   transform: translate(-50%, -50%) rotate(90deg) !important;
 }
 
-.art-kitty-player.kitty-orient-landscape-reverse,
 .anikitty-player.kitty-orient-landscape-reverse,
 .custom-kitty-player.kitty-orient-landscape-reverse {
   transform: translate(-50%, -50%) rotate(-90deg) !important;
@@ -3863,38 +3556,6 @@ html[data-user-theme] .user-accent-btn:hover {
   border-color: rgb(var(--user-accent-hover-rgb, var(--user-accent-rgb)) / 0.45) !important;
 }
 
-/* User accent theme — player controls follow profile color */
-html[data-user-theme] .art-kitty-player {
-  --kitty-player-accent: rgb(var(--user-accent-rgb) / 1);
-  --kitty-player-accent-soft: rgb(var(--user-accent-rgb) / 0.22);
-}
-
-html[data-user-theme] .art-kitty-player .art-progress-played {
-  background: linear-gradient(
-    90deg,
-    rgb(var(--user-accent-rgb) / 0.85),
-    rgb(var(--user-accent-rgb) / 1),
-    rgb(var(--user-accent-rgb) / 0.65)
-  ) !important;
-  box-shadow: 0 0 12px rgb(var(--user-accent-rgb) / 0.4);
-}
-
-html[data-user-theme] .art-kitty-player .art-progress-indicator {
-  border-color: rgb(var(--user-accent-rgb) / 0.85) !important;
-  box-shadow:
-    0 0 0 3px rgb(var(--user-accent-rgb) / 0.2),
-    0 2px 8px rgba(0, 0, 0, 0.45) !important;
-}
-
-html[data-user-theme] .art-kitty-player .art-control:hover {
-  background: rgb(var(--user-accent-rgb) / 0.14) !important;
-}
-
-html[data-user-theme] .art-kitty-player .art-selector-item.art-current,
-html[data-user-theme] .art-kitty-player .art-setting-panel .art-setting-item.art-current {
-  background: rgb(var(--user-accent-rgb) / 0.2) !important;
-  color: rgb(var(--user-accent-rgb) / 1) !important;
-}
 
 html[data-user-theme] .site-brand-btn {
   background: rgb(var(--user-accent-rgb) / 1) !important;

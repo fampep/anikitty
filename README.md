@@ -88,12 +88,14 @@ git clone https://github.com/fampep/anikitty.git
 cd anikitty
 npm install
 cp .env.example .env.local
+# optional local Postgres:
+docker compose up -d db
 ```
 
-Minimum for local:
+Minimum for local (see `.env.example` for the full list):
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/anikitty
+DATABASE_URL=postgresql://anikitty:anikitty@localhost:5432/anikitty
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 JWT_SECRET=                          # openssl rand -base64 48
 KITTY_API_KEY=akitty_…               # X-API-Key (server-only)
@@ -101,7 +103,7 @@ KLIPY_API_KEY=                       # GIF search — https://partner.klipy.com
 OPEN_SIGNUPS=true                    # false/unset = closed + Telegram CTA
 ```
 
-Production also needs `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `MESSAGE_ENCRYPTION_KEY` — see `.env.example`.
+Production also needs `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `MESSAGE_ENCRYPTION_KEY`.
 
 Schema is created on first startup via instrumentation — no manual migrations.
 

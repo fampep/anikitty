@@ -46,7 +46,6 @@ const nextConfig = {
       "lucide-react",
       "@radix-ui/react-icons",
       "framer-motion",
-      "artplayer",
     ],
   },
   webpack: (config) => {
