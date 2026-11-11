@@ -71,6 +71,7 @@ class AnikotoServer(
                             headers = streamHeaders(resolved.origin),
                             label = qualityLabel(label, quality),
                             stripBytes = strip,
+                            subtitles = resolved.subtitles,
                         )
                     }
                 }
@@ -113,6 +114,7 @@ class AnikotoServer(
         val origin: String,
         val file: String,
         val labeled: List<Pair<String, String>>,
+        val subtitles: List<SubtitleTrack>,
     )
 
     private fun mapWatchPage(anilistId: Int, titles: List<String>): MappedShow {
@@ -230,7 +232,51 @@ class AnikotoServer(
             .put("_anikittyOrigin", origin)
         val file = extractFile(srcJson) ?: error("MegaPlay file missing")
         val labeled = extractLabeled(srcJson).ifEmpty { listOf(file to "Stream") }
-        return ResolvedEmbed(origin = origin, file = file, labeled = labeled)
+        val subs = extractSubtitles(srcJson)
+        return ResolvedEmbed(origin = origin, file = file, labeled = labeled, subtitles = subs)
+    }
+
+    private fun extractSubtitles(data: JSONObject): List<SubtitleTrack> {
+        fun fromTracks(tracks: JSONArray?): List<SubtitleTrack> {
+            if (tracks == null) return emptyList()
+            val out = ArrayList<SubtitleTrack>()
+            for (i in 0 until tracks.length()) {
+                val row = tracks.optJSONObject(i) ?: continue
+                val kind = row.optString("kind").ifBlank { row.optString("type") }
+                if (kind.isNotBlank() &&
+                    !kind.contains("caption", ignoreCase = true) &&
+                    !kind.contains("sub", ignoreCase = true)
+                ) {
+                    continue
+                }
+                val file = row.optString("file").ifBlank { row.optString("url") }
+                if (!file.startsWith("http")) continue
+                val label = row.optString("label")
+                    .ifBlank { row.optString("lang") }
+                    .ifBlank { row.optString("language") }
+                    .ifBlank { "Subtitle ${out.size + 1}" }
+                val language = row.optString("lang").ifBlank { row.optString("language") }.ifBlank { null }
+                val mime = when {
+                    file.contains(".vtt", ignoreCase = true) -> "text/vtt"
+                    file.contains(".srt", ignoreCase = true) -> "application/x-subrip"
+                    file.contains(".ass", ignoreCase = true) || file.contains(".ssa", ignoreCase = true) ->
+                        "text/x-ssa"
+                    else -> null
+                }
+                out += SubtitleTrack(url = file, label = label, language = language, mimeType = mime)
+            }
+            return out
+        }
+        fromTracks(data.optJSONArray("tracks")).takeIf { it.isNotEmpty() }?.let { return it }
+        val enc = data.optString("enc")
+        if (enc.isNotBlank()) {
+            val origin = data.optString("_anikittyOrigin").ifBlank { "https://megaplay.buzz" }
+            val decrypted = runCatching { crypto.decryptEnc(enc, origin) }.getOrNull()
+            if (decrypted != null) {
+                fromTracks(decrypted.optJSONArray("tracks")).takeIf { it.isNotEmpty() }?.let { return it }
+            }
+        }
+        return emptyList()
     }
 
     private fun extractFile(data: JSONObject): String? {
