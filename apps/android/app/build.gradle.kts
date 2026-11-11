@@ -21,8 +21,8 @@ android {
         applicationId = "site.anikitty.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.5.3-local"
+        versionCode = 1
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -39,8 +39,8 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            // Same id/name as release so sideloaded APKs stay "AniKitty 1.0.0"
+            // instead of site.anikitty.app.debug / 0.x-local-debug.
             isDebuggable = true
         }
         release {
@@ -49,8 +49,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            if (keystorePropertiesFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
+            // Prefer release keystore when present; otherwise sign with the
+            // debug key so a clean 1.0.0 APK is still installable.
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
             }
         }
     }
