@@ -21,6 +21,15 @@ data class PlayableSource(
 
 interface StreamResolver {
     val server: StreamServer
-    /** Resolve a direct playable URL on-device. Empty until scrape is fully wired. */
-    suspend fun resolve(anilistId: Int, episode: Int, audio: String = "sub"): List<PlayableSource>
+
+    /**
+     * Resolve a direct playable URL on-device.
+     * @param titleHint AniList / display title to help map the watch page.
+     */
+    suspend fun resolve(
+        anilistId: Int,
+        episode: Int,
+        audio: String = "sub",
+        titleHint: String? = null,
+    ): List<PlayableSource>
 }

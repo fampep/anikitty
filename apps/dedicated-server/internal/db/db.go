@@ -84,5 +84,28 @@ CREATE INDEX IF NOT EXISTS idx_history_user_updated ON watch_history(user_id, up
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
+	// Password-only accounts: unique lookup key derived from the password.
+	if _, err := db.Exec(`ALTER TABLE users ADD COLUMN password_lookup TEXT`); err != nil {
+		// column may already exist
+		_ = err
+	}
+	if _, err := db.Exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_password_lookup ON users(password_lookup) WHERE password_lookup IS NOT NULL`); err != nil {
+		return fmt.Errorf("migrate lookup index: %w", err)
+	}
+	// Optional device passkeys (WebAuthn) — usable once the host is on HTTPS + domain.
+	_, err = db.Exec(`
+CREATE TABLE IF NOT EXISTS passkeys (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  credential_id TEXT NOT NULL UNIQUE,
+  public_key BLOB NOT NULL,
+  sign_count INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_passkeys_user ON passkeys(user_id);
+`)
+	if err != nil {
+		return fmt.Errorf("migrate passkeys: %w", err)
+	}
 	return nil
 }

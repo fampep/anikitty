@@ -22,7 +22,7 @@ class SessionStore(context: Context) {
             }.apply()
         }
 
-    var username: String?
+    var userId: String?
         get() = prefs.getString(KEY_USER, null)
         set(value) {
             prefs.edit().apply {
@@ -38,6 +38,6 @@ class SessionStore(context: Context) {
 
     private companion object {
         const val KEY_TOKEN = "jwt"
-        const val KEY_USER = "username"
+        const val KEY_USER = "user_id"
     }
 }
