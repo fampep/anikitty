@@ -2,6 +2,7 @@ package site.anikitty.app
 
 import android.app.Application
 import site.anikitty.app.data.anilist.AniListClient
+import site.anikitty.app.data.auth.SavedPassphraseStore
 import site.anikitty.app.data.auth.SessionStore
 import site.anikitty.app.data.local.AppDatabase
 import site.anikitty.app.data.server.DedicatedApiClient
@@ -19,6 +20,8 @@ class AnikittyApp : Application() {
         private set
     lateinit var session: SessionStore
         private set
+    lateinit var savedPassphrase: SavedPassphraseStore
+        private set
     lateinit var api: DedicatedApiClient
         private set
 
@@ -29,6 +32,7 @@ class AnikittyApp : Application() {
         streamServers = ServerCatalog(this)
         serverConfig = ServerConfig(this)
         session = SessionStore(this)
+        savedPassphrase = SavedPassphraseStore(this)
         api = DedicatedApiClient(
             baseUrlProvider = { serverConfig.baseUrl },
             tokenProvider = { session.token },
