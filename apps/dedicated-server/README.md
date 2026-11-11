@@ -36,4 +36,4 @@ export DATABASE_URL='file:./data/anikitty.db?_fk=1&_journal_mode=WAL'
 | PUT | `/api/v1/history` | Bearer |
 | DELETE | `/api/v1/history/{anilistId}` | Bearer |
 
-Point the Android app **Server URL** at `http://YOUR_LAN_IP:8788` (or HTTPS behind a reverse proxy in production).
+Production deploy currently serves the APK default at `http://198.50.123.153:8788` (`systemd --user` unit `anikitty.service`). Override in the app login field if needed. Prefer HTTPS behind a reverse proxy when you harden the host.
