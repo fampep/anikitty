@@ -11,12 +11,16 @@ import { DiscordIcon } from "@/components/auth/discord-connect";
 import AnilistIcon from "@/icons/anilist";
 import { useDiscordAuthEnabled } from "@/hooks/use-discord-auth-enabled";
 import { useOpenSignups } from "@/hooks/use-open-signups";
-import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
-import { RecoveryCodesReveal } from "@/components/auth/recovery-codes-reveal";
+import {
+  browserSupportsWebAuthn,
+  startAuthentication,
+  startRegistration,
+} from "@simplewebauthn/browser";
+import { PassphraseReveal } from "@/components/auth/passphrase-reveal";
 import TelegramIcon from "@/icons/telegram";
 import { trackEvent } from "@/lib/analytics";
 
-type Tab = "login" | "signup" | "2fa" | "recover";
+type Tab = "login" | "signup" | "2fa";
 
 function LoginPopoverButton({
   customTrigger,
@@ -31,35 +35,23 @@ function LoginPopoverButton({
   const [tab, setTab] = useState<Tab>(defaultTab);
   const [loading, setLoading] = useState(false);
 
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
+  const [passphrase, setPassphrase] = useState("");
   const [pendingToken, setPendingToken] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [passkeySupported, setPasskeySupported] = useState(false);
-  const [recoverIdentifier, setRecoverIdentifier] = useState("");
-  const [recoverCode, setRecoverCode] = useState("");
-  const [recoverPassword, setRecoverPassword] = useState("");
-  const [issuedCodes, setIssuedCodes] = useState<string[] | null>(null);
+  const [issuedPassphrase, setIssuedPassphrase] = useState<string | null>(null);
+  const [showPassphraseLogin, setShowPassphraseLogin] = useState(false);
 
   useEffect(() => {
     setPasskeySupported(browserSupportsWebAuthn());
   }, []);
 
   const reset = () => {
-    setIdentifier("");
-    setPassword("");
-    setUsername("");
-    setEmail("");
-    setSignupPassword("");
+    setPassphrase("");
     setPendingToken("");
     setTotpCode("");
-    setRecoverIdentifier("");
-    setRecoverCode("");
-    setRecoverPassword("");
-    setIssuedCodes(null);
+    setIssuedPassphrase(null);
+    setShowPassphraseLogin(false);
     setLoading(false);
   };
 
@@ -80,25 +72,29 @@ function LoginPopoverButton({
     }
   };
 
-  const handleLogin = async () => {
-    if (!identifier.trim() || !password) {
-      toast.error(t("auth.enterCredentials"));
+  const finishAuth = (data: Record<string, unknown>) => {
+    syncAuth(data);
+    toast.success(t("auth.welcomeBack"));
+    setOpen(false);
+    reset();
+    redirectAfterAuth();
+  };
+
+  const handlePassphraseLogin = async () => {
+    if (!passphrase.trim()) {
+      toast.error(t("auth.enterPassphrase"));
       return;
     }
     setLoading(true);
     try {
-      const data = await accountAuth.login(identifier.trim(), password);
+      const data = await accountAuth.loginWithPassphrase(passphrase.trim());
       if (data.requires2fa && data.pendingToken) {
         setPendingToken(data.pendingToken);
         setTab("2fa");
         setTotpCode("");
         return;
       }
-      syncAuth(data);
-      toast.success(t("auth.welcomeBack"));
-      setOpen(false);
-      reset();
-      redirectAfterAuth();
+      finishAuth(data);
     } catch (e: any) {
       toast.error(e?.body?.error ?? t("auth.invalidCredentials"));
     } finally {
@@ -114,11 +110,7 @@ function LoginPopoverButton({
     setLoading(true);
     try {
       const data = await accountAuth.verify2fa(pendingToken, totpCode);
-      syncAuth(data);
-      toast.success(t("auth.welcomeBack"));
-      setOpen(false);
-      reset();
-      redirectAfterAuth();
+      finishAuth(data);
     } catch (e: any) {
       toast.error(e?.body?.error ?? t("auth.invalidTotp"));
     } finally {
@@ -127,29 +119,18 @@ function LoginPopoverButton({
   };
 
   const handleSignup = async () => {
-    if (!username.trim() || !email.trim() || !signupPassword) {
-      toast.error(t("auth.fillAllFields"));
-      return;
-    }
-    if (!/^[a-zA-Z0-9_]{3,25}$/.test(username.trim())) {
-      toast.error(t("auth.usernameRules"));
-      return;
-    }
-    if (signupPassword.length < 8) {
-      toast.error(t("auth.passwordMin"));
-      return;
-    }
     setLoading(true);
     try {
-      const data = await accountAuth.signup(username.trim(), email.trim(), signupPassword);
-      syncAuth(data);
-      const codes = Array.isArray((data as { recoveryCodes?: string[] }).recoveryCodes)
-        ? (data as { recoveryCodes: string[] }).recoveryCodes
-        : null;
+      const data = await accountAuth.signupWithPassphrase();
+      syncAuth(data as Record<string, unknown>);
+      const phrase =
+        typeof (data as { passphrase?: string }).passphrase === "string"
+          ? (data as { passphrase: string }).passphrase
+          : null;
       toast.success(t("auth.accountCreated"));
-      if (codes?.length) {
-        setIssuedCodes(codes);
-        setTab("login");
+      if (phrase) {
+        setIssuedPassphrase(phrase);
+        setTab("signup");
       } else {
         setOpen(false);
         reset();
@@ -161,49 +142,7 @@ function LoginPopoverButton({
         setTab("login");
         return;
       }
-      const msg = e?.body?.error ?? t("auth.signupFailed");
-      toast.error(
-        msg.toLowerCase().includes("taken") || e?.status === 409
-          ? t("auth.usernameTaken")
-          : msg,
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRecover = async () => {
-    if (!recoverIdentifier.trim() || !recoverCode.trim() || !recoverPassword) {
-      toast.error(t("auth.recoverFillAll"));
-      return;
-    }
-    if (recoverPassword.length < 8) {
-      toast.error(t("auth.passwordMin"));
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch("/api/account/auth/recover", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          identifier: recoverIdentifier.trim(),
-          code: recoverCode.trim(),
-          password: recoverPassword,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error ?? t("auth.recoverFailed"));
-        return;
-      }
-      syncAuth(data);
-      toast.success(t("auth.recoverSuccess"));
-      setOpen(false);
-      reset();
-      redirectAfterAuth();
-    } catch {
-      toast.error(t("auth.recoverFailed"));
+      toast.error(e?.body?.error ?? t("auth.signupFailed"));
     } finally {
       setLoading(false);
     }
@@ -214,8 +153,8 @@ function LoginPopoverButton({
 
   useEffect(() => {
     if (!signupStatusLoaded) return;
-    if (!openSignups && tab === "signup") setTab("login");
-  }, [signupStatusLoaded, openSignups, tab]);
+    if (!openSignups && tab === "signup" && !issuedPassphrase) setTab("login");
+  }, [signupStatusLoaded, openSignups, tab, issuedPassphrase]);
 
   const handleDiscordLogin = () => {
     window.location.href = "/api/account/auth/discord/start";
@@ -228,17 +167,38 @@ function LoginPopoverButton({
   const handlePasskeyLogin = async () => {
     setLoading(true);
     try {
-      const { options, pendingToken } = await accountAuth.passkeyLoginOptions();
+      const { options, pendingToken: token } = await accountAuth.passkeyLoginOptions();
       const response = await startAuthentication({ optionsJSON: options });
-      const data = await accountAuth.passkeyLoginVerify(pendingToken, response);
+      const data = await accountAuth.passkeyLoginVerify(token, response);
       if (data.requires2fa && data.pendingToken) {
         setPendingToken(data.pendingToken);
         setTab("2fa");
         setTotpCode("");
         return;
       }
-      syncAuth(data);
-      toast.success(t("auth.welcomeBack"));
+      finishAuth(data);
+    } catch (e: unknown) {
+      const err = e as { name?: string; body?: { error?: string }; message?: string };
+      if (err?.name === "NotAllowedError") {
+        toast.error(t("auth.passkeyCancelled"));
+      } else {
+        toast.error(err?.body?.error ?? err?.message ?? t("auth.passkeyFailed"));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddPasskeyAfterSignup = async () => {
+    setLoading(true);
+    try {
+      const { options, pendingToken: token } = await accountAuth.passkeyRegisterOptions(
+        t("auth.defaultPasskeyName"),
+      );
+      const response = await startRegistration({ optionsJSON: options });
+      await accountAuth.passkeyRegisterVerify(token, response);
+      toast.success(t("auth.passkeyAdded"));
+      setIssuedPassphrase(null);
       setOpen(false);
       reset();
       redirectAfterAuth();
@@ -247,7 +207,7 @@ function LoginPopoverButton({
       if (err?.name === "NotAllowedError") {
         toast.error(t("auth.passkeyCancelled"));
       } else {
-        toast.error(err?.body?.error ?? err?.message ?? t("auth.passkeyFailed"));
+        toast.error(err?.body?.error ?? err?.message ?? t("auth.passkeyAddFailed"));
       }
     } finally {
       setLoading(false);
@@ -285,39 +245,39 @@ function LoginPopoverButton({
         collisionPadding={16}
         className="p-0 w-[min(22rem,calc(100vw-2rem))] bg-[#0a0a0a] border border-border dark:border-white/12 rounded-xl shadow-2xl shadow-black/60 overflow-hidden"
       >
-        {/* Header */}
         <div className="px-5 pt-5 pb-0 flex flex-col gap-3">
-          <p className="text-muted-foreground dark:text-white/50 text-xs font-mono">{t("auth.accountHint")}</p>
+          <p className="text-muted-foreground dark:text-white/50 text-xs font-mono">
+            {t("auth.accountHint")}
+          </p>
 
-          {/* Tabs — signup tab only while open signups are enabled */}
-          {tab !== "2fa" && tab !== "recover" && !issuedCodes && openSignups && (
-          <div className="flex rounded-lg bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 p-0.5">
-            <button
-              onClick={() => setTab("login")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                tab === "login"
-                  ? "bg-accent dark:bg-white/10 text-white border border-border dark:border-white/12"
-                  : "text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60"
-              }`}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-              {t("auth.signIn")}
-            </button>
-            <button
-              onClick={() => setTab("signup")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
-                tab === "signup"
-                  ? "bg-accent dark:bg-white/10 text-white border border-border dark:border-white/12"
-                  : "text-muted-foreground dark:text-white/35 hover:text-muted-foreground dark:text-white/60"
-              }`}
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              {t("auth.createAccount")}
-            </button>
-          </div>
+          {tab !== "2fa" && !issuedPassphrase && openSignups && (
+            <div className="flex rounded-lg bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 p-0.5">
+              <button
+                onClick={() => setTab("login")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  tab === "login"
+                    ? "bg-accent dark:bg-white/10 text-white border border-border dark:border-white/12"
+                    : "text-muted-foreground dark:text-white/35 hover:text-white/60"
+                }`}
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                {t("auth.signIn")}
+              </button>
+              <button
+                onClick={() => setTab("signup")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                  tab === "signup"
+                    ? "bg-accent dark:bg-white/10 text-white border border-border dark:border-white/12"
+                    : "text-muted-foreground dark:text-white/35 hover:text-white/60"
+                }`}
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                {t("auth.createAccount")}
+              </button>
+            </div>
           )}
 
-          {tab !== "2fa" && tab !== "recover" && !issuedCodes && signupStatusLoaded && !openSignups && (
+          {tab !== "2fa" && !issuedPassphrase && signupStatusLoaded && !openSignups && (
             <div className="rounded-lg border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-[11px] leading-relaxed text-sky-100/85 font-mono">
               <p className="mb-2">{t("auth.signupsClosedHint")}</p>
               <a
@@ -338,7 +298,9 @@ function LoginPopoverButton({
           <div className="p-5 flex flex-col gap-3.5">
             <div className="flex items-center gap-2 text-zinc-300/80">
               <ShieldCheck className="w-4 h-4" />
-              <p className="text-sm font-semibold text-foreground dark:text-white/85">{t("auth.twoFactor")}</p>
+              <p className="text-sm font-semibold text-foreground dark:text-white/85">
+                {t("auth.twoFactor")}
+              </p>
             </div>
             <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
               {t("auth.twoFactorHint")}
@@ -360,97 +322,26 @@ function LoginPopoverButton({
             </button>
             <button
               type="button"
-              onClick={() => { setTab("login"); setPendingToken(""); setTotpCode(""); }}
-              className="text-xs text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:text-white/70 transition-colors"
+              onClick={() => {
+                setTab("login");
+                setPendingToken("");
+                setTotpCode("");
+              }}
+              className="text-xs text-muted-foreground dark:text-white/40 hover:text-white/70 transition-colors"
             >
               {t("auth.backToSignIn")}
             </button>
           </div>
         )}
 
-        {/* Login form */}
-        {tab === "login" && !issuedCodes && (
-          <div className="p-5 flex flex-col gap-3.5">
-            <Field
-              label={t("auth.usernameOrEmail")}
-              value={identifier}
-              onChange={setIdentifier}
-              placeholder={t("auth.usernamePlaceholder")}
-              onEnter={handleLogin}
-            />
-            <Field
-              label={t("auth.password")}
-              value={password}
-              onChange={setPassword}
-              placeholder="••••••••"
-              type="password"
-              onEnter={handleLogin}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                setRecoverIdentifier(identifier);
-                setTab("recover");
-              }}
-              className="self-start -mt-1 text-[11px] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 transition-colors"
-            >
-              {t("auth.useRecoveryCode")}
-            </button>
-            <button
-              onClick={handleLogin}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-              {t("auth.signInSubmit")}
-            </button>
-            <>
-              <div className="flex items-center gap-3 py-1">
-                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-                <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
-                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-              </div>
-                {passkeySupported && (
-                  <button
-                    type="button"
-                    onClick={handlePasskeyLogin}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent dark:bg-white/[0.06] border border-border dark:border-white/12 text-foreground dark:text-white/85 font-semibold text-sm hover:bg-accent dark:hover:bg-white/10 disabled:opacity-60 transition-colors"
-                  >
-                    <Fingerprint className="w-4 h-4" />
-                    {t("auth.signInWithPasskey")}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleAniListLogin}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#0e1e7a]/20 border border-[#3c5aa6]/40 text-[#7eb3ff] font-semibold text-sm hover:bg-[#0e1e7a]/30 disabled:opacity-60 transition-colors"
-                >
-                  <AnilistIcon className="w-4 h-4" />
-                  {t("auth.continueWithAniList") ?? "Continue with AniList"}
-                </button>
-                {discordEnabled && (
-                  <button
-                    type="button"
-                    onClick={handleDiscordLogin}
-                    disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#dce0ff] font-semibold text-sm hover:bg-[#5865F2]/25 disabled:opacity-60 transition-colors"
-                  >
-                    <DiscordIcon className="w-4 h-4" />
-                    {t("auth.continueWithDiscord")}
-                  </button>
-                )}
-            </>
-          </div>
-        )}
-
-        {issuedCodes ? (
-          <div className="p-5 flex flex-col gap-3.5">
-            <RecoveryCodesReveal
-              codes={issuedCodes}
+        {issuedPassphrase ? (
+          <div className="p-5">
+            <PassphraseReveal
+              passphrase={issuedPassphrase}
+              passkeyBusy={loading}
+              onAddPasskey={passkeySupported ? () => void handleAddPasskeyAfterSignup() : undefined}
               onDismiss={() => {
-                setIssuedCodes(null);
+                setIssuedPassphrase(null);
                 setOpen(false);
                 reset();
                 redirectAfterAuth();
@@ -459,112 +350,102 @@ function LoginPopoverButton({
           </div>
         ) : null}
 
-        {tab === "recover" && !issuedCodes && (
+        {tab === "login" && !issuedPassphrase && (
           <div className="p-5 flex flex-col gap-3.5">
-            <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
-              {t("auth.recoverHint")}
-            </p>
-            <Field
-              label={t("auth.usernameOrEmail")}
-              value={recoverIdentifier}
-              onChange={setRecoverIdentifier}
-              placeholder={t("auth.usernamePlaceholder")}
-              onEnter={handleRecover}
-            />
-            <Field
-              label={t("auth.recoveryCode")}
-              value={recoverCode}
-              onChange={setRecoverCode}
-              placeholder="XXXX-XXXX"
-              onEnter={handleRecover}
-            />
-            <Field
-              label={t("settings.newPassword")}
-              value={recoverPassword}
-              onChange={setRecoverPassword}
-              placeholder="••••••••"
-              type="password"
-              onEnter={handleRecover}
-            />
-            <button
-              onClick={handleRecover}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {t("auth.recoverSubmit")}
-            </button>
+            {passkeySupported ? (
+              <button
+                type="button"
+                onClick={handlePasskeyLogin}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors"
+              >
+                {loading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Fingerprint className="w-4 h-4" />
+                )}
+                {t("auth.signInWithPasskey")}
+              </button>
+            ) : (
+              <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
+                {t("auth.passkeyUnsupported")}
+              </p>
+            )}
+
             <button
               type="button"
-              onClick={() => setTab("login")}
-              className="text-xs text-muted-foreground dark:text-white/40 hover:text-muted-foreground dark:hover:text-white/70 transition-colors"
+              onClick={() => setShowPassphraseLogin((v) => !v)}
+              className="self-start text-[11px] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 transition-colors"
             >
-              {t("auth.backToSignIn")}
+              {showPassphraseLogin ? t("auth.hidePassphraseLogin") : t("auth.usePassphrase")}
             </button>
+
+            {showPassphraseLogin || !passkeySupported ? (
+              <>
+                <Field
+                  label={t("auth.passphrase")}
+                  value={passphrase}
+                  onChange={setPassphrase}
+                  placeholder={t("auth.passphrasePlaceholder")}
+                  onEnter={handlePassphraseLogin}
+                />
+                <button
+                  onClick={handlePassphraseLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent dark:bg-white/[0.06] border border-border dark:border-white/12 text-foreground dark:text-white/85 font-semibold text-sm hover:bg-accent dark:hover:bg-white/10 disabled:opacity-60 transition-colors"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                  {t("auth.signInWithPassphrase")}
+                </button>
+              </>
+            ) : null}
+
+            <div className="flex items-center gap-3 py-1">
+              <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+              <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">
+                {t("auth.or")}
+              </span>
+              <div className="h-px flex-1 bg-accent dark:bg-white/8" />
+            </div>
+            <button
+              type="button"
+              onClick={handleAniListLogin}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#0e1e7a]/20 border border-[#3c5aa6]/40 text-[#7eb3ff] font-semibold text-sm hover:bg-[#0e1e7a]/30 disabled:opacity-60 transition-colors"
+            >
+              <AnilistIcon className="w-4 h-4" />
+              {t("auth.continueWithAniList")}
+            </button>
+            {discordEnabled && (
+              <button
+                type="button"
+                onClick={handleDiscordLogin}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#dce0ff] font-semibold text-sm hover:bg-[#5865F2]/25 disabled:opacity-60 transition-colors"
+              >
+                <DiscordIcon className="w-4 h-4" />
+                {t("auth.continueWithDiscord")}
+              </button>
+            )}
           </div>
         )}
 
-        {/* Signup form */}
-        {tab === "signup" && openSignups && !issuedCodes && (
+        {tab === "signup" && openSignups && !issuedPassphrase && (
           <div className="p-5 flex flex-col gap-3.5">
-            <Field
-              label={t("auth.username")}
-              value={username}
-              onChange={setUsername}
-              placeholder={t("auth.usernameHint")}
-              onEnter={handleSignup}
-            />
-            <Field
-              label={t("auth.email")}
-              value={email}
-              onChange={setEmail}
-              placeholder={t("auth.emailPlaceholder")}
-              type="email"
-              onEnter={handleSignup}
-            />
-            <Field
-              label={t("auth.password")}
-              value={signupPassword}
-              onChange={setSignupPassword}
-              placeholder="••••••••"
-              type="password"
-              onEnter={handleSignup}
-            />
+            <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
+              {t("auth.passphraseSignupHint")}
+            </p>
             <button
               onClick={handleSignup}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-              {t("auth.createAccountSubmit")}
+              {t("auth.createPassphraseAccount")}
             </button>
-            <>
-              <div className="flex items-center gap-3 py-1">
-                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-                <span className="text-[10px] font-mono text-muted-foreground/80 dark:text-white/25 uppercase">{t("auth.or")}</span>
-                <div className="h-px flex-1 bg-accent dark:bg-white/8" />
-              </div>
-              <button
-                type="button"
-                onClick={handleAniListLogin}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#0e1e7a]/20 border border-[#3c5aa6]/40 text-[#7eb3ff] font-semibold text-sm hover:bg-[#0e1e7a]/30 disabled:opacity-60 transition-colors"
-              >
-                <span className="font-bold text-lg">★</span>
-                {t("auth.continueWithAniList") ?? "Continue with AniList"}
-              </button>
-              {discordEnabled && (
-                <button
-                  type="button"
-                  onClick={handleDiscordLogin}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#5865F2]/15 border border-[#5865F2]/30 text-[#dce0ff] font-semibold text-sm hover:bg-[#5865F2]/25 disabled:opacity-60 transition-colors"
-                >
-                  <DiscordIcon className="w-4 h-4" />
-                  {t("auth.continueWithDiscord")}
-                </button>
-              )}
-            </>
+            <p className="text-[10px] text-muted-foreground/80 dark:text-white/30 leading-relaxed">
+              {t("auth.passphraseSignupNote")}
+            </p>
           </div>
         )}
       </PopoverContent>
@@ -589,14 +470,16 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-wider">{label}</label>
+      <label className="text-[11px] font-mono text-muted-foreground dark:text-white/40 uppercase tracking-wider">
+        {label}
+      </label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
         placeholder={placeholder}
-        autoComplete={type === "password" ? "current-password" : type === "email" ? "email" : "username"}
+        autoComplete="off"
         className="h-9 px-3 rounded-lg bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 text-sm focus:outline-none focus:border-white/28 transition-colors"
       />
     </div>
