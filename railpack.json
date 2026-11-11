@@ -9,7 +9,6 @@
     ".next",
     "node_modules",
     ".claude",
-    "pocketbase",
     "docs",
     "drizzle"
   ],
