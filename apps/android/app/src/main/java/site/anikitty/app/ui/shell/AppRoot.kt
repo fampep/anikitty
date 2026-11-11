@@ -43,6 +43,7 @@ fun AppRoot(
     streamServers: ServerCatalog,
 ) {
     var signedIn by remember { mutableStateOf(session.isSignedIn) }
+    val scope = rememberCoroutineScope()
 
     if (!signedIn) {
         LoginScreen(
@@ -59,8 +60,11 @@ fun AppRoot(
             username = session.username ?: "user",
             serverBaseUrl = serverConfig.baseUrl,
             onSignOut = {
-                session.clear()
-                signedIn = false
+                scope.launch {
+                    runCatching { api.logout() }
+                    session.clear()
+                    signedIn = false
+                }
             },
         )
     }

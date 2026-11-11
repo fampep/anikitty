@@ -18,6 +18,8 @@ go run ./cmd/server   # :8788
 
 In the app, set Server URL to `http://<laptop-lan-ip>:8788` (emulator default `http://10.0.2.2:8788`).
 
+Debug APKs allow cleartext HTTP for LAN testing. Release builds require HTTPS (or the emulator/`localhost` cleartext exceptions).
+
 ## Build APK
 
 ```bash

@@ -259,11 +259,10 @@ func mapAuthErr(w http.ResponseWriter, err error) {
 	}
 }
 
+// clientIP uses the TCP peer only. Do not trust X-Forwarded-For here — clients
+// can spoof it and blow out the limiter map. Put a reverse proxy in front if
+// you need real client IPs behind NAT.
 func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		parts := strings.Split(xff, ",")
-		return strings.TrimSpace(parts[0])
-	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
