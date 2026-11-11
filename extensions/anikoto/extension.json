@@ -1,0 +1,10 @@
+{
+  "id": "anikoto",
+  "name": "Anikoto",
+  "version": "0.2.0",
+  "description": "Built-in watch server (not a third-party install). Phone resolves request URL only; Media3 streams on-device. Dedicated Go host stays auth/history.",
+  "runtime": "android-builtin",
+  "role": "url-resolver",
+  "providerKey": "Anikoto",
+  "homepage": "https://anikoto.cz"
+}

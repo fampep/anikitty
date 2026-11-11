@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Public AniList GraphQL — no AniKitty account required.
- * Catalog metadata only; playback comes from local extensions later.
+ * Catalog metadata only; playback comes from the selected built-in watch server.
  */
 class AniListClient(
     private val http: OkHttpClient = OkHttpClient.Builder()

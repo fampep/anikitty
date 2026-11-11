@@ -1,59 +1,26 @@
-# AniKitty Android (local-first APK)
+# AniKitty Android (dedicated APK)
 
-Kotlin + Jetpack Compose client. **No sign-in.** Catalog comes from public AniList GraphQL; watch history and extension toggles live **on the device** (Room + SharedPreferences).
+**Product = this APK + your Go dedicated server.** No website required.
 
-Playback via real provider extensions + Media3 is the next milestone — the Extensions tab is the on-device switchboard with placeholders today.
+1. Sign in / create account on **your** dedicated server (username + password only).
+2. Browse AniList on-device.
+3. Pick a built-in **watch server** (e.g. Anikoto) — no third-party extension installs.
+4. Phone resolves a playable **URL** only; Media3 streams on-device (bandwidth on the phone).
+5. History can stay local (Room); dedicated server sync is for logged-in users only.
 
-## Build a debug APK
-
-Requirements: JDK 17+, Android SDK (API 35).
+## Dedicated server
 
 ```bash
-cd apps/android
-# optional: echo "sdk.dir=$ANDROID_HOME" > local.properties
+cd apps/dedicated-server
+export JWT_SECRET="$(openssl rand -base64 48)"
+go run ./cmd/server   # :8788
+```
+
+In the app, set Server URL to `http://<laptop-lan-ip>:8788` (emulator default `http://10.0.2.2:8788`).
+
+## Build APK
+
+```bash
 ./gradlew :app:assembleDebug
+# app/build/outputs/apk/debug/app-debug.apk
 ```
-
-APK output:
-
-```text
-app/build/outputs/apk/debug/app-debug.apk
-```
-
-Install:
-
-```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-From repo root: `npm run android:assembleDebug`.
-
-Debug application id: `site.anikitty.app.debug`.
-
-### On your phone (sideload)
-
-1. Build the APK (or download the artifact from CI / a shared build).
-2. Copy `app-debug.apk` to the phone.
-3. Allow install from that source, open the APK, install.
-4. Open **AniKitty** — Home/Search work without an account.
-
-## What works now
-
-| Feature | Behavior |
-|---|---|
-| Home | Trending anime from AniList (no login) |
-| Search | AniList search |
-| History | Stored in local SQLite (`anikitty-local.db`) |
-| Extensions | Enable/disable on-device stubs (no real streams yet) |
-
-Tap a title on Home/Search to add/update local continue-watching.
-
-## What is not in this build
-
-- Website passphrase / passkey / account sync
-- Real stream scraping / HLS player
-- Cloud sync of history
-
-## Release signing
-
-See `keystore.properties.example` for release builds. Debug APK uses the automatic debug keystore.

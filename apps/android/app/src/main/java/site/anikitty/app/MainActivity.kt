@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import site.anikitty.app.ui.shell.LocalFirstApp
+import site.anikitty.app.ui.shell.AppRoot
 import site.anikitty.app.ui.theme.AniKittyTheme
 
 class MainActivity : ComponentActivity() {
@@ -14,10 +14,13 @@ class MainActivity : ComponentActivity() {
         val app = application as AnikittyApp
         setContent {
             AniKittyTheme {
-                LocalFirstApp(
+                AppRoot(
+                    api = app.api,
+                    session = app.session,
+                    serverConfig = app.serverConfig,
                     aniList = app.aniList,
                     historyDao = app.database.watchHistoryDao(),
-                    extensions = app.extensions,
+                    streamServers = app.streamServers,
                 )
             }
         }

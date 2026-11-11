@@ -23,7 +23,7 @@
 
 <br />
 
-AniKitty’s product direction is a **local-first Android APK** (Kotlin / Jetpack Compose under `apps/android/`): **no app sign-in**, AniList for catalog, watch history on-device, pluggable extensions for streams. The Next.js site can remain an optional web/API surface — not a Capacitor wrap.
+AniKitty’s product is the **Android APK** + **Go dedicated server** (`apps/android`, `apps/dedicated-server`). Sign-in is required against **your** server DB (no Discord/AniList accounts). Users **select a built-in watch server** (not third-party extensions); the phone resolves a playable URL and streams on-device. The old website is not the product focus.
 
 ---
 
@@ -31,12 +31,12 @@ AniKitty’s product direction is a **local-first Android APK** (Kotlin / Jetpac
 
 | | |
 |---|---|
-| **Android APK** | Local-first Compose app in `apps/android/` — browse/search without an account |
-| **On-device data** | Watch history stored in SQLite on the phone |
-| **Extensions** | On-device provider toggles (real scrapers / player next) |
+| **Android APK** | Compose app in `apps/android/` — sign in to your dedicated server |
+| **On-device data** | Watch history in Room; optional sync to Go server |
+| **Watch servers** | Built-in selectable servers (e.g. Anikoto) — URL resolve on phone, no 3rd-party installs |
+| **Streaming** | Media3 on the phone; dedicated server never carries stream bytes |
 | **No ads** | No popups, redirects, or trackers |
-| **Web (optional)** | Passphrase + passkeys, access gating via `OPEN_SIGNUPS` — separate from the APK |
-| **Player** | Web: Vidstack + HLS; Android Media3 playback comes with real extensions |
+| **Web (optional)** | Legacy site stack — separate from the APK product |
 
 ---
 

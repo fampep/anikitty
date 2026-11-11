@@ -18,7 +18,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Search
@@ -33,8 +33,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,18 +53,21 @@ import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
-import site.anikitty.app.data.extensions.ExtensionRegistry
+import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.touchFromCatalog
 
-private enum class Tab { Home, Search, History, Extensions }
+private enum class Tab { Home, Search, History, Servers }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalFirstApp(
     aniList: AniListClient,
     historyDao: WatchHistoryDao,
-    extensions: ExtensionRegistry,
+    streamServers: ServerCatalog,
+    username: String,
+    serverBaseUrl: String,
+    onSignOut: () -> Unit,
 ) {
     var tab by remember { mutableStateOf(Tab.Home) }
 
@@ -75,11 +78,16 @@ fun LocalFirstApp(
                     Column {
                         Text("AniKitty")
                         Text(
-                            "Local APK - no sign-in",
+                            "$username · streams on-device · auth @$serverBaseUrl",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
+                },
+                actions = {
+                    TextButton(onClick = onSignOut) { Text("Sign out") }
                 },
             )
         },
@@ -104,10 +112,10 @@ fun LocalFirstApp(
                     label = { Text("History") },
                 )
                 NavigationBarItem(
-                    selected = tab == Tab.Extensions,
-                    onClick = { tab = Tab.Extensions },
-                    icon = { Icon(Icons.Outlined.Extension, contentDescription = null) },
-                    label = { Text("Extensions") },
+                    selected = tab == Tab.Servers,
+                    onClick = { tab = Tab.Servers },
+                    icon = { Icon(Icons.Outlined.Dns, contentDescription = null) },
+                    label = { Text("Servers") },
                 )
             }
         },
@@ -127,9 +135,9 @@ fun LocalFirstApp(
                 modifier = Modifier.padding(padding).fillMaxSize(),
                 historyDao = historyDao,
             )
-            Tab.Extensions -> ExtensionsTab(
+            Tab.Servers -> ServersTab(
                 modifier = Modifier.padding(padding).fillMaxSize(),
-                registry = extensions,
+                catalog = streamServers,
             )
         }
     }
@@ -333,46 +341,58 @@ private fun HistoryTab(
 }
 
 @Composable
-private fun ExtensionsTab(
+private fun ServersTab(
     modifier: Modifier,
-    registry: ExtensionRegistry,
+    catalog: ServerCatalog,
 ) {
-    val entries by registry.entries.collectAsState()
+    val selectedId by catalog.selectedId.collectAsState()
+    val servers = catalog.servers
 
     LazyColumn(
         modifier = modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text("Extensions", style = MaterialTheme.typography.titleMedium)
+            Text("Watch servers", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Turn on local provider packs for streams. Real scrapers / Media3 playback come next - this tab is the on-device switchboard.",
+                "Pick a built-in server, then watch. The phone only resolves a playable URL; streaming bandwidth stays on-device. No third-party extension installs.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        items(entries, key = { it.extension.id }) { entry ->
-            Card(modifier = Modifier.fillMaxWidth()) {
+        items(servers, key = { it.id }) { server ->
+            val selected = server.id == selectedId
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { catalog.select(server.id) },
+            ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(entry.extension.name, style = MaterialTheme.typography.titleSmall)
+                        Text(server.name, style = MaterialTheme.typography.titleSmall)
                         Text(
-                            "v${entry.extension.version}",
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                        Text(
-                            entry.extension.description,
+                            server.description,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        if (selected) {
+                            Text(
+                                "Selected — use Home/Search, then watch via this server",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
                     }
-                    Switch(
-                        checked = entry.enabled,
-                        onCheckedChange = { registry.setEnabled(entry.extension.id, it) },
-                    )
+                    if (selected) {
+                        Text("ON", color = MaterialTheme.colorScheme.primary)
+                    } else {
+                        OutlinedButton(onClick = { catalog.select(server.id) }) {
+                            Text("Select")
+                        }
+                    }
                 }
             }
         }
