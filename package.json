@@ -13,7 +13,8 @@
     "start": "node .next/standalone/server.js",
     "lint": "next lint",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "android:assembleDebug": "cd apps/android && ./gradlew :app:assembleDebug"
   },
   "dependencies": {
     "@dovakiin0/aniwatch": "^2.24.6-custom-1",
