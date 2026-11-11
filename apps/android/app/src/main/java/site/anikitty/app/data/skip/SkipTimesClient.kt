@@ -115,9 +115,11 @@ class SkipTimesClient(
     }
 
     private companion object {
+        // Public community skip API hosts (HTTPS). Prefer site over online when both work;
+        // release Network Security Config explicitly permits these domains.
         val COMMUNITY_HOSTS = listOf(
-            "https://anikitty.online",
             "https://anikitty.site",
+            "https://anikitty.online",
         )
     }
 }
