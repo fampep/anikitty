@@ -157,3 +157,35 @@ func (s *Store) HasPasskeys(ctx context.Context, userID string) (bool, error) {
 func (s *Store) PasskeyUnavailable() error {
 	return fmt.Errorf("passkeys require HTTPS hostname — use password for now, add passkey after TLS")
 }
+
+// DisplayName returns the optional public label for comments / account.
+func (s *Store) DisplayName(ctx context.Context, userID string) (string, error) {
+	var name sql.NullString
+	err := s.DB.QueryRowContext(ctx, `SELECT display_name FROM users WHERE id = ?`, userID).Scan(&name)
+	if err != nil {
+		return "", err
+	}
+	if name.Valid {
+		return strings.TrimSpace(name.String), nil
+	}
+	return "", nil
+}
+
+// SetDisplayName updates the optional public label (2–24 chars).
+func (s *Store) SetDisplayName(ctx context.Context, userID, name string) error {
+	name = strings.TrimSpace(name)
+	if name != "" && (len(name) < 2 || len(name) > 24) {
+		return fmt.Errorf("display name must be 2–24 characters")
+	}
+	_, err := s.DB.ExecContext(ctx, `
+UPDATE users SET display_name = ?, updated_at = ? WHERE id = ?`,
+		nullIfEmpty(name), time.Now().Unix(), userID)
+	return err
+}
+
+func nullIfEmpty(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
+}

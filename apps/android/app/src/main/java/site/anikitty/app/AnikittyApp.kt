@@ -28,7 +28,7 @@ class AnikittyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         database = AppDatabase.create(this)
-        aniList = AniListClient()
+        aniList = AniListClient(this)
         streamServers = ServerCatalog(this)
         serverConfig = ServerConfig(this)
         session = SessionStore(this)

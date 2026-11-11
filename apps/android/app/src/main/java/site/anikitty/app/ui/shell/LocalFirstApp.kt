@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -28,7 +27,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -68,14 +66,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
 import site.anikitty.app.data.local.touchFromCatalog
+import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.KittyBottomNav
@@ -86,7 +87,6 @@ import site.anikitty.app.ui.components.KittyPosterCard
 import site.anikitty.app.ui.components.KittyPosterRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.player.PlayerScreen
-import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.KittyPage
 import site.anikitty.app.ui.theme.KittySurface
 
@@ -105,6 +105,7 @@ fun LocalFirstApp(
     aniList: AniListClient,
     historyDao: WatchHistoryDao,
     streamServers: ServerCatalog,
+    api: DedicatedApiClient,
     accountLabel: String,
     onSignOut: () -> Unit,
 ) {
@@ -118,7 +119,7 @@ fun LocalFirstApp(
             KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home),
             KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search),
             KittyNavTab("history", "History", Icons.Outlined.History, Icons.Outlined.History),
-            KittyNavTab("settings", "More", Icons.Outlined.Settings, Icons.Filled.Settings),
+            KittyNavTab("settings", "Account", Icons.Outlined.Settings, Icons.Filled.Settings),
         )
     }
 
@@ -157,6 +158,7 @@ fun LocalFirstApp(
                 initialEpisode = current.startEpisode,
                 streamServers = streamServers,
                 historyDao = historyDao,
+                api = api,
                 onBack = { screen = Screen.Tabs },
                 onPlay = { episode, sources ->
                     screen = Screen.Player(current.anime, episode, sources)
@@ -194,6 +196,7 @@ fun LocalFirstApp(
             )
             "settings" -> SettingsFeed(
                 catalog = streamServers,
+                api = api,
                 accountLabel = accountLabel,
                 onSignOut = onSignOut,
             )
@@ -260,9 +263,7 @@ private fun HomeFeed(
                 }
             }
             else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(bottom = 100.dp),
-                ) {
+                LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
                     item {
                         FloatingTopChrome(accountLabel = accountLabel, onSignOut = onSignOut)
                     }
@@ -391,7 +392,34 @@ private fun SearchFeed(
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var discover by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     val scope = rememberCoroutineScope()
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    fun runSearch(raw: String) {
+        val q = raw.trim()
+        searchJob?.cancel()
+        if (q.length < 2) {
+            items = emptyList()
+            error = null
+            loading = false
+            return
+        }
+        searchJob = scope.launch {
+            delay(350)
+            loading = true
+            error = null
+            runCatching { aniList.search(q) }
+                .onSuccess { items = it }
+                .onFailure { error = it.message }
+            loading = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        runCatching { aniList.trending(perPage = 12) }
+            .onSuccess { discover = it }
+    }
 
     Column(
         modifier = Modifier
@@ -406,31 +434,22 @@ private fun SearchFeed(
             fontWeight = FontWeight.Bold,
             color = Color.White,
         )
+        Text(
+            "Type a title — results update as you type",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
             value = query,
-            onValueChange = { query = it },
+            onValueChange = {
+                query = it
+                runSearch(it)
+            },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             label = { Text("Anime title") },
-            trailingIcon = {
-                Icon(
-                    Icons.Rounded.Search,
-                    contentDescription = null,
-                    modifier = Modifier.clickable {
-                        val q = query.trim()
-                        if (q.isBlank()) return@clickable
-                        scope.launch {
-                            loading = true
-                            error = null
-                            runCatching { aniList.search(q) }
-                                .onSuccess { items = it }
-                                .onFailure { error = it.message }
-                            loading = false
-                        }
-                    },
-                )
-            },
+            trailingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
         )
         Spacer(modifier = Modifier.height(12.dp))
         when {
@@ -438,7 +457,7 @@ private fun SearchFeed(
                 CircularProgressIndicator()
             }
             error != null && items.isEmpty() -> Text(error!!, color = MaterialTheme.colorScheme.error)
-            else -> LazyVerticalGrid(
+            items.isNotEmpty() -> LazyVerticalGrid(
                 columns = GridCells.Adaptive(110.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -453,6 +472,31 @@ private fun SearchFeed(
                         },
                         width = 110.dp,
                     )
+                }
+            }
+            else -> {
+                Text(
+                    if (query.isBlank()) "Trending picks" else "Keep typing…",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(110.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    gridItems(discover, key = { it.id }) { anime ->
+                        KittyPosterCard(
+                            anime = anime,
+                            onClick = {
+                                scope.launch { historyDao.touchFromCatalog(anime) }
+                                onOpen(anime)
+                            },
+                            width = 110.dp,
+                        )
+                    }
                 }
             }
         }
@@ -524,10 +568,25 @@ private fun HistoryFeed(
 @Composable
 private fun SettingsFeed(
     catalog: ServerCatalog,
+    api: DedicatedApiClient,
     accountLabel: String,
     onSignOut: () -> Unit,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
+    val scope = rememberCoroutineScope()
+    var profile by remember { mutableStateOf<DedicatedApiClient.Profile?>(null) }
+    var displayName by remember { mutableStateOf("") }
+    var status by remember { mutableStateOf<String?>(null) }
+    var favorites by remember { mutableStateOf<List<DedicatedApiClient.Favorite>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        runCatching { api.me() }.onSuccess {
+            profile = it
+            displayName = it.displayName
+        }
+        runCatching { api.favorites() }.onSuccess { favorites = it }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -538,7 +597,7 @@ private fun SettingsFeed(
     ) {
         item {
             Text(
-                "More",
+                "Account",
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
@@ -548,6 +607,54 @@ private fun SettingsFeed(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            profile?.let {
+                Text(
+                    "${it.favorites} favorites · ${it.comments} comments",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        item {
+            Text("Display name", color = Color.White, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Shown on comments. Optional, 2–24 characters.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = displayName,
+                onValueChange = { displayName = it.take(24) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Name") },
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    scope.launch {
+                        status = runCatching {
+                            val saved = api.updateDisplayName(displayName.trim())
+                            displayName = saved
+                            profile = api.me()
+                            "Saved"
+                        }.getOrElse { e -> e.message }
+                    }
+                },
+                shape = RoundedCornerShape(20.dp),
+            ) { Text("Save name") }
+            if (status != null) {
+                Text(status!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        if (favorites.isNotEmpty()) {
+            item {
+                Text("Favorites", color = Color.White, fontWeight = FontWeight.SemiBold)
+            }
+            lazyItems(favorites, key = { it.anilistId }) { fav ->
+                Text(fav.title, color = Color.White)
+            }
         }
         item {
             Text(
@@ -605,6 +712,7 @@ private fun TitleDetailScreen(
     initialEpisode: Int?,
     streamServers: ServerCatalog,
     historyDao: WatchHistoryDao,
+    api: DedicatedApiClient,
     onBack: () -> Unit,
     onPlay: (episode: Int, sources: List<PlayableSource>) -> Unit,
 ) {
@@ -613,7 +721,14 @@ private fun TitleDetailScreen(
     var audio by remember { mutableStateOf("sub") }
     var resolving by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
-    val maxEp = (anime.episodes ?: 24).coerceAtLeast(1).coerceAtMost(200)
+    var favorited by remember { mutableStateOf(false) }
+    var comments by remember { mutableStateOf<List<DedicatedApiClient.Comment>>(emptyList()) }
+    var commentDraft by remember { mutableStateOf("") }
+    var commentStatus by remember { mutableStateOf<String?>(null) }
+    val maxEp = (anime.episodes ?: 24).coerceAtLeast(1).coerceAtMost(500)
+    val pageSize = 24
+    val pageCount = ((maxEp - 1) / pageSize) + 1
+    var epPage by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(anime.id, initialEpisode) {
         if (initialEpisode != null) {
@@ -621,7 +736,15 @@ private fun TitleDetailScreen(
         } else {
             historyDao.get(anime.id)?.episode?.let { episode = it.coerceIn(1, maxEp) }
         }
+        epPage = ((episode - 1) / pageSize).coerceIn(0, pageCount - 1)
+        runCatching { api.favorites() }
+            .onSuccess { favorited = it.any { f -> f.anilistId.toInt() == anime.id } }
+        runCatching { api.comments(anime.id) }
+            .onSuccess { comments = it }
     }
+
+    val pageStart = epPage * pageSize + 1
+    val pageEnd = minOf(maxEp, pageStart + pageSize - 1)
 
     Box(
         modifier = Modifier
@@ -715,6 +838,22 @@ private fun TitleDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                     }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Chip(if (favorited) "Favorited" else "Favorite", favorited) {
+                            scope.launch {
+                                runCatching {
+                                    if (favorited) {
+                                        api.deleteFavorite(anime.id)
+                                        favorited = false
+                                    } else {
+                                        api.putFavorite(anime.id, anime.title, anime.coverImageUrl)
+                                        favorited = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text("Audio", color = Color.White, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -722,29 +861,60 @@ private fun TitleDetailScreen(
                         Chip("DUB", audio == "dub") { audio = "dub" }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Episode", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Episodes · $pageStart–$pageEnd of $maxEp",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    if (pageCount > 1) {
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            for (p in 0 until pageCount) {
+                                val start = p * pageSize + 1
+                                val end = minOf(maxEp, start + pageSize - 1)
+                                Chip("$start–$end", p == epPage) { epPage = p }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(KittySurface)
+                            .padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        for (n in 1..maxEp) {
-                            val selected = n == episode
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (selected) Color.White else KittySurface,
-                                    )
-                                    .clickable { episode = n },
-                                contentAlignment = Alignment.Center,
+                        for (rowStart in pageStart..pageEnd step 6) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Text(
-                                    "$n",
-                                    color = if (selected) Color.Black else Color.White,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
+                                val filled = minOf(6, pageEnd + 1 - rowStart)
+                                for (n in rowStart until rowStart + filled) {
+                                    val selected = n == episode
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(42.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(if (selected) Color.White else Color(0xFF1A1A1A))
+                                            .clickable { episode = n },
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            "$n",
+                                            color = if (selected) Color.Black else Color.White,
+                                            fontWeight = FontWeight.SemiBold,
+                                        )
+                                    }
+                                }
+                                repeat(6 - filled) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
                             }
                         }
                     }
@@ -805,6 +975,60 @@ private fun TitleDetailScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("Comments", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Stored on your dedicated server",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = commentDraft,
+                        onValueChange = { commentDraft = it.take(500) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Say something") },
+                        minLines = 2,
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            val body = commentDraft.trim()
+                            if (body.length < 2) return@Button
+                            scope.launch {
+                                runCatching {
+                                    val item = api.postComment(anime.id, body, episode)
+                                    comments = listOf(item) + comments
+                                    commentDraft = ""
+                                    commentStatus = null
+                                }.onFailure { commentStatus = it.message }
+                            }
+                        },
+                        shape = RoundedCornerShape(20.dp),
+                    ) { Text("Post") }
+                    if (commentStatus != null) {
+                        Text(commentStatus!!, color = MaterialTheme.colorScheme.error)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (comments.isEmpty()) {
+                        Text("No comments yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        comments.forEach { c ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                            ) {
+                                Text(
+                                    c.displayName + (c.episode?.let { " · ep $it" } ?: ""),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(c.body, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
                     }
                 }
             }

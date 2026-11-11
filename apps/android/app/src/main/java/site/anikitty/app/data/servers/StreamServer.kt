@@ -17,6 +17,8 @@ data class PlayableSource(
     val url: String,
     val headers: Map<String, String> = emptyMap(),
     val label: String = "Stream",
+    /** MegaPlay PNG-disguise unwrap size for HLS segments (0 = none). */
+    val stripBytes: Int = SegmentStripDataSource.DEFAULT_STRIP_BYTES,
 )
 
 interface StreamResolver {

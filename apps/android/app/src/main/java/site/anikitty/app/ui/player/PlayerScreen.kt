@@ -77,10 +77,12 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.servers.PlayableSource
+import site.anikitty.app.data.servers.SegmentStripDataSource
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.PlayerChrome
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Full-bleed anime player with custom chrome (tap to toggle):
@@ -105,7 +107,9 @@ fun PlayerScreen(
     var durationMs by remember { mutableLongStateOf(0L) }
     var scrubbing by remember { mutableStateOf(false) }
     var scrubValue by remember { mutableFloatStateOf(0f) }
-    val source = sources.firstOrNull()
+    var sourceIndex by remember(sources) { mutableStateOf(0) }
+    val source = sources.getOrNull(sourceIndex)
+    val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
 
     BackHandler(onBack = onClose)
 
@@ -120,14 +124,19 @@ fun PlayerScreen(
 
     val player = remember(source?.url) {
         if (source == null) return@remember null
-        val factory = DefaultHttpDataSource.Factory()
+        val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(source.headers["User-Agent"] ?: DEFAULT_UA)
             .setDefaultRequestProperties(source.headers)
             .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(8_000)
-            .setReadTimeoutMs(12_000)
+            .setConnectTimeoutMs(12_000)
+            .setReadTimeoutMs(20_000)
+        stripBytes.set(
+            source.stripBytes.takeIf { it > 0 } ?: SegmentStripDataSource.DEFAULT_STRIP_BYTES,
+        )
+        // Unwrap MegaPlay PNG-disguised HLS segments (strip leading fake PNG bytes).
+        val factory = SegmentStripDataSource.Factory(httpFactory, stripBytes = stripBytes)
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(1_500, 30_000, 1_000, 1_500)
+            .setBufferDurationsMs(2_500, 40_000, 1_500, 2_000)
             .build()
         ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(factory))
@@ -146,11 +155,14 @@ fun PlayerScreen(
     }
 
     DisposableEffect(player) {
+        ready = false
+        error = null
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 ready = playbackState == Player.STATE_READY || playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) {
                     durationMs = player?.duration?.coerceAtLeast(0L) ?: 0L
+                    error = null
                 }
             }
 
@@ -159,7 +171,11 @@ fun PlayerScreen(
             }
 
             override fun onPlayerError(e: PlaybackException) {
-                error = e.message ?: "Playback failed"
+                if (sourceIndex + 1 < sources.size) {
+                    sourceIndex += 1
+                } else {
+                    error = e.message ?: "Playback failed"
+                }
             }
         }
         player?.addListener(listener)
@@ -169,8 +185,9 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(source) {
-        if (source == null) error = "No playable source"
+    LaunchedEffect(sources) {
+        sourceIndex = 0
+        if (sources.isEmpty()) error = "No playable source"
     }
 
     LaunchedEffect(player, scrubbing) {

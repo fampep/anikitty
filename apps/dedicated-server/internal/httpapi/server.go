@@ -45,11 +45,18 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/auth/signup", s.limit(s.handleSignup))
 	s.mux.HandleFunc("POST /api/v1/auth/login", s.limit(s.handleLogin))
 	s.mux.HandleFunc("POST /api/v1/auth/logout", s.auth(s.handleLogout))
-	s.mux.HandleFunc("GET /api/v1/auth/me", s.auth(s.handleMe))
+	s.mux.HandleFunc("GET /api/v1/auth/me", s.auth(s.handleMeGet))
+	s.mux.HandleFunc("PATCH /api/v1/auth/me", s.auth(s.handleMePatch))
 	s.mux.HandleFunc("GET /api/v1/auth/passkey/status", s.auth(s.handlePasskeyStatus))
 	s.mux.HandleFunc("GET /api/v1/history", s.auth(s.handleHistoryGet))
 	s.mux.HandleFunc("PUT /api/v1/history", s.auth(s.handleHistoryPut))
 	s.mux.HandleFunc("DELETE /api/v1/history/{anilistId}", s.auth(s.handleHistoryDelete))
+	s.mux.HandleFunc("GET /api/v1/comments", s.auth(s.handleCommentsGet))
+	s.mux.HandleFunc("POST /api/v1/comments", s.auth(s.handleCommentsPost))
+	s.mux.HandleFunc("DELETE /api/v1/comments/{id}", s.auth(s.handleCommentsDelete))
+	s.mux.HandleFunc("GET /api/v1/favorites", s.auth(s.handleFavoritesGet))
+	s.mux.HandleFunc("PUT /api/v1/favorites", s.auth(s.handleFavoritesPut))
+	s.mux.HandleFunc("DELETE /api/v1/favorites/{anilistId}", s.auth(s.handleFavoritesDelete))
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -123,14 +130,6 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	claims := claimsFrom(r.Context())
 	_ = s.Auth.Logout(r.Context(), claims.SessionID)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
-}
-
-func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
-	claims := claimsFrom(r.Context())
-	writeJSON(w, http.StatusOK, map[string]any{
-		"userId":   claims.UserID,
-		"username": claims.Username,
-	})
 }
 
 func (s *Server) handleHistoryGet(w http.ResponseWriter, r *http.Request) {
