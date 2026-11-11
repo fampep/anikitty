@@ -136,12 +136,12 @@ private fun LoginScreen(
             .fillMaxSize()
             .background(KittyInk)
             .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFF062A24),
-                        KittyPage,
-                        KittyInk,
+                Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.08f),
+                        Color.Transparent,
                     ),
+                    radius = 900f,
                 ),
             ),
     ) {
@@ -161,16 +161,16 @@ private fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Anime on your phone · streams stay on-device",
+                "Cinema on your phone · streams stay on-device",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.55f),
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Password-only account",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = Color.White.copy(alpha = 0.72f),
                 fontWeight = FontWeight.SemiBold,
             )
 

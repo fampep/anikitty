@@ -66,6 +66,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -87,6 +88,7 @@ import site.anikitty.app.ui.components.KittyNavTab
 import site.anikitty.app.ui.components.KittyPosterCard
 import site.anikitty.app.ui.components.KittyPosterRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
+import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.player.PlayerScreen
 import site.anikitty.app.ui.theme.KittyPage
 import site.anikitty.app.ui.theme.KittySurface
@@ -271,14 +273,24 @@ private fun HomeFeed(
                         FloatingTopChrome(accountLabel = accountLabel, onSignOut = onSignOut)
                     }
                     item {
+                        trending.firstOrNull()?.let { hero ->
+                            KittyHero(
+                                anime = hero,
+                                eyebrow = "Spotlight",
+                                cta = "Watch now",
+                                onOpen = {
+                                    scope.launch { historyDao.touchFromCatalog(hero) }
+                                    onOpen(hero, null)
+                                },
+                            )
+                        }
+                    }
+                    item {
                         if (history.isNotEmpty()) {
-                            Column(modifier = Modifier.padding(top = 8.dp)) {
-                                Text(
-                                    "Continue watching",
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White,
+                            Column(modifier = Modifier.padding(top = 22.dp)) {
+                                KittySectionHeading(
+                                    title = "Continue watching",
+                                    subtitle = "Pick up where you left off",
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 LazyRow(
@@ -311,19 +323,9 @@ private fun HomeFeed(
                         }
                     }
                     item {
-                        trending.firstOrNull()?.let { hero ->
-                            KittyHero(
-                                anime = hero,
-                                onOpen = {
-                                    scope.launch { historyDao.touchFromCatalog(hero) }
-                                    onOpen(hero, null)
-                                },
-                            )
-                        }
-                    }
-                    item {
                         KittyPosterRow(
                             title = "Trending now",
+                            subtitle = "What everyone is watching",
                             items = trending,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
@@ -334,6 +336,7 @@ private fun HomeFeed(
                     item {
                         KittyPosterRow(
                             title = "Most popular",
+                            subtitle = "All-time favorites",
                             items = popular,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
@@ -344,6 +347,7 @@ private fun HomeFeed(
                     item {
                         KittyPosterRow(
                             title = "Airing this season",
+                            subtitle = "New episodes weekly",
                             items = seasonal,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
@@ -363,7 +367,7 @@ private fun FloatingTopChrome(accountLabel: String, onSignOut: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
@@ -372,15 +376,16 @@ private fun FloatingTopChrome(accountLabel: String, onSignOut: () -> Unit) {
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Black,
                 color = Color.White,
+                letterSpacing = (-0.4).sp,
             )
             Text(
                 accountLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.40f),
             )
         }
         TextButton(onClick = onSignOut) {
-            Text("Sign out", color = MaterialTheme.colorScheme.primary)
+            Text("Sign out", color = Color.White.copy(alpha = 0.72f))
         }
     }
 }
@@ -699,12 +704,15 @@ private fun SettingsFeed(
         item {
             Button(
                 onClick = onSignOut,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = KittySurface,
-                    contentColor = Color.White,
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
                 ),
-            ) { Text("Sign out") }
+            ) { Text("Sign out", fontWeight = FontWeight.Bold) }
         }
     }
 }
@@ -857,17 +865,17 @@ private fun TitleDetailScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Audio", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(8.dp))
+                    KittySectionHeading(title = "Audio", padded = false)
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Chip("SUB", audio == "sub") { audio = "sub" }
                         Chip("DUB", audio == "dub") { audio = "dub" }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        "Episodes · $pageStart–$pageEnd of $maxEp",
-                        color = Color.White,
-                        fontWeight = FontWeight.SemiBold,
+                    Spacer(modifier = Modifier.height(20.dp))
+                    KittySectionHeading(
+                        title = "Episodes",
+                        subtitle = "$pageStart–$pageEnd of $maxEp",
+                        padded = false,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     if (pageCount > 1) {
@@ -980,11 +988,10 @@ private fun TitleDetailScreen(
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text("Comments", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        "Stored on your dedicated server",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    KittySectionHeading(
+                        title = "Comments",
+                        subtitle = "Stored on your dedicated server",
+                        padded = false,
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
