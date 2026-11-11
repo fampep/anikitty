@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Dedicated auth server is currently plain HTTP on the VPS; streams stay HTTPS. -->
+<!--
+  Release: cleartext blocked. Dedicated auth passwords/tokens must use HTTPS.
+  Debug overlay (src/debug) permits cleartext for local / plain-HTTP VPS testing.
+-->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">198.50.123.153</domain>
     </domain-config>
 </network-security-config>

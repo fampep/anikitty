@@ -20,7 +20,8 @@ Auth UI is Anilab-inspired (dark + brand red). The dedicated server URL stays lo
 
 Login uses **username + passphrase**. Generate a random passphrase on create; optionally save it on-device. Same passphrase works on the host.
 
-Debug APKs allow cleartext HTTP to the locked host; release builds prefer HTTPS.
+Debug APKs allow cleartext HTTP to the locked host. Release builds block cleartext —
+point `ServerConfig.DEFAULT` at an HTTPS dedicated-server URL before shipping release.
 
 ## Build APK
 
