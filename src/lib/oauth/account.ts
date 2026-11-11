@@ -112,6 +112,12 @@ export const accountAuth = {
   login: (identifier: string, password: string) =>
     bff("/auth/login", { method: "POST", body: JSON.stringify({ identifier, password }) }),
 
+  loginWithPassphrase: (passphrase: string) =>
+    bff<Record<string, unknown> & { requires2fa?: boolean; pendingToken?: string }>(
+      "/auth/login",
+      { method: "POST", body: JSON.stringify({ passphrase }) },
+    ),
+
   verify2fa: (pendingToken: string, code: string) =>
     bff("/auth/2fa-verify", { method: "POST", body: JSON.stringify({ pendingToken, code }) }),
 
@@ -182,6 +188,14 @@ export const accountAuth = {
       body: JSON.stringify({ allOthers: true }),
     }),
 
+  /** Create a passphrase account (server generates the passphrase). */
+  signupWithPassphrase: () =>
+    bff<Record<string, unknown> & { passphrase?: string; suggestPasskey?: boolean }>(
+      "/auth/signup",
+      { method: "POST", body: "{}" },
+    ),
+
+  /** @deprecated Prefer signupWithPassphrase — email/password signup is removed. */
   signup: (username: string, email: string, password: string) =>
     bff("/auth/signup", { method: "POST", body: JSON.stringify({ username, email, password }) }),
 

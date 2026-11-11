@@ -15,6 +15,7 @@ import { DISCORD_INVITE_URL, TELEGRAM_CHANNEL_URL } from "@/constants/site-meta"
 import TelegramIcon from "@/icons/telegram";
 import { trackEvent } from "@/lib/analytics";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useOpenSignups } from "@/hooks/use-open-signups";
 import { SITE_LOGO } from "@/lib/seo/site-seo";
 
 type Props = {
@@ -26,6 +27,8 @@ export default function LandingHero({ poster }: Props) {
   const auth = useAuthStore((s) => s.auth);
   const isLoggedIn = !!auth;
   const reducedMotion = usePrefersReducedMotion();
+  const { open: openSignups, telegramUrl, loaded: signupStatusLoaded } = useOpenSignups();
+  const signupsClosed = signupStatusLoaded && !openSignups;
 
   return (
     <div className="landing-hero-console relative min-h-[min(94lvh,920px)] flex flex-col overflow-hidden">
@@ -69,26 +72,31 @@ export default function LandingHero({ poster }: Props) {
           <SiteBrandWordmark size="landing" />
         </Link>
         <div className="flex items-center gap-2">
-          <Link
-            href={ROUTES.SEARCH}
-            prefetch
-            onClick={() => trackEvent("landing_search")}
-            className="landing-nav-chip inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center gap-1.5"
-            aria-label={t("nav.search")}
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("nav.search")}</span>
-          </Link>
-          {!isLoggedIn && <LoginPopoverButton />}
-          <Link
-            href={ROUTES.HOME}
-            prefetch
-            onClick={() => trackEvent("landing_browse")}
-            className="landing-nav-primary flex items-center gap-1.5 px-3 sm:px-4 py-2"
-          >
-            {t("landing.browse")}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          {isLoggedIn ? (
+            <>
+              <Link
+                href={ROUTES.SEARCH}
+                prefetch
+                onClick={() => trackEvent("landing_search")}
+                className="landing-nav-chip inline-flex h-9 w-9 sm:w-auto sm:px-3 items-center justify-center gap-1.5"
+                aria-label={t("nav.search")}
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t("nav.search")}</span>
+              </Link>
+              <Link
+                href={ROUTES.HOME}
+                prefetch
+                onClick={() => trackEvent("landing_browse")}
+                className="landing-nav-primary flex items-center gap-1.5 px-3 sm:px-4 py-2"
+              >
+                {t("landing.browse")}
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          ) : (
+            <LoginPopoverButton />
+          )}
         </div>
       </nav>
 
@@ -138,7 +146,7 @@ export default function LandingHero({ poster }: Props) {
               "motion-safe:animate-in motion-safe:fade-in motion-safe:duration-700 motion-safe:delay-200",
           )}
         >
-          {t("landing.tagline")}
+          {signupsClosed ? t("landing.taglineSignupsClosed") : t("landing.tagline")}
         </p>
 
         <div
@@ -149,46 +157,85 @@ export default function LandingHero({ poster }: Props) {
           )}
         >
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-            <Link
-              href={ROUTES.HOME}
-              prefetch
-              onClick={() => trackEvent("landing_start", { destination: "home" })}
-              className="flex items-center justify-center gap-2 px-7 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
-            >
-              {isLoggedIn
-                ? t("landing.continueAs", { username: auth?.username ?? "" })
-                : t("landing.startWatching")}
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href={ROUTES.TRENDING}
-              prefetch
-              onClick={() => trackEvent("landing_explore")}
-              className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 text-white/80 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-            >
-              <Compass className="w-4 h-4" />
-              {t("landing.exploreAnime")}
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link
+                  href={ROUTES.HOME}
+                  prefetch
+                  onClick={() => trackEvent("landing_start", { destination: "home" })}
+                  className="flex items-center justify-center gap-2 px-7 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+                >
+                  {t("landing.continueAs", { username: auth?.username ?? "" })}
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href={ROUTES.TRENDING}
+                  prefetch
+                  onClick={() => trackEvent("landing_explore")}
+                  className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 text-white/80 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                >
+                  <Compass className="w-4 h-4" />
+                  {t("landing.exploreAnime")}
+                </Link>
+              </>
+            ) : signupsClosed ? (
+              <>
+                <a
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackEvent("landing_telegram_waitlist")}
+                  className="flex items-center justify-center gap-2 px-7 sm:px-8 py-3.5 bg-sky-500 text-white font-bold rounded-2xl hover:bg-sky-400 active:scale-95 transition-all text-sm shadow-2xl shadow-sky-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/50"
+                >
+                  <TelegramIcon className="h-4 w-4" />
+                  {t("landing.telegramWaitlistCta")}
+                </a>
+                <LoginPopoverButton
+                  defaultTab="login"
+                  customTrigger={
+                    <button
+                      type="button"
+                      onClick={() => trackEvent("landing_sign_in")}
+                      className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 text-white/80 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 w-full sm:w-auto"
+                    >
+                      {t("landing.signIn")}
+                    </button>
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <LoginPopoverButton
+                  defaultTab="signup"
+                  customTrigger={
+                    <button
+                      type="button"
+                      onClick={() => trackEvent("landing_create_account")}
+                      className="flex items-center justify-center gap-2 px-7 sm:px-8 py-3.5 bg-white text-black font-bold rounded-2xl hover:bg-white/90 active:scale-95 transition-all text-sm shadow-2xl shadow-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 w-full sm:w-auto"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      {t("landing.createAccount")}
+                    </button>
+                  }
+                />
+                <LoginPopoverButton
+                  defaultTab="login"
+                  customTrigger={
+                    <button
+                      type="button"
+                      onClick={() => trackEvent("landing_sign_in")}
+                      className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white/5 text-white/80 border border-white/12 font-semibold rounded-2xl hover:bg-white/8 hover:text-white hover:border-white/20 transition-all text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 w-full sm:w-auto"
+                    >
+                      {t("landing.signInToWatch")}
+                    </button>
+                  }
+                />
+              </>
+            )}
           </div>
 
           {!isLoggedIn && (
             <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1">
-              <LoginPopoverButton
-                defaultTab="signup"
-                customTrigger={
-                  <button
-                    type="button"
-                    onClick={() => trackEvent("landing_create_account")}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 text-[13px] font-semibold text-white/55 hover:text-white/90 transition-colors rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    {t("landing.createAccount")}
-                  </button>
-                }
-              />
-              <span className="text-white/15" aria-hidden>
-                ·
-              </span>
               <a
                 href="#features"
                 onClick={(e) => {
@@ -213,7 +260,7 @@ export default function LandingHero({ poster }: Props) {
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto max-w-xs sm:max-w-none">
             <a
-              href={TELEGRAM_CHANNEL_URL}
+              href={telegramUrl || TELEGRAM_CHANNEL_URL}
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackEvent("landing_telegram")}

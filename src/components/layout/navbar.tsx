@@ -51,26 +51,39 @@ const NavBar = () => {
     };
   }, [user, setAuth, clearAuth]);
 
-  const discordHandledRef = useRef(false);
+  const oauthHandledRef = useRef(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || discordHandledRef.current) return;
+    if (typeof window === "undefined" || oauthHandledRef.current) return;
 
     const params = new URLSearchParams(window.location.search);
     const discord = params.get("discord");
-    if (!discord) return;
+    const anilist = params.get("anilist");
+    if (!discord && !anilist) return;
 
-    discordHandledRef.current = true;
+    oauthHandledRef.current = true;
 
-    const errorKeys: Record<string, string> = {
+    const discordErrorKeys: Record<string, string> = {
       cancelled: "auth.discordCancelled",
       not_configured: "auth.discordNotConfigured",
       banned: "auth.discordBanned",
       email_conflict: "auth.discordEmailConflict",
+      signups_closed: "auth.signupsClosedToast",
       invalid_state: "auth.discordLoginFailed",
       token_exchange: "auth.discordLoginFailed",
       user_fetch: "auth.discordLoginFailed",
       server: "auth.discordLoginFailed",
+    };
+
+    const anilistErrorKeys: Record<string, string> = {
+      cancelled: "auth.anilistCancelled",
+      missing_params: "auth.anilistLoginFailed",
+      signups_closed: "auth.signupsClosedToast",
+      banned: "auth.discordBanned",
+      user_creation: "auth.anilistLoginFailed",
+      token_exchange: "auth.anilistLoginFailed",
+      user_fetch: "auth.anilistLoginFailed",
+      server: "auth.anilistLoginFailed",
     };
 
     if (discord === "welcome") {
@@ -79,12 +92,24 @@ const NavBar = () => {
         .me()
         .then((me) => setAuth(authFromMeResponse(me)))
         .catch(() => {});
-    } else {
-      const key = errorKeys[discord] ?? "auth.discordLoginFailed";
+    } else if (discord) {
+      const key = discordErrorKeys[discord] ?? "auth.discordLoginFailed";
+      toast.error(t(key));
+    }
+
+    if (anilist === "welcome") {
+      toast.success(t("auth.anilistWelcome"));
+      void accountAuth
+        .me()
+        .then((me) => setAuth(authFromMeResponse(me)))
+        .catch(() => {});
+    } else if (anilist) {
+      const key = anilistErrorKeys[anilist] ?? "auth.anilistLoginFailed";
       toast.error(t(key));
     }
 
     params.delete("discord");
+    params.delete("anilist");
     const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
     window.history.replaceState({}, "", next);
   }, [setAuth, t]);

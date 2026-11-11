@@ -5,6 +5,11 @@ import {
   ADMIN_INTERNAL_PATH,
   getAdminPanelPath,
 } from "@/lib/security/admin-panel-path";
+import {
+  accessGateLoginRedirect,
+  hasValidSessionCookie,
+  isPublicPath,
+} from "@/lib/auth/access-gate";
 
 const BLOCKED_METHODS = new Set(["TRACE", "TRACK", "CONNECT"]);
 const isProd = process.env.NODE_ENV === "production";
@@ -33,7 +38,7 @@ const PRIVATE_API_PREFIXES = [
   "/api/anilist",
 ];
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   if (BLOCKED_METHODS.has(req.method)) {
     return new NextResponse(null, { status: 405 });
   }
@@ -91,6 +96,27 @@ export function middleware(req: NextRequest) {
     pathname === "/server-status"
   ) {
     return new NextResponse(null, { status: 404 });
+  }
+
+  // Site-wide access gate: app + content APIs require a session.
+  if (!isPublicPath(pathname)) {
+    const authed = await hasValidSessionCookie(req);
+    if (!authed) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { error: "Authentication required" },
+          {
+            status: 401,
+            headers: {
+              "Cache-Control": "no-store, no-cache, must-revalidate, private",
+            },
+          },
+        );
+      }
+      const res = NextResponse.redirect(accessGateLoginRedirect(req));
+      res.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+      return res;
+    }
   }
 
   const res = NextResponse.next();

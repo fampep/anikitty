@@ -125,8 +125,8 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "login"
     ],
     "title": "Do I need an account?",
-    "answer": "No — you can browse and watch without signing in.\n\nAn account unlocks:\n\n- Watchlist and synced progress across devices\n- Watch history\n- Episode comments, forum posts, and live chat\n- Friends, public profiles, levels and achievements\n- Kittycoins, optional AniList import, and reviews\n- Security options like 2FA and passkeys\n\nSign up from the **Log in** button in the navbar.",
-    "updatedAt": "2026-07-25",
+    "answer": "Yes — you need an AniKitty account to browse and watch.\n\nAccounts use a **passphrase** (your secret identity) plus an optional **passkey** for one-tap sign-in. There is no email/password signup.\n\nWith an account you also get:\n\n- Watchlist and synced progress across devices\n- Watch history\n- Episode comments, forum posts, and live chat\n- Friends, public profiles, levels and achievements\n- Kittycoins, optional AniList import, and reviews\n\nIf open signups are closed, join the Telegram channel for updates and sign in with a passkey or passphrase if you already have an account.",
+    "updatedAt": "2026-11-11",
     "order": 20,
     "popularity": 95,
     "relatedIds": [
@@ -166,8 +166,8 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "username"
     ],
     "title": "How do I create an account?",
-    "answer": "Click **Log in** in the navbar, switch to **Sign up**, and enter:\n\n- Username (3–25 letters, numbers, or underscores)\n- Email\n- Password (8+ characters)\n\nYour password is hashed before storage. After signing in you can add a **passkey** under Settings → Security for faster sign-in with Face ID, Touch ID, or Windows Hello.",
-    "updatedAt": "2026-07-25",
+    "answer": "When open signups are enabled, click **Log in** → **Create account**. AniKitty generates a **passphrase** for you — save it offline (it is your account).\n\nThen add a **passkey** so you can sign in with Face ID, Touch ID, Windows Hello, or a security key without typing the passphrase every time.\n\nIf signups are closed, new accounts cannot be created — join Telegram for updates. Existing members can still sign in with a passkey or passphrase.",
+    "updatedAt": "2026-11-11",
     "order": 10,
     "popularity": 70,
     "relatedIds": [
@@ -266,7 +266,7 @@ export const FAQ_SEED_ARTICLES: FaqSeedArticle[] = [
       "security"
     ],
     "title": "Passkeys",
-    "answer": "Optional passkeys let you sign in with Face ID, Touch ID, Windows Hello, or a security key instead of typing your password.\n\nAdd or remove them under **Settings → Security**. Passkeys are stored on your device (or synced by your password manager when supported).",
+    "answer": "Passkeys let you sign in with Face ID, Touch ID, Windows Hello, or a security key — no typing your passphrase.\n\nAdd one right after signup, or later under **Settings → Security**. Passkeys are stored on your device (or synced by your password manager when supported).",
     "updatedAt": "2026-07-25",
     "order": 60,
     "popularity": 38,

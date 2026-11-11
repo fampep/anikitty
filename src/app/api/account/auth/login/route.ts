@@ -10,6 +10,10 @@ import {
   findUserByIdentifier,
   verifyUserPassword,
 } from "@/lib/auth/local-auth";
+import {
+  normalizePassphrase,
+  passphraseToCredentials,
+} from "@/lib/auth/passphrase";
 import { shouldPromptForTwoFactor } from "@/lib/auth/totp-reactive";
 import { isUserBanned } from "@/lib/security/moderation";
 import { rateLimit, getClientIp } from "@/lib/security/rate-limit";
@@ -31,10 +35,25 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { identifier, password } = await req.json();
+    const body = await req.json();
+    const passphrase =
+      typeof body?.passphrase === "string" ? normalizePassphrase(body.passphrase) : "";
 
-    if (!identifier?.trim() || !password) {
-      return NextResponse.json({ error: "Identifier and password are required" }, { status: 400 });
+    let identifier = typeof body?.identifier === "string" ? body.identifier.trim() : "";
+    let password = typeof body?.password === "string" ? body.password : "";
+
+    // Preferred path: passphrase IS the identity (derived email + password).
+    if (passphrase) {
+      const derived = await passphraseToCredentials(passphrase);
+      identifier = derived.email;
+      password = derived.password;
+    }
+
+    if (!identifier || !password) {
+      return NextResponse.json(
+        { error: "Passphrase is required (or legacy username/email + password)" },
+        { status: 400 },
+      );
     }
 
     const user = await findUserByIdentifier(identifier);

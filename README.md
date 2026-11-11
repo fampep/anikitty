@@ -80,7 +80,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 JWT_SECRET=                          # openssl rand -base64 48
 KITTY_API_KEY=akitty_…                 # KittyAPI key — sent as X-API-Key header (server-only)
 KLIPY_API_KEY=                         # KLIPY partner key for GIF search (https://partner.klipy.com)
+OPEN_SIGNUPS=true                      # false/unset = closed (login still works; Telegram waitlist CTA)
 ```
+
+The site requires an account to use the app (catalog, watch, etc.). New accounts are **passphrase**-based (no email/password signup); sign-in is **passkey**-first with passphrase as backup. Set `OPEN_SIGNUPS=true` (or `1` / `yes` / `on`) as a **runtime** Coolify variable to allow new registrations. When unset or false, signup APIs and Discord/AniList account creation are blocked; existing users can still log in, and the UI points visitors to the Telegram channel (`https://t.me/Anikittymoe`).
 
 Production also needs `ADMIN_PASSWORD`, `ADMIN_JWT_SECRET`, `TOTP_ENCRYPTION_KEY`, and `MESSAGE_ENCRYPTION_KEY` (see `.env.example`).
 
