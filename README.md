@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.0.0"><img src="https://img.shields.io/badge/Pre--release-1.0.0-orange?style=for-the-badge" alt="Pre-release 1.0.0" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.0.1"><img src="https://img.shields.io/badge/Pre--release-1.0.1-orange?style=for-the-badge" alt="Pre-release 1.0.1" /></a>
   <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
   <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fampep/anikitty?style=for-the-badge&color=0284c7" alt="License" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-24+-0ea5e9?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js 24+" /></a>
@@ -23,7 +23,7 @@
 </p>
 
 > [!WARNING]
-> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases on a scheduled basis** — each drop is for early testing, not a finished product. Latest: [**v1.0.0 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.0.0).
+> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases on a scheduled basis** — each drop is for early testing, not a finished product. Latest: [**v1.0.1 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.0.1).
 
 <br />
 
@@ -80,7 +80,7 @@ Set `OPEN_SIGNUPS` as a **runtime** Coolify variable (not build-time).
 
 ## Android APK (local-first)
 
-> Still **WIP** — use the [v1.0.0 pre-release](https://github.com/fampep/anikitty/releases/tag/v1.0.0) APK for early installs, or build from source:
+> Still **WIP** — use the [v1.0.1 pre-release](https://github.com/fampep/anikitty/releases/tag/v1.0.1) APK for early installs, or build from source:
 
 ```bash
 cd apps/android
