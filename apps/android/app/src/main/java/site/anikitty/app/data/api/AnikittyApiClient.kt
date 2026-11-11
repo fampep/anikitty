@@ -34,8 +34,14 @@ class AnikittyApiClient(
         .build()
 
     data class HealthResult(val ok: Boolean, val raw: String)
-    data class LoginResult(val token: String, val username: String?)
     data class MeResult(val username: String?, val raw: String)
+
+    /** Outcome of passphrase login against POST /api/account/auth/login. */
+    sealed class LoginResult {
+        data class Success(val token: String, val username: String?) : LoginResult()
+        /** TOTP enabled: API returns HTTP 200 with requires2fa + pendingToken (no session token yet). */
+        data class Requires2fa(val pendingToken: String) : LoginResult()
+    }
 
     suspend fun health(): HealthResult = withContext(Dispatchers.IO) {
         val request = Request.Builder()
@@ -60,12 +66,19 @@ class AnikittyApiClient(
                 throw ApiException(response.code, err?.takeIf { it.isNotBlank() } ?: body)
             }
             val json = JSONObject(body)
+            if (json.optBoolean("requires2fa", false)) {
+                val pending = json.optString("pendingToken")
+                if (pending.isBlank()) {
+                    throw ApiException(response.code, "2FA required but pendingToken was missing")
+                }
+                return@use LoginResult.Requires2fa(pendingToken = pending)
+            }
             val token = json.optString("token")
             if (token.isBlank()) {
                 throw ApiException(response.code, "Login succeeded but no token was returned")
             }
             val username = json.optJSONObject("user")?.optString("username")
-            LoginResult(token = token, username = username?.takeIf { it.isNotBlank() })
+            LoginResult.Success(token = token, username = username?.takeIf { it.isNotBlank() })
         }
     }
 

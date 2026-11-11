@@ -125,9 +125,17 @@ fun ScaffoldApp(
             Button(
                 onClick = {
                     run("Logging in") {
-                        val result = api.loginWithPassphrase(passphrase.trim())
-                        tokenStore.token = result.token
-                        "Logged in as ${result.username ?: "(unknown)"} - token stored"
+                        when (val result = api.loginWithPassphrase(passphrase.trim())) {
+                            is AnikittyApiClient.LoginResult.Success -> {
+                                tokenStore.token = result.token
+                                "Logged in as ${result.username ?: "(unknown)"} - token stored"
+                            }
+                            is AnikittyApiClient.LoginResult.Requires2fa -> {
+                                // Full TOTP UI comes later; surface the challenge clearly for now.
+                                "2FA required - pendingToken received (${result.pendingToken.take(12)}...). " +
+                                    "Complete via POST /api/account/auth/2fa-verify (not wired in this scaffold)."
+                            }
+                        }
                     }
                 },
                 enabled = !busy && passphrase.isNotBlank(),

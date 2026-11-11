@@ -50,7 +50,8 @@ For a local Next.js server from an emulator, change that field to `http://10.0.2
 | Concern | Approach |
 |---|---|
 | Login | `POST /api/account/auth/login` with `{ "passphrase": "…" }` (same as web) |
-| Session | Response JSON includes `token` (JWT). Store in EncryptedSharedPreferences (`TokenStore`) |
+| Session | Success JSON includes `token` (JWT). Store in EncryptedSharedPreferences (`TokenStore`) |
+| 2FA | If TOTP is on, login returns HTTP 200 `{ requires2fa, pendingToken }` (no session token). Scaffold detects this; `POST /api/account/auth/2fa-verify` UI is a later milestone |
 | Gated APIs | `Authorization: Bearer <token>` — middleware already accepts Bearer as well as the `ak_session` cookie |
 | Who am I | `GET /api/account/me` |
 | Health | `GET /api/health` (public) |
