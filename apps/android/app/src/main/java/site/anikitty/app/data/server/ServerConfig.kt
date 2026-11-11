@@ -14,7 +14,8 @@ class ServerConfig(context: Context) {
         }
 
     companion object {
-        const val DEFAULT = "http://10.0.2.2:8788" // emulator → host laptop
+        /** Deployed dedicated Go auth host (accounts/history only). */
+        const val DEFAULT = "http://198.50.123.153:8788"
         private const val KEY = "base_url"
     }
 }
