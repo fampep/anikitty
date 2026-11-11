@@ -16,9 +16,11 @@ export JWT_SECRET="$(openssl rand -base64 48)"
 go run ./cmd/server   # :8788
 ```
 
-Default Server URL (baked into the APK): `http://198.50.123.153:8788`.
+Dedicated Server URL is **locked** in the APK to `http://198.50.123.153:8788` (not editable).
 
-You can override it on the login screen. Debug APKs allow cleartext HTTP for this host; release builds require HTTPS (plus emulator/`localhost` cleartext exceptions).
+Login uses a **username + passphrase** against that host. You can generate a random passphrase on create, and optionally save it on the phone/tablet for quick sign-in — the same passphrase still works on the host.
+
+Debug APKs allow cleartext HTTP for this host; release builds require HTTPS (plus emulator/`localhost` cleartext exceptions). The UI is always dark-themed.
 
 ## Build APK
 

@@ -45,9 +45,21 @@ class DedicatedApiClient(
         }
     }
 
-    suspend fun logout() = withContext(Dispatchers.IO) {
-        val req = authed("/api/v1/auth/logout").post(ByteArray(0).toRequestBody(null)).build()
-        http.newCall(req).execute().use { }
+    /** Best-effort revoke. Pass [bearer] when the local session was already cleared. */
+    suspend fun logout(bearer: String? = tokenProvider()) = withContext(Dispatchers.IO) {
+        val token = bearer?.takeIf { it.isNotBlank() } ?: return@withContext
+        val quick = http.newBuilder()
+            .connectTimeout(3, TimeUnit.SECONDS)
+            .readTimeout(3, TimeUnit.SECONDS)
+            .callTimeout(4, TimeUnit.SECONDS)
+            .build()
+        val req = Request.Builder()
+            .url(url("/api/v1/auth/logout"))
+            .post(ByteArray(0).toRequestBody(null))
+            .header("Accept", "application/json")
+            .header("Authorization", "Bearer $token")
+            .build()
+        quick.newCall(req).execute().use { }
     }
 
     private suspend fun authPost(path: String, username: String, password: String): AuthResult =

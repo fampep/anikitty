@@ -17,6 +17,7 @@ class MainActivity : ComponentActivity() {
                 AppRoot(
                     api = app.api,
                     session = app.session,
+                    savedPassphrase = app.savedPassphrase,
                     serverConfig = app.serverConfig,
                     aniList = app.aniList,
                     historyDao = app.database.watchHistoryDao(),
