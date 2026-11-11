@@ -9,4 +9,13 @@ data class AnimeSummary(
     val format: String?,
     val averageScore: Int?,
     val description: String? = null,
-)
+    /** AniList romaji — often matches Anikoto page titles better than English. */
+    val romajiTitle: String? = null,
+) {
+    /** Titles to try when mapping a watch page / search (romaji first — matches Anikoto). */
+    fun searchTitles(): List<String> =
+        listOfNotNull(romajiTitle, title)
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+}

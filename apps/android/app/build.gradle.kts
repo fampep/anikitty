@@ -21,8 +21,8 @@ android {
         applicationId = "site.anikitty.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.5.0-local"
+        versionCode = 6
+        versionName = "0.5.1-local"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

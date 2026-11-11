@@ -174,7 +174,9 @@ fun PlayerScreen(
                 if (sourceIndex + 1 < sources.size) {
                     sourceIndex += 1
                 } else {
-                    error = e.message ?: "Playback failed"
+                    val cause = e.cause?.message?.takeIf { it.isNotBlank() }
+                    error = listOfNotNull(e.message, cause).joinToString(" — ")
+                        .ifBlank { "Playback failed" }
                 }
             }
         }
