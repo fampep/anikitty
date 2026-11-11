@@ -1,5 +1,6 @@
 package site.anikitty.app.ui.shell
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,6 +38,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +48,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import site.anikitty.app.R
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.auth.Passphrase
 import site.anikitty.app.data.auth.SavedPassphraseStore
@@ -155,6 +160,15 @@ private fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Image(
+                painter = painterResource(R.drawable.anikitty_logo),
+                contentDescription = "AniKitty",
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(RoundedCornerShape(22.dp)),
+                contentScale = ContentScale.Fit,
+            )
+            Spacer(modifier = Modifier.height(14.dp))
             Text(
                 "AniKitty",
                 style = MaterialTheme.typography.displaySmall,
