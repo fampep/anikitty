@@ -1,0 +1,3 @@
+{
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':!apps/android' ':!apps/dedicated-server' ':!media'"
+}
