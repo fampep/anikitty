@@ -1,21 +1,22 @@
 package site.anikitty.app
 
 import android.app.Application
-import site.anikitty.app.data.api.AnikittyApiClient
-import site.anikitty.app.data.auth.TokenStore
+import site.anikitty.app.data.anilist.AniListClient
+import site.anikitty.app.data.extensions.ExtensionRegistry
+import site.anikitty.app.data.local.AppDatabase
 
 class AnikittyApp : Application() {
-    lateinit var tokenStore: TokenStore
+    lateinit var database: AppDatabase
         private set
-    lateinit var api: AnikittyApiClient
+    lateinit var aniList: AniListClient
+        private set
+    lateinit var extensions: ExtensionRegistry
         private set
 
     override fun onCreate() {
         super.onCreate()
-        tokenStore = TokenStore(this)
-        api = AnikittyApiClient(
-            baseUrl = BuildConfig.API_BASE_URL,
-            tokenProvider = { tokenStore.token },
-        )
+        database = AppDatabase.create(this)
+        aniList = AniListClient()
+        extensions = ExtensionRegistry(this)
     }
 }
