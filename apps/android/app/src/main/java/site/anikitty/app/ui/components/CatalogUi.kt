@@ -362,6 +362,7 @@ fun KittyContinueCard(
     positionMs: Long = 0L,
     durationMs: Long = 0L,
     wide: Boolean = true,
+    badge: String? = null,
 ) {
     val progress = if (durationMs > 0L) {
         (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
@@ -393,6 +394,21 @@ fun KittyContinueCard(
                         ),
                     ),
             )
+            if (!badge.isNullOrBlank()) {
+                Text(
+                    badge,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(Color.White.copy(alpha = 0.92f))
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KittyInk,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -498,7 +514,16 @@ fun KittyContinueCard(
                     color = Color.White,
                 )
                 Text(
-                    "Continue · Ep $episode",
+                    buildString {
+                        if (!badge.isNullOrBlank()) {
+                            append(badge)
+                            append(" · ")
+                        }
+                        append("Ep $episode")
+                        if (durationMs > 0L) {
+                            append(" · ${(progress * 100f).toInt()}%")
+                        }
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.55f),
                 )

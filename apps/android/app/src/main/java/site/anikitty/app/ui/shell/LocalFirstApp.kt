@@ -148,7 +148,7 @@ fun LocalFirstApp(
         listOf(
             KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home),
             KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search),
-            KittyNavTab("history", "History", Icons.Outlined.History, Icons.Rounded.History),
+            KittyNavTab("history", "Library", Icons.Outlined.History, Icons.Rounded.History),
             KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person),
         )
     }
@@ -260,6 +260,7 @@ fun LocalFirstApp(
         when (tab) {
             "home" -> HomeFeed(
                 aniList = aniList,
+                aniListAuth = aniListAuth,
                 history = history,
                 historyDao = historyDao,
                 onOpen = { anime, ep -> screen = Screen.Detail(anime, ep) },
@@ -312,6 +313,7 @@ fun LocalFirstApp(
 @Composable
 private fun HomeFeed(
     aniList: AniListClient,
+    aniListAuth: AniListAuthStore,
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
@@ -319,15 +321,22 @@ private fun HomeFeed(
     accountLabel: String,
 ) {
     var loading by remember { mutableStateOf(true) }
+    var refreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var trending by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var popular by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var seasonal by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     val scope = rememberCoroutineScope()
+    val continueWatching = remember(history) {
+        history.filter {
+            val s = it.listStatus?.uppercase()
+            s == null || s == "CURRENT" || s == "REPEATING"
+        }.ifEmpty { history }.take(12)
+    }
 
-    fun reload() {
+    fun reload(fromPull: Boolean = false) {
         scope.launch {
-            loading = true
+            if (fromPull) refreshing = true else loading = true
             error = null
             runCatching {
                 coroutineScope {
@@ -340,6 +349,7 @@ private fun HomeFeed(
                 }
             }.onFailure { error = it.message ?: "Failed to load" }
             loading = false
+            refreshing = false
         }
     }
 
@@ -352,6 +362,7 @@ private fun HomeFeed(
                     item {
                         FloatingTopChrome(
                             accountLabel = accountLabel,
+                            greeting = aniListAuth.username?.let { "Hey @$it" },
                             onSignOut = onSignOut,
                             compact = false,
                         )
@@ -395,6 +406,7 @@ private fun HomeFeed(
                                 topOverlay = {
                                     FloatingTopChrome(
                                         accountLabel = accountLabel,
+                                        greeting = aniListAuth.username?.let { "@$it" },
                                         onSignOut = onSignOut,
                                         compact = true,
                                     )
@@ -403,30 +415,55 @@ private fun HomeFeed(
                         } ?: run {
                             FloatingTopChrome(
                                 accountLabel = accountLabel,
+                                greeting = aniListAuth.username?.let { "Hey @$it" },
                                 onSignOut = onSignOut,
                                 compact = false,
                             )
                         }
                     }
                     item {
-                        if (history.isNotEmpty()) {
-                            Column(modifier = Modifier.padding(top = 20.dp)) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.End,
+                        ) {
+                            TextButton(
+                                onClick = { if (!refreshing) reload(fromPull = true) },
+                                enabled = !refreshing,
+                            ) {
+                                Text(
+                                    if (refreshing) "Refreshing…" else "Refresh catalog",
+                                    color = KittyFaint,
+                                    fontSize = 12.sp,
+                                )
+                            }
+                        }
+                    }
+                    item {
+                        if (continueWatching.isNotEmpty()) {
+                            Column(modifier = Modifier.padding(top = 8.dp)) {
                                 KittySectionHeading(
                                     title = "Continue watching",
-                                    subtitle = "Pick up where you left off",
+                                    subtitle = if (aniListAuth.isLinked) {
+                                        "Your list · synced with AniList"
+                                    } else {
+                                        "Pick up where you left off"
+                                    },
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
-                                    lazyItems(history.take(12), key = { it.anilistId }) { entry ->
+                                    lazyItems(continueWatching, key = { it.anilistId }) { entry ->
                                         KittyContinueCard(
                                             title = entry.title,
                                             coverUrl = entry.coverImageUrl,
                                             episode = entry.episode,
                                             positionMs = entry.positionMs,
                                             durationMs = entry.durationMs,
+                                            badge = listStatusBadge(entry.listStatus),
                                             onClick = {
                                                 scope.launch {
                                                     val detail = aniList.media(entry.anilistId)
@@ -437,6 +474,7 @@ private fun HomeFeed(
                                                             episodes = null,
                                                             format = null,
                                                             averageScore = null,
+                                                            malId = entry.malId,
                                                         )
                                                     onOpen(detail, entry.episode)
                                                 }
@@ -449,7 +487,11 @@ private fun HomeFeed(
                             Column(modifier = Modifier.padding(top = 20.dp, start = 16.dp, end = 16.dp)) {
                                 KittySectionHeading(
                                     title = "Continue watching",
-                                    subtitle = "Start something — it’ll land here",
+                                    subtitle = if (aniListAuth.isLinked) {
+                                        "Sync your AniList library, then press play"
+                                    } else {
+                                        "Start something — it’ll land here"
+                                    },
                                     padded = false,
                                 )
                             }
@@ -499,6 +541,7 @@ private fun FloatingTopChrome(
     accountLabel: String,
     onSignOut: () -> Unit,
     compact: Boolean = false,
+    greeting: String? = null,
 ) {
     Row(
         modifier = Modifier
@@ -510,17 +553,32 @@ private fun FloatingTopChrome(
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            "AniKitty",
-            style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Black,
-            color = KittyText,
-            letterSpacing = (-0.6).sp,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "AniKitty",
+                style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = KittyText,
+                letterSpacing = (-0.6).sp,
+            )
+            if (!greeting.isNullOrBlank() && !compact) {
+                Text(
+                    greeting,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = KittyFaint,
+                )
+            }
+        }
         if (!compact) {
             Text(
                 accountLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = KittyFaint,
+                modifier = Modifier.padding(end = 6.dp),
+            )
+        } else if (!greeting.isNullOrBlank()) {
+            Text(
+                greeting,
                 style = MaterialTheme.typography.labelSmall,
                 color = KittyFaint,
                 modifier = Modifier.padding(end = 6.dp),
@@ -538,6 +596,15 @@ private fun FloatingTopChrome(
             )
         }
     }
+}
+
+private fun listStatusBadge(status: String?): String? = when (status?.uppercase()) {
+    "CURRENT", "REPEATING" -> "Watching"
+    "COMPLETED" -> "Done"
+    "PLANNING" -> "Plan"
+    "PAUSED" -> "Paused"
+    "DROPPED" -> "Dropped"
+    else -> null
 }
 
 @Composable
@@ -842,6 +909,7 @@ private fun HistoryRow(
         positionMs = entry.positionMs,
         durationMs = entry.durationMs,
         wide = false,
+        badge = listStatusBadge(entry.listStatus),
         onClick = {
             scope.launch {
                 val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
@@ -1128,6 +1196,7 @@ private fun TitleDetailScreen(
     var comments by remember { mutableStateOf<List<DedicatedApiClient.Comment>>(emptyList()) }
     var commentDraft by remember { mutableStateOf("") }
     var commentStatus by remember { mutableStateOf<String?>(null) }
+    var listBadge by remember { mutableStateOf<String?>(null) }
     val maxEp = (anime.episodes ?: 24).coerceAtLeast(1).coerceAtMost(500)
     val pageSize = 24
     val pageCount = ((maxEp - 1) / pageSize) + 1
@@ -1139,6 +1208,7 @@ private fun TitleDetailScreen(
         } else {
             historyDao.get(anime.id)?.episode?.let { episode = it.coerceIn(1, maxEp) }
         }
+        listBadge = listStatusBadge(historyDao.get(anime.id)?.listStatus)
         epPage = ((episode - 1) / pageSize).coerceIn(0, pageCount - 1)
         runCatching { api.favorites() }
             .onSuccess { favorited = it.any { f -> f.anilistId.toInt() == anime.id } }
@@ -1253,6 +1323,7 @@ private fun TitleDetailScreen(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             val meta = listOfNotNull(
+                                listBadge,
                                 anime.format,
                                 anime.episodes?.let { "$it eps" },
                                 anime.averageScore?.let { "★ $it" },
