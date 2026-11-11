@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -64,6 +65,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -130,11 +132,38 @@ fun LocalFirstApp(
 
     when (val current = screen) {
         is Screen.Player -> {
+            var resumeMs by remember(current.anime.id, current.episode) { mutableStateOf(0L) }
+            LaunchedEffect(current.anime.id, current.episode) {
+                val entry = historyDao.get(current.anime.id)
+                if (entry != null && entry.episode == current.episode && entry.positionMs > 2_000L) {
+                    resumeMs = entry.positionMs
+                }
+            }
             PlayerScreen(
                 title = current.anime.title,
                 episode = current.episode,
                 sources = current.sources,
+                anilistId = current.anime.id,
+                malId = current.anime.malId,
+                startPositionMs = resumeMs,
                 onClose = { screen = Screen.Detail(current.anime, current.episode) },
+                onProgress = { pos, dur ->
+                    scope.launch {
+                        val existing = historyDao.get(current.anime.id)
+                        historyDao.upsert(
+                            WatchHistoryEntity(
+                                anilistId = current.anime.id,
+                                title = current.anime.title,
+                                coverImageUrl = current.anime.coverImageUrl
+                                    ?: existing?.coverImageUrl,
+                                episode = current.episode,
+                                positionMs = pos,
+                                durationMs = dur,
+                                updatedAtEpochMs = System.currentTimeMillis(),
+                            ),
+                        )
+                    }
+                },
                 onNextEpisode = {
                     scope.launch {
                         val next = current.episode + 1
@@ -145,11 +174,17 @@ fun LocalFirstApp(
                                 audio = "sub",
                                 titleHint = current.anime.searchTitles().joinToString(" || "),
                             )
-                            historyDao.get(current.anime.id)?.let {
-                                historyDao.upsert(
-                                    it.copy(episode = next, updatedAtEpochMs = System.currentTimeMillis()),
-                                )
-                            }
+                            historyDao.upsert(
+                                WatchHistoryEntity(
+                                    anilistId = current.anime.id,
+                                    title = current.anime.title,
+                                    coverImageUrl = current.anime.coverImageUrl,
+                                    episode = next,
+                                    positionMs = 0L,
+                                    durationMs = 0L,
+                                    updatedAtEpochMs = System.currentTimeMillis(),
+                                ),
+                            )
                             screen = Screen.Player(current.anime, next, sources)
                         }
                     }
@@ -255,23 +290,47 @@ private fun HomeFeed(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             loading && trending.isEmpty() -> {
-                CircularProgressIndicator(Modifier.align(Alignment.Center))
+                Column(
+                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        "AniKitty",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    CircularProgressIndicator(color = Color.White)
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        "Loading your cinema…",
+                        color = Color.White.copy(alpha = 0.45f),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
             error != null && trending.isEmpty() -> {
                 Column(
                     modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text(error!!, color = MaterialTheme.colorScheme.error)
+                    Text("Couldn’t load the catalog", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(error!!, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = { reload() }) { Text("Retry") }
+                    Button(
+                        onClick = { reload() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                    ) { Text("Retry", fontWeight = FontWeight.Bold) }
                 }
             }
             else -> {
                 LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
-                    item {
-                        FloatingTopChrome(accountLabel = accountLabel, onSignOut = onSignOut)
-                    }
                     item {
                         trending.firstOrNull()?.let { hero ->
                             KittyHero(
@@ -282,12 +341,25 @@ private fun HomeFeed(
                                     scope.launch { historyDao.touchFromCatalog(hero) }
                                     onOpen(hero, null)
                                 },
+                                topOverlay = {
+                                    FloatingTopChrome(
+                                        accountLabel = accountLabel,
+                                        onSignOut = onSignOut,
+                                        compact = true,
+                                    )
+                                },
+                            )
+                        } ?: run {
+                            FloatingTopChrome(
+                                accountLabel = accountLabel,
+                                onSignOut = onSignOut,
+                                compact = false,
                             )
                         }
                     }
                     item {
                         if (history.isNotEmpty()) {
-                            Column(modifier = Modifier.padding(top = 22.dp)) {
+                            Column(modifier = Modifier.padding(top = 18.dp)) {
                                 KittySectionHeading(
                                     title = "Continue watching",
                                     subtitle = "Pick up where you left off",
@@ -302,6 +374,8 @@ private fun HomeFeed(
                                             title = entry.title,
                                             coverUrl = entry.coverImageUrl,
                                             episode = entry.episode,
+                                            positionMs = entry.positionMs,
+                                            durationMs = entry.durationMs,
                                             onClick = {
                                                 scope.launch {
                                                     val detail = aniList.media(entry.anilistId)
@@ -362,30 +436,46 @@ private fun HomeFeed(
 }
 
 @Composable
-private fun FloatingTopChrome(accountLabel: String, onSignOut: () -> Unit) {
+private fun FloatingTopChrome(
+    accountLabel: String,
+    onSignOut: () -> Unit,
+    compact: Boolean = false,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(
+                horizontal = 16.dp,
+                vertical = if (compact) 6.dp else 10.dp,
+            ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "AniKitty",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black,
-                color = Color.White,
-                letterSpacing = (-0.4).sp,
-            )
+        Text(
+            "AniKitty",
+            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black,
+            color = Color.White,
+            letterSpacing = (-0.4).sp,
+            modifier = Modifier.weight(1f),
+        )
+        if (!compact) {
             Text(
                 accountLabel,
                 style = MaterialTheme.typography.labelSmall,
                 color = Color.White.copy(alpha = 0.40f),
+                modifier = Modifier.padding(end = 8.dp),
             )
         }
-        TextButton(onClick = onSignOut) {
-            Text("Sign out", color = Color.White.copy(alpha = 0.72f))
+        TextButton(
+            onClick = onSignOut,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+        ) {
+            Text(
+                "Sign out",
+                color = Color.White.copy(alpha = 0.78f),
+                fontSize = 12.sp,
+            )
         }
     }
 }
@@ -401,8 +491,20 @@ private fun SearchFeed(
     var error by remember { mutableStateOf<String?>(null) }
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var discover by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var recentRaw by rememberSaveable { mutableStateOf("") }
+    val recent = remember(recentRaw) {
+        recentRaw.split('\u001f').map { it.trim() }.filter { it.isNotEmpty() }
+    }
     val scope = rememberCoroutineScope()
     var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    fun rememberQuery(q: String) {
+        val trimmed = q.trim()
+        if (trimmed.length < 2) return
+        val next = (listOf(trimmed) + recent.filterNot { it.equals(trimmed, ignoreCase = true) })
+            .take(8)
+        recentRaw = next.joinToString("\u001f")
+    }
 
     fun runSearch(raw: String) {
         val q = raw.trim()
@@ -418,7 +520,10 @@ private fun SearchFeed(
             loading = true
             error = null
             runCatching { aniList.search(q) }
-                .onSuccess { items = it }
+                .onSuccess {
+                    items = it
+                    if (it.isNotEmpty()) rememberQuery(q)
+                }
                 .onFailure { error = it.message }
             loading = false
         }
@@ -436,16 +541,10 @@ private fun SearchFeed(
             .padding(horizontal = 16.dp)
             .padding(top = 12.dp, bottom = 100.dp),
     ) {
-        Text(
-            "Search",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
-        Text(
-            "Type a title — results update as you type",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        KittySectionHeading(
+            title = "Search",
+            subtitle = "Type a title — results update as you type",
+            padded = false,
         )
         Spacer(modifier = Modifier.height(12.dp))
         OutlinedTextField(
@@ -456,13 +555,35 @@ private fun SearchFeed(
             },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            label = { Text("Anime title") },
+            placeholder = { Text("Anime title") },
             trailingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            shape = RoundedCornerShape(14.dp),
         )
+        if (recent.isNotEmpty() && query.isBlank()) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                "Recent",
+                color = Color.White.copy(alpha = 0.45f),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                recent.forEach { q ->
+                    Chip(q, selected = false) {
+                        query = q
+                        runSearch(q)
+                    }
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(12.dp))
         when {
             loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = Color.White)
             }
             error != null && items.isEmpty() -> Text(error!!, color = MaterialTheme.colorScheme.error)
             items.isNotEmpty() -> LazyVerticalGrid(
@@ -482,11 +603,17 @@ private fun SearchFeed(
                     )
                 }
             }
-            else -> {
+            query.trim().length >= 2 && items.isEmpty() && !loading -> {
                 Text(
-                    if (query.isBlank()) "Trending picks" else "Keep typing…",
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
+                    "No titles matched “${query.trim()}”",
+                    color = Color.White.copy(alpha = 0.55f),
+                )
+            }
+            else -> {
+                KittySectionHeading(
+                    title = if (query.isBlank()) "Trending picks" else "Keep typing…",
+                    subtitle = if (query.isBlank()) "Tap a poster to open" else "Need at least 2 characters",
+                    padded = false,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 LazyVerticalGrid(
@@ -519,55 +646,75 @@ private fun HistoryFeed(
     onOpen: (AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(16.dp)
-            .padding(bottom = 84.dp),
+            .padding(bottom = 100.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(
-            "History",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-        )
-        Text(
-            "Kept on this device",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        if (history.isEmpty()) {
-            Text(
-                "Nothing here yet — start something from Home.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        item {
+            KittySectionHeading(
+                title = "History",
+                subtitle = "Kept on this device",
+                padded = false,
             )
-        } else {
-            TextButton(onClick = { scope.launch { historyDao.clear() } }) {
-                Text("Clear all")
-            }
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                lazyItems(history, key = { it.anilistId }) { entry ->
-                    KittyContinueCard(
-                        title = entry.title,
-                        coverUrl = entry.coverImageUrl,
-                        episode = entry.episode,
-                        onClick = {
-                            scope.launch {
-                                val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
-                                    id = entry.anilistId,
-                                    title = entry.title,
-                                    coverImageUrl = entry.coverImageUrl,
-                                    episodes = null,
-                                    format = null,
-                                    averageScore = null,
-                                )
-                                onOpen(detail)
-                            }
-                        },
+        }
+        if (history.isEmpty()) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 48.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        "No history yet",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        "Watch something from Home — it shows up here with progress.",
+                        color = Color.White.copy(alpha = 0.45f),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
+            }
+        } else {
+            item {
+                TextButton(
+                    onClick = { scope.launch { historyDao.clear() } },
+                    contentPadding = PaddingValues(horizontal = 0.dp),
+                ) {
+                    Text("Clear all", color = Color.White.copy(alpha = 0.55f))
+                }
+            }
+            lazyItems(history, key = { it.anilistId }) { entry ->
+                KittyContinueCard(
+                    title = entry.title,
+                    coverUrl = entry.coverImageUrl,
+                    episode = entry.episode,
+                    positionMs = entry.positionMs,
+                    durationMs = entry.durationMs,
+                    wide = false,
+                    onClick = {
+                        scope.launch {
+                            val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
+                                id = entry.anilistId,
+                                title = entry.title,
+                                coverImageUrl = entry.coverImageUrl,
+                                episodes = null,
+                                format = null,
+                                averageScore = null,
+                            )
+                            onOpen(detail)
+                        }
+                    },
+                )
             }
         }
     }
@@ -599,36 +746,61 @@ private fun SettingsFeed(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(16.dp)
             .padding(bottom = 100.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Text(
-                "Account",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-            Text(
-                accountLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            profile?.let {
-                Text(
-                    "${it.favorites} favorites · ${it.comments} comments",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(KittySurface)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        (displayName.ifBlank { "A" }).take(1).uppercase(),
+                        color = Color.Black,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 20.sp,
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        displayName.ifBlank { "AniKitty viewer" },
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        accountLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.40f),
+                    )
+                    profile?.let {
+                        Text(
+                            "${it.favorites} favorites · ${it.comments} comments",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.White.copy(alpha = 0.65f),
+                        )
+                    }
+                }
             }
         }
         item {
-            Text("Display name", color = Color.White, fontWeight = FontWeight.SemiBold)
-            Text(
-                "Shown on comments. Optional, 2–24 characters.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            KittySectionHeading(
+                title = "Display name",
+                subtitle = "Shown on comments · 2–24 characters",
+                padded = false,
             )
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
@@ -637,6 +809,7 @@ private fun SettingsFeed(
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 label = { Text("Name") },
+                shape = RoundedCornerShape(12.dp),
             )
             Spacer(modifier = Modifier.height(8.dp))
             Button(
@@ -650,31 +823,58 @@ private fun SettingsFeed(
                         }.getOrElse { e -> e.message }
                     }
                 },
-                shape = RoundedCornerShape(20.dp),
-            ) { Text("Save name") }
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                ),
+            ) { Text("Save name", fontWeight = FontWeight.Bold) }
             if (status != null) {
                 Text(status!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         if (favorites.isNotEmpty()) {
             item {
-                Text("Favorites", color = Color.White, fontWeight = FontWeight.SemiBold)
+                KittySectionHeading(
+                    title = "Favorites",
+                    subtitle = "Synced to your dedicated server",
+                    padded = false,
+                )
             }
             lazyItems(favorites, key = { it.anilistId }) { fav ->
-                Text(fav.title, color = Color.White)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(KittySurface)
+                        .padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    AsyncImage(
+                        model = fav.coverImageUrl,
+                        contentDescription = fav.title,
+                        modifier = Modifier
+                            .width(44.dp)
+                            .aspectRatio(2f / 3f)
+                            .clip(RoundedCornerShape(6.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        fav.title,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
         item {
-            Text(
-                "Stream source",
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                "Built-in resolvers only. Anime streams play on this phone.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            KittySectionHeading(
+                title = "Stream source",
+                subtitle = "Built-in resolvers · streams stay on this phone",
+                padded = false,
             )
         }
         lazyItems(catalog.servers, key = { it.id }) { server ->
@@ -687,7 +887,7 @@ private fun SettingsFeed(
                     .background(KittySurface)
                     .border(
                         width = if (selected) 1.dp else 0.dp,
-                        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        color = if (selected) Color.White else Color.Transparent,
                         shape = shape,
                     )
                     .clickable { catalog.select(server.id) }
@@ -697,7 +897,7 @@ private fun SettingsFeed(
                 Text(
                     server.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.55f),
                 )
             }
         }
@@ -757,17 +957,44 @@ private fun TitleDetailScreen(
     val pageStart = epPage * pageSize + 1
     val pageEnd = minOf(maxEp, pageStart + pageSize - 1)
 
+    fun playSelected() {
+        scope.launch {
+            resolving = true
+            status = "Getting stream…"
+            runCatching {
+                historyDao.touchFromCatalog(anime)
+                val sources = streamServers.selectedResolver().resolve(
+                    anilistId = anime.id,
+                    episode = episode,
+                    audio = audio,
+                    titleHint = anime.searchTitles().joinToString(" || "),
+                )
+                historyDao.get(anime.id)?.let {
+                    historyDao.upsert(
+                        it.copy(
+                            episode = episode,
+                            updatedAtEpochMs = System.currentTimeMillis(),
+                        ),
+                    )
+                }
+                onPlay(episode, sources)
+                status = null
+            }.onFailure { status = it.message ?: "Failed" }
+            resolving = false
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(KittyPage),
     ) {
-        LazyColumn(contentPadding = PaddingValues(bottom = 28.dp)) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 110.dp)) {
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(260.dp),
+                        .height(300.dp),
                 ) {
                     AsyncImage(
                         model = anime.bannerImageUrl ?: anime.coverImageUrl,
@@ -780,7 +1007,19 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(Color.Black.copy(alpha = 0.25f), KittyPage),
+                                    0f to Color.Black.copy(alpha = 0.35f),
+                                    0.45f to Color.Black.copy(alpha = 0.15f),
+                                    1f to KittyPage,
+                                ),
+                            ),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.horizontalGradient(
+                                    0f to Color.Black.copy(alpha = 0.35f),
+                                    0.45f to Color.Transparent,
                                 ),
                             ),
                     )
@@ -929,56 +1168,6 @@ private fun TitleDetailScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                resolving = true
-                                status = "Getting stream…"
-                                runCatching {
-                                    historyDao.touchFromCatalog(anime)
-                                    val sources = streamServers.selectedResolver().resolve(
-                                        anilistId = anime.id,
-                                        episode = episode,
-                                        audio = audio,
-                                        titleHint = anime.searchTitles().joinToString(" || "),
-                                    )
-                                    historyDao.get(anime.id)?.let {
-                                        historyDao.upsert(
-                                            it.copy(
-                                                episode = episode,
-                                                updatedAtEpochMs = System.currentTimeMillis(),
-                                            ),
-                                        )
-                                    }
-                                    onPlay(episode, sources)
-                                    status = null
-                                }.onFailure { status = it.message ?: "Failed" }
-                                resolving = false
-                            }
-                        },
-                        enabled = !resolving,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(26.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black,
-                        ),
-                    ) {
-                        if (resolving) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.Black,
-                            )
-                        } else {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Play episode $episode", fontWeight = FontWeight.Bold)
-                        }
-                    }
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
@@ -1022,24 +1211,69 @@ private fun TitleDetailScreen(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     if (comments.isEmpty()) {
-                        Text("No comments yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            "No comments yet — be the first.",
+                            color = Color.White.copy(alpha = 0.45f),
+                        )
                     } else {
                         comments.forEach { c ->
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = 6.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(KittySurface)
+                                    .padding(12.dp),
                             ) {
                                 Text(
                                     c.displayName + (c.episode?.let { " · ep $it" } ?: ""),
-                                    color = MaterialTheme.colorScheme.primary,
+                                    color = Color.White.copy(alpha = 0.55f),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
                                 Text(c.body, color = Color.White, style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
+                }
+            }
+        }
+
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, KittyPage.copy(alpha = 0.92f), KittyPage),
+                    ),
+                )
+                .navigationBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Button(
+                onClick = { playSelected() },
+                enabled = !resolving,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                ),
+            ) {
+                if (resolving) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        strokeWidth = 2.dp,
+                        color = Color.Black,
+                    )
+                } else {
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Play episode $episode · ${audio.uppercase()}", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -1050,15 +1284,21 @@ private fun TitleDetailScreen(
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(if (selected) Color.White else KittySurface)
+            .border(
+                width = 1.dp,
+                color = if (selected) Color.White else Color.White.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(12.dp),
+            )
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Text(
             label,
-            color = if (selected) Color.Black else Color.White,
+            color = if (selected) Color.Black else Color.White.copy(alpha = 0.78f),
             fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp,
         )
     }
 }

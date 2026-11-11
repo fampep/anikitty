@@ -1,6 +1,7 @@
 package site.anikitty.app.ui.shell
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -176,6 +178,14 @@ private fun LoginScreen(
 
             Spacer(modifier = Modifier.height(28.dp))
 
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.04f))
+                    .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+            ) {
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -189,7 +199,7 @@ private fun LoginScreen(
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 enabled = !busy,
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 colors = fieldColors,
             )
             TextButton(onClick = { showPassword = !showPassword }, enabled = !busy) {
@@ -275,6 +285,7 @@ private fun LoginScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
             }
 
             Spacer(modifier = Modifier.height(28.dp))

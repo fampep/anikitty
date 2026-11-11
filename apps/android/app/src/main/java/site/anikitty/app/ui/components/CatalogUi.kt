@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -94,7 +95,7 @@ fun KittyPosterCard(
     anime: AnimeSummary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    width: androidx.compose.ui.unit.Dp = 120.dp,
+    width: Dp = 120.dp,
     subtitle: String? = null,
 ) {
     Column(
@@ -102,16 +103,45 @@ fun KittyPosterCard(
             .width(width)
             .clickable(onClick = onClick),
     ) {
-        AsyncImage(
-            model = anime.coverImageUrl,
-            contentDescription = anime.title,
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3.05f)
                 .clip(RoundedCornerShape(10.dp))
                 .background(KittySurface),
-            contentScale = ContentScale.Crop,
-        )
+        ) {
+            AsyncImage(
+                model = anime.coverImageUrl,
+                contentDescription = anime.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.72f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.55f),
+                        ),
+                    ),
+            )
+            anime.averageScore?.let { score ->
+                Text(
+                    "★ $score",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.72f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
         Text(
             anime.title,
             modifier = Modifier.padding(top = 7.dp),
@@ -174,18 +204,19 @@ fun KittyPosterRow(
     }
 }
 
-/** Full-bleed cinema hero — mirrors web spotlight (edge-to-edge media + ink gradient). */
+/** Full-bleed cinema hero — edge-to-edge media + ink gradient. */
 @Composable
 fun KittyHero(
     anime: AnimeSummary,
     eyebrow: String = "Spotlight",
     cta: String = "Watch now",
     onOpen: () -> Unit,
+    topOverlay: (@Composable () -> Unit)? = null,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(320.dp)
+            .height(280.dp)
             .clickable(onClick = onOpen),
     ) {
         AsyncImage(
@@ -199,29 +230,33 @@ fun KittyHero(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.35f to KittyInk.copy(alpha = 0.25f),
+                        0f to KittyInk.copy(alpha = 0.35f),
+                        0.40f to KittyInk.copy(alpha = 0.15f),
                         0.72f to KittyInk.copy(alpha = 0.78f),
                         1f to KittyInk,
                     ),
                 ),
         )
-        // Soft side fade like theatre letterbox
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0f to KittyInk.copy(alpha = 0.45f),
-                        0.35f to Color.Transparent,
+                        0f to KittyInk.copy(alpha = 0.40f),
+                        0.40f to Color.Transparent,
                         1f to Color.Transparent,
                     ),
                 ),
         )
+        if (topOverlay != null) {
+            Box(modifier = Modifier.align(Alignment.TopStart)) {
+                topOverlay()
+            }
+        }
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 20.dp, vertical = 22.dp),
+                .padding(horizontal = 18.dp, vertical = 18.dp),
         ) {
             Text(
                 eyebrow.uppercase(),
@@ -230,7 +265,7 @@ fun KittyHero(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp,
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 anime.title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -252,7 +287,7 @@ fun KittyHero(
                     color = Color.White.copy(alpha = 0.55f),
                 )
             }
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Button(
                 onClick = onOpen,
                 colors = ButtonDefaults.buttonColors(
@@ -260,6 +295,7 @@ fun KittyHero(
                     contentColor = Color.Black,
                 ),
                 shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             ) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(4.dp))
@@ -269,59 +305,169 @@ fun KittyHero(
     }
 }
 
+/**
+ * Cinema continue card — landscape still with progress rail.
+ * Inspired by anime streaming continue rails, kept monochrome.
+ */
 @Composable
 fun KittyContinueCard(
     title: String,
     coverUrl: String?,
     episode: Int,
     onClick: () -> Unit,
+    positionMs: Long = 0L,
+    durationMs: Long = 0L,
+    wide: Boolean = true,
 ) {
-    Row(
-        modifier = Modifier
-            .width(268.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(KittySurface)
-            .clickable(onClick = onClick)
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AsyncImage(
-            model = coverUrl,
-            contentDescription = title,
-            modifier = Modifier
-                .width(52.dp)
-                .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(6.dp)),
-            contentScale = ContentScale.Crop,
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White,
-            )
-            Text(
-                "Continue · Ep $episode",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.55f),
-            )
-        }
+    val progress = if (durationMs > 0L) {
+        (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0.08f
+    }
+    if (wide) {
         Box(
             modifier = Modifier
-                .size(34.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(Color.White),
-            contentAlignment = Alignment.Center,
+                .width(220.dp)
+                .aspectRatio(16f / 10f)
+                .clip(RoundedCornerShape(14.dp))
+                .clickable(onClick = onClick),
         ) {
-            Icon(
-                Icons.Filled.PlayArrow,
-                contentDescription = null,
-                tint = Color.Black,
-                modifier = Modifier.size(20.dp),
+            AsyncImage(
+                model = coverUrl,
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
             )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.45f to Color.Black.copy(alpha = 0.25f),
+                            1f to Color.Black.copy(alpha = 0.88f),
+                        ),
+                    ),
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(30.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.Black,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .padding(10.dp),
+            ) {
+                Text(
+                    title,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Ep $episode",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.65f),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.18f)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(3.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.White),
+                    )
+                }
+            }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(KittySurface)
+                .clickable(onClick = onClick)
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .width(88.dp)
+                    .aspectRatio(16f / 10f)
+                    .clip(RoundedCornerShape(8.dp)),
+            ) {
+                AsyncImage(
+                    model = coverUrl,
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(Color.White.copy(alpha = 0.18f)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .height(3.dp)
+                            .background(Color.White),
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                )
+                Text(
+                    "Continue · Ep $episode",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.55f),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Filled.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.Black,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }
