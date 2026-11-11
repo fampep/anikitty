@@ -23,7 +23,7 @@
 
 <br />
 
-AniKitty is a free, open-source anime streaming site. It pulls metadata from AniList and streams via KittyAPI — built for a clean watch experience with accounts, progress sync, and a modern player.
+AniKitty is moving to an **Android APK product** (Kotlin / Jetpack Compose under `apps/android/`). The Next.js deploy remains the **API/backend** (auth, catalog, streams, admin) and an optional web client — not a Capacitor/TWA wrap of the site.
 
 ---
 
@@ -31,12 +31,13 @@ AniKitty is a free, open-source anime streaming site. It pulls metadata from Ani
 
 | | |
 |---|---|
+| **Android-first** | Native Compose scaffold in `apps/android/` — debug APK build path lives there |
 | **No ads** | No popups, redirects, or trackers |
-| **Passphrase + passkeys** | New accounts use a one-time passphrase; sign-in is passkey-first |
+| **Passphrase + passkeys** | New accounts use a one-time passphrase; sign-in is passkey-first (web today; Credential Manager planned on Android) |
 | **Access gating** | Catalog and watch require login; signups open or closed via `OPEN_SIGNUPS` |
-| **Player** | Vidstack + HLS, skip intro/credits, resume, sub/dub, multi-server |
+| **Player** | Web: Vidstack + HLS; Android playback (Media3) comes in a later milestone |
 | **Library** | Continue watching, bookmarks, schedule, search, profiles, comments |
-| **PWA** | Installable on mobile and desktop |
+| **API backend** | Coolify-hosted Next.js serves `/api/**` for the APK (and current web UI) |
 
 ---
 
@@ -61,20 +62,34 @@ Set `OPEN_SIGNUPS` as a **runtime** Coolify variable (not build-time).
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router) |
-| Language | TypeScript |
-| Styling | Tailwind CSS + shadcn/ui |
+| **Product (Android)** | Kotlin, Jetpack Compose, OkHttp (`apps/android/`) |
+| API / web backend | Next.js 15 (App Router), TypeScript |
+| Styling (web) | Tailwind CSS + shadcn/ui |
 | Database | PostgreSQL via Drizzle ORM |
-| State | Zustand + React Query |
-| Player | Vidstack + HLS.js |
+| State (web) | Zustand + React Query |
+| Player (web) | Vidstack + HLS.js |
 | Anime data | AniList GraphQL |
 | Streaming | KittyAPI |
 | Skip times | AniSkip |
-| Deploy | Coolify (Docker / Railpack) |
+| API deploy | Coolify (Docker / Railpack) |
 
 ---
 
-## Local development
+## Android APK (scaffold)
+
+```bash
+cd apps/android
+./gradlew :app:assembleDebug
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Or from the repo root: `npm run android:assembleDebug`.
+
+See [`apps/android/README.md`](apps/android/README.md) for SDK setup, auth/API consumption, and signing placeholders. Full feature port is **not** done in the scaffold PR.
+
+---
+
+## Local development (API / web)
 
 ### Prerequisites
 

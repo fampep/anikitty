@@ -1,0 +1,3 @@
+## Copy to local.properties (gitignored) or let the Android Gradle Plugin
+## pick up ANDROID_HOME / ANDROID_SDK_ROOT from the environment.
+sdk.dir=/path/to/Android/Sdk

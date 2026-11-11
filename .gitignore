@@ -20,6 +20,16 @@
 # production
 /build
 
+# Android
+apps/android/local.properties
+apps/android/keystore.properties
+apps/android/**/build/
+apps/android/.gradle/
+apps/android/*.jks
+apps/android/*.keystore
+apps/android/.idea/
+apps/android/captures/
+
 # misc
 .DS_Store
 *.pem
