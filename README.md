@@ -23,11 +23,11 @@
 </p>
 
 > [!WARNING]
-> **Work in progress.** AniKitty is under active development. The Android app and dedicated server are unfinished: expect bugs, missing features, broken playback on some titles, and breaking changes. The first GitHub build ([**v1.0.0 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.0.0)) is for early testing only — not a finished product.
+> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases on a scheduled basis** — each drop is for early testing, not a finished product. Latest: [**v1.0.0 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.0.0).
 
 <br />
 
-AniKitty’s product is the **Android APK** + **Go dedicated server** (`apps/android`, `apps/dedicated-server`). Sign-in is required against **your** server DB (password-only; no Discord/AniList accounts). Users **select a built-in watch server** (not third-party extensions); the phone resolves a playable URL and streams on-device. The old website is not the product focus.
+AniKitty’s product is the **Android APK** + **Go dedicated server** (`apps/android`, `apps/dedicated-server`). Sign in with **AniList** (list + progress sync) and/or a **password account** on your server. Users **select a built-in watch server** (not third-party extensions); the phone resolves a playable URL and streams on-device. The old website is not the product focus.
 
 ---
 
@@ -35,8 +35,8 @@ AniKitty’s product is the **Android APK** + **Go dedicated server** (`apps/and
 
 | | |
 |---|---|
-| **Android APK** | Compose app in `apps/android/` — sign in to your dedicated server |
-| **On-device data** | Watch history in Room; optional sync to Go server |
+| **Android APK** | Compose app in `apps/android/` — AniList and/or dedicated-server sign-in |
+| **On-device data** | Watch history in Room; AniList MediaList sync; optional Go server sync |
 | **Watch servers** | Built-in selectable servers (e.g. Anikoto) — URL resolve on phone, no 3rd-party installs |
 | **Streaming** | Media3 on the phone; dedicated server never carries stream bytes |
 | **No ads** | No popups, redirects, or trackers |

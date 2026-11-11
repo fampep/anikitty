@@ -21,3 +21,15 @@ data class AnimeSummary(
             .filter { it.isNotEmpty() }
             .distinct()
 }
+
+data class AniListViewer(
+    val id: Int,
+    val name: String,
+    val avatarUrl: String? = null,
+)
+
+data class AniListMediaListEntry(
+    val status: String,
+    val progress: Int,
+    val media: AnimeSummary,
+)

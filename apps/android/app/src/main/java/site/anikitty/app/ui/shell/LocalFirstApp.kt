@@ -76,7 +76,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
+import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
@@ -112,6 +114,8 @@ private sealed class Screen {
 @Composable
 fun LocalFirstApp(
     aniList: AniListClient,
+    aniListAuth: AniListAuthStore,
+    aniListSync: AniListSync,
     historyDao: WatchHistoryDao,
     streamServers: ServerCatalog,
     api: DedicatedApiClient,
@@ -124,6 +128,21 @@ fun LocalFirstApp(
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
     val history by historyDao.observeAll().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
+    var syncLabel by remember { mutableStateOf<String?>(null) }
+
+    // Pull AniList list on enter + every few minutes while the app is open.
+    LaunchedEffect(aniListAuth.isLinked) {
+        if (!aniListAuth.isLinked) return@LaunchedEffect
+        while (true) {
+            runCatching {
+                val result = aniListSync.pull()
+                syncLabel = "Synced ${result.imported} from AniList"
+            }.onFailure { e ->
+                syncLabel = e.message
+            }
+            delay(5 * 60_000L)
+        }
+    }
 
     val tabs = remember {
         listOf(
@@ -141,6 +160,14 @@ fun LocalFirstApp(
                 val entry = historyDao.get(current.anime.id)
                 if (entry != null && entry.episode == current.episode && entry.positionMs > 2_000L) {
                     resumeMs = entry.positionMs
+                }
+                // Push episode progress to AniList when opening / advancing.
+                if (aniListAuth.isLinked) {
+                    aniListSync.pushProgress(
+                        anilistId = current.anime.id,
+                        episode = current.episode,
+                        totalEpisodes = current.anime.episodes,
+                    )
                 }
             }
             PlayerScreen(
@@ -164,6 +191,8 @@ fun LocalFirstApp(
                                 positionMs = pos,
                                 durationMs = dur,
                                 updatedAtEpochMs = System.currentTimeMillis(),
+                                listStatus = existing?.listStatus ?: "CURRENT",
+                                malId = current.anime.malId ?: existing?.malId,
                             ),
                         )
                     }
@@ -178,6 +207,7 @@ fun LocalFirstApp(
                                 audio = "sub",
                                 titleHint = current.anime.searchTitles().joinToString(" || "),
                             )
+                            val existing = historyDao.get(current.anime.id)
                             historyDao.upsert(
                                 WatchHistoryEntity(
                                     anilistId = current.anime.id,
@@ -187,8 +217,17 @@ fun LocalFirstApp(
                                     positionMs = 0L,
                                     durationMs = 0L,
                                     updatedAtEpochMs = System.currentTimeMillis(),
+                                    listStatus = existing?.listStatus ?: "CURRENT",
+                                    malId = current.anime.malId ?: existing?.malId,
                                 ),
                             )
+                            if (aniListAuth.isLinked) {
+                                aniListSync.pushProgress(
+                                    anilistId = current.anime.id,
+                                    episode = next,
+                                    totalEpisodes = current.anime.episodes,
+                                )
+                            }
                             screen = Screen.Player(current.anime, next, sources)
                         }
                     }
@@ -236,12 +275,27 @@ fun LocalFirstApp(
                 history = history,
                 historyDao = historyDao,
                 aniList = aniList,
+                aniListLinked = aniListAuth.isLinked,
+                syncLabel = syncLabel,
+                onSync = {
+                    scope.launch {
+                        syncLabel = "Syncing…"
+                        syncLabel = runCatching {
+                            val result = aniListSync.pull()
+                            "Synced ${result.imported} from AniList"
+                        }.getOrElse { e -> e.message }
+                    }
+                },
                 onOpen = { screen = Screen.Detail(it) },
             )
             "settings" -> SettingsFeed(
                 catalog = streamServers,
                 api = api,
+                aniListAuth = aniListAuth,
+                aniListSync = aniListSync,
                 accountLabel = accountLabel,
+                syncLabel = syncLabel,
+                onSyncLabel = { syncLabel = it },
                 onSignOut = onSignOut,
             )
         }
@@ -649,9 +703,22 @@ private fun HistoryFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     aniList: AniListClient,
+    aniListLinked: Boolean,
+    syncLabel: String?,
+    onSync: () -> Unit,
     onOpen: (AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val watching = history.filter {
+        val s = it.listStatus?.uppercase()
+        s == null || s == "CURRENT" || s == "REPEATING"
+    }
+    val completed = history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }
+    val other = history.filter { entry ->
+        watching.none { it.anilistId == entry.anilistId } &&
+            completed.none { it.anilistId == entry.anilistId }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -661,11 +728,26 @@ private fun HistoryFeed(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            KittySectionHeading(
-                title = "History",
-                subtitle = "Kept on this device",
-                padded = false,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    KittySectionHeading(
+                        title = "Library",
+                        subtitle = when {
+                            aniListLinked -> syncLabel ?: "Synced from AniList + this device"
+                            else -> "Kept on this device"
+                        },
+                        padded = false,
+                    )
+                }
+                if (aniListLinked) {
+                    TextButton(onClick = onSync) {
+                        Text("Sync", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
         }
         if (history.isEmpty()) {
             item {
@@ -676,14 +758,18 @@ private fun HistoryFeed(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        "No history yet",
+                        if (aniListLinked) "No list entries yet" else "No history yet",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "Watch something from Home — it shows up here with progress.",
+                        if (aniListLinked) {
+                            "Pull Sync to import your AniList watching / completed shows."
+                        } else {
+                            "Watch something from Home — it shows up here with progress."
+                        },
                         color = Color.White.copy(alpha = 0.45f),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodySmall,
@@ -696,41 +782,92 @@ private fun HistoryFeed(
                     onClick = { scope.launch { historyDao.clear() } },
                     contentPadding = PaddingValues(horizontal = 0.dp),
                 ) {
-                    Text("Clear all", color = Color.White.copy(alpha = 0.55f))
+                    Text("Clear local", color = Color.White.copy(alpha = 0.55f))
                 }
             }
-            lazyItems(history, key = { it.anilistId }) { entry ->
-                KittyContinueCard(
-                    title = entry.title,
-                    coverUrl = entry.coverImageUrl,
-                    episode = entry.episode,
-                    positionMs = entry.positionMs,
-                    durationMs = entry.durationMs,
-                    wide = false,
-                    onClick = {
-                        scope.launch {
-                            val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
-                                id = entry.anilistId,
-                                title = entry.title,
-                                coverImageUrl = entry.coverImageUrl,
-                                episodes = null,
-                                format = null,
-                                averageScore = null,
-                            )
-                            onOpen(detail)
-                        }
-                    },
-                )
+            if (watching.isNotEmpty()) {
+                item {
+                    Text(
+                        "Watching",
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                lazyItems(watching, key = { "w-${it.anilistId}" }) { entry ->
+                    HistoryRow(entry, aniList, onOpen)
+                }
+            }
+            if (completed.isNotEmpty()) {
+                item {
+                    Text(
+                        "Completed",
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                lazyItems(completed, key = { "c-${it.anilistId}" }) { entry ->
+                    HistoryRow(entry, aniList, onOpen)
+                }
+            }
+            if (other.isNotEmpty()) {
+                item {
+                    Text(
+                        "More",
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                lazyItems(other, key = { "o-${it.anilistId}" }) { entry ->
+                    HistoryRow(entry, aniList, onOpen)
+                }
             }
         }
     }
 }
 
 @Composable
+private fun HistoryRow(
+    entry: WatchHistoryEntity,
+    aniList: AniListClient,
+    onOpen: (AnimeSummary) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    KittyContinueCard(
+        title = entry.title,
+        coverUrl = entry.coverImageUrl,
+        episode = entry.episode,
+        positionMs = entry.positionMs,
+        durationMs = entry.durationMs,
+        wide = false,
+        onClick = {
+            scope.launch {
+                val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
+                    id = entry.anilistId,
+                    title = entry.title,
+                    coverImageUrl = entry.coverImageUrl,
+                    episodes = null,
+                    format = null,
+                    averageScore = null,
+                    malId = entry.malId,
+                )
+                onOpen(detail)
+            }
+        },
+    )
+}
+
+@Composable
 private fun SettingsFeed(
     catalog: ServerCatalog,
     api: DedicatedApiClient,
+    aniListAuth: AniListAuthStore,
+    aniListSync: AniListSync,
     accountLabel: String,
+    syncLabel: String?,
+    onSyncLabel: (String?) -> Unit,
     onSignOut: () -> Unit,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
@@ -765,24 +902,38 @@ private fun SettingsFeed(
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(52.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(Color.White),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        (displayName.ifBlank { "A" }).take(1).uppercase(),
-                        color = Color.Black,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 20.sp,
+                if (!aniListAuth.avatarUrl.isNullOrBlank()) {
+                    AsyncImage(
+                        model = aniListAuth.avatarUrl,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(999.dp)),
+                        contentScale = ContentScale.Crop,
                     )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            (aniListAuth.username ?: displayName.ifBlank { "A" }).take(1).uppercase(),
+                            color = Color.Black,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 20.sp,
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.width(14.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        displayName.ifBlank { "AniKitty viewer" },
+                        when {
+                            aniListAuth.isLinked -> aniListAuth.username ?: "AniList"
+                            else -> displayName.ifBlank { "AniKitty viewer" }
+                        },
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
@@ -792,6 +943,13 @@ private fun SettingsFeed(
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.40f),
                     )
+                    if (aniListAuth.isLinked) {
+                        Text(
+                            syncLabel ?: "AniList list syncs while you watch",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color(0xFF02A9FF).copy(alpha = 0.9f),
+                        )
+                    }
                     profile?.let {
                         Text(
                             "${it.favorites} favorites · ${it.comments} comments",
@@ -800,6 +958,34 @@ private fun SettingsFeed(
                         )
                     }
                 }
+            }
+        }
+        if (aniListAuth.isLinked) {
+            item {
+                KittySectionHeading(
+                    title = "AniList sync",
+                    subtitle = "Import your list and push episode progress",
+                    padded = false,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            onSyncLabel("Syncing…")
+                            onSyncLabel(
+                                runCatching {
+                                    val result = aniListSync.pull()
+                                    "Synced ${result.imported} titles"
+                                }.getOrElse { e -> e.message },
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF02A9FF),
+                        contentColor = Color.White,
+                    ),
+                ) { Text("Sync now", fontWeight = FontWeight.Bold) }
             }
         }
         item {

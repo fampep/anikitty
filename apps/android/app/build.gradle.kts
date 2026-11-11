@@ -21,9 +21,15 @@ android {
         applicationId = "site.anikitty.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
+        versionCode = 3
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Public AniList API client id (not a secret). Create at anilist.co/settings/developer
+        // with redirect URI anikitty://anilist — or leave blank and paste a token in-app.
+        val anilistClientId = (project.findProperty("anilistClientId") as String?)
+            ?: System.getenv("ANILIST_CLIENT_ID")
+            ?: ""
+        buildConfigField("String", "ANILIST_CLIENT_ID", "\"${anilistClientId.replace("\"", "")}\"")
     }
 
     signingConfigs {
@@ -107,6 +113,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("androidx.browser:browser:1.8.0")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

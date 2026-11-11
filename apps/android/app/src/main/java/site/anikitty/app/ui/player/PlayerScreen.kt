@@ -257,6 +257,7 @@ fun PlayerScreen(
         val selector = DefaultTrackSelector(context).apply {
             parameters = buildUponParameters()
                 .setPreferredTextLanguage("en")
+                .setSelectUndeterminedTextLanguage(true)
                 .build()
         }
         val exo = ExoPlayer.Builder(context)
@@ -269,8 +270,8 @@ fun PlayerScreen(
                 if (source.url.contains(".m3u8", ignoreCase = true)) {
                     itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
                 }
-                val configs = source.subtitles.mapNotNull { track ->
-                    subtitleConfig(track)
+                val configs = source.subtitles.mapIndexedNotNull { index, track ->
+                    subtitleConfig(track, default = index == 0)
                 }
                 if (configs.isNotEmpty()) {
                     itemBuilder.setSubtitleConfigurations(configs)
@@ -1376,7 +1377,10 @@ private fun ChromeDisc(
 }
 
 @OptIn(UnstableApi::class)
-private fun subtitleConfig(track: SubtitleTrack): MediaItem.SubtitleConfiguration? {
+private fun subtitleConfig(
+    track: SubtitleTrack,
+    default: Boolean = false,
+): MediaItem.SubtitleConfiguration? {
     if (!track.url.startsWith("http")) return null
     val mime = track.mimeType
         ?: when {
@@ -1388,9 +1392,10 @@ private fun subtitleConfig(track: SubtitleTrack): MediaItem.SubtitleConfiguratio
         }
     return MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(track.url))
         .setMimeType(mime)
-        .setLanguage(track.language ?: "und")
+        .setLanguage(track.language ?: "en")
         .setLabel(track.label)
-        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+        .setSelectionFlags(if (default) C.SELECTION_FLAG_DEFAULT else 0)
+        .setRoleFlags(C.ROLE_FLAG_SUBTITLE)
         .build()
 }
 
@@ -1473,6 +1478,8 @@ private fun applyTextSelection(
 ) {
     val params = selector.buildUponParameters()
         .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+        .setSelectUndeterminedTextLanguage(true)
+        .setPreferredTextLanguage("en")
     if (!enabled || selectedId == "off") {
         selector.parameters = params
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
@@ -1480,11 +1487,17 @@ private fun applyTextSelection(
         return
     }
     params.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
-    val opt = options.firstOrNull { it.id == selectedId }
-    val mediaGroup = opt?.mediaGroup
+    val concrete = when (selectedId) {
+        "auto" -> options.firstOrNull { it.mediaGroup != null }
+            ?: options.firstOrNull {
+                it.id != "off" && it.id != "auto" && it.mediaGroup != null
+            }
+        else -> options.firstOrNull { it.id == selectedId }
+    }
+    val mediaGroup = concrete?.mediaGroup
     if (mediaGroup != null) {
         params.setOverrideForType(
-            TrackSelectionOverride(mediaGroup, listOf(opt.trackIndex)),
+            TrackSelectionOverride(mediaGroup, listOf(concrete.trackIndex)),
         )
     }
     selector.parameters = params.build()
@@ -1493,6 +1506,7 @@ private fun applyTextSelection(
 @OptIn(UnstableApi::class)
 private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
     val view = playerView?.subtitleView ?: return
+    view.visibility = android.view.View.VISIBLE
     val bg = if (style.background) AndroidColor.argb(160, 0, 0, 0) else AndroidColor.TRANSPARENT
     val window = AndroidColor.TRANSPARENT
     // Prefer a readable regular weight — bold + huge size was blowing out phones.
@@ -1506,10 +1520,17 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
             Typeface.DEFAULT,
         ),
     )
-    // Fractional size tracks the player viewport, so landscape phones and tablets
-    // get captions that fit the frame instead of a fixed oversized sp value.
+    // Absolute px from the real display height — fractional sizing against the
+    // Compose-hosted SubtitleView often resolved to ~0 and hid selected captions.
     val fraction = style.sizeFraction.coerceIn(SUB_SIZE_MIN, SUB_SIZE_MAX)
-    view.setFixedTextSize(Cue.TEXT_SIZE_TYPE_FRACTIONAL_IGNORE_PADDING, fraction)
+    val metrics = view.resources.displayMetrics
+    val basis = when {
+        playerView.height > 0 -> playerView.height
+        view.height > 0 -> view.height
+        else -> metrics.heightPixels
+    }
+    val px = (basis * fraction).toInt().coerceIn(18, 96).toFloat()
+    view.setFixedTextSize(Cue.TEXT_SIZE_TYPE_ABSOLUTE, px)
     view.setBottomPaddingFraction(style.bottomPad.coerceIn(SUB_BOTTOM_MIN, SUB_BOTTOM_MAX))
 }
 

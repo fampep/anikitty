@@ -1,7 +1,9 @@
 package site.anikitty.app
 
 import android.app.Application
+import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
+import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.auth.SavedPassphraseStore
 import site.anikitty.app.data.auth.SessionStore
 import site.anikitty.app.data.local.AppDatabase
@@ -13,6 +15,10 @@ class AnikittyApp : Application() {
     lateinit var database: AppDatabase
         private set
     lateinit var aniList: AniListClient
+        private set
+    lateinit var aniListAuth: AniListAuthStore
+        private set
+    lateinit var aniListSync: AniListSync
         private set
     lateinit var streamServers: ServerCatalog
         private set
@@ -29,6 +35,8 @@ class AnikittyApp : Application() {
         super.onCreate()
         database = AppDatabase.create(this)
         aniList = AniListClient(this)
+        aniListAuth = AniListAuthStore(this)
+        aniListSync = AniListSync(aniList, aniListAuth, database.watchHistoryDao())
         streamServers = ServerCatalog(this)
         serverConfig = ServerConfig(this)
         session = SessionStore(this)
