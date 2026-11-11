@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { accountAuth, clearAccountToken, authFromMeResponse } from "@/lib/oauth/account";
 import { hasLikelyAuthSession } from "@/lib/auth/auth-fetch";
+import { takeStashedOAuthNextPath } from "@/lib/auth/safe-next-path";
 import { useT } from "@/providers/i18n-provider";
 import { toast } from "sonner";
 
@@ -86,23 +87,29 @@ const NavBar = () => {
       server: "auth.anilistLoginFailed",
     };
 
-    if (discord === "welcome") {
-      toast.success(t("auth.discordWelcome"));
+    const applyWelcome = (messageKey: string) => {
+      toast.success(t(messageKey));
       void accountAuth
         .me()
-        .then((me) => setAuth(authFromMeResponse(me)))
+        .then((me) => {
+          setAuth(authFromMeResponse(me));
+          const dest = takeStashedOAuthNextPath();
+          if (dest && dest !== window.location.pathname + window.location.search) {
+            window.location.assign(dest);
+          }
+        })
         .catch(() => {});
+    };
+
+    if (discord === "welcome") {
+      applyWelcome("auth.discordWelcome");
     } else if (discord) {
       const key = discordErrorKeys[discord] ?? "auth.discordLoginFailed";
       toast.error(t(key));
     }
 
     if (anilist === "welcome") {
-      toast.success(t("auth.anilistWelcome"));
-      void accountAuth
-        .me()
-        .then((me) => setAuth(authFromMeResponse(me)))
-        .catch(() => {});
+      applyWelcome("auth.anilistWelcome");
     } else if (anilist) {
       const key = anilistErrorKeys[anilist] ?? "auth.anilistLoginFailed";
       toast.error(t(key));
@@ -110,8 +117,8 @@ const NavBar = () => {
 
     params.delete("discord");
     params.delete("anilist");
-    const next = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
-    window.history.replaceState({}, "", next);
+    const cleaned = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}`;
+    window.history.replaceState({}, "", cleaned);
   }, [setAuth, t]);
 
   return null;

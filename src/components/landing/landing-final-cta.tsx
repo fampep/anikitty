@@ -15,6 +15,7 @@ export default function LandingFinalCta() {
   const isLoggedIn = !!useAuthStore((s) => s.auth);
   const { open: openSignups, telegramUrl, loaded } = useOpenSignups();
   const signupsClosed = loaded && !openSignups;
+  const signupsOpen = loaded && openSignups;
 
   return (
     <section className="relative z-10 px-4 sm:px-6 md:px-12 py-16 sm:py-20 border-t border-white/[0.06]">
@@ -38,18 +39,20 @@ export default function LandingFinalCta() {
               {t("landing.browseAnime")}
               <ArrowRight className="w-4 h-4" />
             </Link>
-          ) : signupsClosed ? (
+          ) : !loaded || !signupsOpen ? (
             <>
-              <a
-                href={telegramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => trackEvent("landing_final_telegram")}
-                className="inline-flex items-center gap-2 px-7 py-3.5 bg-sky-500 text-white font-bold rounded-2xl hover:bg-sky-400 active:scale-[0.98] transition-all text-sm shadow-xl shadow-sky-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/40 w-full sm:w-auto justify-center"
-              >
-                <TelegramIcon className="h-4 w-4" />
-                {t("landing.telegramWaitlistCta")}
-              </a>
+              {signupsClosed ? (
+                <a
+                  href={telegramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackEvent("landing_final_telegram")}
+                  className="inline-flex items-center gap-2 px-7 py-3.5 bg-sky-500 text-white font-bold rounded-2xl hover:bg-sky-400 active:scale-[0.98] transition-all text-sm shadow-xl shadow-sky-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/40 w-full sm:w-auto justify-center"
+                >
+                  <TelegramIcon className="h-4 w-4" />
+                  {t("landing.telegramWaitlistCta")}
+                </a>
+              ) : null}
               <LoginPopoverButton
                 defaultTab="login"
                 customTrigger={

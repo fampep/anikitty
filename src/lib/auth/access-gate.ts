@@ -14,6 +14,12 @@ const PUBLIC_EXACT_PAGES = new Set([
   "/offline",
   "/changelog",
   "/sync", // AniList OAuth callback
+  "/robots.txt",
+  "/sitemap.xml",
+  "/manifest.json",
+  "/manifest.webmanifest",
+  "/pwa-sw.js",
+  "/sw.js",
 ]);
 
 const PUBLIC_PAGE_PREFIXES = [
@@ -36,6 +42,7 @@ const PUBLIC_API_PREFIXES = [
   "/api/account/email/confirm",
   "/api/admin/",
   "/api/bot/",
+  "/api/cron/", // Bearer CRON_SECRET — authorized inside the route
   "/api/webhooks/",
   "/api/auth/",
   "/api/anilist/oauth/",

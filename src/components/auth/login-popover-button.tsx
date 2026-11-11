@@ -11,16 +11,17 @@ import { DiscordIcon } from "@/components/auth/discord-connect";
 import AnilistIcon from "@/icons/anilist";
 import { useDiscordAuthEnabled } from "@/hooks/use-discord-auth-enabled";
 import { useOpenSignups } from "@/hooks/use-open-signups";
-import {
-  browserSupportsWebAuthn,
-  startAuthentication,
-  startRegistration,
-} from "@simplewebauthn/browser";
-import { PassphraseReveal } from "@/components/auth/passphrase-reveal";
+import { browserSupportsWebAuthn, startAuthentication } from "@simplewebauthn/browser";
 import TelegramIcon from "@/icons/telegram";
 import { trackEvent } from "@/lib/analytics";
+import { usePendingPassphraseStore } from "@/store/pending-passphrase-store";
+import {
+  readCurrentNextParam,
+  safeInternalNextPath,
+  stashOAuthNextPath,
+} from "@/lib/auth/safe-next-path";
 
-type Tab = "login" | "signup" | "2fa";
+type Tab = "login" | "signup" | "2fa" | "recover";
 
 function LoginPopoverButton({
   customTrigger,
@@ -31,16 +32,22 @@ function LoginPopoverButton({
 } = {}) {
   const t = useT();
   const { setAuth } = useAuthStore();
+  const setPendingPassphrase = usePendingPassphraseStore((s) => s.setPassphrase);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>(defaultTab);
   const [loading, setLoading] = useState(false);
 
   const [passphrase, setPassphrase] = useState("");
+  const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [pendingToken, setPendingToken] = useState("");
   const [totpCode, setTotpCode] = useState("");
   const [passkeySupported, setPasskeySupported] = useState(false);
-  const [issuedPassphrase, setIssuedPassphrase] = useState<string | null>(null);
   const [showPassphraseLogin, setShowPassphraseLogin] = useState(false);
+  const [showPasswordLogin, setShowPasswordLogin] = useState(false);
+  const [recoverIdentifier, setRecoverIdentifier] = useState("");
+  const [recoverCode, setRecoverCode] = useState("");
+  const [recoverPassword, setRecoverPassword] = useState("");
 
   useEffect(() => {
     setPasskeySupported(browserSupportsWebAuthn());
@@ -48,10 +55,15 @@ function LoginPopoverButton({
 
   const reset = () => {
     setPassphrase("");
+    setIdentifier("");
+    setPassword("");
     setPendingToken("");
     setTotpCode("");
-    setIssuedPassphrase(null);
     setShowPassphraseLogin(false);
+    setShowPasswordLogin(false);
+    setRecoverIdentifier("");
+    setRecoverCode("");
+    setRecoverPassword("");
     setLoading(false);
   };
 
@@ -61,15 +73,10 @@ function LoginPopoverButton({
 
   const redirectAfterAuth = () => {
     if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    if (next && next.startsWith("/") && !next.startsWith("//")) {
-      window.location.assign(next);
-      return;
-    }
-    if (window.location.pathname === "/") {
-      window.location.assign("/home");
-    }
+    const next =
+      readCurrentNextParam() ??
+      (window.location.pathname === "/" ? safeInternalNextPath("/home") : null);
+    if (next) window.location.assign(next);
   };
 
   const finishAuth = (data: Record<string, unknown>) => {
@@ -88,6 +95,28 @@ function LoginPopoverButton({
     setLoading(true);
     try {
       const data = await accountAuth.loginWithPassphrase(passphrase.trim());
+      if (data.requires2fa && data.pendingToken) {
+        setPendingToken(data.pendingToken);
+        setTab("2fa");
+        setTotpCode("");
+        return;
+      }
+      finishAuth(data);
+    } catch (e: any) {
+      toast.error(e?.body?.error ?? t("auth.invalidCredentials"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordLogin = async () => {
+    if (!identifier.trim() || !password) {
+      toast.error(t("auth.enterCredentials"));
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await accountAuth.login(identifier.trim(), password);
       if (data.requires2fa && data.pendingToken) {
         setPendingToken(data.pendingToken);
         setTab("2fa");
@@ -122,19 +151,20 @@ function LoginPopoverButton({
     setLoading(true);
     try {
       const data = await accountAuth.signupWithPassphrase();
-      syncAuth(data as Record<string, unknown>);
       const phrase =
         typeof (data as { passphrase?: string }).passphrase === "string"
           ? (data as { passphrase: string }).passphrase
           : null;
       toast.success(t("auth.accountCreated"));
       if (phrase) {
-        setIssuedPassphrase(phrase);
-        setTab("signup");
-      } else {
+        // Root modal shows the secret — set it BEFORE syncAuth so parents can
+        // unmount this popover without losing the passphrase.
+        setPendingPassphrase(phrase);
         setOpen(false);
         reset();
-        redirectAfterAuth();
+        syncAuth(data as Record<string, unknown>);
+      } else {
+        finishAuth(data as Record<string, unknown>);
       }
     } catch (e: any) {
       if (e?.status === 403 || e?.body?.code === "signups_closed") {
@@ -148,21 +178,54 @@ function LoginPopoverButton({
     }
   };
 
+  const handleRecover = async () => {
+    if (!recoverIdentifier.trim() || !recoverCode.trim() || !recoverPassword) {
+      toast.error(t("auth.recoverFillAll"));
+      return;
+    }
+    if (recoverPassword.length < 8) {
+      toast.error(t("auth.passwordMin"));
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/account/auth/recover", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: recoverIdentifier.trim(),
+          code: recoverCode.trim(),
+          password: recoverPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? t("auth.recoverFailed"));
+        return;
+      }
+      finishAuth(data);
+    } catch {
+      toast.error(t("auth.recoverFailed"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const discordEnabled = useDiscordAuthEnabled();
   const { open: openSignups, telegramUrl, loaded: signupStatusLoaded } = useOpenSignups();
 
   useEffect(() => {
     if (!signupStatusLoaded) return;
-    if (!openSignups && tab === "signup" && !issuedPassphrase) setTab("login");
-  }, [signupStatusLoaded, openSignups, tab, issuedPassphrase]);
+    if (!openSignups && tab === "signup") setTab("login");
+  }, [signupStatusLoaded, openSignups, tab]);
 
-  const handleDiscordLogin = () => {
-    window.location.href = "/api/account/auth/discord/start";
+  const startOAuth = (href: string) => {
+    stashOAuthNextPath(readCurrentNextParam());
+    window.location.href = href;
   };
 
-  const handleAniListLogin = () => {
-    window.location.href = "/api/auth/anilist/start";
-  };
+  const handleDiscordLogin = () => startOAuth("/api/account/auth/discord/start");
+  const handleAniListLogin = () => startOAuth("/api/auth/anilist/start");
 
   const handlePasskeyLogin = async () => {
     setLoading(true);
@@ -183,31 +246,6 @@ function LoginPopoverButton({
         toast.error(t("auth.passkeyCancelled"));
       } else {
         toast.error(err?.body?.error ?? err?.message ?? t("auth.passkeyFailed"));
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddPasskeyAfterSignup = async () => {
-    setLoading(true);
-    try {
-      const { options, pendingToken: token } = await accountAuth.passkeyRegisterOptions(
-        t("auth.defaultPasskeyName"),
-      );
-      const response = await startRegistration({ optionsJSON: options });
-      await accountAuth.passkeyRegisterVerify(token, response);
-      toast.success(t("auth.passkeyAdded"));
-      setIssuedPassphrase(null);
-      setOpen(false);
-      reset();
-      redirectAfterAuth();
-    } catch (e: unknown) {
-      const err = e as { name?: string; body?: { error?: string }; message?: string };
-      if (err?.name === "NotAllowedError") {
-        toast.error(t("auth.passkeyCancelled"));
-      } else {
-        toast.error(err?.body?.error ?? err?.message ?? t("auth.passkeyAddFailed"));
       }
     } finally {
       setLoading(false);
@@ -250,7 +288,7 @@ function LoginPopoverButton({
             {t("auth.accountHint")}
           </p>
 
-          {tab !== "2fa" && !issuedPassphrase && openSignups && (
+          {tab !== "2fa" && tab !== "recover" && openSignups && (
             <div className="flex rounded-lg bg-muted/50 dark:bg-white/[0.04] border border-border dark:border-white/8 p-0.5">
               <button
                 onClick={() => setTab("login")}
@@ -277,7 +315,7 @@ function LoginPopoverButton({
             </div>
           )}
 
-          {tab !== "2fa" && !issuedPassphrase && signupStatusLoaded && !openSignups && (
+          {tab !== "2fa" && tab !== "recover" && signupStatusLoaded && !openSignups && (
             <div className="rounded-lg border border-sky-400/20 bg-sky-500/10 px-3 py-2.5 text-[11px] leading-relaxed text-sky-100/85 font-mono">
               <p className="mb-2">{t("auth.signupsClosedHint")}</p>
               <a
@@ -334,23 +372,7 @@ function LoginPopoverButton({
           </div>
         )}
 
-        {issuedPassphrase ? (
-          <div className="p-5">
-            <PassphraseReveal
-              passphrase={issuedPassphrase}
-              passkeyBusy={loading}
-              onAddPasskey={passkeySupported ? () => void handleAddPasskeyAfterSignup() : undefined}
-              onDismiss={() => {
-                setIssuedPassphrase(null);
-                setOpen(false);
-                reset();
-                redirectAfterAuth();
-              }}
-            />
-          </div>
-        ) : null}
-
-        {tab === "login" && !issuedPassphrase && (
+        {tab === "login" && (
           <div className="p-5 flex flex-col gap-3.5">
             {passkeySupported ? (
               <button
@@ -380,7 +402,7 @@ function LoginPopoverButton({
               {showPassphraseLogin ? t("auth.hidePassphraseLogin") : t("auth.usePassphrase")}
             </button>
 
-            {showPassphraseLogin || !passkeySupported ? (
+            {(showPassphraseLogin || !passkeySupported) && (
               <>
                 <Field
                   label={t("auth.passphrase")}
@@ -398,7 +420,53 @@ function LoginPopoverButton({
                   {t("auth.signInWithPassphrase")}
                 </button>
               </>
-            ) : null}
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowPasswordLogin((v) => !v)}
+              className="self-start text-[11px] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 transition-colors"
+            >
+              {showPasswordLogin ? t("auth.hidePasswordLogin") : t("auth.usePasswordLogin")}
+            </button>
+
+            {showPasswordLogin && (
+              <>
+                <Field
+                  label={t("auth.usernameOrEmail")}
+                  value={identifier}
+                  onChange={setIdentifier}
+                  placeholder={t("auth.usernamePlaceholder")}
+                  onEnter={handlePasswordLogin}
+                />
+                <Field
+                  label={t("auth.password")}
+                  value={password}
+                  onChange={setPassword}
+                  placeholder="••••••••"
+                  type="password"
+                  onEnter={handlePasswordLogin}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoverIdentifier(identifier);
+                    setTab("recover");
+                  }}
+                  className="self-start -mt-1 text-[11px] text-muted-foreground dark:text-white/40 hover:text-foreground dark:hover:text-white/70 transition-colors"
+                >
+                  {t("auth.useRecoveryCode")}
+                </button>
+                <button
+                  onClick={handlePasswordLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-accent dark:bg-white/[0.06] border border-border dark:border-white/12 text-foreground dark:text-white/85 font-semibold text-sm hover:bg-accent dark:hover:bg-white/10 disabled:opacity-60 transition-colors"
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                  {t("auth.signInSubmit")}
+                </button>
+              </>
+            )}
 
             <div className="flex items-center gap-3 py-1">
               <div className="h-px flex-1 bg-accent dark:bg-white/8" />
@@ -430,7 +498,52 @@ function LoginPopoverButton({
           </div>
         )}
 
-        {tab === "signup" && openSignups && !issuedPassphrase && (
+        {tab === "recover" && (
+          <div className="p-5 flex flex-col gap-3.5">
+            <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
+              {t("auth.recoverHint")}
+            </p>
+            <Field
+              label={t("auth.usernameOrEmail")}
+              value={recoverIdentifier}
+              onChange={setRecoverIdentifier}
+              placeholder={t("auth.usernamePlaceholder")}
+              onEnter={handleRecover}
+            />
+            <Field
+              label={t("auth.recoveryCode")}
+              value={recoverCode}
+              onChange={setRecoverCode}
+              placeholder="XXXX-XXXX"
+              onEnter={handleRecover}
+            />
+            <Field
+              label={t("settings.newPassword")}
+              value={recoverPassword}
+              onChange={setRecoverPassword}
+              placeholder="••••••••"
+              type="password"
+              onEnter={handleRecover}
+            />
+            <button
+              onClick={handleRecover}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-primary-foreground font-semibold text-sm transition-colors mt-1"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {t("auth.recoverSubmit")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("login")}
+              className="text-xs text-muted-foreground dark:text-white/40 hover:text-white/70 transition-colors"
+            >
+              {t("auth.backToSignIn")}
+            </button>
+          </div>
+        )}
+
+        {tab === "signup" && openSignups && (
           <div className="p-5 flex flex-col gap-3.5">
             <p className="text-[11px] text-muted-foreground dark:text-white/40 font-mono leading-relaxed">
               {t("auth.passphraseSignupHint")}
@@ -479,7 +592,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && onEnter?.()}
         placeholder={placeholder}
-        autoComplete="off"
+        autoComplete={type === "password" ? "current-password" : "off"}
         className="h-9 px-3 rounded-lg bg-muted/50 dark:bg-white/5 border border-border dark:border-white/10 text-foreground dark:text-white/85 placeholder:text-muted-foreground/70 dark:placeholder:text-white/20 text-sm focus:outline-none focus:border-white/28 transition-colors"
       />
     </div>

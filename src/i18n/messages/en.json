@@ -895,6 +895,8 @@
     "enterPassphrase": "Enter your passphrase",
     "usePassphrase": "Use passphrase instead",
     "hidePassphraseLogin": "Hide passphrase login",
+    "usePasswordLogin": "Use email / username (legacy)",
+    "hidePasswordLogin": "Hide email / username login",
     "signInWithPassphrase": "Sign in with passphrase",
     "addPasskeyNow": "Add a passkey for faster sign-in",
     "passkeyAdded": "Passkey added",
