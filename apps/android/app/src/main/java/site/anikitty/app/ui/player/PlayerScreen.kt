@@ -168,6 +168,8 @@ fun PlayerScreen(
     var autoSkippedRecap by remember { mutableStateOf(false) }
     var didSeekStart by remember { mutableStateOf(false) }
     var resumeAtMs by remember { mutableLongStateOf(startPositionMs) }
+    /** True until the first successful resume seek or a user quality pick. */
+    var allowHistoryFallback by remember { mutableStateOf(true) }
     var panel by remember { mutableStateOf(Panel.None) }
     var immersive by remember { mutableStateOf(true) }
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
@@ -293,6 +295,7 @@ fun PlayerScreen(
                         positionMs = target
                         resumeAtMs = 0L
                         didSeekStart = true
+                        allowHistoryFallback = false
                     }
                 }
             }
@@ -313,10 +316,12 @@ fun PlayerScreen(
             override fun onPlayerError(e: PlaybackException) {
                 if (sourceIndex + 1 < sources.size) {
                     val pos = activePlayer?.currentPosition?.coerceAtLeast(0L) ?: positionMs
-                    // Keep history resume if this CDN died before we ever sought into it.
+                    // Prefer live position, then an in-flight quality resume target,
+                    // and only then watch-history — never rewind a quality switch.
                     resumeAtMs = when {
                         pos > 2_000L -> pos
-                        !didSeekStart && startPositionMs > 2_000L -> startPositionMs
+                        resumeAtMs > 2_000L -> resumeAtMs
+                        allowHistoryFallback && startPositionMs > 2_000L -> startPositionMs
                         else -> pos.coerceAtLeast(resumeAtMs)
                     }
                     didSeekStart = false
@@ -339,7 +344,28 @@ fun PlayerScreen(
         sourceIndex = 0
         resumeAtMs = startPositionMs
         didSeekStart = false
+        allowHistoryFallback = true
         if (sources.isEmpty()) error = "No playable source"
+    }
+
+    // Parent may load watch-history into startPositionMs after first composition.
+    LaunchedEffect(startPositionMs) {
+        if (!didSeekStart && allowHistoryFallback && startPositionMs > resumeAtMs) {
+            resumeAtMs = startPositionMs
+        }
+    }
+
+    // Apply resume even if READY already fired before history arrived.
+    LaunchedEffect(resumeAtMs, player, ready, didSeekStart) {
+        val p = player ?: return@LaunchedEffect
+        if (didSeekStart || !ready || resumeAtMs <= 1_500L) return@LaunchedEffect
+        val d = p.duration
+        if (d <= resumeAtMs) return@LaunchedEffect
+        p.seekTo(resumeAtMs.coerceAtMost(d - 1_000L))
+        positionMs = resumeAtMs
+        resumeAtMs = 0L
+        didSeekStart = true
+        allowHistoryFallback = false
     }
 
     LaunchedEffect(subsEnabled, selectedTextId, textOptions, trackSelector) {
@@ -376,7 +402,12 @@ fun PlayerScreen(
                 }
                 ticks++
                 if (ticks % 8 == 0) {
-                    onProgress?.invoke(positionMs, durationMs)
+                    // Don't clobber saved history with ~0 while waiting to resume.
+                    val waitingHistory =
+                        !didSeekStart && startPositionMs > 2_000L && positionMs < startPositionMs - 1_000L
+                    if (!waitingHistory) {
+                        onProgress?.invoke(positionMs, durationMs)
+                    }
                 }
             }
             delay(250)
@@ -424,6 +455,7 @@ fun PlayerScreen(
         if (index == sourceIndex || index !in sources.indices) return
         resumeAtMs = player?.currentPosition?.coerceAtLeast(0L) ?: positionMs
         didSeekStart = false
+        allowHistoryFallback = false
         sourceIndex = index
         panel = Panel.None
         controlsVisible = true
