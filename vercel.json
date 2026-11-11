@@ -1,3 +1,3 @@
 {
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ':!apps/android' ':!apps/dedicated-server' ':!media'"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- package.json package-lock.json src public next.config.mjs next.config.js next.config.ts tsconfig.json app"
 }
