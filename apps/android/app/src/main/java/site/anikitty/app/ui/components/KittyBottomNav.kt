@@ -65,14 +65,14 @@ fun KittyBottomNav(
     ) {
         Row(
             modifier = Modifier
-                .widthIn(max = 360.dp)
+                .widthIn(max = 380.dp)
                 .fillMaxWidth()
-                .height(54.dp)
-                .shadow(20.dp, RoundedCornerShape(27.dp), clip = false)
-                .clip(RoundedCornerShape(27.dp))
+                .height(58.dp)
+                .shadow(12.dp, RoundedCornerShape(29.dp), clip = false, ambientColor = KittyNavPillBorder)
+                .clip(RoundedCornerShape(29.dp))
                 .background(KittyNavPillSurface)
-                .border(1.dp, KittyNavPillBorder, RoundedCornerShape(27.dp))
-                .padding(horizontal = 5.dp),
+                .border(1.dp, KittyNavPillBorder, RoundedCornerShape(29.dp))
+                .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -91,8 +91,8 @@ fun KittyBottomNav(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(22.dp))
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(25.dp))
                         .background(bg)
                         .selectable(
                             selected = selected,
@@ -108,12 +108,12 @@ fun KittyBottomNav(
                         imageVector = if (selected) tab.selectedIcon else tab.icon,
                         contentDescription = tab.label,
                         tint = fg,
-                        modifier = Modifier.size(20.dp),
+                        modifier = Modifier.size(22.dp),
                     )
                     Text(
                         tab.label,
                         color = fg,
-                        fontSize = 9.sp,
+                        fontSize = 10.sp,
                         fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                         maxLines = 1,
                     )

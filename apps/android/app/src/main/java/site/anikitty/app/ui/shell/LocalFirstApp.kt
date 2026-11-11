@@ -32,13 +32,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -89,11 +90,14 @@ import site.anikitty.app.ui.components.KittyHero
 import site.anikitty.app.ui.components.KittyNavTab
 import site.anikitty.app.ui.components.KittyPosterCard
 import site.anikitty.app.ui.components.KittyPosterRow
+import site.anikitty.app.ui.components.KittyPosterSkeletonRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.player.PlayerScreen
+import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyPage
 import site.anikitty.app.ui.theme.KittySurface
+import site.anikitty.app.ui.theme.KittyText
 
 private sealed class Screen {
     data object Tabs : Screen()
@@ -125,8 +129,8 @@ fun LocalFirstApp(
         listOf(
             KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home),
             KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search),
-            KittyNavTab("history", "History", Icons.Outlined.History, Icons.Outlined.History),
-            KittyNavTab("settings", "Account", Icons.Outlined.Settings, Icons.Filled.Settings),
+            KittyNavTab("history", "History", Icons.Outlined.History, Icons.Rounded.History),
+            KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person),
         )
     }
 
@@ -290,24 +294,17 @@ private fun HomeFeed(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             loading && trending.isEmpty() -> {
-                Column(
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        "AniKitty",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    CircularProgressIndicator(color = Color.White)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        "Loading your cinema…",
-                        color = Color.White.copy(alpha = 0.45f),
-                        style = MaterialTheme.typography.bodySmall,
-                    )
+                LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
+                    item {
+                        FloatingTopChrome(
+                            accountLabel = accountLabel,
+                            onSignOut = onSignOut,
+                            compact = false,
+                        )
+                    }
+                    item { KittyPosterSkeletonRow("Spotlight") }
+                    item { KittyPosterSkeletonRow("Trending now") }
+                    item { KittyPosterSkeletonRow("Most popular") }
                 }
             }
             error != null && trending.isEmpty() -> {
@@ -359,7 +356,7 @@ private fun HomeFeed(
                     }
                     item {
                         if (history.isNotEmpty()) {
-                            Column(modifier = Modifier.padding(top = 18.dp)) {
+                            Column(modifier = Modifier.padding(top = 20.dp)) {
                                 KittySectionHeading(
                                     title = "Continue watching",
                                     subtitle = "Pick up where you left off",
@@ -393,6 +390,14 @@ private fun HomeFeed(
                                         )
                                     }
                                 }
+                            }
+                        } else {
+                            Column(modifier = Modifier.padding(top = 20.dp, start = 16.dp, end = 16.dp)) {
+                                KittySectionHeading(
+                                    title = "Continue watching",
+                                    subtitle = "Start something — it’ll land here",
+                                    padded = false,
+                                )
                             }
                         }
                     }
@@ -453,28 +458,29 @@ private fun FloatingTopChrome(
     ) {
         Text(
             "AniKitty",
-            style = if (compact) MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineSmall,
+            style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Black,
-            color = Color.White,
-            letterSpacing = (-0.4).sp,
+            color = KittyText,
+            letterSpacing = (-0.6).sp,
             modifier = Modifier.weight(1f),
         )
         if (!compact) {
             Text(
                 accountLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.40f),
-                modifier = Modifier.padding(end = 8.dp),
+                color = KittyFaint,
+                modifier = Modifier.padding(end = 6.dp),
             )
         }
         TextButton(
             onClick = onSignOut,
-            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
         ) {
             Text(
                 "Sign out",
-                color = Color.White.copy(alpha = 0.78f),
-                fontSize = 12.sp,
+                color = KittyFaint,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
