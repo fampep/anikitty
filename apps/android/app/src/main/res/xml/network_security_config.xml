@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Release: cleartext blocked. Dedicated auth passwords/tokens must use HTTPS.
-  Debug overlay (src/debug) permits cleartext for local / plain-HTTP VPS testing.
+  Release: cleartext blocked by default.
+  Permit plain HTTP only for the locked VPS auth host (ServerConfig.DEFAULT).
+  Community skip hosts (anikitty.online / anikitty.site) stay HTTPS.
+  Debug overlay (src/debug) still allows cleartext globally for local testing.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="false" />
     <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">198.50.123.153</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">anikitty.online</domain>
+        <domain includeSubdomains="true">anikitty.site</domain>
+        <domain includeSubdomains="true">api.aniskip.com</domain>
     </domain-config>
 </network-security-config>
