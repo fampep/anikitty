@@ -19,6 +19,7 @@ import {
   readCurrentNextParam,
   safeInternalNextPath,
   stashOAuthNextPath,
+  takeStashedOAuthNextPath,
 } from "@/lib/auth/safe-next-path";
 
 type Tab = "login" | "signup" | "2fa" | "recover";
@@ -75,6 +76,7 @@ function LoginPopoverButton({
     if (typeof window === "undefined") return;
     const next =
       readCurrentNextParam() ??
+      takeStashedOAuthNextPath() ??
       (window.location.pathname === "/" ? safeInternalNextPath("/home") : null);
     if (next) window.location.assign(next);
   };
