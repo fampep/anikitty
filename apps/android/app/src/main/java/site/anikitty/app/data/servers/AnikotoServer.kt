@@ -20,16 +20,19 @@ import javax.crypto.spec.SecretKeySpec
  * Returns playable request URL + headers only; Media3 pulls bytes from the CDN.
  */
 class AnikotoServer(
+    private val cache: ResolveCache? = null,
     private val http: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(14, TimeUnit.SECONDS)
-        .readTimeout(16, TimeUnit.SECONDS)
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .readTimeout(12, TimeUnit.SECONDS)
+        .callTimeout(18, TimeUnit.SECONDS)
         .followRedirects(true)
+        .retryOnConnectionFailure(true)
         .build(),
 ) : StreamResolver {
     override val server = StreamServer(
         id = ID,
         name = "Anikoto",
-        description = "On-device Anikoto → MegaPlay URL resolve. Streaming stays on this phone.",
+        description = "Fast on-device URL resolve. Playback bandwidth stays on this phone.",
     )
 
     override suspend fun resolve(
@@ -45,14 +48,15 @@ class AnikotoServer(
         val mapped = mapWatchPage(anilistId, titles)
         val episodes = fetchEpisodes(mapped.siteId, mapped.watchUrl)
         val ep = episodes.firstOrNull { it.number == episode }
-            ?: error("Anikoto: episode $episode not found")
-        if (mode == "dub" && !ep.hasDub) error("Anikoto: dub unavailable for episode $episode")
-        if (mode != "dub" && !ep.hasSub) error("Anikoto: sub unavailable for episode $episode")
+            ?: error("Episode $episode not found")
+        if (mode == "dub" && !ep.hasDub) error("Dub unavailable for episode $episode")
+        if (mode != "dub" && !ep.hasSub) error("Sub unavailable for episode $episode")
         val referer = "${mapped.watchUrl.trimEnd('/')}/ep-$episode"
         val embeds = resolveServerEmbeds(ep.ids, mode, mapped.watchUrl)
         val out = ArrayList<PlayableSource>()
         val seen = HashSet<String>()
-        for ((embedUrl, label) in embeds) {
+        // First successful embed wins — keep playback starting snappy.
+        for ((embedUrl, label) in embeds.take(3)) {
             runCatching { resolveEmbed(embedUrl, referer) }
                 .onSuccess { resolved ->
                     for ((url, quality) in resolved.labeled.ifEmpty {
@@ -68,7 +72,7 @@ class AnikotoServer(
                 }
             if (out.isNotEmpty()) break
         }
-        if (out.isEmpty()) error("Anikoto: no playable $mode sources")
+        if (out.isEmpty()) error("No playable $mode sources")
         out
     }
 
@@ -86,8 +90,15 @@ class AnikotoServer(
     )
 
     private fun mapWatchPage(anilistId: Int, titles: List<String>): MappedShow {
+        cache?.getShow(ID, anilistId)?.let { hit ->
+            // Trust the cache for rematches; fall through if the page is gone.
+            val html = runCatching { fetchText(hit.watchUrl, ANIKOTO_BASE) }.getOrNull()
+            if (html != null && parseWatchId(html) == hit.siteId) {
+                return MappedShow(hit.siteId, hit.watchUrl)
+            }
+        }
         val seen = LinkedHashSet<String>()
-        for (q in titles.take(6)) {
+        for (q in titles.take(4)) {
             val candidates = ArrayList<String>()
             val slug = titleSlug(q)
             if (slug.isNotEmpty()) candidates += "$ANIKOTO_BASE/watch/$slug"
@@ -104,17 +115,31 @@ class AnikotoServer(
                 val html = runCatching { fetchText(url, ANIKOTO_BASE) }.getOrNull() ?: continue
                 if (!pageMatchesAnilist(html, anilistId, titles)) continue
                 val siteId = parseWatchId(html) ?: continue
-                return MappedShow(siteId, absoluteUrl(url))
+                val mapped = MappedShow(siteId, absoluteUrl(url))
+                cache?.putShow(ID, anilistId, mapped.siteId, mapped.watchUrl)
+                return mapped
             }
         }
-        error("Anikoto: no watch page for AniList $anilistId")
+        error("No watch page for AniList $anilistId")
     }
 
     private fun fetchEpisodes(siteId: String, watchUrl: String): List<SiteEpisode> {
+        cache?.getEpisodes(ID, siteId)?.let { cached ->
+            return cached.map {
+                SiteEpisode(it.number, it.ids, it.hasSub, it.hasDub)
+            }
+        }
         val data = fetchJson("$ANIKOTO_BASE/ajax/episode/list/$siteId?style=multi", watchUrl)
         val html = data.optString("result")
         val eps = parseEpisodes(html)
-        if (eps.isEmpty()) error("Anikoto: empty episode list")
+        if (eps.isEmpty()) error("Empty episode list")
+        cache?.putEpisodes(
+            ID,
+            siteId,
+            eps.map {
+                ResolveCache.CachedEpisode(it.number, it.ids, it.hasSub, it.hasDub)
+            },
+        )
         return eps
     }
 

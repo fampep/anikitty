@@ -12,9 +12,10 @@ import kotlinx.coroutines.flow.update
  */
 class ServerCatalog(context: Context) {
     private val prefs = context.getSharedPreferences("anikitty_servers", Context.MODE_PRIVATE)
+    private val resolveCache = ResolveCache(context)
 
     private val resolvers: List<StreamResolver> = listOf(
-        AnikotoServer(),
+        AnikotoServer(cache = resolveCache),
     )
 
     private val _selectedId = MutableStateFlow(
