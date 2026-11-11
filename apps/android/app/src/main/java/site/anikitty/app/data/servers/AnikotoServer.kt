@@ -53,9 +53,14 @@ class AnikotoServer(
         val out = ArrayList<PlayableSource>()
         val seen = HashSet<String>()
         // Collect a few working embeds so the player can fall back if one CDN flakes.
-        for ((embedUrl, label) in embeds.take(5)) {
+        var lastResolveError: String? = null
+        for ((embedUrl, label) in embeds.take(6)) {
             runCatching { resolveEmbed(embedUrl, referer) }
                 .onSuccess { resolved ->
+                    if (!probeMaster(resolved.file, resolved.origin)) {
+                        lastResolveError = "CDN refused ${resolved.file.take(64)}"
+                        return@onSuccess
+                    }
                     val strip = crypto.stripBytes(resolved.origin)
                     for ((url, quality) in resolved.labeled.ifEmpty {
                         listOf(resolved.file to "Stream")
@@ -69,10 +74,32 @@ class AnikotoServer(
                         )
                     }
                 }
+                .onFailure { lastResolveError = it.message }
             if (out.size >= 3) break
         }
-        if (out.isEmpty()) error("No playable $mode sources")
+        if (out.isEmpty()) {
+            error(lastResolveError ?: "No playable $mode sources")
+        }
         out
+    }
+
+    /** Cheap GET on the master playlist with MegaPlay referer — skip dead CDNs early. */
+    private fun probeMaster(masterUrl: String, origin: String): Boolean {
+        return runCatching {
+            val req = Request.Builder()
+                .url(masterUrl)
+                .header("User-Agent", CHROME_UA)
+                .header("Accept", "*/*")
+                .header("Referer", "$origin/")
+                .header("Origin", origin)
+                .get()
+                .build()
+            http.newCall(req).execute().use { res ->
+                if (!res.isSuccessful) return false
+                val body = res.body?.string().orEmpty()
+                body.contains("#EXTM3U")
+            }
+        }.getOrDefault(false)
     }
 
     private data class MappedShow(val siteId: String, val watchUrl: String)
@@ -97,27 +124,30 @@ class AnikotoServer(
             }
         }
         val seen = LinkedHashSet<String>()
-        for (q in titles.take(4)) {
-            val candidates = ArrayList<String>()
+        val ranked = ArrayList<Pair<String, Int>>() // url to score
+        for (q in titles.take(8)) {
             val slug = titleSlug(q)
-            if (slug.isNotEmpty()) candidates += "$ANIKOTO_BASE/watch/$slug"
-            val searchUrl =
-                "$ANIKOTO_BASE/ajax/anime/search?keyword=${enc(q)}"
+            if (slug.isNotEmpty()) ranked += "$ANIKOTO_BASE/watch/$slug" to 1
+            val searchUrl = "$ANIKOTO_BASE/ajax/anime/search?keyword=${enc(q)}"
             runCatching {
                 val data = fetchJson(searchUrl, ANIKOTO_BASE)
                 val html = data.optJSONObject("result")?.optString("html")
                     ?: data.optString("result")
-                parseSearchCandidates(html).forEach { (url, _) -> candidates += url }
+                parseSearchCandidates(html).forEach { (url, name) ->
+                    val score = if (searchNameMatches(name, titles)) 10 else 2
+                    ranked += url to score
+                }
             }
-            for (url in candidates) {
-                if (!seen.add(url)) continue
-                val html = runCatching { fetchText(url, ANIKOTO_BASE) }.getOrNull() ?: continue
-                if (!pageMatchesAnilist(html, anilistId, titles)) continue
-                val siteId = parseWatchId(html) ?: continue
-                val mapped = MappedShow(siteId, absoluteUrl(url))
-                cache?.putShow(ID, anilistId, mapped.siteId, mapped.watchUrl)
-                return mapped
-            }
+        }
+        for ((url, _) in ranked.sortedByDescending { it.second }.take(10)) {
+            if (!seen.add(url)) continue
+            val abs = absoluteUrl(url)
+            val html = runCatching { fetchText(abs, ANIKOTO_BASE) }.getOrNull() ?: continue
+            if (!pageMatchesAnilist(html, anilistId, titles)) continue
+            val siteId = parseWatchId(html) ?: continue
+            val mapped = MappedShow(siteId, abs)
+            cache?.putShow(ID, anilistId, mapped.siteId, mapped.watchUrl)
+            return mapped
         }
         error("No watch page for AniList $anilistId")
     }
@@ -339,12 +369,20 @@ class AnikotoServer(
         }
 
         private fun normalizeTitleKey(title: String): String {
+            var s = htmlUnescape(title).lowercase()
+            // Season / part variants → comparable tokens ("season 2" == "2nd season").
+            s = s.replace(Regex("""\b(\d+)(?:st|nd|rd|th)\s*season\b"""), " season $1 ")
+            s = s.replace(Regex("""\bseason\s*(\d+)\b"""), " season $1 ")
+            s = s.replace(Regex("""\bpart\s*(\d+)\b"""), " part $1 ")
+            s = s.replace(Regex("""\b2nd\b"""), " 2 ")
+            s = s.replace(Regex("""\b3rd\b"""), " 3 ")
+            s = s.replace(Regex("""\b(\d+)(st|nd|rd|th)\b"""), " $1 ")
             val sb = StringBuilder()
             var space = false
-            for (ch in htmlUnescape(title)) {
+            for (ch in s) {
                 when {
                     ch.isLetterOrDigit() -> {
-                        sb.append(ch.lowercaseChar())
+                        sb.append(ch)
                         space = false
                     }
                     sb.isNotEmpty() && !space -> {
@@ -356,12 +394,45 @@ class AnikotoServer(
             return sb.trim().toString()
         }
 
+        private fun titlesLooselyMatch(a: String, b: String): Boolean {
+            val na = normalizeTitleKey(a)
+            val nb = normalizeTitleKey(b)
+            if (na.isEmpty() || nb.isEmpty()) return false
+            if (na == nb) return true
+            if (na.contains(nb) || nb.contains(na)) return true
+            val ta = na.split(' ').filter { it.length > 2 }.toSet()
+            val tb = nb.split(' ').filter { it.length > 2 }.toSet()
+            if (ta.isEmpty() || tb.isEmpty()) return false
+            val inter = ta.intersect(tb)
+            val need = minOf(3, minOf(ta.size, tb.size))
+            return inter.size >= need
+        }
+
         private fun buildTitleQueries(hint: String?): List<String> {
             val raw = hint?.trim().orEmpty()
             if (raw.isEmpty()) return emptyList()
             val out = LinkedHashSet<String>()
-            out += raw
-            raw.split(':', '—', '-').map { it.trim() }.filter { it.length >= 3 }.forEach { out += it }
+            // Callers may pass "English || Romaji || …"
+            val parts = raw.split("||").map { it.trim() }.filter { it.isNotEmpty() }
+            for (p in parts.ifEmpty { listOf(raw) }) {
+                out += p
+                out += p.replace(Regex("""(?i)\bseason\s+(\d+)\b""")) { m ->
+                    val n = m.groupValues[1].toInt()
+                    when (n) {
+                        1 -> "1st Season"
+                        2 -> "2nd Season"
+                        3 -> "3rd Season"
+                        else -> "${n}th Season"
+                    }
+                }
+                out += p.replace(Regex("""(?i)\b(\d+)(?:st|nd|rd|th)\s+season\b"""), "Season $1")
+                p.split(':', '—').map { it.trim() }.filter { it.length >= 3 }.forEach { out += it }
+                val base = p.replace(
+                    Regex("""(?i)[\s:]*((?:season|part)\s*\d+|\d+(?:st|nd|rd|th)\s*season)\s*$"""),
+                    "",
+                ).trim()
+                if (base.length >= 3) out += base
+            }
             return out.toList()
         }
 
@@ -398,9 +469,11 @@ class AnikotoServer(
         private fun pageMatchesAnilist(html: String, anilistId: Int, expectedTitles: List<String>): Boolean {
             pageAnilistId(html)?.let { return it == anilistId }
             val pageTitle = parsePageTitle(html) ?: return false
-            val pageKey = normalizeTitleKey(pageTitle)
-            return expectedTitles.map { normalizeTitleKey(it) }.any { it.isNotEmpty() && it == pageKey }
+            return expectedTitles.any { titlesLooselyMatch(it, pageTitle) }
         }
+
+        private fun searchNameMatches(candidateName: String, expectedTitles: List<String>): Boolean =
+            expectedTitles.any { titlesLooselyMatch(it, candidateName) }
 
         private fun parseSearchCandidates(html: String): List<Pair<String, String>> {
             val out = ArrayList<Pair<String, String>>()

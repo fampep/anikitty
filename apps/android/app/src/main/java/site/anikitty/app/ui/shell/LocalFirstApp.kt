@@ -55,6 +55,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -109,7 +110,9 @@ fun LocalFirstApp(
     accountLabel: String,
     onSignOut: () -> Unit,
 ) {
-    var tab by remember { mutableStateOf("home") }
+    // Tab survives recreation; detail/player stack relies on configChanges in the manifest
+    // so landscape lock in PlayerScreen does not wipe navigation.
+    var tab by rememberSaveable { mutableStateOf("home") }
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
     val history by historyDao.observeAll().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
@@ -138,7 +141,7 @@ fun LocalFirstApp(
                                 anilistId = current.anime.id,
                                 episode = next,
                                 audio = "sub",
-                                titleHint = current.anime.title,
+                                titleHint = current.anime.searchTitles().joinToString(" || "),
                             )
                             historyDao.get(current.anime.id)?.let {
                                 historyDao.upsert(
@@ -930,7 +933,7 @@ private fun TitleDetailScreen(
                                         anilistId = anime.id,
                                         episode = episode,
                                         audio = audio,
-                                        titleHint = anime.title,
+                                        titleHint = anime.searchTitles().joinToString(" || "),
                                     )
                                     historyDao.get(anime.id)?.let {
                                         historyDao.upsert(

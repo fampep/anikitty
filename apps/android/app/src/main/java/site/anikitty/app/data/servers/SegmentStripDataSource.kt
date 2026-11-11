@@ -12,8 +12,9 @@ import java.util.regex.Pattern
 
 /**
  * MegaPlay CDN wraps some HLS segments in a tiny fake PNG header.
- * Their web player strips the first [stripBytes] (default 252) for hosts
- * matching [stripUrlRe]. Media3 needs the same unwrap or playback fails.
+ * Their web player strips [stripBytes] (default 252) for matching hosts.
+ * We also sniff PNG magic / image Content-Type so unwrap still works when
+ * CDN hosts rotate off the known regex.
  */
 @OptIn(UnstableApi::class)
 class SegmentStripDataSource(
@@ -22,6 +23,8 @@ class SegmentStripDataSource(
     private val stripBytes: AtomicInteger = AtomicInteger(DEFAULT_STRIP_BYTES),
 ) : DataSource {
     private var bytesSkipped = 0
+    private var pushback: ByteArray? = null
+    private var pushbackPos = 0
 
     override fun addTransferListener(transferListener: TransferListener) {
         upstream.addTransferListener(transferListener)
@@ -29,21 +32,68 @@ class SegmentStripDataSource(
 
     override fun open(dataSpec: DataSpec): Long {
         bytesSkipped = 0
+        pushback = null
+        pushbackPos = 0
         val opened = upstream.open(dataSpec)
-        val url = dataSpec.uri.toString()
+        if (dataSpec.position != 0L) return opened
+
         val n = stripBytes.get().coerceAtLeast(0)
-        // Only strip on full segment opens — ranged reads are already past the PNG header.
-        if (n > 0 && dataSpec.position == 0L && shouldStrip(url)) {
-            bytesSkipped = skipFully(n)
+        if (n <= 0) return opened
+
+        val url = dataSpec.uri.toString()
+        val contentType = responseHeaders["Content-Type"]
+            ?.joinToString(",")
+            .orEmpty()
+            .lowercase()
+        val urlSaysStrip = shouldStrip(url)
+        val typeSaysStrip = contentType.contains("image/png") ||
+            contentType.contains("image/x-png")
+
+        // Peek a few bytes to detect a fake PNG container even on unknown hosts.
+        val peek = ByteArray(minOf(8, n))
+        val got = readFullyInto(peek)
+        val looksPng = got >= 8 &&
+            peek[0] == 0x89.toByte() &&
+            peek[1] == 'P'.code.toByte() &&
+            peek[2] == 'N'.code.toByte() &&
+            peek[3] == 'G'.code.toByte()
+
+        if (looksPng || urlSaysStrip || typeSaysStrip) {
+            // Drop peeked header bytes, then skip the rest of the PNG disguise.
+            val already = got
+            val remaining = (n - already).coerceAtLeast(0)
+            val extra = skipFully(remaining)
+            bytesSkipped = already + extra
+            pushback = null
+            pushbackPos = 0
+        } else if (got > 0) {
+            // Not a disguised PNG — feed peeked bytes back to the player.
+            pushback = peek.copyOf(got)
+            pushbackPos = 0
+            bytesSkipped = 0
         }
+
         return when {
             opened == C.LENGTH_UNSET.toLong() -> C.LENGTH_UNSET.toLong()
             else -> (opened - bytesSkipped).coerceAtLeast(0L)
         }
     }
 
-    override fun read(buffer: ByteArray, offset: Int, length: Int): Int =
-        upstream.read(buffer, offset, length)
+    override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+        if (length <= 0) return 0
+        val pb = pushback
+        if (pb != null && pushbackPos < pb.size) {
+            val n = minOf(length, pb.size - pushbackPos)
+            System.arraycopy(pb, pushbackPos, buffer, offset, n)
+            pushbackPos += n
+            if (pushbackPos >= pb.size) {
+                pushback = null
+                pushbackPos = 0
+            }
+            return n
+        }
+        return upstream.read(buffer, offset, length)
+    }
 
     override fun getUri(): Uri? = upstream.uri
 
@@ -51,12 +101,25 @@ class SegmentStripDataSource(
 
     override fun close() {
         bytesSkipped = 0
+        pushback = null
+        pushbackPos = 0
         upstream.close()
     }
 
     private fun shouldStrip(url: String): Boolean = stripUrlRe.matcher(url).find()
 
+    private fun readFullyInto(buf: ByteArray): Int {
+        var got = 0
+        while (got < buf.size) {
+            val n = upstream.read(buf, got, buf.size - got)
+            if (n == C.RESULT_END_OF_INPUT || n < 0) break
+            got += n
+        }
+        return got
+    }
+
     private fun skipFully(count: Int): Int {
+        if (count <= 0) return 0
         var skipped = 0
         val buf = ByteArray(4096)
         while (skipped < count) {
@@ -84,7 +147,8 @@ class SegmentStripDataSource(
     companion object {
         const val DEFAULT_STRIP_BYTES = 252
         val DEFAULT_STRIP_URL_RE: Pattern = Pattern.compile(
-            "ibyteimg\\.com|tiktokcdn\\.com|ipstatp\\.com|yoot\\.akirax\\.buzz",
+            "ibyteimg\\.com|tiktokcdn\\.com|ipstatp\\.com|yoot\\.akirax\\.buzz|" +
+                "byteimg\\.com|tiktokv\\.com|muscdn\\.com|akamaized\\.net",
             Pattern.CASE_INSENSITIVE,
         )
     }

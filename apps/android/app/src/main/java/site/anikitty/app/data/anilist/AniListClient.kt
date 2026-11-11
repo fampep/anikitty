@@ -34,6 +34,7 @@ class AniListClient(
     private val mediaFields = """
         id
         title { romaji english }
+        synonyms
         coverImage { large }
         bannerImage
         episodes
@@ -203,9 +204,9 @@ class AniListClient(
 
     private fun parseMedia(item: JSONObject): AnimeSummary {
         val titles = item.getJSONObject("title")
-        val title = titles.nullableString("english")
-            ?: titles.nullableString("romaji")
-            ?: "Anime #${item.getInt("id")}"
+        val romaji = titles.nullableString("romaji")
+        val english = titles.nullableString("english")
+        val title = english ?: romaji ?: "Anime #${item.getInt("id")}"
         return AnimeSummary(
             id = item.getInt("id"),
             title = title,
@@ -217,6 +218,7 @@ class AniListClient(
             description = item.nullableString("description")?.replace(Regex("<[^>]+>"), " ")
                 ?.replace(Regex("\\s+"), " ")
                 ?.trim(),
+            romajiTitle = romaji?.takeIf { it != title },
         )
     }
 
