@@ -184,13 +184,6 @@ fun PlayerScreen(
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
     val skipClient = remember { SkipTimesClient() }
-    val trackSelector = remember {
-        DefaultTrackSelector(context).apply {
-            parameters = buildUponParameters()
-                .setPreferredTextLanguage("en")
-                .build()
-        }
-    }
 
     fun closePanelOrExit() {
         if (panel != Panel.None) {
@@ -228,13 +221,15 @@ fun PlayerScreen(
                 controller.show(WindowInsetsCompat.Type.systemBars())
             }
             onDispose {
+                // Keep edge-to-edge (MainActivity.enableEdgeToEdge); only restore bars.
                 controller.show(WindowInsetsCompat.Type.systemBars())
-                WindowCompat.setDecorFitsSystemWindows(window, true)
             }
         }
     }
 
-    val player = remember(source?.url, source?.subtitles) {
+    // Fresh DefaultTrackSelector per ExoPlayer — release() owns the selector, so a
+    // remembered shared instance would be detached after the first quality switch.
+    val playerBundle = remember(source?.url, source?.subtitles) {
         if (source == null) return@remember null
         val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(source.headers["User-Agent"] ?: DEFAULT_UA)
@@ -249,10 +244,15 @@ fun PlayerScreen(
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(2_500, 40_000, 1_500, 2_000)
             .build()
-        ExoPlayer.Builder(context)
+        val selector = DefaultTrackSelector(context).apply {
+            parameters = buildUponParameters()
+                .setPreferredTextLanguage("en")
+                .build()
+        }
+        val exo = ExoPlayer.Builder(context)
             .setMediaSourceFactory(DefaultMediaSourceFactory(factory))
             .setLoadControl(loadControl)
-            .setTrackSelector(trackSelector)
+            .setTrackSelector(selector)
             .build()
             .apply {
                 val itemBuilder = MediaItem.Builder().setUri(source.url)
@@ -270,21 +270,27 @@ fun PlayerScreen(
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
                 prepare()
             }
+        PlayerBundle(exo, selector)
     }
+    val player = playerBundle?.player
+    val trackSelector = playerBundle?.trackSelector
 
-    DisposableEffect(player) {
+    DisposableEffect(playerBundle) {
         ready = false
         error = null
         textOptions = emptyList()
+        val activePlayer = playerBundle?.player
+        val activeSelector = playerBundle?.trackSelector
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 ready = playbackState == Player.STATE_READY || playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) {
-                    durationMs = player?.duration?.coerceAtLeast(0L) ?: 0L
+                    durationMs = activePlayer?.duration?.coerceAtLeast(0L) ?: 0L
                     error = null
-                    if (resumeAtMs > 1_500L && durationMs > resumeAtMs) {
-                        player?.seekTo(resumeAtMs.coerceAtMost(durationMs - 1_000L))
-                        positionMs = resumeAtMs
+                    val target = resumeAtMs
+                    if (!didSeekStart && target > 1_500L && durationMs > target) {
+                        activePlayer?.seekTo(target.coerceAtMost(durationMs - 1_000L))
+                        positionMs = target
                         resumeAtMs = 0L
                         didSeekStart = true
                     }
@@ -296,13 +302,24 @@ fun PlayerScreen(
             }
 
             override fun onTracksChanged(tracks: Tracks) {
-                textOptions = buildTextOptions(tracks, source?.subtitles.orEmpty())
-                applyTextSelection(trackSelector, selectedTextId, textOptions, subsEnabled)
+                val options = buildTextOptions(tracks, source?.subtitles.orEmpty())
+                textOptions = options
+                selectedTextId = rematchTextId(selectedTextId, options)
+                if (activeSelector != null) {
+                    applyTextSelection(activeSelector, selectedTextId, options, subsEnabled)
+                }
             }
 
             override fun onPlayerError(e: PlaybackException) {
                 if (sourceIndex + 1 < sources.size) {
-                    resumeAtMs = player?.currentPosition?.coerceAtLeast(0L) ?: positionMs
+                    val pos = activePlayer?.currentPosition?.coerceAtLeast(0L) ?: positionMs
+                    // Keep history resume if this CDN died before we ever sought into it.
+                    resumeAtMs = when {
+                        pos > 2_000L -> pos
+                        !didSeekStart && startPositionMs > 2_000L -> startPositionMs
+                        else -> pos.coerceAtLeast(resumeAtMs)
+                    }
+                    didSeekStart = false
                     sourceIndex += 1
                 } else {
                     val cause = e.cause?.message?.takeIf { it.isNotBlank() }
@@ -311,20 +328,23 @@ fun PlayerScreen(
                 }
             }
         }
-        player?.addListener(listener)
+        activePlayer?.addListener(listener)
         onDispose {
-            player?.removeListener(listener)
-            player?.release()
+            activePlayer?.removeListener(listener)
+            activePlayer?.release()
         }
     }
 
     LaunchedEffect(sources) {
         sourceIndex = 0
+        resumeAtMs = startPositionMs
+        didSeekStart = false
         if (sources.isEmpty()) error = "No playable source"
     }
 
-    LaunchedEffect(subsEnabled, selectedTextId, textOptions) {
-        applyTextSelection(trackSelector, selectedTextId, textOptions, subsEnabled)
+    LaunchedEffect(subsEnabled, selectedTextId, textOptions, trackSelector) {
+        val selector = trackSelector ?: return@LaunchedEffect
+        applyTextSelection(selector, selectedTextId, textOptions, subsEnabled)
     }
 
     LaunchedEffect(subStyle, playerViewRef) {
@@ -345,11 +365,6 @@ fun PlayerScreen(
                 positionMs = player.currentPosition.coerceAtLeast(0L)
                 val d = player.duration
                 if (d > 0) durationMs = d
-                if (!didSeekStart && ready && startPositionMs > 2_000L && durationMs > startPositionMs) {
-                    player.seekTo(startPositionMs.coerceAtMost(durationMs - 1_000L))
-                    didSeekStart = true
-                    positionMs = startPositionMs
-                }
                 val active = skipTimes.activeAt(positionMs)
                 if (active != null) {
                     val (kind, iv) = active
@@ -408,7 +423,7 @@ fun PlayerScreen(
     fun pickQuality(index: Int) {
         if (index == sourceIndex || index !in sources.indices) return
         resumeAtMs = player?.currentPosition?.coerceAtLeast(0L) ?: positionMs
-        didSeekStart = true
+        didSeekStart = false
         sourceIndex = index
         panel = Panel.None
         controlsVisible = true
@@ -1235,13 +1250,19 @@ private fun subtitleConfig(track: SubtitleTrack): MediaItem.SubtitleConfiguratio
         .build()
 }
 
+private data class PlayerBundle(
+    val player: ExoPlayer,
+    val trackSelector: DefaultTrackSelector,
+)
+
 @OptIn(UnstableApi::class)
 private fun buildTextOptions(tracks: Tracks, external: List<SubtitleTrack>): List<TextOption> {
     val out = ArrayList<TextOption>()
     out += TextOption(id = "off", label = "Off")
     out += TextOption(id = "auto", label = "Auto")
     var externalIdx = 0
-    tracks.groups.forEachIndexed { gi, group ->
+    val usedIds = HashSet<String>()
+    tracks.groups.forEachIndexed { _, group ->
         if (group.type != C.TRACK_TYPE_TEXT) return@forEachIndexed
         for (ti in 0 until group.length) {
             if (!group.isTrackSupported(ti)) continue
@@ -1251,8 +1272,13 @@ private fun buildTextOptions(tracks: Tracks, external: List<SubtitleTrack>): Lis
                 ?: external.getOrNull(externalIdx)?.label
                 ?: "Track ${out.size - 1}"
             externalIdx++
+            var id = stableTextId(format.language, label)
+            if (!usedIds.add(id)) {
+                id = "$id#$ti"
+                usedIds += id
+            }
             out += TextOption(
-                id = "g${gi}_t$ti",
+                id = id,
                 label = label,
                 mediaGroup = group.mediaTrackGroup,
                 trackIndex = ti,
@@ -1260,6 +1286,38 @@ private fun buildTextOptions(tracks: Tracks, external: List<SubtitleTrack>): Lis
         }
     }
     return out
+}
+
+/** Stable across quality switches (group indices are not). */
+private fun stableTextId(language: String?, label: String): String {
+    val lang = language?.trim()?.lowercase(Locale.US).orEmpty()
+    val normLabel = label.trim().lowercase(Locale.US)
+    return when {
+        lang.isNotBlank() && lang != "und" -> "lang:$lang|$normLabel"
+        else -> "label:$normLabel"
+    }
+}
+
+private fun rematchTextId(previous: String, options: List<TextOption>): String {
+    if (previous == "off" || previous == "auto") return previous
+    if (options.any { it.id == previous }) return previous
+    val lang = previous.removePrefix("lang:").substringBefore("|").takeIf {
+        previous.startsWith("lang:")
+    }
+    if (!lang.isNullOrBlank()) {
+        options.firstOrNull { it.id.startsWith("lang:$lang") }?.id?.let { return it }
+    }
+    val labelKey = when {
+        previous.startsWith("label:") -> previous.removePrefix("label:")
+        previous.startsWith("lang:") -> previous.substringAfter("|", "")
+        else -> previous
+    }
+    if (labelKey.isNotBlank()) {
+        options.firstOrNull {
+            it.id == "label:$labelKey" || it.label.equals(labelKey, ignoreCase = true)
+        }?.id?.let { return it }
+    }
+    return "auto"
 }
 
 @OptIn(UnstableApi::class)
