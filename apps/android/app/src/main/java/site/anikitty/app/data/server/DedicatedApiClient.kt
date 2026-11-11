@@ -23,25 +23,37 @@ class DedicatedApiClient(
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
-    data class AuthResult(val token: String, val username: String)
+    data class AuthResult(val token: String, val userId: String)
 
     suspend fun health(): Boolean = withContext(Dispatchers.IO) {
         val req = Request.Builder().url(url("/health")).get().build()
         http.newCall(req).execute().use { it.isSuccessful }
     }
 
-    suspend fun signup(username: String, password: String): AuthResult =
-        authPost("/api/v1/auth/signup", username, password)
+    suspend fun signup(password: String): AuthResult =
+        authPost("/api/v1/auth/signup", password)
 
-    suspend fun login(username: String, password: String): AuthResult =
-        authPost("/api/v1/auth/login", username, password)
+    suspend fun login(password: String): AuthResult =
+        authPost("/api/v1/auth/login", password)
 
     suspend fun me(): String = withContext(Dispatchers.IO) {
         val req = authed("/api/v1/auth/me").get().build()
         http.newCall(req).execute().use { res ->
             val body = res.body?.string().orEmpty()
             if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
-            JSONObject(body).optString("username")
+            JSONObject(body).optString("userId").ifBlank {
+                JSONObject(body).optString("username")
+            }
+        }
+    }
+
+    suspend fun passkeyStatus(): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        val req = authed("/api/v1/auth/passkey/status").get().build()
+        http.newCall(req).execute().use { res ->
+            val body = res.body?.string().orEmpty()
+            if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
+            val json = JSONObject(body)
+            json.optBoolean("available") to json.optString("reason")
         }
     }
 
@@ -62,10 +74,9 @@ class DedicatedApiClient(
         quick.newCall(req).execute().use { }
     }
 
-    private suspend fun authPost(path: String, username: String, password: String): AuthResult =
+    private suspend fun authPost(path: String, password: String): AuthResult =
         withContext(Dispatchers.IO) {
             val payload = JSONObject()
-                .put("username", username)
                 .put("password", password)
                 .toString()
             val req = Request.Builder()
@@ -78,9 +89,9 @@ class DedicatedApiClient(
                 if (!res.isSuccessful) throw ApiException(res.code, errorMessage(body))
                 val json = JSONObject(body)
                 val token = json.optString("token")
-                val user = json.optString("username")
+                val userId = json.optString("userId")
                 if (token.isBlank()) throw ApiException(res.code, "missing token")
-                AuthResult(token = token, username = user)
+                AuthResult(token = token, userId = userId)
             }
         }
 

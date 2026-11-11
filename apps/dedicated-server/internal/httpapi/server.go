@@ -46,6 +46,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/v1/auth/login", s.limit(s.handleLogin))
 	s.mux.HandleFunc("POST /api/v1/auth/logout", s.auth(s.handleLogout))
 	s.mux.HandleFunc("GET /api/v1/auth/me", s.auth(s.handleMe))
+	s.mux.HandleFunc("GET /api/v1/auth/passkey/status", s.auth(s.handlePasskeyStatus))
 	s.mux.HandleFunc("GET /api/v1/history", s.auth(s.handleHistoryGet))
 	s.mux.HandleFunc("PUT /api/v1/history", s.auth(s.handleHistoryPut))
 	s.mux.HandleFunc("DELETE /api/v1/history/{anilistId}", s.auth(s.handleHistoryDelete))
@@ -61,8 +62,9 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 type credBody struct {
-	Username string `json:"username"`
 	Password string `json:"password"`
+	// Username ignored — password-only accounts.
+	Username string `json:"username"`
 }
 
 func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
@@ -71,15 +73,15 @@ func (s *Server) handleSignup(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid json")
 		return
 	}
-	user, token, _, err := s.Auth.Signup(r.Context(), body.Username, body.Password)
+	user, token, _, err := s.Auth.SignupPasswordOnly(r.Context(), body.Password)
 	if err != nil {
 		mapAuthErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, map[string]any{
-		"token":    token,
-		"userId":   user.ID,
-		"username": user.Username,
+		"token":  token,
+		"userId": user.ID,
+		"ok":     true,
 	})
 }
 
@@ -89,7 +91,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "invalid json")
 		return
 	}
-	user, token, _, err := s.Auth.Login(r.Context(), body.Username, body.Password, r.UserAgent(), clientIP(r))
+	user, token, _, err := s.Auth.LoginPasswordOnly(r.Context(), body.Password, r.UserAgent(), clientIP(r))
 	if err != nil {
 		// Constant-ish delay on failure to slow stuffing.
 		time.Sleep(200 * time.Millisecond)
@@ -97,9 +99,23 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"token":    token,
-		"userId":   user.ID,
-		"username": user.Username,
+		"token":  token,
+		"userId": user.ID,
+		"ok":     true,
+	})
+}
+
+func (s *Server) handlePasskeyStatus(w http.ResponseWriter, r *http.Request) {
+	claims := claimsFrom(r.Context())
+	has, err := s.Auth.HasPasskeys(r.Context(), claims.UserID)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"enabled":     has,
+		"available":   false,
+		"reason":      "Passkeys need an HTTPS hostname. Password is the main login; add a passkey after TLS is enabled.",
 	})
 }
 
@@ -246,14 +262,12 @@ func mapAuthErr(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, auth.ErrInvalidCredentials):
 		writeErr(w, http.StatusUnauthorized, "invalid credentials")
-	case errors.Is(err, auth.ErrUsernameTaken):
-		writeErr(w, http.StatusConflict, "username taken")
+	case errors.Is(err, auth.ErrPasswordTaken):
+		writeErr(w, http.StatusConflict, "choose a different password")
 	case errors.Is(err, auth.ErrBanned):
 		writeErr(w, http.StatusForbidden, "account banned")
 	case errors.Is(err, auth.ErrWeakPassword):
 		writeErr(w, http.StatusBadRequest, "password must be at least 10 characters")
-	case errors.Is(err, auth.ErrBadUsername):
-		writeErr(w, http.StatusBadRequest, "username must be 3-32 chars [a-zA-Z0-9_]")
 	default:
 		writeErr(w, http.StatusInternalServerError, "server error")
 	}

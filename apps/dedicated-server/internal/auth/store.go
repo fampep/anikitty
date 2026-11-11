@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"regexp"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,17 +13,14 @@ import (
 
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrUsernameTaken      = errors.New("username taken")
+	ErrPasswordTaken      = errors.New("password already in use")
 	ErrBanned             = errors.New("account banned")
 	ErrWeakPassword       = errors.New("password too weak")
-	ErrBadUsername        = errors.New("invalid username")
 )
-
-var usernameRE = regexp.MustCompile(`^[a-zA-Z0-9_]{3,32}$`)
 
 type User struct {
 	ID           string
-	Username     string
+	Username     string // internal label only (not chosen by user)
 	PasswordHash string
 	Banned       bool
 }
@@ -32,14 +29,13 @@ type Store struct {
 	DB *sql.DB
 }
 
-func (s *Store) Signup(ctx context.Context, username, password string) (*User, string, string, error) {
-	username = strings.TrimSpace(username)
-	if !usernameRE.MatchString(username) {
-		return nil, "", "", ErrBadUsername
-	}
+// SignupPasswordOnly creates an account from a password alone (no username).
+func (s *Store) SignupPasswordOnly(ctx context.Context, password string) (*User, string, string, error) {
+	password = strings.TrimSpace(password)
 	if len(password) < 10 {
 		return nil, "", "", ErrWeakPassword
 	}
+	lookup := security.PasswordLookupKey(password)
 	hash, err := security.HashPassword(password)
 	if err != nil {
 		return nil, "", "", err
@@ -48,17 +44,23 @@ func (s *Store) Signup(ctx context.Context, username, password string) (*User, s
 	if err != nil {
 		return nil, "", "", err
 	}
+	// Internal handle for JWT/claims — not shown as a login field.
+	label := "u" + id
+	if len(label) > 32 {
+		label = label[:32]
+	}
 	now := time.Now().Unix()
 	_, err = s.DB.ExecContext(ctx, `
-INSERT INTO users (id, username, password_hash, created_at, updated_at, banned)
-VALUES (?, ?, ?, ?, ?, 0)`, id, username, hash, now, now)
+INSERT INTO users (id, username, password_hash, password_lookup, created_at, updated_at, banned)
+VALUES (?, ?, ?, ?, ?, ?, 0)`, id, label, hash, lookup, now, now)
 	if err != nil {
-		if strings.Contains(strings.ToLower(err.Error()), "unique") {
-			return nil, "", "", ErrUsernameTaken
+		low := strings.ToLower(err.Error())
+		if strings.Contains(low, "unique") {
+			return nil, "", "", ErrPasswordTaken
 		}
 		return nil, "", "", err
 	}
-	user := &User{ID: id, Username: username, PasswordHash: hash}
+	user := &User{ID: id, Username: label, PasswordHash: hash}
 	token, sid, err := s.createSession(ctx, user, "", "")
 	if err != nil {
 		return nil, "", "", err
@@ -66,10 +68,15 @@ VALUES (?, ?, ?, ?, ?, 0)`, id, username, hash, now, now)
 	return user, token, sid, nil
 }
 
-func (s *Store) Login(ctx context.Context, username, password, ua, ip string) (*User, string, string, error) {
-	username = strings.TrimSpace(username)
+// LoginPasswordOnly signs in with password only.
+func (s *Store) LoginPasswordOnly(ctx context.Context, password, ua, ip string) (*User, string, string, error) {
+	password = strings.TrimSpace(password)
+	if len(password) < 10 {
+		return nil, "", "", ErrInvalidCredentials
+	}
+	lookup := security.PasswordLookupKey(password)
 	row := s.DB.QueryRowContext(ctx, `
-SELECT id, username, password_hash, banned FROM users WHERE username = ? COLLATE NOCASE`, username)
+SELECT id, username, password_hash, banned FROM users WHERE password_lookup = ?`, lookup)
 	var u User
 	var banned int
 	if err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &banned); err != nil {
@@ -135,4 +142,18 @@ SELECT revoked, expires_at FROM sessions WHERE id = ? AND user_id = ?`, claims.S
 func (s *Store) Logout(ctx context.Context, sessionID string) error {
 	_, err := s.DB.ExecContext(ctx, `UPDATE sessions SET revoked = 1 WHERE id = ?`, sessionID)
 	return err
+}
+
+// HasPasskeys reports whether the user enrolled any device passkeys (future HTTPS).
+func (s *Store) HasPasskeys(ctx context.Context, userID string) (bool, error) {
+	var n int
+	err := s.DB.QueryRowContext(ctx, `SELECT COUNT(1) FROM passkeys WHERE user_id = ?`, userID).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
+func (s *Store) PasskeyUnavailable() error {
+	return fmt.Errorf("passkeys require HTTPS hostname — use password for now, add passkey after TLS")
 }

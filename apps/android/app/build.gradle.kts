@@ -21,8 +21,8 @@ android {
         applicationId = "site.anikitty.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2.0-local"
+        versionCode = 3
+        versionName = "0.3.0-local"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -93,6 +93,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.media3:media3-exoplayer:1.5.0")
+    implementation("androidx.media3:media3-exoplayer-hls:1.5.0")
     implementation("androidx.media3:media3-ui:1.5.0")
 
     implementation("androidx.room:room-runtime:2.6.1")

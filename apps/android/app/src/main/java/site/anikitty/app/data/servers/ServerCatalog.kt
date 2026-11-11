@@ -15,7 +15,6 @@ class ServerCatalog(context: Context) {
 
     private val resolvers: List<StreamResolver> = listOf(
         AnikotoServer(),
-        // Room for more first-party servers later (same pattern).
     )
 
     private val _selectedId = MutableStateFlow(
@@ -36,24 +35,5 @@ class ServerCatalog(context: Context) {
 
     private companion object {
         const val KEY_SELECTED = "selected_server_id"
-    }
-}
-
-/** Anikoto → MegaPlay URL resolve on the phone (scrape next; returns request URL only). */
-class AnikotoServer : StreamResolver {
-    override val server = StreamServer(
-        id = ID,
-        name = "Anikoto",
-        description = "On-device resolve of playable URLs. Phone streams the media; dedicated auth server is never in the bandwidth path.",
-    )
-
-    override suspend fun resolve(anilistId: Int, episode: Int, audio: String): List<PlayableSource> {
-        // Full anikoto.cz → MegaPlay getSources scrape lands next.
-        // Contract: return URL + headers only; ExoPlayer pulls bytes from CDN.
-        return emptyList()
-    }
-
-    companion object {
-        const val ID = "anikoto"
     }
 }
