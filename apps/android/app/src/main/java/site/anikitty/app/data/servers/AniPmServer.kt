@@ -12,6 +12,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.util.LinkedHashMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -35,7 +36,7 @@ class AniPmServer(
         .callTimeout(28, TimeUnit.SECONDS)
         .followRedirects(true)
         .retryOnConnectionFailure(true)
-        .cookieJar(HostCookieJar())
+        .cookieJar(DomainCookieJar())
         .build(),
 ) : StreamResolver {
     override val server = StreamServer(
@@ -81,8 +82,14 @@ class AniPmServer(
         require(kind.equals("hls", ignoreCase = true) || master.contains("m3u8") || master.contains("/object/")) {
             "Unexpected Settlar kind: $kind"
         }
+        // Settlar HLS keys live at …/~key or …/~key/{height} and 403 without this proof.
+        val keyProof = session.optString("keyProof").trim()
+            .ifBlank { error("Settlar keyProof missing") }
 
-        val headers = streamHeaders(embedUrl)
+        // Hit the embed once so Domain=.settlar.io cookies land in the jar before CDN GETs.
+        runCatching { httpText(embedUrl, SITE_URL, accept = "text/html", origin = null) }
+
+        val headers = streamHeaders(keyProof)
         if (!probeMaster(master, headers)) {
             error("Settlar CDN refused playlist")
         }
@@ -91,27 +98,22 @@ class AniPmServer(
         val masterText = runCatching { httpText(master, headers = headers) }.getOrNull().orEmpty()
         val variants = parseVariants(masterText, master)
         val out = ArrayList<PlayableSource>()
-        if (variants.isEmpty()) {
+        // Prefer the master so Media3 can ABR; variants stay available in the quality sheet.
+        out += PlayableSource(
+            url = master,
+            headers = headers,
+            label = "Auto · ${channel.uppercase()}",
+            stripBytes = 0,
+            subtitles = subs,
+        )
+        for ((url, height) in variants.sortedByDescending { it.second }) {
+            if (url == master) continue
             out += PlayableSource(
-                url = master,
+                url = url,
                 headers = headers,
-                label = "Ani.pm · ${channel.uppercase()}",
+                label = if (height > 0) "${height}p" else "Ani.pm",
                 stripBytes = 0,
-                subtitles = subs,
             )
-        } else {
-            for ((url, height) in variants.sortedByDescending { it.second }) {
-                out += PlayableSource(
-                    url = url,
-                    headers = headers,
-                    label = if (height > 0) "${height}p" else "Ani.pm",
-                    stripBytes = 0,
-                    subtitles = if (out.isEmpty()) subs else emptyList(),
-                )
-            }
-            if (out.isNotEmpty() && subs.isNotEmpty() && out[0].subtitles.isEmpty()) {
-                out[0] = out[0].copy(subtitles = subs)
-            }
         }
         out
     }
@@ -266,11 +268,15 @@ class AniPmServer(
         }
     }
 
-    private fun streamHeaders(embedUrl: String): Map<String, String> = mapOf(
+    /**
+     * Headers Media3 sends for playlist + segment + `/~key/{height}` fetches.
+     * Settlar returns 403 on encrypted key URLs without [HEADER_KEY_PROOF].
+     */
+    private fun streamHeaders(keyProof: String): Map<String, String> = mapOf(
         "User-Agent" to USER_AGENT,
         "Accept" to "*/*",
         "Referer" to "$SETTLAR_EMBED/",
-        "Origin" to SETTLAR_EMBED,
+        HEADER_KEY_PROOF to keyProof,
     )
 
     private fun httpText(
@@ -303,23 +309,47 @@ class AniPmServer(
     private fun enc(value: String): String =
         URLEncoder.encode(value, StandardCharsets.UTF_8.name())
 
-    /** Host-scoped cookie jar so Cloudflare / session cookies stick across calls. */
-    private class HostCookieJar : CookieJar {
+    /**
+     * Cookie jar that respects Domain= attributes so `.settlar.io` cookies from
+     * embed.settlar.io are also sent to media.settlar.io.
+     */
+    private class DomainCookieJar : CookieJar {
         private val store = ConcurrentHashMap<String, List<Cookie>>()
 
         override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-            if (cookies.isNotEmpty()) store[url.host] = cookies
+            if (cookies.isEmpty()) return
+            val key = cookies.firstOrNull()?.domain?.trimStart('.') ?: url.host
+            store[key] = cookies
+            // Also index by request host for hosts that omit Domain=.
+            store[url.host] = cookies
         }
 
-        override fun loadForRequest(url: HttpUrl): List<Cookie> =
-            store[url.host].orEmpty()
+        override fun loadForRequest(url: HttpUrl): List<Cookie> {
+            val host = url.host
+            val out = LinkedHashMap<String, Cookie>()
+            for ((domain, cookies) in store) {
+                if (!hostMatches(host, domain)) continue
+                for (c in cookies) {
+                    if (c.matches(url)) out[c.name] = c
+                }
+            }
+            return out.values.toList()
+        }
+
+        private fun hostMatches(host: String, domain: String): Boolean {
+            val d = domain.trimStart('.').lowercase()
+            val h = host.lowercase()
+            return h == d || h.endsWith(".$d")
+        }
     }
 
     companion object {
         const val ID = "anipm"
         const val SITE_URL = "https://ani.pm"
         const val SETTLAR_EMBED = "https://embed.settlar.io"
-        val SITE_ICON_URL = "$SITE_URL/icon.png"
+        const val HEADER_KEY_PROOF = "X-Settlar-Key-Proof"
+        val SITE_ICON_URL =
+            "https://www.google.com/s2/favicons?domain=ani.pm&sz=128"
         private const val USER_AGENT =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 
