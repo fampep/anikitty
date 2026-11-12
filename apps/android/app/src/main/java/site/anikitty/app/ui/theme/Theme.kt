@@ -12,7 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * AniKitty canvas — black page, white type, solid dark surfaces, pink accent.
+ * AniKitty canvas — black page, white type, solid dark surfaces, white accent.
  * Original Compose. ShonenX / glass-cinema apps were look references only; no source copied.
  */
 val KittyInk = Color(0xFF000000)
@@ -27,10 +27,10 @@ val KittyFaint = Color(0xFF8A8A8A)
 val KittyOutline = Color.White.copy(alpha = 0.12f)
 val KittyOutlineSoft = Color.White.copy(alpha = 0.08f)
 
-/** Kitty pink — CTAs, progress, selected chrome. */
-val KittyAccent = Color(0xFFFF2D6A)
-val KittyAccentGlow = Color(0xFFFF5C8A)
-val KittyOnAccent = Color(0xFFFFFFFF)
+/** White chrome — CTAs, progress, selected tabs. Text on those controls is black. */
+val KittyAccent = Color(0xFFFFFFFF)
+val KittyAccentGlow = Color(0xFFD4D4D4)
+val KittyOnAccent = Color(0xFF000000)
 
 val KittyNavPillSurface = Color(0xFF08080C)
 val KittyNavPillBorder = Color.White.copy(alpha = 0.08f)
@@ -78,7 +78,7 @@ private val DarkColors = darkColorScheme(
     onSurface = KittyText,
     onSurfaceVariant = KittyMuted,
     outline = KittyOutline,
-    error = Color(0xFFFF6B7A),
+    error = Color(0xFFE53935),
 )
 
 private val KittyTypography = Typography(

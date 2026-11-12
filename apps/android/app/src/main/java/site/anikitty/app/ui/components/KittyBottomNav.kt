@@ -45,7 +45,7 @@ data class KittyNavTab(
     val selectedIcon: ImageVector,
 )
 
-/** Full-width dock — icon + tiny label, pink when selected, hairline on top. */
+/** Full-width dock — icon + tiny label, white when selected, hairline on top. */
 @Composable
 fun KittyBottomNav(
     tabs: List<KittyNavTab>,
