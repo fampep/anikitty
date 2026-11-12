@@ -807,19 +807,17 @@ private fun SearchFeed(
                 query = it
                 runSearch(it)
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .kittyGlassField(RoundedCornerShape(16.dp)),
+            modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             placeholder = { Text("Title, studio, or character", color = KittyFaint) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = KittyText,
                 unfocusedTextColor = KittyText,
-                cursorColor = KittyAccentGlow,
-                focusedBorderColor = KittyAccentGlow.copy(alpha = 0.45f),
-                unfocusedBorderColor = Color.Transparent,
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
+                cursorColor = KittyAccent,
+                focusedBorderColor = KittyAccent,
+                unfocusedBorderColor = KittyOutlineSoft,
+                focusedContainerColor = KittySurface,
+                unfocusedContainerColor = KittySurface,
             ),
             leadingIcon = {
                 AnimatedSearchIcon(
@@ -898,7 +896,9 @@ private fun SearchFeed(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .kittyGlass(KittyGlassShape)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(KittySurface)
+                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
                         .padding(18.dp),
                 ) {
                     Text(
@@ -1829,7 +1829,9 @@ private fun TitleDetailScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .kittyGlassSoft(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(KittySurface)
+                                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(18.dp))
                                 .padding(16.dp),
                         ) {
                             Text(
@@ -2594,19 +2596,12 @@ private fun EpisodeLegendDot(color: Color, label: String) {
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(999.dp)
     Box(
         modifier = Modifier
-            .then(
-                if (selected) {
-                    Modifier
-                        .clip(shape)
-                        .background(KittyAccent)
-                        .border(1.dp, KittyAccent, shape)
-                } else {
-                    Modifier.kittyGlassSoft(shape)
-                },
-            )
+            .clip(shape)
+            .background(if (selected) KittyAccent else KittySurface)
+            .border(1.dp, if (selected) KittyAccent else KittyOutlineSoft, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {

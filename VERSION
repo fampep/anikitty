@@ -1,4 +1,4 @@
-# Shared monorepo release — bump both fields together for every public cut.
-# Android versionName / versionCode read these. APK-only.
-name=1.1.21
-code=35
+# Local/dev APK cuts while working toward a big update. No GitHub Releases unless asked.
+# Android versionName / versionCode read these.
+name=1.2.0-dev.1
+code=36
