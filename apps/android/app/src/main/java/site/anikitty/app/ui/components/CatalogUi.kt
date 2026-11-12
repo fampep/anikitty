@@ -625,7 +625,7 @@ fun KittyContinueCard(
                     Text(
                         "${(progress * 100f).toInt()}% watched",
                         style = MaterialTheme.typography.labelSmall,
-                        color = KittyAccentGlow,
+                        color = KittyAccent,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -641,7 +641,7 @@ fun KittyContinueCard(
                                 .fillMaxWidth(progress)
                                 .height(4.dp)
                                 .clip(RoundedCornerShape(999.dp))
-                                .background(KittyAccentGlow),
+                                .background(KittyAccent),
                         )
                     }
                 }
