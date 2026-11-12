@@ -50,11 +50,12 @@ Shared KMP extraction with Android is planned next (theme, AniList models, scrap
 
 ## Status (AP-54)
 
-First runnable surface:
+Runnable surface (AP-54 / AP-55):
 
 - Glass dark AniKitty chrome (rail + Home / Search / Store / Account)
 - Live AniList trending + search grids
-- Store placeholders for bundled scrapers
+- Title **Overview** (tap a poster): synopsis, genres, AniList season chips (PREQUEL/SEQUEL only), episode rail, related
+- AniList is the sole catalog source; Store providers are stream links only
 - Account shows dedicated auth server URL (sign-in UI next)
 
 **Do not open a PR until fampep asks** — keep polishing on `cursor/windows-desktop-cmp-91b9`.
