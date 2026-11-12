@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import site.anikitty.app.BuildConfig
+import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.StoreListing
 import site.anikitty.app.data.servers.AniPmServer
@@ -132,17 +133,21 @@ fun ExtensionStoreFeed(
         setOf(AnikotoServer.ID, GotakuServer.ID, AniPmServer.ID)
     }
 
-    // Always surface on-device / bundled resolvers even if the remote index is stale
-    // (e.g. Ani.pm before the CDN refreshes, or offline).
-    val mergedListings = remember(listings, resolvers) {
+    // Always surface on-device resolvers even if the remote index is stale/offline.
+    // First-party fampep metadata only for known bundled ids — community installs
+    // keep author/github from their manifest (never mislabeled as official).
+    val mergedListings = remember(listings, resolvers, installedExt, bundledIds) {
         val byId = LinkedHashMap<String, StoreListing>()
         for (listing in listings) byId[listing.id] = listing
+        val manifests = installedExt.associateBy { it.id }
         for (resolver in resolvers) {
             val server = resolver.server
             if (byId.containsKey(server.id)) continue
-            byId[server.id] = server.toStoreListing()
+            byId[server.id] = server.toStoreListing(
+                bundled = server.id in bundledIds,
+                manifest = manifests[server.id],
+            )
         }
-        // Prefer remote copy, but ensure bundled ids stay featured/near top via sort.
         byId.values.toList()
     }
 
@@ -478,13 +483,39 @@ fun ExtensionStoreFeed(
     }
 }
 
-private fun StreamServer.toStoreListing(): StoreListing = StoreListing(
-    id = id,
-    name = name,
-    description = description,
-    github = "https://github.com/fampep/anikitty",
-    author = "fampep",
-    featured = true,
-    iconUrl = iconUrl,
-    siteUrl = siteUrl,
-)
+private fun StreamServer.toStoreListing(
+    bundled: Boolean,
+    manifest: ExtensionManifest? = null,
+): StoreListing {
+    if (bundled) {
+        return StoreListing(
+            id = id,
+            name = name,
+            description = description,
+            github = FIRST_PARTY_GITHUB,
+            author = "fampep",
+            featured = true,
+            iconUrl = iconUrl,
+            siteUrl = siteUrl,
+        )
+    }
+    val author = manifest?.author?.trim()?.takeIf { it.isNotEmpty() } ?: "community"
+    // Never attribute community installs to fampep — prefer manifest source, then homepage/site.
+    val github = manifest?.sourceGithub?.trim()?.takeIf { it.isNotEmpty() }
+        ?: manifest?.homepage?.trim()?.takeIf { it.startsWith("http") }
+        ?: siteUrl?.trim()?.takeIf { it.startsWith("http") }
+        ?: manifest?.siteUrl?.trim()?.takeIf { it.startsWith("http") }
+        ?: "https://github.com/"
+    return StoreListing(
+        id = id,
+        name = name,
+        description = description.ifBlank { manifest?.description.orEmpty() },
+        github = github,
+        author = author,
+        featured = false,
+        iconUrl = iconUrl ?: manifest?.iconUrl,
+        siteUrl = siteUrl ?: manifest?.siteUrl,
+    )
+}
+
+private const val FIRST_PARTY_GITHUB = "https://github.com/fampep/anikitty"
