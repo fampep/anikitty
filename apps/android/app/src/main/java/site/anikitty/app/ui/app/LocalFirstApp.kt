@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -35,17 +37,22 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items as lazyItems
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
@@ -84,7 +91,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -113,12 +123,11 @@ import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyBottomNav
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
-import site.anikitty.app.ui.components.KittyHero
-import site.anikitty.app.ui.components.KittyMetaChip
+import site.anikitty.app.ui.components.KittyGenreTiles
+import site.anikitty.app.ui.components.KittyGlassHeroPager
 import site.anikitty.app.ui.components.KittyMetaChips
 import site.anikitty.app.ui.components.KittyNavTab
 import site.anikitty.app.ui.components.KittyPageHeader
-import site.anikitty.app.ui.components.KittyPosterCard
 import site.anikitty.app.ui.components.KittyPosterRow
 import site.anikitty.app.ui.components.KittyTopTenRow
 import site.anikitty.app.ui.components.KittyPosterSkeletonRow
@@ -478,16 +487,6 @@ private fun HomeFeed(
     var catalogJob by remember { mutableStateOf<Job?>(null) }
     val catalogBusy = loading || refreshing
     var homeGenre by remember { mutableStateOf<String?>(null) }
-    val genreChips = remember(trending, popular, seasonal) {
-        (trending + popular + seasonal)
-            .flatMap { it.genres }
-            .groupingBy { it }
-            .eachCount()
-            .entries
-            .sortedByDescending { it.value }
-            .map { it.key }
-            .take(8)
-    }
     fun List<AnimeSummary>.forGenre(): List<AnimeSummary> {
         val picked = homeGenre ?: return this
         return filter { picked in it.genres }
@@ -573,22 +572,30 @@ private fun HomeFeed(
                             onOpenAccount = onOpenAccount,
                         )
                     }
-                    if (genreChips.isNotEmpty()) {
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .horizontalScroll(rememberScrollState())
-                                    .padding(start = 16.dp, end = 16.dp, top = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Chip("All", selected = homeGenre == null) { homeGenre = null }
-                                genreChips.forEach { genre ->
-                                    Chip(genre, selected = homeGenre == genre) {
-                                        homeGenre = if (homeGenre == genre) null else genre
-                                    }
-                                }
-                            }
+                    item {
+                        KittyGlassHeroPager(
+                            items = trending,
+                            onOpen = {
+                                scope.launch { historyDao.touchFromCatalog(it) }
+                                onOpen(it, null)
+                            },
+                        )
+                    }
+                    item {
+                        val tiles = listOf(
+                            "Action", "Romance", "Fantasy", "Comedy", "Drama", "Adventure",
+                        ).map { name ->
+                            name to (trending + popular + seasonal)
+                                .firstOrNull { name in it.genres }
+                                ?.let { it.bannerImageUrl ?: it.coverImageUrl }
                         }
+                        KittyGenreTiles(
+                            genres = tiles,
+                            selected = homeGenre,
+                            onSelect = { name ->
+                                homeGenre = if (homeGenre == name) null else name
+                            },
+                        )
                     }
                     item {
                         KittyPosterRow(
@@ -916,21 +923,15 @@ private fun SearchFeed(
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(bottom = 10.dp),
                 )
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(110.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    gridItems(items, key = { it.id }) { anime ->
-                        KittyPosterCard(
-                            anime = anime,
-                            onClick = {
-                                scope.launch { historyDao.touchFromCatalog(anime) }
-                                onOpen(anime)
-                            },
-                            width = 110.dp,
-                        )
+                    lazyItems(items, key = { it.id }) { anime ->
+                        KittySearchRow(anime) {
+                            scope.launch { historyDao.touchFromCatalog(anime) }
+                            onOpen(anime)
+                        }
                     }
                 }
             }
@@ -967,21 +968,15 @@ private fun SearchFeed(
                     padded = false,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(110.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f),
                 ) {
-                    gridItems(discover, key = { it.id }) { anime ->
-                        KittyPosterCard(
-                            anime = anime,
-                            onClick = {
-                                scope.launch { historyDao.touchFromCatalog(anime) }
-                                onOpen(anime)
-                            },
-                            width = 110.dp,
-                        )
+                    lazyItems(discover, key = { it.id }) { anime ->
+                        KittySearchRow(anime) {
+                            scope.launch { historyDao.touchFromCatalog(anime) }
+                            onOpen(anime)
+                        }
                     }
                 }
             }
@@ -1021,10 +1016,7 @@ private fun HistoryFeed(
         item {
             KittyPageHeader(
                 title = "Library",
-                subtitle = when {
-                    aniListLinked -> syncLabel ?: "Synced from AniList + this device"
-                    else -> "Kept on this device"
-                },
+                subtitle = "Your favorites and history.",
                 trailing = if (aniListLinked) {
                     {
                         Button(
@@ -1682,6 +1674,7 @@ private fun TitleDetailScreen(
     // Keyed by anime.id so related/season navigation never reuses prior episode/audio/comments.
     var detail by remember(anime.id) { mutableStateOf(anime) }
     var episode by remember(anime.id) { mutableIntStateOf(initialEpisode ?: 1) }
+    var epJump by remember(anime.id) { mutableStateOf("") }
     var audio by remember(anime.id) { mutableStateOf("sub") }
     var resolving by remember(anime.id) { mutableStateOf(false) }
     var status by remember(anime.id) { mutableStateOf<String?>(null) }
@@ -1698,7 +1691,6 @@ private fun TitleDetailScreen(
     var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
     val maxEp = episodeList.size.coerceAtLeast(1)
     val seasonTabs = remember(detail) { detail.seasonEntries() }
-    val episodeListState = rememberLazyListState()
     val thumbResolver = remember { EpisodeThumbResolver(context) }
 
     LaunchedEffect(detail) {
@@ -1746,23 +1738,6 @@ private fun TitleDetailScreen(
             detailLoading = false
         }
     }
-
-    LaunchedEffect(episode, episodeList.size) {
-        val index = (episode - 1).coerceIn(0, (episodeList.size - 1).coerceAtLeast(0))
-        if (episodeList.isNotEmpty()) {
-            runCatching { episodeListState.animateScrollToItem(index) }
-        }
-    }
-
-    val heroMeta = listOfNotNull(
-        listBadge,
-        detail.statusLabel(),
-        detail.format,
-        detail.seasonLabel(),
-        detail.episodes?.let { "$it eps" },
-        detail.durationMinutes?.let { "${it}m" },
-        detail.scoreLabel()?.let { "★ $it" },
-    )
 
     fun playSelected() {
         scope.launch {
@@ -1818,11 +1793,11 @@ private fun TitleDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(500.dp),
+                        .height(300.dp),
                 ) {
                     AsyncImage(
                         model = detail.bannerImageUrl ?: detail.coverImageUrl,
-                        contentDescription = detail.title,
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     )
@@ -1831,88 +1806,220 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.48f),
-                                    0.22f to Color.Black.copy(alpha = 0.06f),
-                                    0.62f to Color.Black.copy(alpha = 0.55f),
-                                    0.88f to Color.Black.copy(alpha = 0.9f),
-                                    1f to KittyPage,
+                                    listOf(
+                                        Color.Black.copy(alpha = 0.35f),
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.45f),
+                                        Color.Black,
+                                    ),
                                 ),
                             ),
                     )
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    0f to Color.Black.copy(alpha = 0.62f),
-                                    0.48f to Color.Black.copy(alpha = 0.18f),
-                                    0.85f to Color.Transparent,
-                                ),
-                            ),
-                    )
-                    KittyRoundIconButton(
-                        onClick = onBack,
-                        modifier = Modifier
+                            .align(Alignment.TopStart)
                             .windowInsetsPadding(WindowInsets.statusBars)
-                            .padding(12.dp),
+                            .padding(16.dp)
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.6f))
+                            .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                            .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Back",
-                            tint = KittyText,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
+                }
+            }
+            item {
+                Column(
+                    modifier = Modifier
+                        .offset(y = (-45).dp)
+                        .padding(horizontal = 24.dp),
+                ) {
                     Row(
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(horizontal = 18.dp, vertical = 20.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
                     ) {
                         AsyncImage(
                             model = detail.coverImageUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .width(124.dp)
-                                .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(14.dp))
-                                .border(1.dp, KittyOutline, RoundedCornerShape(14.dp)),
+                            contentDescription = detail.title,
                             contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .width(110.dp)
+                                .aspectRatio(2f / 3f)
+                                .clip(RoundedCornerShape(16.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                                .background(Color.White.copy(alpha = 0.05f)),
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                detail.format?.takeIf { it.isNotBlank() }?.let { format ->
+                                    Text(
+                                        format,
+                                        color = Color.White.copy(alpha = 0.5f),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(2.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.2f)),
+                                    )
+                                }
+                                detail.statusLabel()?.let { statusLabel ->
+                                    val airing = detail.status.equals("RELEASING", true)
+                                    Text(
+                                        statusLabel,
+                                        color = if (airing) Color.White else Color.White.copy(alpha = 0.4f),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                    )
+                                }
+                            }
+                            listBadge?.let { badge ->
+                                Text(
+                                    badge,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                )
+                            }
                             Text(
                                 detail.title,
-                                style = MaterialTheme.typography.headlineSmall,
+                                color = Color.White,
                                 fontWeight = FontWeight.Black,
-                                color = KittyText,
-                                maxLines = 3,
+                                fontSize = 22.sp,
+                                lineHeight = 26.sp,
+                                letterSpacing = (-0.5).sp,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            val alt = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
-                                .firstOrNull()
-                            if (!alt.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(4.dp))
+                            detail.studios.firstOrNull()?.let { studio ->
                                 Text(
-                                    alt,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = KittyMuted,
+                                    studio,
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 12.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
-                            if (heroMeta.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(10.dp))
-                                KittyMetaChips(items = heroMeta, accentFirst = listBadge != null)
-                            }
-                            if (lastWatchedEp > 0) {
-                                Spacer(modifier = Modifier.height(10.dp))
-                                KittyMetaChip(
-                                    label = "Continue ep $lastWatchedEp",
-                                    emphasized = true,
-                                )
-                            }
                         }
                     }
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Button(
+                            onClick = { playSelected() },
+                            enabled = !resolving,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black,
+                            ),
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                when {
+                                    lastWatchedEp > 0 -> "Play Ep. $episode"
+                                    else -> "Play Now"
+                                },
+                                fontWeight = FontWeight.Black,
+                            )
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (favorited) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f),
+                                )
+                                .border(
+                                    1.dp,
+                                    if (favorited) Color.White.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.1f),
+                                    RoundedCornerShape(14.dp),
+                                )
+                                .clickable {
+                                    scope.launch {
+                                        runCatching {
+                                            if (favorited) {
+                                                api.deleteFavorite(detail.id)
+                                                favorited = false
+                                            } else {
+                                                api.putFavorite(detail.id, detail.title, detail.coverImageUrl)
+                                                favorited = true
+                                            }
+                                        }
+                                    }
+                                },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                if (favorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                contentDescription = "Favorite",
+                                tint = if (favorited) Color(0xFFFF4081) else Color.White,
+                                modifier = Modifier.size(24.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            item {
+                val score = detail.averageScore
+                val scoreColor = when {
+                    score != null && score > 75 -> Color(0xFF4CAF50)
+                    score != null && score > 50 -> Color(0xFFFFC107)
+                    else -> Color.White
+                }
+                val movie = detail.format.equals("MOVIE", true)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = (-20).dp)
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    DetailStat(
+                        value = score?.let { "$it%" } ?: "--",
+                        label = "Score",
+                        color = scoreColor,
+                    )
+                    DetailStatDivider()
+                    DetailStat(
+                        value = if (movie) "${detail.durationMinutes ?: "--"}m" else "${detail.episodes ?: "--"} EP",
+                        label = if (movie) "Duration" else "Episodes",
+                    )
+                    DetailStatDivider()
+                    DetailStat(
+                        value = detail.seasonYear?.toString() ?: "--",
+                        label = "Year",
+                    )
+                    DetailStatDivider()
+                    DetailStat(
+                        value = detail.format ?: "TV",
+                        label = "Format",
+                    )
                 }
             }
             item {
@@ -2179,12 +2286,35 @@ private fun TitleDetailScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
-                    KittySectionHeading(title = "Audio", subtitle = "Stream language", padded = false)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Chip("SUB", audio == "sub") { audio = "sub" }
-                        Chip("DUB", audio == "dub") { audio = "dub" }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.White.copy(alpha = 0.05f))
+                            .padding(2.dp),
+                    ) {
+                        listOf("sub" to "SUBTITLED", "dub" to "DUBBED").forEach { (key, label) ->
+                            val selected = audio == key
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (selected) Color.White else Color.Transparent)
+                                    .clickable { audio = key },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    label,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp,
+                                    color = if (selected) Color.Black else Color.White.copy(alpha = 0.5f),
+                                )
+                            }
+                        }
                     }
                     Spacer(modifier = Modifier.height(18.dp))
                     KittySectionHeading(
@@ -2226,23 +2356,83 @@ private fun TitleDetailScreen(
                     Spacer(modifier = Modifier.height(22.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        KittySectionHeading(
-                            title = "Episodes",
-                            subtitle = if (seasonTabs.size > 1) {
-                                "AniList seasons · each has its own episode list"
-                            } else {
-                                "From AniList · swipe the rail"
-                            },
-                            padded = false,
-                            modifier = Modifier.weight(1f),
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(34.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.White.copy(alpha = 0.05f))
+                                .padding(horizontal = 10.dp),
+                            contentAlignment = Alignment.CenterStart,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("#", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                BasicTextField(
+                                    value = epJump,
+                                    onValueChange = { next -> if (next.all { it.isDigit() }) epJump = next },
+                                    textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction = ImeAction.Go,
+                                    ),
+                                    keyboardActions = KeyboardActions(onGo = {
+                                        val ep = epJump.toIntOrNull()
+                                        if (ep != null && ep in 1..maxEp) {
+                                            episode = ep
+                                            epJump = ""
+                                        }
+                                    }),
+                                    singleLine = true,
+                                    decorationBox = { inner ->
+                                        if (epJump.isEmpty()) {
+                                            Text("Ep...", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp)
+                                        }
+                                        inner()
+                                    },
+                                )
+                            }
+                        }
+                        EpisodeTool(
+                            label = "NEXT",
+                            enabled = episode < maxEp,
+                            onClick = { if (episode < maxEp) episode += 1 },
                         )
-                        KittyMetaChip(
-                            label = "Ep $episode / $maxEp",
-                            emphasized = true,
+                        EpisodeTool(
+                            label = "LATEST",
+                            selected = episode == maxEp,
+                            enabled = episode != maxEp,
+                            onClick = { episode = maxEp },
                         )
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            "EPISODES",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 11.sp,
+                            letterSpacing = 0.5.sp,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Color.White.copy(alpha = 0.05f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        ) {
+                            Text(
+                                "$maxEp",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 9.sp,
+                            )
+                        }
                     }
                     if (seasonTabs.size > 1) {
                         Spacer(modifier = Modifier.height(12.dp))
@@ -2294,33 +2484,54 @@ private fun TitleDetailScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(14.dp))
-                    LazyRow(
-                        state = episodeListState,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(horizontal = 2.dp),
-                    ) {
-                        lazyItems(episodeList, key = { it.number }) { item ->
-                            val selected = item.number == episode
-                            val watched = lastWatchedEp > 0 && item.number < lastWatchedEp
-                            val continueEp = item.number == lastWatchedEp && lastWatchedEp > 0
-                            KittyEpisodeCard(
-                                episode = item,
-                                selected = selected,
-                                watched = watched,
-                                continueEp = continueEp,
-                                onClick = { episode = item.number },
-                            )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val columns = 6
+                    episodeList.map { it.number }.chunked(columns).forEach { rowItems ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            rowItems.forEach { number ->
+                                val selected = number == episode
+                                val watched = lastWatchedEp > 0 && number < lastWatchedEp
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            when {
+                                                selected -> Color.White.copy(alpha = 0.2f)
+                                                watched -> Color.White.copy(alpha = 0.02f)
+                                                else -> Color.White.copy(alpha = 0.03f)
+                                            },
+                                        )
+                                        .border(
+                                            width = if (selected) 1.5.dp else 1.dp,
+                                            color = if (selected) Color.White else Color.Transparent,
+                                            shape = RoundedCornerShape(12.dp),
+                                        )
+                                        .clickable { episode = number },
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Text(
+                                        "$number",
+                                        fontSize = 14.sp,
+                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                                        color = when {
+                                            selected -> Color.White
+                                            watched -> Color.White.copy(alpha = 0.3f)
+                                            else -> Color.White.copy(alpha = 0.8f)
+                                        },
+                                    )
+                                }
+                            }
+                            repeat(columns - rowItems.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        EpisodeLegendDot(KittyAccent, "Selected")
-                        EpisodeLegendDot(KittySurfaceElevated, "Watched")
-                        EpisodeLegendDot(KittyAccent.copy(alpha = 0.45f), "Continue")
                     }
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
@@ -2519,6 +2730,107 @@ private fun TitleDetailScreen(
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailStat(value: String, label: String, color: Color = Color.White) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+        Text(
+            label.uppercase(),
+            color = Color.White.copy(alpha = 0.3f),
+            fontSize = 9.sp,
+            letterSpacing = 1.sp,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun DetailStatDivider() {
+    Box(
+        modifier = Modifier
+            .height(24.dp)
+            .width(1.dp)
+            .background(Color.White.copy(alpha = 0.1f)),
+    )
+}
+
+@Composable
+private fun EpisodeTool(
+    label: String,
+    enabled: Boolean,
+    selected: Boolean = false,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (enabled || selected) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.02f))
+            .border(
+                0.5.dp,
+                if (selected) Color.White else Color.Transparent,
+                RoundedCornerShape(8.dp),
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (enabled || selected) Color.White else Color.White.copy(alpha = 0.3f),
+        )
+    }
+}
+
+@Composable
+private fun KittySearchRow(anime: AnimeSummary, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color(0xFF0C0C10))
+            .border(0.5.dp, Color.White.copy(alpha = 0.08f), shape)
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(
+            model = anime.coverImageUrl,
+            contentDescription = anime.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .width(72.dp)
+                .aspectRatio(0.7f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF141416)),
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                anime.title,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val meta = listOfNotNull(
+                anime.format,
+                anime.seasonYear?.toString(),
+                anime.episodes?.let { "$it eps" },
+                anime.scoreLabel(),
+            ).joinToString(" · ")
+            if (meta.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(meta, color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp, maxLines = 1)
             }
         }
     }

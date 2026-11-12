@@ -33,6 +33,6 @@ cd apps/android
 
 ## License & ownership
 
-AniKitty is **owned by fampep** and licensed under [PolyForm Noncommercial 1.0.0](LICENSE). Contributions to this repository are accepted under those same terms and do not transfer ownership away from fampep.
+AniKitty is **copyright fampep** and licensed under the [MIT License](LICENSE). Forks and contributions are welcome. Sending a change here licenses that change under MIT and does not move the existing copyright away from fampep.
 
 Your own extension GitHub repos remain yours — see [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).

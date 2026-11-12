@@ -1,51 +1,42 @@
 package site.anikitty.app.ui.components
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyNavPillContent
 import site.anikitty.app.ui.theme.KittyNavPillSurface
-import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittySurfaceElevated
+import site.anikitty.app.ui.theme.KittyText
 
 data class KittyNavTab(
     val id: String,
@@ -54,7 +45,7 @@ data class KittyNavTab(
     val selectedIcon: ImageVector,
 )
 
-/** Floating capsule nav — selected tab expands to icon + label; items share width. */
+/** Full-width dock — icon + tiny label, white when selected, hairline on top. */
 @Composable
 fun KittyBottomNav(
     tabs: List<KittyNavTab>,
@@ -62,79 +53,62 @@ fun KittyBottomNav(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val bar = RoundedCornerShape(999.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .background(KittyNavPillSurface)
+            .drawBehind {
+                drawLine(
+                    color = Color.White.copy(alpha = 0.08f),
+                    start = Offset(0f, 0f),
+                    end = Offset(size.width, 0f),
+                    strokeWidth = 1.dp.toPx(),
+                )
+            }
             .navigationBarsPadding()
-            .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
+            .height(56.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
-            modifier = Modifier
-                .widthIn(max = 420.dp)
-                .fillMaxWidth()
-                .height(60.dp)
-                .shadow(
-                    elevation = 18.dp,
-                    shape = bar,
-                    clip = false,
-                    ambientColor = Color.Black.copy(alpha = 0.55f),
-                    spotColor = KittyAccent.copy(alpha = 0.22f),
-                )
-                .clip(bar)
-                .background(KittyNavPillSurface)
-                .border(1.dp, KittyAccent.copy(alpha = 0.28f), bar)
-                .padding(horizontal = 4.dp, vertical = 6.dp),
+            modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             tabs.forEach { tab ->
                 val selected = tab.id == selectedId
-                val fg by animateColorAsState(
-                    if (selected) KittyOnAccent else KittyNavPillContent,
-                    animationSpec = tween(220, easing = FastOutSlowInEasing),
-                    label = "navFg",
+                val scale by animateFloatAsState(
+                    targetValue = if (selected) 1.05f else 1f,
+                    animationSpec = tween(150),
+                    label = "navScale",
                 )
-                Row(
+                Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(48.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(if (selected) KittyAccent else Color.Transparent)
-                        .selectable(
-                            selected = selected,
-                            onClick = { onSelect(tab.id) },
-                            role = Role.Tab,
+                        .fillMaxHeight()
+                        .clickable(
                             interactionSource = remember { MutableInteractionSource() },
-                            indication = ripple(bounded = true),
-                        )
-                        .padding(horizontal = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                            indication = null,
+                            onClick = { onSelect(tab.id) },
+                        ),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = if (selected) tab.selectedIcon else tab.icon,
                         contentDescription = tab.label,
-                        tint = fg,
-                        modifier = Modifier.size(20.dp),
+                        tint = if (selected) KittyText else KittyNavPillContent,
+                        modifier = Modifier
+                            .graphicsLayer(scaleX = scale, scaleY = scale)
+                            .size(18.dp),
                     )
-                    AnimatedVisibility(
-                        visible = selected,
-                        enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
-                        exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start),
-                    ) {
-                        Text(
-                            tab.label,
-                            color = fg,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(start = 4.dp),
-                        )
-                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        tab.label,
+                        color = if (selected) KittyText else KittyNavPillContent,
+                        fontSize = 9.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                    )
                 }
             }
         }
@@ -152,7 +126,6 @@ fun KittyRoundIconButton(
             .size(40.dp)
             .clip(CircleShape)
             .background(KittySurfaceElevated)
-            .border(1.dp, KittyAccent.copy(alpha = 0.4f), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
         content = { content() },

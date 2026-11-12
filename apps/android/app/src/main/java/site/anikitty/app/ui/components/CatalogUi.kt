@@ -32,7 +32,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -41,13 +44,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -282,54 +288,42 @@ fun KittyPosterCard(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
-            anime.format?.takeIf { it.isNotBlank() }?.let { format ->
-                Text(
-                    format.uppercase(),
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(KittyAccent)
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KittyOnAccent,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                )
-            }
             anime.scoreLabel()?.let { score ->
-                Text(
-                    "★ $score",
+                Row(
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(8.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(KittySurface.copy(alpha = 0.92f))
-                        .border(1.dp, KittyAccent.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
-                        .padding(horizontal = 7.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KittyAccent,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                )
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFB300),
+                        modifier = Modifier.size(8.dp),
+                    )
+                    Text(
+                        score,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 8.sp,
+                    )
+                }
             }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(2.dp)
-                    .background(KittyAccent.copy(alpha = 0.85f)),
-            )
         }
         Text(
             anime.title,
-            modifier = Modifier.padding(top = 8.dp),
-            maxLines = 2,
+            modifier = Modifier.padding(top = 6.dp, start = 2.dp, end = 2.dp),
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelMedium,
             color = KittyText,
-            fontWeight = FontWeight.SemiBold,
-            lineHeight = 16.sp,
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
         )
         if (!subtitle.isNullOrBlank()) {
             Text(
@@ -414,6 +408,203 @@ fun KittyTopTenRow(
                         anime = anime,
                         onClick = { onOpen(anime) },
                         width = 108.dp,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun KittyGlassHeroPager(
+    items: List<AnimeSummary>,
+    onOpen: (AnimeSummary) -> Unit,
+) {
+    val pages = items.take(5)
+    if (pages.isEmpty()) return
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+    LaunchedEffect(pages.size) {
+        if (pages.size < 2) return@LaunchedEffect
+        while (true) {
+            delay(5000)
+            if (!pagerState.isScrollInProgress) {
+                val next = (pagerState.currentPage + 1) % pages.size
+                pagerState.animateScrollToPage(next)
+            }
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(210.dp),
+        ) { page ->
+            val anime = pages[page]
+            val shape = RoundedCornerShape(18.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .clip(shape)
+                    .background(Color(0xFF0F0F14))
+                    .border(1.dp, Color.White.copy(alpha = 0.12f), shape)
+                    .clickable { onOpen(anime) },
+            ) {
+                AsyncImage(
+                    model = anime.bannerImageUrl ?: anime.coverImageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = 0.35f },
+                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color.Black.copy(alpha = 0.9f),
+                                    Color.Black.copy(alpha = 0.4f),
+                                    Color.Transparent,
+                                ),
+                            ),
+                        ),
+                )
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(20.dp)
+                        .fillMaxWidth(0.72f),
+                ) {
+                    Text(
+                        (anime.format ?: "TV").uppercase(),
+                        color = Color.White,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 9.sp,
+                        letterSpacing = 1.sp,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        anime.title,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 19.sp,
+                        lineHeight = 24.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (anime.genres.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            anime.genres.take(2).joinToString(" • "),
+                            color = Color.White.copy(alpha = 0.5f),
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            Icons.Filled.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.Black,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Play", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(pages.size) { index ->
+                val selected = pagerState.currentPage == index
+                Box(
+                    modifier = Modifier
+                        .height(4.dp)
+                        .width(if (selected) 24.dp else 6.dp)
+                        .clip(CircleShape)
+                        .background(if (selected) Color.White else Color.White.copy(alpha = 0.2f)),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun KittyGenreTiles(
+    genres: List<Pair<String, String?>>,
+    selected: String?,
+    onSelect: (String) -> Unit,
+) {
+    if (genres.isEmpty()) return
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Text(
+            "Popular Genres",
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            items(genres.size) { index ->
+                val (name, image) = genres[index]
+                val shape = RoundedCornerShape(12.dp)
+                Box(
+                    modifier = Modifier
+                        .width(136.dp)
+                        .aspectRatio(16f / 9f)
+                        .clip(shape)
+                        .background(Color(0xFF0F0F14))
+                        .border(
+                            1.dp,
+                            if (selected == name) Color.White else Color.White.copy(alpha = 0.08f),
+                            shape,
+                        )
+                        .clickable { onSelect(name) },
+                ) {
+                    if (!image.isNullOrBlank()) {
+                        AsyncImage(
+                            model = image,
+                            contentDescription = name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color.Black.copy(alpha = 0.15f), Color.Black.copy(alpha = 0.75f)),
+                                ),
+                            ),
+                    )
+                    Text(
+                        name,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                     )
                 }
             }
