@@ -44,8 +44,9 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "AniKitty"
             // Compose native distro requires MAJOR >= 1.
-            packageVersion = "1.0.0"
-            description = "AniKitty — watch anime on Windows (Compose Multiplatform)"
+            // Keep in lockstep with Android versionName for monorepo releases.
+            packageVersion = "1.1.16"
+            description = "AniKitty — watch anime on desktop (Compose Multiplatform + FFmpeg glass player)"
             copyright = "Copyright 2026 fampep. PolyForm Noncommercial 1.0.0."
             vendor = "fampep"
             windows {
