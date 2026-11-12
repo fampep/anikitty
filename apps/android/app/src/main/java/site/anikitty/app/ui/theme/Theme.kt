@@ -51,11 +51,11 @@ object PlayerChrome {
     val Graphite = Paper.copy(alpha = 0.72f)
     val Faint = Paper.copy(alpha = 0.42f)
     val Smoke = Color(0xCC000000)
-    val Sheet = Color(0xEE141414)
-    val SheetStroke = Color.White.copy(alpha = 0.14f)
-    val RowSelected = Color.White.copy(alpha = 0.10f)
+    val Sheet = Color(0xF2141414)
+    val SheetStroke = KittyAccent.copy(alpha = 0.32f)
+    val RowSelected = KittyAccent.copy(alpha = 0.16f)
     val Disc = Color(0xFF1A1A1A)
-    val DiscStroke = Color.White.copy(alpha = 0.18f)
+    val DiscStroke = Color.White.copy(alpha = 0.16f)
     val DiscLarge = Color(0xFF222222)
     val Accent = KittyAccent
     val Progress = KittyAccent

@@ -794,7 +794,7 @@ fun PlayerScreen(
         if (!ready && error == null && !isCasting) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
-                color = PlayerChrome.Paper,
+                color = PlayerChrome.Accent,
             )
         }
 
@@ -808,8 +808,8 @@ fun PlayerScreen(
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(top = 72.dp, start = 20.dp, end = 20.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.Black.copy(alpha = 0.78f))
-                    .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(12.dp))
+                    .background(PlayerChrome.Sheet)
+                    .border(1.dp, PlayerChrome.SheetStroke, RoundedCornerShape(12.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             )
         }
@@ -1300,7 +1300,7 @@ private fun NextEpisodePrompt(
             ) {
                 Text(
                     if (ended) "Play now" else "Next episode",
-                    color = PlayerChrome.Ink,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                 )
@@ -1308,8 +1308,8 @@ private fun NextEpisodePrompt(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.08f))
-                    .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(12.dp))
+                    .background(PlayerChrome.Disc)
+                    .border(1.dp, PlayerChrome.Accent.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
                     .clickable(enabled = !busy, onClick = onDismiss)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
@@ -1686,8 +1686,8 @@ private fun DisplaySheet(
 private fun SheetTitle(text: String) {
     Text(
         text,
-        color = PlayerChrome.Paper,
-        fontWeight = FontWeight.SemiBold,
+        color = PlayerChrome.Accent,
+        fontWeight = FontWeight.Bold,
         fontSize = 15.sp,
         letterSpacing = 0.2.sp,
     )
@@ -1695,11 +1695,17 @@ private fun SheetTitle(text: String) {
 
 @Composable
 private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(shape)
             .background(if (selected) PlayerChrome.RowSelected else Color.Transparent)
+            .border(
+                1.dp,
+                if (selected) PlayerChrome.Accent.copy(alpha = 0.45f) else Color.Transparent,
+                shape,
+            )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1715,7 +1721,7 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
             Icon(
                 Icons.Rounded.Check,
                 contentDescription = null,
-                tint = PlayerChrome.Paper,
+                tint = PlayerChrome.Accent,
                 modifier = Modifier.size(18.dp),
             )
         }
@@ -1724,21 +1730,22 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(999.dp)
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
+            .clip(shape)
             .background(if (selected) PlayerChrome.Accent else PlayerChrome.Disc)
             .border(
                 1.dp,
                 if (selected) PlayerChrome.Accent else PlayerChrome.DiscStroke,
-                RoundedCornerShape(6.dp),
+                shape,
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 11.dp, vertical = 7.dp),
+            .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
         Text(
             label,
-            color = if (selected) PlayerChrome.Ink else PlayerChrome.Paper,
+            color = if (selected) Color.White else PlayerChrome.Paper,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
         )
@@ -1751,17 +1758,17 @@ private fun PlayerMetaPill(label: String, emphasized: Boolean = false) {
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(if (emphasized) PlayerChrome.Accent.copy(alpha = 0.22f) else PlayerChrome.Disc)
+            .background(if (emphasized) PlayerChrome.Accent else PlayerChrome.Disc)
             .border(
                 1.dp,
-                if (emphasized) PlayerChrome.Accent.copy(alpha = 0.55f) else PlayerChrome.DiscStroke,
+                if (emphasized) PlayerChrome.Accent else PlayerChrome.DiscStroke,
                 shape,
             )
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(
             label,
-            color = if (emphasized) PlayerChrome.Paper else PlayerChrome.Graphite,
+            color = if (emphasized) Color.White else PlayerChrome.Graphite,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -1797,7 +1804,7 @@ private fun ChromeDisc(
             )
             .border(
                 1.dp,
-                if (accent) PlayerChrome.Accent else PlayerChrome.DiscStroke,
+                if (accent) PlayerChrome.Accent else PlayerChrome.Accent.copy(alpha = 0.28f),
                 CircleShape,
             )
             .clickable(
