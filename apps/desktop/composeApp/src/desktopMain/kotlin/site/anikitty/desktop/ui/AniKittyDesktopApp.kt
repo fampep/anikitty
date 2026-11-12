@@ -105,7 +105,7 @@ private enum class AppDest(val label: String, val icon: ImageVector) {
 }
 
 /**
- * Full AniKitty desktop app — cinematic glass catalog, not a sparse shell.
+ * Full AniKitty desktop app — welcome chrome, expanding pill nav, poster rails.
  */
 @Composable
 fun AniKittyDesktopApp() {
@@ -235,27 +235,35 @@ private fun AppTopBar(
     Row(
         modifier = Mod
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp)
-            .kittyGlass(elevated = true)
-            .padding(horizontal = 18.dp, vertical = 12.dp),
+            .padding(horizontal = 22.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Mod.padding(end = 20.dp)) {
+        Box(
+            modifier = Mod
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(KittyAccentGlow.copy(alpha = 0.3f))
+                .border(1.dp, KittyOutline, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(Icons.Rounded.AccountCircle, null, tint = KittyAccent, modifier = Mod.size(26.dp))
+        }
+        Column(modifier = Mod.padding(start = 12.dp, end = 20.dp)) {
+            Text("Welcome back", color = KittyAccentGlow, style = MaterialTheme.typography.labelMedium)
             Text(
-                text = "AniKitty",
-                style = MaterialTheme.typography.headlineMedium,
+                "AniKitty",
+                style = MaterialTheme.typography.titleLarge,
                 color = KittyText,
-            )
-            Text(
-                text = "Watch · AniList catalog",
-                style = MaterialTheme.typography.labelSmall,
-                color = KittyAccentGlow,
+                fontWeight = FontWeight.Bold,
             )
         }
 
         Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Mod.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Mod
+                .weight(1f)
+                .kittyGlass(elevated = true)
+                .padding(horizontal = 8.dp, vertical = 6.dp),
         ) {
             AppDest.entries.forEach { item ->
                 val active = item == dest
@@ -263,37 +271,28 @@ private fun AppTopBar(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Mod
                         .clip(KittyGlassShapePill)
-                        .background(if (active) KittySurfaceElevated else Color.Transparent)
-                        .border(
-                            width = if (active) 1.dp else 0.dp,
-                            color = if (active) KittyAccentGlow.copy(alpha = 0.5f) else Color.Transparent,
-                            shape = KittyGlassShapePill,
-                        )
+                        .background(if (active) KittyAccent else Color.Transparent)
                         .clickable { onDest(item) }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                        .padding(horizontal = if (active) 14.dp else 10.dp, vertical = 8.dp),
                 ) {
                     Icon(
                         item.icon,
                         contentDescription = item.label,
-                        tint = if (active) KittyAccentGlow else KittyFaint,
+                        tint = if (active) KittyOnAccent else KittyFaint,
                         modifier = Mod.size(18.dp),
                     )
-                    Spacer(Mod.width(8.dp))
-                    Text(
-                        text = item.label,
-                        color = if (active) KittyText else KittyMuted,
-                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
-                        style = MaterialTheme.typography.labelMedium,
-                    )
+                    if (active) {
+                        Spacer(Mod.width(8.dp))
+                        Text(
+                            text = item.label,
+                            color = KittyOnAccent,
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
                 }
             }
         }
-
-        Text(
-            text = "FFmpeg · Ani.pm",
-            style = MaterialTheme.typography.labelSmall,
-            color = KittyFaint,
-        )
     }
 }
 
@@ -317,66 +316,24 @@ private fun HomeScreen(
             }
         }
         else -> {
-            val featured = items.firstOrNull()
-            val rest = if (items.size > 1) items.drop(1) else items
             LazyColumn(
                 modifier = Mod.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (featured != null) {
-                    item(key = "hero-${featured.id}") {
-                        FeaturedHero(
-                            media = featured,
-                            onOpen = { onOpen(featured.id) },
-                            onPlay = { onPlayFeatured(featured) },
-                        )
-                    }
-                }
                 item(key = "trending-header") {
-                    Row(
-                        modifier = Mod
-                            .fillMaxWidth()
-                            .padding(horizontal = 22.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        Column(modifier = Mod.weight(1f)) {
-                            Text(
-                                text = "Trending now",
-                                style = MaterialTheme.typography.headlineSmall,
-                                color = KittyText,
-                            )
-                            Text(
-                                text = "AniList catalog · stream via extensions",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = KittyFaint,
-                                modifier = Mod.padding(top = 2.dp),
-                            )
-                        }
-                        Text(
-                            text = "Browse search",
-                            color = KittyAccentGlow,
-                            fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Mod
-                                .clip(KittyGlassShapePill)
-                                .kittyGlassSoft(KittyGlassShapePill)
-                                .clickable(onClick = onBrowseSearch)
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                        )
-                    }
+                    SectionTitleRow(
+                        title = "Trending Anime",
+                        action = "Search",
+                        onAction = onBrowseSearch,
+                    )
                 }
                 item(key = "trending-rail") {
-                    PosterRail(items = rest.ifEmpty { items }, onOpen = onOpen)
+                    PosterRail(items = items, onOpen = onOpen)
                 }
-                if (items.size > 8) {
+                if (items.size > 6) {
                     item(key = "popular-header") {
-                        Text(
-                            text = "More from AniList",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = KittyText,
-                            modifier = Mod.padding(horizontal = 22.dp, vertical = 8.dp),
-                        )
+                        SectionTitleRow(title = "More to watch")
                     }
                     item(key = "popular-rail") {
                         PosterRail(
@@ -385,7 +342,51 @@ private fun HomeScreen(
                         )
                     }
                 }
+                // Keep play-featured available via first card open → overview Play.
+                item(key = "hint") {
+                    Text(
+                        "Tip: open a title, then Play ep 1",
+                        color = KittyFaint,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Mod.padding(horizontal = 22.dp, vertical = 12.dp),
+                    )
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun SectionTitleRow(
+    title: String,
+    action: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = Mod
+            .fillMaxWidth()
+            .padding(horizontal = 22.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            color = KittyText,
+            modifier = Mod.weight(1f),
+        )
+        if (action != null && onAction != null) {
+            Text(
+                text = "$action ›",
+                color = KittyAccentGlow,
+                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Mod
+                    .clip(KittyGlassShapePill)
+                    .clickable(onClick = onAction)
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            )
+        } else {
+            Text("›", color = KittyFaint, fontSize = 20.sp)
         }
     }
 }
@@ -531,6 +532,21 @@ private fun PosterCard(media: AniListMedia, onOpen: () -> Unit) {
                     .clip(RoundedCornerShape(14.dp))
                     .background(KittySurfaceElevated),
             )
+            media.format?.takeIf { it.isNotBlank() }?.let { format ->
+                Text(
+                    text = format.uppercase(),
+                    color = KittyOnAccent,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 10.sp,
+                    modifier = Mod
+                        .align(Alignment.TopStart)
+                        .padding(7.dp)
+                        .clip(KittyGlassShapePill)
+                        .background(KittyAccentGlow)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
             media.averageScore?.let { score ->
                 Text(
                     text = "★ $score%",

@@ -1,15 +1,19 @@
 package site.anikitty.app.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,12 +41,12 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyNavPillBorder
 import site.anikitty.app.ui.theme.KittyNavPillContent
-import site.anikitty.app.ui.theme.KittyNavPillSelected
-import site.anikitty.app.ui.theme.KittyNavPillSelectedContent
 import site.anikitty.app.ui.theme.KittyNavPillSurface
+import site.anikitty.app.ui.theme.KittyOnAccent
 
 data class KittyNavTab(
     val id: String,
@@ -51,7 +55,7 @@ data class KittyNavTab(
     val selectedIcon: ImageVector,
 )
 
-/** Floating glass capsule — content scrolls edge-to-edge behind it. */
+/** Floating capsule nav — selected tab expands to icon + label pill. */
 @Composable
 fun KittyBottomNav(
     tabs: List<KittyNavTab>,
@@ -59,81 +63,64 @@ fun KittyBottomNav(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val pill = RoundedCornerShape(22.dp)
+    val bar = RoundedCornerShape(999.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 10.dp),
+            .padding(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
-                .widthIn(max = 420.dp)
+                .widthIn(max = 400.dp)
                 .fillMaxWidth()
-                .height(60.dp)
+                .height(64.dp)
                 .shadow(
-                    elevation = 24.dp,
-                    shape = pill,
+                    elevation = 28.dp,
+                    shape = bar,
                     clip = false,
-                    ambientColor = KittyAccentGlow.copy(alpha = 0.25f),
-                    spotColor = Color.Black.copy(alpha = 0.55f),
+                    ambientColor = KittyAccentGlow.copy(alpha = 0.22f),
+                    spotColor = Color.Black.copy(alpha = 0.6f),
                 )
-                .clip(pill)
+                .clip(bar)
                 .background(KittyNavPillSurface)
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color.White.copy(alpha = 0.14f),
-                            Color.White.copy(alpha = 0.03f),
+                            Color.White.copy(alpha = 0.12f),
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.22f),
+                            Color.Black.copy(alpha = 0.28f),
                         ),
                     ),
                 )
-                .border(1.dp, KittyNavPillBorder, pill)
-                .padding(horizontal = 6.dp),
+                .border(1.dp, KittyNavPillBorder, bar)
+                .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             tabs.forEach { tab ->
                 val selected = tab.id == selectedId
-                val bg by animateColorAsState(
-                    if (selected) KittyNavPillSelected else Color.Transparent,
-                    animationSpec = tween(240, easing = FastOutSlowInEasing),
-                    label = "navBg",
-                )
                 val fg by animateColorAsState(
-                    if (selected) KittyNavPillSelectedContent else KittyNavPillContent,
-                    animationSpec = tween(240, easing = FastOutSlowInEasing),
+                    if (selected) KittyOnAccent else KittyNavPillContent,
+                    animationSpec = tween(220, easing = FastOutSlowInEasing),
                     label = "navFg",
                 )
-                Column(
+                Row(
                     modifier = Modifier
-                        .weight(1f)
                         .height(48.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(bg)
-                        .then(
-                            if (selected) {
-                                Modifier.border(
-                                    1.dp,
-                                    KittyAccentGlow.copy(alpha = 0.28f),
-                                    RoundedCornerShape(16.dp),
-                                )
-                            } else {
-                                Modifier
-                            },
-                        )
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (selected) KittyAccent else Color.Transparent)
                         .selectable(
                             selected = selected,
                             onClick = { onSelect(tab.id) },
                             role = Role.Tab,
                             interactionSource = remember { MutableInteractionSource() },
                             indication = ripple(bounded = true),
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
+                        )
+                        .padding(horizontal = if (selected) 16.dp else 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
                 ) {
                     Icon(
                         imageVector = if (selected) tab.selectedIcon else tab.icon,
@@ -141,13 +128,20 @@ fun KittyBottomNav(
                         tint = fg,
                         modifier = Modifier.size(22.dp),
                     )
-                    Text(
-                        tab.label,
-                        color = fg,
-                        fontSize = 10.sp,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        maxLines = 1,
-                    )
+                    AnimatedVisibility(
+                        visible = selected,
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally(),
+                    ) {
+                        Text(
+                            tab.label,
+                            color = fg,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            modifier = Modifier.padding(start = 8.dp),
+                        )
+                    }
                 }
             }
         }
@@ -162,7 +156,7 @@ fun KittyRoundIconButton(
 ) {
     Box(
         modifier = modifier
-            .size(42.dp)
+            .size(40.dp)
             .clip(CircleShape)
             .background(KittyNavPillSurface)
             .background(

@@ -191,25 +191,41 @@ fun KittySectionHeading(
     subtitle: String? = null,
     modifier: Modifier = Modifier,
     padded: Boolean = true,
+    onMore: (() -> Unit)? = null,
 ) {
-    Column(
+    Row(
         modifier = modifier
             .fillMaxWidth()
             .then(if (padded) Modifier.padding(horizontal = 16.dp) else Modifier),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = KittyText,
-            letterSpacing = (-0.3).sp,
-        )
-        if (!subtitle.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(3.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                subtitle,
-                style = MaterialTheme.typography.labelMedium,
+                title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = KittyText,
+                letterSpacing = (-0.3).sp,
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = KittyFaint,
+                )
+            }
+        }
+        if (onMore != null) {
+            Text(
+                "›",
                 color = KittyFaint,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Light,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onMore)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
     }
@@ -266,6 +282,21 @@ fun KittyPosterCard(
                         ),
                     ),
             )
+            anime.format?.takeIf { it.isNotBlank() }?.let { format ->
+                Text(
+                    format.uppercase(),
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(7.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittyAccentGlow)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KittyOnAccent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                )
+            }
             anime.averageScore?.let { score ->
                 Text(
                     String.format("%.1f", score / 10f),
