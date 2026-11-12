@@ -1,0 +1,75 @@
+name: Desktop Windows (exe)
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "GitHub release tag to upload assets to (e.g. v1.1.16). Leave empty to only upload artifacts."
+        required: false
+        default: ""
+  push:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - ".github/workflows/desktop-windows.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Package Windows exe + MSI
+        shell: pwsh
+        run: |
+          ./gradlew.bat :composeApp:createDistributable :composeApp:packageExe --no-daemon
+          ./gradlew.bat :composeApp:packageMsi --no-daemon
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::warning::packageMsi failed (WiX); continuing with exe"
+          }
+
+      - name: Stage artifacts
+        shell: pwsh
+        run: |
+          $Out = Join-Path $env:GITHUB_WORKSPACE "desktop-out"
+          New-Item -ItemType Directory -Force -Path $Out | Out-Null
+          $AppDir = Get-ChildItem -Path "composeApp/build/compose/binaries" -Recurse -Directory -Filter "AniKitty" |
+            Select-Object -First 1
+          if ($null -ne $AppDir) {
+            $Zip = Join-Path $Out "AniKitty-1.1.16-windows-x64.zip"
+            Compress-Archive -Path $AppDir.FullName -DestinationPath $Zip -Force
+          }
+          Get-ChildItem -Path "composeApp/build/compose/binaries" -Recurse -Include *.exe,*.msi -File |
+            ForEach-Object { Copy-Item $_.FullName -Destination $Out -Force }
+          Get-ChildItem $Out | Format-Table Name, Length
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: anikitty-desktop-windows-1.1.16
+          path: desktop-out/
+          if-no-files-found: error
+
+      - name: Attach to GitHub release
+        if: ${{ inputs.release_tag != '' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/desktop-out"
+          gh release upload "$TAG" ./* --repo "${{ github.repository }}" --clobber

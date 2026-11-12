@@ -41,7 +41,8 @@ compose.desktop {
     application {
         mainClass = "site.anikitty.desktop.MainKt"
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            // Exe/Msi only build on Windows runners; Deb/Dmg on Linux/macOS.
+            targetFormats(TargetFormat.Exe, TargetFormat.Msi, TargetFormat.Dmg, TargetFormat.Deb)
             packageName = "AniKitty"
             // Compose native distro requires MAJOR >= 1.
             // Keep in lockstep with Android versionName for monorepo releases.
@@ -51,8 +52,13 @@ compose.desktop {
             vendor = "fampep"
             windows {
                 menuGroup = "AniKitty"
+                // Portable .exe app image + WiX MSI installer.
                 upgradeUuid = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
             }
+        }
+        // Bundled ProGuard 7.2 cannot read Java 21 classfiles — keep release packages usable.
+        buildTypes.release.proguard {
+            isEnabled.set(false)
         }
     }
 }
