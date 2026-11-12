@@ -1,11 +1,14 @@
 package site.anikitty.app.ui.shell
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -39,6 +42,7 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
@@ -46,6 +50,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -65,6 +70,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +84,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
+import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.local.WatchHistoryDao
@@ -97,8 +104,11 @@ import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.player.PlayerScreen
 import site.anikitty.app.ui.theme.KittyFaint
+import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittyPage
 import site.anikitty.app.ui.theme.KittySurface
+import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
 
 private sealed class Screen {
@@ -120,6 +130,9 @@ fun LocalFirstApp(
     streamServers: ServerCatalog,
     api: DedicatedApiClient,
     accountLabel: String,
+    pendingAniListToken: String? = null,
+    pendingAniListError: String? = null,
+    onConsumedAniListToken: () -> Unit = {},
     onSignOut: () -> Unit,
 ) {
     // Tab survives recreation; detail/player stack relies on configChanges in the manifest
@@ -292,11 +305,15 @@ fun LocalFirstApp(
             "settings" -> SettingsFeed(
                 catalog = streamServers,
                 api = api,
+                aniList = aniList,
                 aniListAuth = aniListAuth,
                 aniListSync = aniListSync,
                 accountLabel = accountLabel,
                 syncLabel = syncLabel,
                 onSyncLabel = { syncLabel = it },
+                pendingAniListToken = pendingAniListToken,
+                pendingAniListError = pendingAniListError,
+                onConsumedAniListToken = onConsumedAniListToken,
                 onSignOut = onSignOut,
             )
         }
@@ -499,7 +516,7 @@ private fun HomeFeed(
                                 KittySectionHeading(
                                     title = "Continue watching",
                                     subtitle = if (aniListAuth.isLinked) {
-                                        "Sync your AniList library, then press play"
+                                        "Nothing in progress — open a title to start"
                                     } else {
                                         "Start something — it’ll land here"
                                     },
@@ -942,19 +959,29 @@ private fun HistoryRow(
 private fun SettingsFeed(
     catalog: ServerCatalog,
     api: DedicatedApiClient,
+    aniList: AniListClient,
     aniListAuth: AniListAuthStore,
     aniListSync: AniListSync,
     accountLabel: String,
     syncLabel: String?,
     onSyncLabel: (String?) -> Unit,
+    pendingAniListToken: String?,
+    pendingAniListError: String?,
+    onConsumedAniListToken: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var profile by remember { mutableStateOf<DedicatedApiClient.Profile?>(null) }
     var displayName by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var favorites by remember { mutableStateOf<List<DedicatedApiClient.Favorite>>(emptyList()) }
+    var aniToken by remember { mutableStateOf("") }
+    var showTokenPaste by remember { mutableStateOf(!AniListOAuth.isConfigured()) }
+    var linkBusy by remember { mutableStateOf(false) }
+    var linkStatus by remember { mutableStateOf<String?>(null) }
+    var linkedTick by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         runCatching { api.me() }.onSuccess {
@@ -963,6 +990,38 @@ private fun SettingsFeed(
         }
         runCatching { api.favorites() }.onSuccess { favorites = it }
     }
+
+    suspend fun completeAniListLink(token: String): String {
+        val viewer = aniList.viewer(token) ?: error("Invalid AniList token")
+        aniListAuth.saveViewer(token, viewer)
+        val synced = runCatching { aniListSync.pull() }.getOrNull()
+        linkedTick++
+        return if (synced != null) {
+            "Linked @${viewer.name} · synced ${synced.imported} titles"
+        } else {
+            "Linked @${viewer.name}"
+        }
+    }
+
+    LaunchedEffect(pendingAniListToken, pendingAniListError) {
+        when {
+            !pendingAniListError.isNullOrBlank() -> {
+                linkStatus = "AniList: $pendingAniListError"
+                onConsumedAniListToken()
+            }
+            !pendingAniListToken.isNullOrBlank() -> {
+                linkBusy = true
+                linkStatus = "Linking AniList…"
+                linkStatus = runCatching { completeAniListLink(pendingAniListToken) }
+                    .getOrElse { e -> "Error: ${e.message}" }
+                linkBusy = false
+                onConsumedAniListToken()
+            }
+        }
+    }
+
+    // linkedTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
+    val isLinked = linkedTick.let { aniListAuth.isLinked }
 
     LazyColumn(
         modifier = Modifier
@@ -1010,7 +1069,7 @@ private fun SettingsFeed(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         when {
-                            aniListAuth.isLinked -> aniListAuth.username ?: "AniList"
+                            isLinked -> aniListAuth.username ?: "AniList"
                             else -> displayName.ifBlank { "AniKitty viewer" }
                         },
                         color = Color.White,
@@ -1022,11 +1081,11 @@ private fun SettingsFeed(
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.40f),
                     )
-                    if (aniListAuth.isLinked) {
+                    if (isLinked) {
                         Text(
                             syncLabel ?: "AniList list syncs while you watch",
                             style = MaterialTheme.typography.labelMedium,
-                            color = Color(0xFF02A9FF).copy(alpha = 0.9f),
+                            color = KittyMuted,
                         )
                     }
                     profile?.let {
@@ -1039,32 +1098,152 @@ private fun SettingsFeed(
                 }
             }
         }
-        if (aniListAuth.isLinked) {
-            item {
-                KittySectionHeading(
-                    title = "AniList sync",
-                    subtitle = "Import your list and push episode progress",
-                    padded = false,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        scope.launch {
-                            onSyncLabel("Syncing…")
-                            onSyncLabel(
-                                runCatching {
-                                    val result = aniListSync.pull()
-                                    "Synced ${result.imported} titles"
-                                }.getOrElse { e -> e.message },
+        item {
+            KittySectionHeading(
+                title = "AniList",
+                subtitle = if (isLinked) {
+                    "Optional list sync · already linked"
+                } else {
+                    "Optional — link after you’re signed in"
+                },
+                padded = false,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(KittySurface)
+                    .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
+                    .padding(14.dp),
+            ) {
+                if (isLinked) {
+                    Text(
+                        "Progress pushes while you watch. Pull anytime to refresh your list.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = KittyMuted,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    onSyncLabel("Syncing…")
+                                    onSyncLabel(
+                                        runCatching {
+                                            val result = aniListSync.pull()
+                                            "Synced ${result.imported} titles"
+                                        }.getOrElse { e -> e.message },
+                                    )
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black,
+                            ),
+                        ) { Text("Sync now", fontWeight = FontWeight.Bold) }
+                        OutlinedButton(
+                            onClick = {
+                                aniListAuth.clear()
+                                linkedTick++
+                                onSyncLabel(null)
+                                linkStatus = "AniList unlinked"
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                        ) { Text("Unlink") }
+                    }
+                } else {
+                    Text(
+                        "Import watching / completed / planning and keep episode progress in sync. Not required to use AniKitty.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = KittyMuted,
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (AniListOAuth.isConfigured()) {
+                        Button(
+                            onClick = {
+                                runCatching { AniListOAuth.openAuthorize(context) }
+                                    .onFailure { e -> linkStatus = "Error: ${e.message}" }
+                            },
+                            enabled = !linkBusy,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black,
+                            ),
+                        ) { Text("Link AniList", fontWeight = FontWeight.Bold) }
+                        TextButton(
+                            onClick = { showTokenPaste = !showTokenPaste },
+                            enabled = !linkBusy,
+                        ) {
+                            Text(
+                                if (showTokenPaste) "Hide token paste" else "Paste access token instead",
+                                color = KittyMuted,
                             )
                         }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF02A9FF),
-                        contentColor = Color.White,
-                    ),
-                ) { Text("Sync now", fontWeight = FontWeight.Bold) }
+                    } else {
+                        Text(
+                            "Paste an AniList access token. Create an API client at anilist.co → Settings → Developer (redirect anikitty://anilist).",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = KittyMuted,
+                        )
+                        TextButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse("https://anilist.co/settings/developer"),
+                                    ),
+                                )
+                            },
+                            enabled = !linkBusy,
+                        ) {
+                            Text("Open AniList developer settings", color = KittyText)
+                        }
+                        showTokenPaste = true
+                    }
+                    if (showTokenPaste) {
+                        OutlinedTextField(
+                            value = aniToken,
+                            onValueChange = { aniToken = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            label = { Text("AniList access token") },
+                            enabled = !linkBusy,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    linkBusy = true
+                                    linkStatus = "Linking AniList…"
+                                    linkStatus = runCatching {
+                                        completeAniListLink(aniToken.trim())
+                                    }.getOrElse { e -> "Error: ${e.message}" }
+                                    linkBusy = false
+                                }
+                            },
+                            enabled = !linkBusy && aniToken.isNotBlank(),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black,
+                            ),
+                        ) { Text("Link with token", fontWeight = FontWeight.Bold) }
+                    }
+                }
+                if (!linkStatus.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        linkStatus!!,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = KittyMuted,
+                    )
+                }
             }
         }
         item {
@@ -1208,18 +1387,22 @@ private fun TitleDetailScreen(
     var commentDraft by remember { mutableStateOf("") }
     var commentStatus by remember { mutableStateOf<String?>(null) }
     var listBadge by remember { mutableStateOf<String?>(null) }
+    var lastWatchedEp by remember { mutableIntStateOf(0) }
+    var synopsisExpanded by remember { mutableStateOf(false) }
     val maxEp = (anime.episodes ?: 24).coerceAtLeast(1).coerceAtMost(500)
     val pageSize = 24
     val pageCount = ((maxEp - 1) / pageSize) + 1
     var epPage by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(anime.id, initialEpisode) {
+        val history = historyDao.get(anime.id)
+        lastWatchedEp = history?.episode ?: 0
         if (initialEpisode != null) {
             episode = initialEpisode.coerceIn(1, maxEp)
         } else {
-            historyDao.get(anime.id)?.episode?.let { episode = it.coerceIn(1, maxEp) }
+            history?.episode?.let { episode = it.coerceIn(1, maxEp) }
         }
-        listBadge = listStatusBadge(historyDao.get(anime.id)?.listStatus)
+        listBadge = listStatusBadge(history?.listStatus)
         epPage = ((episode - 1) / pageSize).coerceIn(0, pageCount - 1)
         runCatching { api.favorites() }
             .onSuccess { favorited = it.any { f -> f.anilistId.toInt() == anime.id } }
@@ -1250,6 +1433,7 @@ private fun TitleDetailScreen(
                         ),
                     )
                 }
+                lastWatchedEp = episode
                 onPlay(episode, sources)
                 status = null
             }.onFailure { status = it.message ?: "Failed" }
@@ -1262,12 +1446,12 @@ private fun TitleDetailScreen(
             .fillMaxSize()
             .background(KittyPage),
     ) {
-        LazyColumn(contentPadding = PaddingValues(bottom = 110.dp)) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 118.dp)) {
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp),
+                        .height(340.dp),
                 ) {
                     AsyncImage(
                         model = anime.bannerImageUrl ?: anime.coverImageUrl,
@@ -1280,8 +1464,8 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.35f),
-                                    0.45f to Color.Black.copy(alpha = 0.15f),
+                                    0f to Color.Black.copy(alpha = 0.42f),
+                                    0.4f to Color.Black.copy(alpha = 0.18f),
                                     1f to KittyPage,
                                 ),
                             ),
@@ -1291,8 +1475,8 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.horizontalGradient(
-                                    0f to Color.Black.copy(alpha = 0.35f),
-                                    0.45f to Color.Transparent,
+                                    0f to Color.Black.copy(alpha = 0.45f),
+                                    0.55f to Color.Transparent,
                                 ),
                             ),
                     )
@@ -1311,20 +1495,29 @@ private fun TitleDetailScreen(
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(16.dp),
+                            .padding(horizontal = 16.dp, vertical = 18.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         AsyncImage(
                             model = anime.coverImageUrl,
                             contentDescription = null,
                             modifier = Modifier
-                                .width(104.dp)
+                                .width(112.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(10.dp)),
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(1.dp, KittyOutline, RoundedCornerShape(12.dp)),
                             contentScale = ContentScale.Crop,
                         )
                         Spacer(modifier = Modifier.width(14.dp))
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "OVERVIEW",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = KittyFaint,
+                                letterSpacing = 1.2.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 anime.title,
                                 style = MaterialTheme.typography.headlineSmall,
@@ -1340,10 +1533,20 @@ private fun TitleDetailScreen(
                                 anime.averageScore?.let { "★ $it" },
                             ).joinToString(" · ")
                             if (meta.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     meta,
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = KittyMuted,
+                                )
+                            }
+                            if (lastWatchedEp > 0) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    "Continue · ep $lastWatchedEp",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontWeight = FontWeight.SemiBold,
                                 )
                             }
                         }
@@ -1351,16 +1554,22 @@ private fun TitleDetailScreen(
                 }
             }
             item {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     if (!anime.description.isNullOrBlank()) {
                         Text(
                             anime.description!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 4,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = KittyMuted,
+                            maxLines = if (synopsisExpanded) 20 else 3,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        TextButton(onClick = { synopsisExpanded = !synopsisExpanded }) {
+                            Text(
+                                if (synopsisExpanded) "Show less" else "Read synopsis",
+                                color = KittyText,
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Chip(if (favorited) "Favorited" else "Favorite", favorited) {
@@ -1377,20 +1586,20 @@ private fun TitleDetailScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    KittySectionHeading(title = "Audio", padded = false)
+                    Spacer(modifier = Modifier.height(18.dp))
+                    KittySectionHeading(title = "Audio", subtitle = "Stream language", padded = false)
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Chip("SUB", audio == "sub") { audio = "sub" }
                         Chip("DUB", audio == "dub") { audio = "dub" }
                     }
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(22.dp))
                     KittySectionHeading(
                         title = "Episodes",
-                        subtitle = "$pageStart–$pageEnd of $maxEp",
+                        subtitle = "Ep $episode selected · $pageStart–$pageEnd of $maxEp",
                         padded = false,
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     if (pageCount > 1) {
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -1402,45 +1611,58 @@ private fun TitleDetailScreen(
                                 Chip("$start–$end", p == epPage) { epPage = p }
                             }
                         }
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(KittySurface)
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        for (rowStart in pageStart..pageEnd step 6) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                val filled = minOf(6, pageEnd + 1 - rowStart)
-                                for (n in rowStart until rowStart + filled) {
-                                    val selected = n == episode
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .height(42.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(if (selected) Color.White else Color(0xFF1A1A1A))
-                                            .clickable { episode = n },
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            "$n",
-                                            color = if (selected) Color.Black else Color.White,
-                                            fontWeight = FontWeight.SemiBold,
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        val columns = when {
+                            maxWidth < 380.dp -> 4
+                            maxWidth < 560.dp -> 5
+                            maxWidth < 720.dp -> 6
+                            else -> 8
+                        }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(KittySurface)
+                                .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
+                                .padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            for (rowStart in pageStart..pageEnd step columns) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                ) {
+                                    val filled = minOf(columns, pageEnd + 1 - rowStart)
+                                    for (n in rowStart until rowStart + filled) {
+                                        val selected = n == episode
+                                        val watched = lastWatchedEp > 0 && n < lastWatchedEp
+                                        val continueEp = n == lastWatchedEp && lastWatchedEp > 0
+                                        EpisodeCell(
+                                            number = n,
+                                            selected = selected,
+                                            watched = watched,
+                                            continueEp = continueEp,
+                                            modifier = Modifier.weight(1f),
+                                            onClick = { episode = n },
                                         )
                                     }
-                                }
-                                repeat(6 - filled) {
-                                    Spacer(modifier = Modifier.weight(1f))
+                                    repeat(columns - filled) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
                                 }
                             }
                         }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        EpisodeLegendDot(Color.White, "Selected")
+                        EpisodeLegendDot(KittySurfaceElevated, "Watched")
+                        EpisodeLegendDot(Color.White.copy(alpha = 0.18f), "Continue")
                     }
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
@@ -1478,8 +1700,12 @@ private fun TitleDetailScreen(
                                 }.onFailure { commentStatus = it.message }
                             }
                         },
-                        shape = RoundedCornerShape(20.dp),
-                    ) { Text("Post") }
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Color.Black,
+                        ),
+                    ) { Text("Post", fontWeight = FontWeight.Bold) }
                     if (commentStatus != null) {
                         Text(commentStatus!!, color = MaterialTheme.colorScheme.error)
                     }
@@ -1531,7 +1757,7 @@ private fun TitleDetailScreen(
                 enabled = !resolving,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .height(54.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
@@ -1551,6 +1777,77 @@ private fun TitleDetailScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun EpisodeCell(
+    number: Int,
+    selected: Boolean,
+    watched: Boolean,
+    continueEp: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val bg = when {
+        selected -> Color.White
+        continueEp -> Color.White.copy(alpha = 0.18f)
+        watched -> KittySurfaceElevated
+        else -> Color(0xFF121212)
+    }
+    val fg = when {
+        selected -> Color.Black
+        else -> Color.White.copy(alpha = if (watched) 0.55f else 0.92f)
+    }
+    Box(
+        modifier = modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(bg)
+            .border(
+                width = 1.dp,
+                color = when {
+                    selected -> Color.White
+                    continueEp -> Color.White.copy(alpha = 0.35f)
+                    else -> Color.White.copy(alpha = 0.08f)
+                },
+                shape = RoundedCornerShape(10.dp),
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (watched && !selected) {
+                Icon(
+                    Icons.Rounded.Check,
+                    contentDescription = null,
+                    tint = fg,
+                    modifier = Modifier.size(12.dp),
+                )
+                Spacer(modifier = Modifier.width(2.dp))
+            }
+            Text(
+                "$number",
+                color = fg,
+                fontWeight = if (selected || continueEp) FontWeight.Bold else FontWeight.SemiBold,
+                fontSize = 13.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun EpisodeLegendDot(color: Color, label: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(color)
+                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(999.dp)),
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(label, color = KittyFaint, fontSize = 11.sp)
     }
 }
 

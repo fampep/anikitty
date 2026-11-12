@@ -16,6 +16,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -779,22 +781,22 @@ fun PlayerScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(132.dp)
+                        .height(108.dp)
                         .align(Alignment.TopCenter)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Black.copy(alpha = 0.78f), Color.Transparent),
+                                listOf(Color.Black.copy(alpha = 0.72f), Color.Transparent),
                             ),
                         ),
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(188.dp)
+                        .height(156.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.88f)),
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.86f)),
                             ),
                         ),
                 )
@@ -803,38 +805,30 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ChromeDisc(onClick = onClose) {
+                    ChromeDisc(onClick = onClose, size = 40.dp) {
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Back",
                             tint = PlayerChrome.Paper,
                         )
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(Color.White.copy(alpha = 0.12f))
-                                .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(999.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
-                        ) {
-                            Text(
-                                "EP $episode",
-                                color = PlayerChrome.Paper,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp,
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "EP $episode",
+                            color = PlayerChrome.Graphite,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                        )
                         Text(
                             title,
                             color = PlayerChrome.Paper,
                             fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -842,7 +836,7 @@ fun PlayerScreen(
                     if (castHelper != null) {
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
                                 .background(Color.Black.copy(alpha = 0.45f))
                                 .border(1.dp, PlayerChrome.DiscStroke, CircleShape),
@@ -850,20 +844,20 @@ fun PlayerScreen(
                         ) {
                             CastRouteButton()
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                     }
                     ChromeDisc(onClick = {
                         controlsLocked = true
                         panel = Panel.None
                         controlsVisible = false
-                    }) {
+                    }, size = 40.dp) {
                         Icon(Icons.Rounded.Lock, contentDescription = "Lock controls", tint = PlayerChrome.Paper)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     ChromeDisc(onClick = {
                         immersive = !immersive
                         controlsVisible = true
-                    }) {
+                    }, size = 40.dp) {
                         Icon(
                             if (immersive) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
                             contentDescription = if (immersive) "Exit immersive" else "Fullscreen",
@@ -871,8 +865,8 @@ fun PlayerScreen(
                         )
                     }
                     if (onNextEpisode != null) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ChromeDisc(onClick = onNextEpisode) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        ChromeDisc(onClick = onNextEpisode, size = 40.dp) {
                             Icon(
                                 Icons.Rounded.SkipNext,
                                 contentDescription = "Next episode",
@@ -886,14 +880,14 @@ fun PlayerScreen(
                     Row(
                         modifier = Modifier.align(Alignment.Center),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(28.dp),
+                        horizontalArrangement = Arrangement.spacedBy(22.dp),
                     ) {
-                        ChromeDisc(onClick = { seekBy(-10_000) }, size = 48.dp) {
+                        ChromeDisc(onClick = { seekBy(-10_000) }, size = 44.dp) {
                             Icon(Icons.Rounded.Replay10, null, tint = PlayerChrome.Paper)
                         }
                         Box(
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(64.dp)
                                 .clip(CircleShape)
                                 .background(PlayerChrome.Paper)
                                 .clickable {
@@ -908,10 +902,10 @@ fun PlayerScreen(
                                 if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = if (playing) "Pause" else "Play",
                                 tint = PlayerChrome.Ink,
-                                modifier = Modifier.size(38.dp),
+                                modifier = Modifier.size(34.dp),
                             )
                         }
-                        ChromeDisc(onClick = { seekBy(10_000) }, size = 48.dp) {
+                        ChromeDisc(onClick = { seekBy(10_000) }, size = 44.dp) {
                             Icon(Icons.Rounded.Forward10, null, tint = PlayerChrome.Paper)
                         }
                     }
@@ -929,26 +923,27 @@ fun PlayerScreen(
                     val remaining = ((iv.endMs - positionMs) / 1000L).coerceAtLeast(0L)
                     Box(
                         modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 20.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.Black.copy(alpha = 0.72f))
-                            .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(14.dp))
+                            .align(Alignment.BottomEnd)
+                            .windowInsetsPadding(WindowInsets.navigationBars)
+                            .padding(end = 16.dp, bottom = 118.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.Black.copy(alpha = 0.78f))
+                            .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(12.dp))
                             .clickable { skipTo(iv.endMs) }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                     ) {
                         Column {
                             Text(
                                 kind.uppercase(),
-                                color = Color.White.copy(alpha = 0.45f),
+                                color = PlayerChrome.Faint,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.sp,
                             )
-                            Text(label, color = PlayerChrome.Paper, fontWeight = FontWeight.SemiBold)
+                            Text(label, color = PlayerChrome.Paper, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             Text(
                                 "${remaining}s",
-                                color = Color.White.copy(alpha = 0.55f),
+                                color = PlayerChrome.Graphite,
                                 fontSize = 11.sp,
                             )
                         }
@@ -959,7 +954,8 @@ fun PlayerScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .windowInsetsPadding(WindowInsets.navigationBars)
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
                     val dur = durationMs.coerceAtLeast(1L).toFloat()
                     val progress = if (scrubbing) scrubValue else (positionMs / dur).coerceIn(0f, 1f)
@@ -968,11 +964,11 @@ fun PlayerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(formatClock(positionMs), color = PlayerChrome.Graphite, fontSize = 12.sp)
+                        Text(formatClock(positionMs), color = PlayerChrome.Graphite, fontSize = 11.sp)
                         Text(
                             "−${formatClock((durationMs - positionMs).coerceAtLeast(0L))}",
                             color = PlayerChrome.Graphite,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                         )
                     }
                     Box(modifier = Modifier.fillMaxWidth()) {
@@ -996,11 +992,15 @@ fun PlayerScreen(
                                 activeTrackColor = PlayerChrome.Paper,
                                 inactiveTrackColor = PlayerChrome.Faint,
                             ),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(28.dp),
                         )
                     }
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -1015,7 +1015,7 @@ fun PlayerScreen(
                         )
                         ToolChip(
                             icon = Icons.Rounded.ClosedCaption,
-                            label = subLabel.take(10),
+                            label = if (!subsEnabled || selectedTextId == "off") "CC off" else subLabel.take(8),
                             active = panel == Panel.Subs || panel == Panel.Style,
                             onClick = {
                                 panel = if (panel == Panel.Subs || panel == Panel.Style) {
@@ -1255,8 +1255,8 @@ private fun StyleSheet(
     onChange: (SubStyle) -> Unit,
     onBack: () -> Unit,
 ) {
-    val previewSp = (11f + (style.sizeFraction - SUB_SIZE_MIN) /
-        (SUB_SIZE_MAX - SUB_SIZE_MIN) * 14f).coerceIn(11f, 26f)
+    val previewSp = (10f + (style.sizeFraction - SUB_SIZE_MIN) /
+        (SUB_SIZE_MAX - SUB_SIZE_MIN) * 8f).coerceIn(10f, 18f)
     SheetTitle("Caption style")
     Text(
         "Back to tracks",
@@ -1281,11 +1281,11 @@ private fun StyleSheet(
     Spacer(modifier = Modifier.height(4.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         listOf(
-            0.028f to "XS",
-            0.036f to "S",
+            0.022f to "XS",
+            0.026f to "S",
             DEFAULT_SUB_SIZE_FRACTION to "M",
-            0.055f to "L",
-            0.068f to "XL",
+            0.040f to "L",
+            0.050f to "XL",
         ).forEach { (frac, label) ->
             ChoicePill(
                 label = label,
@@ -1819,7 +1819,7 @@ private fun applyTextSelection(
 private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
     val view = playerView?.subtitleView ?: return
     view.visibility = android.view.View.VISIBLE
-    val bg = if (style.background) AndroidColor.argb(160, 0, 0, 0) else AndroidColor.TRANSPARENT
+    val bg = if (style.background) AndroidColor.argb(150, 0, 0, 0) else AndroidColor.TRANSPARENT
     val window = AndroidColor.TRANSPARENT
     // Prefer a readable regular weight — bold + huge size was blowing out phones.
     view.setStyle(
@@ -1832,33 +1832,50 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
             Typeface.DEFAULT,
         ),
     )
-    // Absolute px from the real display height — fractional sizing against the
-    // Compose-hosted SubtitleView often resolved to ~0 and hid selected captions.
+    // Density + short-edge aware sizing so captions stay readable without dominating
+    // ~360dp phones or ~600–800dp tablets in portrait or landscape.
     val fraction = style.sizeFraction.coerceIn(SUB_SIZE_MIN, SUB_SIZE_MAX)
     val metrics = view.resources.displayMetrics
-    val basis = when {
+    val widthPx = when {
+        playerView.width > 0 -> playerView.width
+        view.width > 0 -> view.width
+        else -> metrics.widthPixels
+    }
+    val heightPx = when {
         playerView.height > 0 -> playerView.height
         view.height > 0 -> view.height
         else -> metrics.heightPixels
     }
-    val px = (basis * fraction).toInt().coerceIn(18, 96).toFloat()
+    val shortPx = minOf(widthPx, heightPx).coerceAtLeast(1)
+    val shortDp = shortPx / metrics.density
+    // Base sp tuned for compact phones; tablets get a modest bump, not a leap.
+    val baseSp = when {
+        shortDp < 400f -> 12.5f
+        shortDp < 600f -> 13.5f
+        shortDp < 800f -> 14.5f
+        else -> 15.5f
+    }
+    val scale = fraction / DEFAULT_SUB_SIZE_FRACTION
+    val px = (baseSp * scale * metrics.density).coerceIn(14f, 42f)
     view.setFixedTextSize(Cue.TEXT_SIZE_TYPE_ABSOLUTE, px)
     view.setBottomPaddingFraction(style.bottomPad.coerceIn(SUB_BOTTOM_MIN, SUB_BOTTOM_MAX))
 }
 
 private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     val storedFrac = if (prefs.contains("sub_size_frac")) {
+        // Cap older oversized prefs so phones don't keep huge captions.
         prefs.getFloat("sub_size_frac", DEFAULT_SUB_SIZE_FRACTION)
+            .coerceAtMost(0.055f)
     } else {
         // Migrate old absolute-sp preference into a viewport fraction.
         val legacySp = prefs.getFloat("sub_size", -1f)
         when {
             legacySp < 0f -> DEFAULT_SUB_SIZE_FRACTION
-            legacySp <= 16f -> 0.028f
-            legacySp <= 20f -> 0.036f
+            legacySp <= 16f -> 0.024f
+            legacySp <= 20f -> 0.028f
             legacySp <= 24f -> DEFAULT_SUB_SIZE_FRACTION
-            legacySp <= 30f -> 0.055f
-            else -> 0.068f
+            legacySp <= 30f -> 0.042f
+            else -> 0.048f
         }
     }
     return SubStyle(
@@ -1871,10 +1888,11 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     )
 }
 
-private const val DEFAULT_SUB_SIZE_FRACTION = 0.042f
-private const val SUB_SIZE_MIN = 0.024f
-private const val SUB_SIZE_MAX = 0.08f
-private const val DEFAULT_SUB_BOTTOM_PAD = 0.06f
+/** Default ~13sp on phones; style sheet XS–XL scales around this. */
+private const val DEFAULT_SUB_SIZE_FRACTION = 0.032f
+private const val SUB_SIZE_MIN = 0.020f
+private const val SUB_SIZE_MAX = 0.060f
+private const val DEFAULT_SUB_BOTTOM_PAD = 0.05f
 private const val SUB_BOTTOM_MIN = 0.02f
 private const val SUB_BOTTOM_MAX = 0.22f
 
