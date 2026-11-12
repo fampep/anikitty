@@ -1,11 +1,11 @@
 package site.anikitty.app.data.servers
 
 /**
- * Built-in watch servers users pick in the app (not third-party installs).
+ * A selectable stream source — bundled or a user-installed HTTP extension.
  *
- * Phone scrapes only enough to obtain a playable **request URL** (+ headers).
- * HLS download / bandwidth / playback stay on-device (Media3). The dedicated
- * Go auth server never carries stream bytes.
+ * Phone obtains a playable **request URL** (+ headers). HLS download /
+ * bandwidth / playback stay on-device (Media3). The dedicated Go auth server
+ * never carries stream bytes.
  */
 data class StreamServer(
     val id: String,
@@ -33,7 +33,7 @@ interface StreamResolver {
     val server: StreamServer
 
     /**
-     * Resolve a direct playable URL on-device.
+     * Resolve a direct playable URL on-device / via extension HTTP.
      * @param titleHint AniList / display title to help map the watch page.
      */
     suspend fun resolve(

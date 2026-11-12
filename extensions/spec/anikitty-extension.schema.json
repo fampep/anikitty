@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anikitty.app/schemas/anikitty-extension.schema.json",
+  "title": "AniKittyExtensionManifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "id", "name", "version", "baseUrl"],
+  "properties": {
+    "apiVersion": {
+      "type": "integer",
+      "const": 1,
+      "description": "Protocol version. Must be 1 for current AniKitty builds."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+      "description": "Stable reverse-DNS identifier."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 280
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri"
+    },
+    "baseUrl": {
+      "type": "string",
+      "pattern": "^https?://[^\\s/$.?#].[^\\s]*[^/]$",
+      "description": "HTTPS (preferred) origin with no trailing slash."
+    },
+    "resolvePath": {
+      "type": "string",
+      "pattern": "^/.*",
+      "default": "/v1/resolve"
+    },
+    "iconUrl": {
+      "type": ["string", "null"],
+      "format": "uri"
+    },
+    "nsfw": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

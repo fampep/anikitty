@@ -1,39 +1,115 @@
 package site.anikitty.app.data.servers
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import site.anikitty.app.data.extensions.ExtensionInstaller
+import site.anikitty.app.data.extensions.ExtensionManifest
+import site.anikitty.app.data.extensions.ExtensionRepository
+import site.anikitty.app.data.extensions.ExtensionStoreClient
+import site.anikitty.app.data.extensions.HttpExtensionResolver
+import site.anikitty.app.data.extensions.StoreIndex
 
 /**
- * First-party watch servers shipped in the APK.
- * Users select one — no GitHub / third-party extension install.
+ * Stream sources = optional bundled resolver + user-installed HTTP extensions.
+ * Auth VPS and Media3 playback stay first-party; scrapers move to extensions.
  */
 class ServerCatalog(context: Context) {
     private val prefs = context.getSharedPreferences("anikitty_servers", Context.MODE_PRIVATE)
     private val resolveCache = ResolveCache(context)
     private val megaPlayCrypto = MegaPlayCrypto(context)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    private val resolvers: List<StreamResolver> = listOf(
+    val extensions = ExtensionRepository(context)
+    val installer = ExtensionInstaller(extensions)
+    val storeClient = ExtensionStoreClient()
+
+    private val bundled: List<StreamResolver> = listOf(
         AnikotoServer(cache = resolveCache, crypto = megaPlayCrypto),
     )
+
+    private val _resolvers = MutableStateFlow(buildResolvers(extensions.installed.value))
+    val resolvers: StateFlow<List<StreamResolver>> = _resolvers.asStateFlow()
 
     private val _selectedId = MutableStateFlow(
         prefs.getString(KEY_SELECTED, AnikotoServer.ID) ?: AnikotoServer.ID,
     )
     val selectedId: StateFlow<String> = _selectedId.asStateFlow()
 
-    val servers: List<StreamServer> get() = resolvers.map { it.server }
+    val servers: List<StreamServer> get() = _resolvers.value.map { it.server }
+
+    init {
+        scope.launch {
+            extensions.installed.collect { installed ->
+                _resolvers.value = buildResolvers(installed)
+                ensureSelectionValid()
+            }
+        }
+    }
 
     fun select(id: String) {
-        if (resolvers.none { it.server.id == id }) return
+        if (_resolvers.value.none { it.server.id == id }) return
         prefs.edit().putString(KEY_SELECTED, id).apply()
         _selectedId.update { id }
     }
 
-    fun selectedResolver(): StreamResolver =
-        resolvers.firstOrNull { it.server.id == _selectedId.value } ?: resolvers.first()
+    fun selectedResolver(): StreamResolver {
+        val list = _resolvers.value
+        return list.firstOrNull { it.server.id == _selectedId.value }
+            ?: list.firstOrNull()
+            ?: error("No stream extensions installed")
+    }
+
+    fun uninstallExtension(id: String) {
+        if (bundled.any { it.server.id == id }) return
+        extensions.remove(id)
+        ensureSelectionValid()
+    }
+
+    suspend fun installFromGithub(url: String): ExtensionManifest =
+        installer.installFromGithub(url)
+
+    suspend fun installStoreListing(
+        github: String,
+        manifestPath: String?,
+    ): ExtensionManifest {
+        // Nested monorepo paths: prefer tree URL so locator hits the right raw file.
+        val input = if (!manifestPath.isNullOrBlank() &&
+            github.contains("github.com") &&
+            !github.contains("/tree/") &&
+            !github.contains("/blob/")
+        ) {
+            val base = github.trimEnd('/')
+            "$base/tree/main/${manifestPath.removeSuffix("/anikitty-extension.json").trim('/')}"
+        } else {
+            github
+        }
+        return installer.installFromGithub(input)
+    }
+
+    suspend fun fetchStore(): StoreIndex = storeClient.fetchIndex()
+
+    private fun buildResolvers(installed: List<ExtensionManifest>): List<StreamResolver> {
+        val fromExt = installed.map { HttpExtensionResolver(it) }
+        // Bundled Anikoto remains available until users rely fully on BYO extensions.
+        val bundledIds = bundled.map { it.server.id }.toSet()
+        val extras = fromExt.filterNot { it.server.id in bundledIds }
+        return bundled + extras
+    }
+
+    private fun ensureSelectionValid() {
+        val list = _resolvers.value
+        if (list.isEmpty()) return
+        if (list.none { it.server.id == _selectedId.value }) {
+            select(list.first().server.id)
+        }
+    }
 
     private companion object {
         const val KEY_SELECTED = "selected_server_id"
