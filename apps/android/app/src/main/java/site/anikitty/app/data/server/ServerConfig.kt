@@ -11,6 +11,6 @@ class ServerConfig(@Suppress("UNUSED_PARAMETER") context: Context) {
 
     companion object {
         /** Deployed VPS (not the Cloudflare-gated website hosts). */
-        const val DEFAULT = "http://198.50.123.153:8788"
+        const val DEFAULT = "http://143.246.203.212:8788"
     }
 }

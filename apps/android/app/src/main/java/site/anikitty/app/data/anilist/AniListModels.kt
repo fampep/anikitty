@@ -195,6 +195,17 @@ data class AniListViewer(
     val id: Int,
     val name: String,
     val avatarUrl: String? = null,
+    val bannerUrl: String? = null,
+    val about: String? = null,
+    val animeCount: Int = 0,
+    val episodesWatched: Int = 0,
+    val minutesWatched: Int = 0,
+    val meanScore: Double = 0.0,
+    val watching: Int = 0,
+    val completed: Int = 0,
+    val planning: Int = 0,
+    val paused: Int = 0,
+    val dropped: Int = 0,
 )
 
 data class AniListMediaListEntry(

@@ -103,7 +103,7 @@ cd apps/android
 
 Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName` / `versionCode`. Current: **1.1.21** / code **35**.
 
-Optional AniList sign-in is built in. From Account, tap **Sign in with AniList**. AniList sends the code to the VPS at `http://198.50.123.153:8788/api/v1/anilist/callback`, and the server returns the app to `anikitty://anilist`. The public client id is 56768. Put the client secret only in the server environment as `ANILIST_CLIENT_SECRET` (see `apps/dedicated-server/anilist.env.example`). Never commit it and never put it in the APK. On the AniList client, set Redirect URL to that callback exactly.
+Optional AniList sign-in is built in. From Account, tap **Sign in with AniList**. AniList sends the code to the VPS at `http://143.246.203.212:8788/api/v1/anilist/callback`, and the server returns the app to `anikitty://anilist`. The public client id is 56768. Put the client secret only in the server environment as `ANILIST_CLIENT_SECRET` (see `apps/dedicated-server/anilist.env.example`). Never commit it and never put it in the APK. On the AniList client, set Redirect URL to that callback exactly.
 
 Default dedicated server URL is locked in `ServerConfig.DEFAULT` (VPS). Release cleartext is permitted only for that host.
 

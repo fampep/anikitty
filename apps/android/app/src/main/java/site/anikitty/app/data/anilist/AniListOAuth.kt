@@ -15,7 +15,7 @@ import java.util.UUID
  * stays on the server.
  */
 object AniListOAuth {
-    const val REDIRECT_URI = "http://198.50.123.153:8788/api/v1/anilist/callback"
+    const val REDIRECT_URI = "http://143.246.203.212:8788/api/v1/anilist/callback"
     private const val AUTHORIZE = "https://anilist.co/api/v2/oauth/authorize"
     private const val PREFS = "anikitty_anilist_oauth"
     private const val KEY_STARTED_AT = "link_started_at_ms"

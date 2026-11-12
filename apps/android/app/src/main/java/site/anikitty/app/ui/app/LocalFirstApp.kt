@@ -173,6 +173,7 @@ fun LocalFirstApp(
     pendingAniListToken: String? = null,
     pendingAniListError: String? = null,
     onConsumedAniListToken: () -> Unit = {},
+    onAniListReady: () -> Unit = {},
     onSignOut: () -> Unit,
 ) {
     // Tab survives recreation; detail/player stack relies on configChanges in the manifest
@@ -224,21 +225,23 @@ fun LocalFirstApp(
                 screen = Screen.Tabs
                 tab = "settings"
                 if (aniListAuth.isLinked) {
-                    aniLinkStatus = "AniList already linked — unlink first to switch accounts"
+                    onAniListReady()
+                    aniLinkStatus = "Signed in as @${aniListAuth.username ?: "anilist"}"
                     onConsumedAniListToken()
                 } else {
-                    aniLinkStatus = "Linking AniList…"
+                    aniLinkStatus = "Signing in…"
                     aniLinkStatus = runCatching {
                         val viewer = aniList.viewer(pendingAniListToken)
-                            ?: error("Invalid AniList token")
+                            ?: error("AniList did not accept that sign-in")
                         aniListAuth.saveViewer(pendingAniListToken, viewer)
+                        onAniListReady()
                         val synced = runCatching { aniListSync.pull() }.getOrNull()
                         aniLinkTick++
                         if (synced != null) {
                             syncLabel = "Synced ${synced.imported} from AniList"
-                            "Linked @${viewer.name} · synced ${synced.imported} titles"
+                            "Signed in as @${viewer.name}"
                         } else {
-                            "Linked @${viewer.name}"
+                            "Signed in as @${viewer.name}"
                         }
                     }.getOrElse { e -> "Error: ${e.message}" }
                     onConsumedAniListToken()
@@ -495,7 +498,10 @@ private fun HomeFeed(
         history.filter {
             val s = it.listStatus?.uppercase()
             s == null || s == "CURRENT" || s == "REPEATING"
-        }.ifEmpty { history }.take(12)
+        }.take(12)
+    }
+    val completedShows = remember(history) {
+        history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }.take(12)
     }
 
     fun reload(fromPull: Boolean = false) {
@@ -639,10 +645,11 @@ private fun HomeFeed(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     lazyItems(continueWatching, key = { it.anilistId }) { entry ->
+                                        val nextEpisode = (entry.episode + 1).coerceAtLeast(1)
                                         KittyContinueCard(
                                             title = entry.title,
                                             coverUrl = entry.coverImageUrl,
-                                            episode = entry.episode,
+                                            episode = nextEpisode,
                                             positionMs = entry.positionMs,
                                             durationMs = entry.durationMs,
                                             badge = listStatusBadge(entry.listStatus),
@@ -658,7 +665,51 @@ private fun HomeFeed(
                                                             averageScore = null,
                                                             malId = entry.malId,
                                                         )
-                                                    onOpen(detail, entry.episode)
+                                                    val total = detail.episodes
+                                                    val play = if (total != null && total > 0) {
+                                                        nextEpisode.coerceAtMost(total)
+                                                    } else {
+                                                        nextEpisode
+                                                    }
+                                                    onOpen(detail, play)
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (completedShows.isNotEmpty()) {
+                        item {
+                            Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
+                                KittySectionHeading(title = "Completed")
+                                Spacer(modifier = Modifier.height(12.dp))
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    lazyItems(completedShows, key = { "done-${it.anilistId}" }) { entry ->
+                                        KittyContinueCard(
+                                            title = entry.title,
+                                            coverUrl = entry.coverImageUrl,
+                                            episode = entry.episode.coerceAtLeast(1),
+                                            positionMs = 0L,
+                                            durationMs = 0L,
+                                            badge = "Done",
+                                            onClick = {
+                                                scope.launch {
+                                                    val detail = aniList.media(entry.anilistId)
+                                                        ?: AnimeSummary(
+                                                            id = entry.anilistId,
+                                                            title = entry.title,
+                                                            coverImageUrl = entry.coverImageUrl,
+                                                            episodes = null,
+                                                            format = null,
+                                                            averageScore = null,
+                                                            malId = entry.malId,
+                                                        )
+                                                    onOpen(detail, null)
                                                 }
                                             },
                                         )
@@ -997,7 +1048,7 @@ private fun HistoryFeed(
         item {
             KittyPageHeader(
                 title = "Library",
-                subtitle = "Your favorites and history.",
+                subtitle = "Watching and completed, from AniList.",
                 trailing = if (aniListLinked) {
                     {
                         Button(
@@ -1020,12 +1071,8 @@ private fun HistoryFeed(
         if (history.isEmpty()) {
             item {
                 KittyEmptyState(
-                    title = if (aniListLinked) "No list entries yet" else "No history yet",
-                    body = if (aniListLinked) {
-                        "Pull Sync after linking, or start watching a title."
-                    } else {
-                        "Open something from Home or Search — it’ll land here."
-                    },
+                    title = "No list entries yet",
+                    body = "Your AniList watching and completed shows land here after sign-in.",
                 )
             }
         } else {
@@ -1125,6 +1172,152 @@ private fun HistoryRow(
 }
 
 @Composable
+private fun AniListProfileCard(
+    auth: AniListAuthStore,
+    fallbackName: String,
+    syncLabel: String?,
+) {
+    val name = auth.username?.takeIf { it.isNotBlank() } ?: fallbackName
+    val days = auth.minutesWatched / 1440
+    val score = if (auth.meanScore <= 0f) "—" else auth.meanScore.toInt().toString()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(KittyGlassShape)
+            .background(KittySurface)
+            .border(1.dp, KittyOutlineSoft, KittyGlassShape),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+            if (!auth.bannerUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = auth.bannerUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(KittySurfaceElevated),
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = (-28).dp)
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            if (!auth.avatarUrl.isNullOrBlank()) {
+                AsyncImage(
+                    model = auth.avatarUrl,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .border(2.dp, KittyPage, RoundedCornerShape(999.dp)),
+                    contentScale = ContentScale.Crop,
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittyAccent)
+                        .border(2.dp, KittyPage, RoundedCornerShape(999.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        name.take(1).uppercase(),
+                        color = KittyOnAccent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 24.sp,
+                    )
+                }
+            }
+            Column(modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)) {
+                Text(
+                    name,
+                    color = KittyText,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    "@$name",
+                    color = KittyMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .offset(y = (-12).dp)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 14.dp),
+        ) {
+            if (!auth.about.isNullOrBlank()) {
+                Text(
+                    auth.about.orEmpty(),
+                    color = KittyMuted,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ProfileStat(auth.animeCount.toString(), "Anime")
+                ProfileStat(auth.episodesWatched.toString(), "Episodes")
+                ProfileStat(days.toString(), "Days")
+                ProfileStat(score, "Score")
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                ProfileStat(auth.watchingCount.toString(), "Watching")
+                ProfileStat(auth.completedCount.toString(), "Completed")
+                ProfileStat(auth.planningCount.toString(), "Planning")
+                ProfileStat(auth.pausedCount.toString(), "Paused")
+                ProfileStat(auth.droppedCount.toString(), "Dropped")
+            }
+            if (!syncLabel.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    syncLabel,
+                    color = KittyFaint,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.ProfileStat(value: String, label: String) {
+    Column(
+        modifier = Modifier.weight(1f),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            value,
+            color = KittyText,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+        )
+        Text(
+            label,
+            color = KittyMuted,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun SettingsFeed(
     catalog: ServerCatalog,
     api: DedicatedApiClient,
@@ -1172,80 +1365,19 @@ private fun SettingsFeed(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(KittyGlassShape)
-                    .background(KittySurface)
-                    .border(1.dp, KittyOutlineSoft, KittyGlassShape)
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (!aniListAuth.avatarUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = aniListAuth.avatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(999.dp)),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .clip(RoundedCornerShape(999.dp))
-                            .background(KittyAccent),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            (aniListAuth.username ?: displayName.ifBlank { "A" }).take(1).uppercase(),
-                            color = KittyOnAccent,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 20.sp,
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(14.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        when {
-                            isLinked -> aniListAuth.username ?: "AniList"
-                            else -> displayName.ifBlank { "AniKitty viewer" }
-                        },
-                        color = KittyText,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Text(
-                        accountLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = KittyMuted,
-                    )
-                    if (isLinked) {
-                        Text(
-                            syncLabel ?: "AniList list syncs while you watch",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = KittyMuted,
-                        )
-                    }
-                    profile?.let {
-                        Text(
-                            "${it.favorites} favorites · ${it.comments} comments",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = KittyMuted,
-                        )
-                    }
-                }
-            }
+            AniListProfileCard(
+                auth = aniListAuth,
+                fallbackName = displayName.ifBlank { accountLabel }.ifBlank { "AniList" },
+                syncLabel = syncLabel,
+            )
         }
         item {
             KittySectionHeading(
                 title = "AniList",
                 subtitle = if (isLinked) {
-                    "Optional list sync · already linked"
+                    "Your list syncs when you sign in and while you watch"
                 } else {
-                    "Optional — link after you’re signed in"
+                    "Sign in to load your AniList profile"
                 },
                 padded = false,
             )
@@ -1260,7 +1392,7 @@ private fun SettingsFeed(
             ) {
                 if (isLinked) {
                     Text(
-                        "Progress pushes while you watch. Pull anytime to refresh your list.",
+                        "Watching continues at the next episode. Completed shows stay in your library.",
                         style = MaterialTheme.typography.bodySmall,
                         color = KittyMuted,
                     )
@@ -1285,16 +1417,11 @@ private fun SettingsFeed(
                             ),
                         ) { Text("Sync now", fontWeight = FontWeight.Bold) }
                         OutlinedButton(
-                            onClick = {
-                                aniListAuth.clear()
-                                onLinkTick()
-                                onSyncLabel(null)
-                                onLinkStatus("AniList unlinked")
-                            },
+                            onClick = onSignOut,
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, KittyOutlineSoft),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
-                        ) { Text("Unlink", fontWeight = FontWeight.SemiBold) }
+                        ) { Text("Sign out", fontWeight = FontWeight.SemiBold) }
                     }
                 } else {
                     Text(
@@ -1323,7 +1450,7 @@ private fun SettingsFeed(
                 }
             }
         }
-        item {
+        if (profile != null) item {
             KittySectionHeading(
                 title = "Display name",
                 subtitle = "Shown on comments · 2–24 characters",
