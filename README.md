@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.0.2"><img src="https://img.shields.io/badge/Pre--release-1.0.2-orange?style=for-the-badge" alt="Pre-release 1.0.2" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.0.3"><img src="https://img.shields.io/badge/Pre--release-1.0.3-orange?style=for-the-badge" alt="Pre-release 1.0.3" /></a>
   <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
   <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/github/license/fampep/anikitty?style=for-the-badge&color=0284c7" alt="License" /></a>
 </p>
@@ -20,7 +20,7 @@
 </p>
 
 > [!WARNING]
-> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases on a scheduled basis** — each drop is for early testing, not a finished product. Latest: [**v1.0.2 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.0.2).
+> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases on a scheduled basis** — each drop is for early testing, not a finished product. Latest: [**v1.0.3 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.0.3).
 
 <br />
 
@@ -29,7 +29,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server**.
 1. Sign in with **AniList** (list + progress sync) and/or a **password account** on your server  
 2. Browse AniList on-device  
 3. Pick a built-in **watch server** (e.g. Anikoto) — no third-party extension installs  
-4. The phone resolves a playable URL; Media3 streams on-device  
+4. The phone resolves a playable URL; Media3 streams on-device (with **Chromecast** when Play Services is available)  
 
 ---
 

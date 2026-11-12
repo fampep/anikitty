@@ -149,10 +149,19 @@ class AniListClient(
         }.getOrDefault(false)
     }
 
-    suspend fun trending(page: Int = 1, perPage: Int = 24): List<AnimeSummary> =
+    fun invalidateCache() {
+        cache?.clearAll()
+    }
+
+    suspend fun trending(
+        page: Int = 1,
+        perPage: Int = 24,
+        forceRefresh: Boolean = false,
+    ): List<AnimeSummary> =
         queryMedia(
             cacheKey = "trending:$page:$perPage",
             ttlMs = AniListCache.TTL_FEED_MS,
+            forceRefresh = forceRefresh,
             graphql = """
             query (${'$'}page: Int, ${'$'}perPage: Int) {
               Page(page: ${'$'}page, perPage: ${'$'}perPage) {
@@ -163,10 +172,15 @@ class AniListClient(
             variables = mapOf("page" to page, "perPage" to perPage),
         )
 
-    suspend fun popular(page: Int = 1, perPage: Int = 24): List<AnimeSummary> =
+    suspend fun popular(
+        page: Int = 1,
+        perPage: Int = 24,
+        forceRefresh: Boolean = false,
+    ): List<AnimeSummary> =
         queryMedia(
             cacheKey = "popular:$page:$perPage",
             ttlMs = AniListCache.TTL_FEED_MS,
+            forceRefresh = forceRefresh,
             graphql = """
             query (${'$'}page: Int, ${'$'}perPage: Int) {
               Page(page: ${'$'}page, perPage: ${'$'}perPage) {
@@ -177,10 +191,15 @@ class AniListClient(
             variables = mapOf("page" to page, "perPage" to perPage),
         )
 
-    suspend fun seasonal(page: Int = 1, perPage: Int = 24): List<AnimeSummary> =
+    suspend fun seasonal(
+        page: Int = 1,
+        perPage: Int = 24,
+        forceRefresh: Boolean = false,
+    ): List<AnimeSummary> =
         queryMedia(
             cacheKey = "seasonal:$page:$perPage",
             ttlMs = AniListCache.TTL_FEED_MS,
+            forceRefresh = forceRefresh,
             graphql = """
             query (${'$'}page: Int, ${'$'}perPage: Int) {
               Page(page: ${'$'}page, perPage: ${'$'}perPage) {
@@ -232,12 +251,17 @@ class AniListClient(
         ttlMs: Long,
         graphql: String,
         variables: Map<String, Any>,
+        forceRefresh: Boolean = false,
     ): List<AnimeSummary> = withContext(Dispatchers.IO) {
-        cache?.getList(cacheKey, ttlMs) { arr ->
-            buildList {
-                for (i in 0 until arr.length()) add(parseMedia(arr.getJSONObject(i)))
-            }
-        }?.let { return@withContext it }
+        if (forceRefresh) {
+            cache?.invalidate(cacheKey)
+        } else {
+            cache?.getList(cacheKey, ttlMs) { arr ->
+                buildList {
+                    for (i in 0 until arr.length()) add(parseMedia(arr.getJSONObject(i)))
+                }
+            }?.let { return@withContext it }
+        }
 
         val payload = JSONObject()
             .put("query", graphql)

@@ -52,9 +52,10 @@ class AnikotoServer(
         val embeds = prioritizeEmbeds(resolveServerEmbeds(ep.ids, mode, mapped.watchUrl))
         val out = ArrayList<PlayableSource>()
         val seen = HashSet<String>()
-        // Collect a few working embeds so the player can fall back if one CDN flakes.
+        // Collect every labeled quality we can (1080p / 720p / …) across embeds so
+        // the player quality sheet can list them all, with CDN fallbacks.
         var lastResolveError: String? = null
-        for ((embedUrl, label) in embeds.take(6)) {
+        for ((embedUrl, label) in embeds.take(8)) {
             runCatching { resolveEmbed(embedUrl, referer) }
                 .onSuccess { resolved ->
                     if (!probeMaster(resolved.file, resolved.origin)) {
@@ -76,12 +77,13 @@ class AnikotoServer(
                     }
                 }
                 .onFailure { lastResolveError = it.message }
-            if (out.size >= 3) break
+            if (out.size >= 16) break
         }
         if (out.isEmpty()) {
             error(lastResolveError ?: "No playable $mode sources")
         }
-        out
+        // Highest resolution first so 1080p (when present) is the default pick.
+        out.sortedByDescending { qualityHeight(it.label) }
     }
 
     /** Cheap GET on the master playlist with MegaPlay referer — skip dead CDNs early. */
@@ -303,25 +305,64 @@ class AnikotoServer(
 
     private fun extractLabeled(data: JSONObject): List<Pair<String, String>> {
         val out = ArrayList<Pair<String, String>>()
+        val seen = HashSet<String>()
         fun addFrom(obj: JSONObject) {
             val url = obj.optString("file").ifBlank { obj.optString("url") }
-            if (!url.startsWith("http")) return
+            if (!url.startsWith("http") || !seen.add(url)) return
             val quality = obj.optString("quality")
                 .ifBlank { obj.optString("label") }
+                .ifBlank { obj.optString("res") }
+                .ifBlank { obj.optString("resolution") }
                 .ifBlank { obj.optString("type") }
                 .ifBlank { "Stream" }
             out += url to quality
         }
-        when (val sources = data.opt("sources")) {
-            is JSONArray -> for (i in 0 until sources.length()) {
-                sources.optJSONObject(i)?.let(::addFrom)
+        fun absorb(sources: Any?) {
+            when (sources) {
+                is JSONArray -> for (i in 0 until sources.length()) {
+                    sources.optJSONObject(i)?.let(::addFrom)
+                }
+                is JSONObject -> {
+                    // Single file object OR map of quality → url/object.
+                    if (sources.has("file") || sources.has("url")) {
+                        addFrom(sources)
+                    } else {
+                        val keys = sources.keys()
+                        while (keys.hasNext()) {
+                            val key = keys.next()
+                            when (val v = sources.opt(key)) {
+                                is JSONObject -> addFrom(v)
+                                is String -> if (v.startsWith("http") && seen.add(v)) {
+                                    out += v to key
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            is JSONObject -> addFrom(sources)
+        }
+        absorb(data.opt("sources"))
+        absorb(data.opt("source"))
+        if (out.isEmpty()) {
+            val enc = data.optString("enc")
+            if (enc.isNotBlank()) {
+                val origin = data.optString("_anikittyOrigin").ifBlank { "https://megaplay.buzz" }
+                val decrypted = runCatching { crypto.decryptEnc(enc, origin) }.getOrNull()
+                if (decrypted != null) {
+                    absorb(decrypted.opt("sources"))
+                    absorb(decrypted.opt("source"))
+                    if (out.isEmpty()) {
+                        decrypted.optString("file").takeIf { it.startsWith("http") }?.let {
+                            out += it to "Stream"
+                        }
+                    }
+                }
+            }
         }
         if (out.isEmpty()) {
             extractFile(data)?.let { out += it to "Stream" }
         }
-        return out
+        return out.sortedByDescending { qualityHeight(it.second) }
     }
 
     private fun fetchText(url: String, referer: String): String {
@@ -603,7 +644,21 @@ class AnikotoServer(
                 s.isEmpty() && (q.isEmpty() || q.equals("stream", true)) -> "Anikoto"
                 s.isEmpty() -> q
                 q.isEmpty() || q.equals("stream", true) -> s
-                else -> "$s $q"
+                else -> "$s · $q"
+            }
+        }
+
+        /** Parse 1080 / 720 / "1080p" style labels for sorting highest-first. */
+        private fun qualityHeight(label: String): Int {
+            Regex("""(\d{3,4})\s*p""", RegexOption.IGNORE_CASE).find(label)?.groupValues?.get(1)
+                ?.toIntOrNull()?.let { return it }
+            Regex("""\b(2160|1440|1080|720|480|360|240)\b""").find(label)?.groupValues?.get(1)
+                ?.toIntOrNull()?.let { return it }
+            return when {
+                label.contains("ultra", true) || label.contains("4k", true) -> 2160
+                label.contains("hd", true) || label.contains("high", true) -> 1080
+                label.contains("sd", true) || label.contains("low", true) -> 480
+                else -> 0
             }
         }
 

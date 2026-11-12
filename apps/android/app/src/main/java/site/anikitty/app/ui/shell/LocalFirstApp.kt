@@ -339,10 +339,11 @@ private fun HomeFeed(
             if (fromPull) refreshing = true else loading = true
             error = null
             runCatching {
+                if (fromPull) aniList.invalidateCache()
                 coroutineScope {
-                    val t = async { aniList.trending() }
-                    val p = async { aniList.popular() }
-                    val s = async { aniList.seasonal() }
+                    val t = async { aniList.trending(forceRefresh = fromPull) }
+                    val p = async { aniList.popular(forceRefresh = fromPull) }
+                    val s = async { aniList.seasonal(forceRefresh = fromPull) }
                     trending = t.await()
                     popular = p.await()
                     seasonal = s.await()
@@ -432,11 +433,21 @@ private fun HomeFeed(
                                 onClick = { if (!refreshing) reload(fromPull = true) },
                                 enabled = !refreshing,
                             ) {
-                                Text(
-                                    if (refreshing) "Refreshing…" else "Refresh catalog",
-                                    color = KittyFaint,
-                                    fontSize = 12.sp,
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (refreshing) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(12.dp),
+                                            strokeWidth = 1.5.dp,
+                                            color = KittyFaint,
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                    }
+                                    Text(
+                                        if (refreshing) "Refreshing…" else "Refresh catalog",
+                                        color = KittyFaint,
+                                        fontSize = 12.sp,
+                                    )
+                                }
                             }
                         }
                     }

@@ -51,6 +51,17 @@ class AniListCache(context: Context) {
         put(key, rawResponse)
     }
 
+    /** Drop feed/search/media entries so the next fetch hits the network. */
+    fun clearAll() {
+        memory.clear()
+        prefs.edit().clear().apply()
+    }
+
+    fun invalidate(key: String) {
+        memory.remove(key)
+        prefs.edit().remove("$key.body").remove("$key.at").apply()
+    }
+
     private fun trimIfNeeded() {
         val all = prefs.all
         if (all.size <= MAX_ENTRIES * 2) return

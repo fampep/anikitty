@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AniKitty" parent="android:Theme.Material.NoActionBar">
+    <!-- AppCompat parent required so MediaRouteButton / Cast dialogs inflate cleanly. -->
+    <style name="Theme.AniKitty" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@android:color/black</item>
         <item name="android:statusBarColor">@android:color/black</item>
         <item name="android:navigationBarColor">@android:color/black</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="colorPrimary">#F4F0EA</item>
+        <item name="colorPrimaryDark">#0B0B0C</item>
+        <item name="colorAccent">#F4F0EA</item>
     </style>
 </resources>
