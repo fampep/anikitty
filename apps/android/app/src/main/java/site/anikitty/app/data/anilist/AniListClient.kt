@@ -57,6 +57,34 @@ class AniListClient(
     private val mediaDetailFields = """
         $mediaFields
         streamingEpisodes { title thumbnail url site }
+        characters(perPage: 12, sort: [ROLE, RELEVANCE]) {
+          edges {
+            role
+            node { id name { full } image { large } }
+          }
+        }
+        staff(perPage: 8, sort: [RELEVANCE]) {
+          edges {
+            role
+            node { id name { full } image { large } }
+          }
+        }
+        isFavourite
+        nextAiringEpisode { episode airingAt }
+        mediaListEntry { status progress score }
+        recommendations(perPage: 12, sort: RATING_DESC) {
+          nodes {
+            mediaRecommendation {
+              id
+              type
+              title { romaji english }
+              coverImage { large }
+              format
+              episodes
+              averageScore
+            }
+          }
+        }
         relations {
           edges {
             relationType
@@ -213,6 +241,48 @@ class AniListClient(
         }.getOrDefault(false)
     }
 
+    /** Update list status and/or score without touching episode progress. Score is 0–100. */
+    suspend fun saveList(
+        accessToken: String,
+        mediaId: Int,
+        status: String? = null,
+        score: Int? = null,
+    ): Boolean = withContext(Dispatchers.IO) {
+        val decls = mutableListOf("\$mediaId: Int")
+        val args = mutableListOf("mediaId: \$mediaId")
+        val variables = JSONObject().put("mediaId", mediaId)
+        if (status != null) {
+            decls += "\$status: MediaListStatus"
+            args += "status: \$status"
+            variables.put("status", status)
+        }
+        if (score != null) {
+            decls += "\$score: Float"
+            args += "score: \$score"
+            variables.put("score", score)
+        }
+        val graphql = """
+            mutation (${decls.joinToString(", ")}) {
+              SaveMediaListEntry(${args.joinToString(", ")}) {
+                id
+                status
+                score
+                progress
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject()
+            .put("query", graphql)
+            .put("variables", variables)
+            .toString()
+        runCatching {
+            val body = execute(payload, accessToken)
+            val root = JSONObject(body)
+            val errors = root.optJSONArray("errors")
+            errors == null && root.optJSONObject("data")?.optJSONObject("SaveMediaListEntry") != null
+        }.getOrDefault(false)
+    }
+
     fun invalidateCache() {
         cache?.clearAll()
     }
@@ -287,6 +357,9 @@ class AniListClient(
         status: String? = null,
         season: String? = null,
         genre: String? = null,
+        tag: String? = null,
+        seasonYear: Int? = null,
+        country: String? = null,
         sort: String = "POPULARITY_DESC",
         page: Int = 1,
         perPage: Int = 24,
@@ -324,8 +397,34 @@ class AniListClient(
             args += "genre: \$genre"
             variables["genre"] = it
         }
-        val key = listOf(trimmed.lowercase(), format, status, season, genre, sort, page, perPage)
-            .joinToString("|")
+        tag?.let {
+            decls += "\$tag: String"
+            args += "tag: \$tag"
+            variables["tag"] = it
+        }
+        seasonYear?.let {
+            decls += "\$seasonYear: Int"
+            args += "seasonYear: \$seasonYear"
+            variables["seasonYear"] = it
+        }
+        country?.let {
+            decls += "\$country: CountryCode"
+            args += "countryOfOrigin: \$country"
+            variables["country"] = it
+        }
+        val key = listOf(
+            trimmed.lowercase(),
+            format,
+            status,
+            season,
+            genre,
+            tag,
+            seasonYear,
+            country,
+            sort,
+            page,
+            perPage,
+        ).joinToString("|")
         return queryMedia(
             cacheKey = "browse:$key",
             ttlMs = AniListCache.TTL_SEARCH_MS,
@@ -391,11 +490,14 @@ class AniListClient(
         slots.sortedBy { it.airingAtEpochSec }
     }
 
-    suspend fun media(id: Int): AnimeSummary? = withContext(Dispatchers.IO) {
-        val cacheKey = "mediaDetail:v3:$id"
-        cache?.get(cacheKey, AniListCache.TTL_MEDIA_MS)?.let { body ->
-            val media = JSONObject(body).optJSONObject("data")?.optJSONObject("Media")
-            if (media != null) return@withContext parseMedia(media, detail = true)
+    suspend fun media(id: Int, accessToken: String? = null): AnimeSummary? = withContext(Dispatchers.IO) {
+        val authed = !accessToken.isNullOrBlank()
+        val cacheKey = "mediaDetail:v4:$id"
+        if (!authed) {
+            cache?.get(cacheKey, AniListCache.TTL_MEDIA_MS)?.let { body ->
+                val media = JSONObject(body).optJSONObject("data")?.optJSONObject("Media")
+                if (media != null) return@withContext parseMedia(media, detail = true)
+            }
         }
         val graphql = """
             query (${'$'}id: Int) {
@@ -406,11 +508,67 @@ class AniListClient(
             .put("query", graphql)
             .put("variables", JSONObject().put("id", id))
             .toString()
-        val body = execute(payload, accessToken = null)
-        cache?.put(cacheKey, body)
+        val body = execute(payload, accessToken)
+        if (!authed) cache?.put(cacheKey, body)
         val media = JSONObject(body).optJSONObject("data")?.optJSONObject("Media")
             ?: return@withContext null
         parseMedia(media, detail = true)
+    }
+
+    /** AniList favourite toggle. Throws when the request fails. */
+    suspend fun toggleFavourite(accessToken: String, animeId: Int) = withContext(Dispatchers.IO) {
+        val graphql = """
+            mutation (${'$'}id: Int) {
+              ToggleFavourite(animeId: ${'$'}id) {
+                anime { nodes { id } }
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject()
+            .put("query", graphql)
+            .put("variables", JSONObject().put("id", animeId))
+            .toString()
+        val body = execute(payload, accessToken)
+        val errors = JSONObject(body).optJSONArray("errors")
+        if (errors != null && errors.length() > 0) {
+            val message = errors.optJSONObject(0)?.optString("message").orEmpty()
+            throw IllegalStateException(message.ifBlank { "Could not update favourite" })
+        }
+    }
+
+    suspend fun favourites(accessToken: String): List<AnimeSummary> = withContext(Dispatchers.IO) {
+        val graphql = """
+            query {
+              Viewer {
+                favourites {
+                  anime(page: 1, perPage: 25) {
+                    nodes {
+                      id
+                      type
+                      title { romaji english }
+                      coverImage { large }
+                      format
+                      episodes
+                      averageScore
+                    }
+                  }
+                }
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject().put("query", graphql).toString()
+        val body = execute(payload, accessToken)
+        val nodes = JSONObject(body)
+            .optJSONObject("data")
+            ?.optJSONObject("Viewer")
+            ?.optJSONObject("favourites")
+            ?.optJSONObject("anime")
+            ?.optJSONArray("nodes")
+            ?: return@withContext emptyList()
+        nodes.toObjectList().mapNotNull { node ->
+            if (node.optJSONObject("title") == null) return@mapNotNull null
+            parseMedia(node)
+        }
     }
 
     private suspend fun queryMedia(
@@ -514,6 +672,20 @@ class AniListClient(
         }
     }
 
+    private fun JSONArray?.toPeople(): List<AnimePerson> {
+        if (this == null) return emptyList()
+        return toObjectList().mapNotNull { edge ->
+            val node = edge.optJSONObject("node") ?: return@mapNotNull null
+            val name = node.optJSONObject("name")?.nullableString("full") ?: return@mapNotNull null
+            AnimePerson(
+                id = node.optInt("id"),
+                name = name,
+                imageUrl = node.optJSONObject("image")?.nullableString("large"),
+                role = edge.nullableString("role"),
+            )
+        }
+    }
+
     private fun parseMedia(item: JSONObject, detail: Boolean = false): AnimeSummary {
         val titles = item.getJSONObject("title")
         val romaji = titles.nullableString("romaji")
@@ -591,6 +763,58 @@ class AniListClient(
         } else {
             emptyList()
         }
+        val characters = if (detail) {
+            item.optJSONObject("characters")?.optJSONArray("edges").toPeople()
+        } else {
+            emptyList()
+        }
+        val staff = if (detail) {
+            item.optJSONObject("staff")?.optJSONArray("edges").toPeople()
+        } else {
+            emptyList()
+        }
+        val nextAiring = if (detail) {
+            item.optJSONObject("nextAiringEpisode")?.let { next ->
+                val episode = next.optInt("episode")
+                val at = next.optLong("airingAt")
+                if (episode > 0 && at > 0L) NextAiring(episode, at) else null
+            }
+        } else {
+            null
+        }
+        val listState = if (detail) {
+            item.optJSONObject("mediaListEntry")?.let { entry ->
+                val entryStatus = entry.nullableString("status") ?: return@let null
+                val score = if (entry.has("score") && !entry.isNull("score")) {
+                    entry.optDouble("score").toInt()
+                } else {
+                    0
+                }
+                AnimeListState(
+                    status = entryStatus,
+                    progress = entry.optInt("progress"),
+                    score = score.coerceIn(0, 100),
+                )
+            }
+        } else {
+            null
+        }
+        val recommendations = if (detail) {
+            item.optJSONObject("recommendations")
+                ?.optJSONArray("nodes")
+                ?.toObjectList()
+                ?.mapNotNull { node ->
+                    val media = node.optJSONObject("mediaRecommendation") ?: return@mapNotNull null
+                    if (media.optString("type").let { it.isNotEmpty() && it != "ANIME" }) return@mapNotNull null
+                    if (media.optJSONObject("title") == null) return@mapNotNull null
+                    parseMedia(media)
+                }
+                .orEmpty()
+                .distinctBy { it.id }
+                .take(12)
+        } else {
+            emptyList()
+        }
         return AnimeSummary(
             id = item.getInt("id"),
             title = title,
@@ -616,6 +840,12 @@ class AniListClient(
             externalLinks = links,
             relations = relations,
             streamingEpisodes = streaming,
+            characters = characters,
+            staff = staff,
+            recommendations = recommendations,
+            nextAiring = nextAiring,
+            listState = listState,
+            isFavourite = item.optBoolean("isFavourite", false),
             detailLoaded = detail,
         )
     }
