@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Fullscreen
@@ -55,6 +56,8 @@ import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.Speed
+import androidx.media3.cast.SessionAvailabilityListener
+import site.anikitty.app.cast.CastSessionHelper
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
@@ -69,6 +72,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -140,6 +144,16 @@ private data class TextOption(
     val trackIndex: Int = 0,
 )
 
+/** HLS / progressive video variants the user can lock (1080p, 720p, …). */
+private data class VideoOption(
+    val id: String,
+    val label: String,
+    val height: Int = 0,
+    val width: Int = 0,
+    val mediaGroup: TrackGroup? = null,
+    val trackIndex: Int = 0,
+)
+
 /**
  * Full-bleed anime player with custom chrome:
  * immersive fullscreen, quality + subtitle pickers, caption style, skip chips.
@@ -186,14 +200,19 @@ fun PlayerScreen(
     var subsEnabled by remember { mutableStateOf(true) }
     var selectedTextId by remember { mutableStateOf("auto") }
     var textOptions by remember { mutableStateOf<List<TextOption>>(emptyList()) }
+    var selectedVideoId by remember { mutableStateOf("auto") }
+    var videoOptions by remember { mutableStateOf<List<VideoOption>>(emptyList()) }
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
     var controlsLocked by remember { mutableStateOf(false) }
     var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
+    var isCasting by remember { mutableStateOf(false) }
+    var castHint by remember { mutableStateOf<String?>(null) }
 
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
     val skipClient = remember { SkipTimesClient() }
+    val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
 
     fun closePanelOrExit() {
         if (panel != Panel.None) {
@@ -286,6 +305,75 @@ fun PlayerScreen(
     }
     val player = playerBundle?.player
     val trackSelector = playerBundle?.trackSelector
+    val activePlayer: Player? = if (isCasting) castHelper?.castPlayer else player
+    val latestPlayer by rememberUpdatedState(player)
+    val latestSources by rememberUpdatedState(sources)
+    val latestSourceIndex by rememberUpdatedState(sourceIndex)
+    val latestTitle by rememberUpdatedState(title)
+    val latestEpisode by rememberUpdatedState(episode)
+    val latestPosition by rememberUpdatedState(positionMs)
+
+    DisposableEffect(castHelper) {
+        val helper = castHelper
+        if (helper == null) {
+            onDispose { }
+        } else {
+            helper.setAvailabilityListener(object : SessionAvailabilityListener {
+                override fun onCastSessionAvailable() {
+                    val src = latestSources.getOrNull(latestSourceIndex) ?: return
+                    val local = latestPlayer
+                    val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition
+                    local?.pause()
+                    runCatching {
+                        helper.load(src, latestTitle, latestEpisode, pos)
+                        isCasting = true
+                        castHint = null
+                        controlsVisible = true
+                    }.onFailure {
+                        castHint = "Cast failed — this stream may need headers the TV can't send"
+                        isCasting = false
+                    }
+                }
+
+                override fun onCastSessionUnavailable() {
+                    val pos = runCatching {
+                        helper.castPlayer.currentPosition.coerceAtLeast(0L)
+                    }.getOrDefault(latestPosition)
+                    helper.stopCasting()
+                    isCasting = false
+                    val local = latestPlayer
+                    if (pos > 1_000L) {
+                        local?.seekTo(pos)
+                        positionMs = pos
+                    }
+                    local?.play()
+                    controlsVisible = true
+                }
+            })
+            onDispose {
+                helper.setAvailabilityListener(null)
+                helper.release()
+            }
+        }
+    }
+
+    // When quality/episode changes mid-cast, push the new URL to the TV.
+    // First load is handled by SessionAvailabilityListener.
+    LaunchedEffect(source?.url, episode) {
+        if (!isCasting) return@LaunchedEffect
+        val helper = castHelper ?: return@LaunchedEffect
+        val src = source ?: return@LaunchedEffect
+        val pos = helper.castPlayer.currentPosition.coerceAtLeast(0L)
+            .takeIf { it > 0L } ?: positionMs
+        runCatching { helper.load(src, title, episode, pos) }
+            .onFailure { castHint = "Couldn't load this quality on Cast" }
+    }
+
+    LaunchedEffect(castHint) {
+        if (castHint == null) return@LaunchedEffect
+        delay(4_200)
+        castHint = null
+    }
 
     LaunchedEffect(player, playbackSpeed) {
         player?.playbackParameters = PlaybackParameters(playbackSpeed)
@@ -301,6 +389,7 @@ fun PlayerScreen(
         ready = false
         error = null
         textOptions = emptyList()
+        videoOptions = emptyList()
         val activePlayer = playerBundle?.player
         val activeSelector = playerBundle?.trackSelector
         val listener = object : Player.Listener {
@@ -328,8 +417,12 @@ fun PlayerScreen(
                 val options = buildTextOptions(tracks, source?.subtitles.orEmpty())
                 textOptions = options
                 selectedTextId = rematchTextId(selectedTextId, options)
+                val vids = buildVideoOptions(tracks)
+                videoOptions = vids
+                selectedVideoId = rematchVideoId(selectedVideoId, vids)
                 if (activeSelector != null) {
                     applyTextSelection(activeSelector, selectedTextId, options, subsEnabled)
+                    applyVideoSelection(activeSelector, selectedVideoId, vids)
                 }
             }
 
@@ -393,6 +486,11 @@ fun PlayerScreen(
         applyTextSelection(selector, selectedTextId, textOptions, subsEnabled)
     }
 
+    LaunchedEffect(selectedVideoId, videoOptions, trackSelector) {
+        val selector = trackSelector ?: return@LaunchedEffect
+        applyVideoSelection(selector, selectedVideoId, videoOptions)
+    }
+
     LaunchedEffect(subStyle, playerViewRef) {
         applyCaptionStyle(playerViewRef, subStyle)
         context.getSharedPreferences("anikitty_player", 0).edit()
@@ -404,19 +502,24 @@ fun PlayerScreen(
             .apply()
     }
 
-    LaunchedEffect(player, scrubbing) {
+    LaunchedEffect(activePlayer, scrubbing, isCasting) {
         var ticks = 0
-        while (player != null) {
+        val p = activePlayer
+        while (p != null) {
             if (!scrubbing) {
-                positionMs = player.currentPosition.coerceAtLeast(0L)
-                val d = player.duration
+                positionMs = p.currentPosition.coerceAtLeast(0L)
+                val d = p.duration
                 if (d > 0) durationMs = d
+                playing = p.isPlaying
+                ready = p.playbackState == Player.STATE_READY ||
+                    p.playbackState == Player.STATE_BUFFERING ||
+                    isCasting
                 val active = skipTimes.activeAt(positionMs)
-                if (active != null) {
+                if (active != null && !isCasting) {
                     val (kind, iv) = active
                     if (kind == "recap" && !autoSkippedRecap) {
                         autoSkippedRecap = true
-                        player.seekTo(iv.endMs)
+                        p.seekTo(iv.endMs)
                         positionMs = iv.endMs
                     }
                 }
@@ -449,15 +552,15 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(controlsVisible, playing, scrubbing, panel) {
+    LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting) {
         if (controlsVisible && playing && !scrubbing && panel == Panel.None) {
-            delay(3_600)
+            delay(if (isCasting) 5_500 else 3_600)
             controlsVisible = false
         }
     }
 
     fun seekBy(deltaMs: Long) {
-        val p = player ?: return
+        val p = activePlayer ?: return
         val target = (p.currentPosition + deltaMs).coerceIn(0L, p.duration.coerceAtLeast(0L))
         p.seekTo(target)
         positionMs = target
@@ -466,7 +569,7 @@ fun PlayerScreen(
     }
 
     fun skipTo(endMs: Long) {
-        val p = player ?: return
+        val p = activePlayer ?: return
         p.seekTo(endMs.coerceIn(0L, p.duration.coerceAtLeast(0L)))
         positionMs = endMs
         controlsVisible = true
@@ -474,16 +577,26 @@ fun PlayerScreen(
 
     fun pickQuality(index: Int) {
         if (index == sourceIndex || index !in sources.indices) return
-        resumeAtMs = player?.currentPosition?.coerceAtLeast(0L) ?: positionMs
+        resumeAtMs = activePlayer?.currentPosition?.coerceAtLeast(0L) ?: positionMs
         didSeekStart = false
         allowHistoryFallback = false
+        // Keep the user's resolution lock across mirror switches when possible.
         sourceIndex = index
         panel = Panel.None
         controlsVisible = true
     }
 
     val activeSkip = skipTimes.activeAt(positionMs)
-    val qualityLabel = source?.label ?: "Quality"
+    val qualityLabel = when {
+        selectedVideoId != "auto" ->
+            videoOptions.firstOrNull { it.id == selectedVideoId }?.label ?: selectedVideoId
+        videoOptions.any { it.height >= 1080 } -> "Auto · 1080p"
+        videoOptions.any { it.height > 0 } -> {
+            val best = videoOptions.filter { it.height > 0 }.maxByOrNull { it.height }
+            "Auto · ${best?.label ?: "HD"}"
+        }
+        else -> source?.label ?: "Quality"
+    }
     val subLabel = when {
         !subsEnabled -> "Off"
         selectedTextId == "auto" -> "Auto"
@@ -538,7 +651,7 @@ fun PlayerScreen(
                 )
             }
         }
-        if (player != null && error == null) {
+        if (player != null && error == null && !isCasting) {
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
@@ -564,10 +677,57 @@ fun PlayerScreen(
             )
         }
 
-        if (!ready && error == null) {
+        if (isCasting) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Icon(
+                    Icons.Rounded.CastConnected,
+                    contentDescription = null,
+                    tint = PlayerChrome.Paper,
+                    modifier = Modifier.size(56.dp),
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    "Casting to your TV",
+                    color = PlayerChrome.Paper,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    "EP $episode · $title",
+                    color = PlayerChrome.Graphite,
+                    fontSize = 13.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+
+        if (!ready && error == null && !isCasting) {
             CircularProgressIndicator(
                 modifier = Modifier.align(Alignment.Center),
                 color = PlayerChrome.Paper,
+            )
+        }
+
+        if (castHint != null) {
+            Text(
+                castHint!!,
+                color = PlayerChrome.Paper,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 72.dp, start = 20.dp, end = 20.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.Black.copy(alpha = 0.78f))
+                    .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
             )
         }
 
@@ -679,6 +839,19 @@ fun PlayerScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
+                    if (castHelper != null) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.45f))
+                                .border(1.dp, PlayerChrome.DiscStroke, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CastRouteButton()
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
                     ChromeDisc(onClick = {
                         controlsLocked = true
                         panel = Panel.None
@@ -724,7 +897,7 @@ fun PlayerScreen(
                                 .clip(CircleShape)
                                 .background(PlayerChrome.Paper)
                                 .clickable {
-                                    player?.let {
+                                    activePlayer?.let {
                                         if (it.isPlaying) it.pause() else it.play()
                                     }
                                     controlsVisible = true
@@ -814,7 +987,7 @@ fun PlayerScreen(
                                 controlsVisible = true
                             },
                             onValueChangeFinished = {
-                                player?.seekTo((scrubValue * durationMs).toLong())
+                                activePlayer?.seekTo((scrubValue * durationMs).toLong())
                                 positionMs = (scrubValue * durationMs).toLong()
                                 scrubbing = false
                             },
@@ -885,9 +1058,16 @@ fun PlayerScreen(
                     ) {
                         when (panel) {
                             Panel.Quality -> QualitySheet(
+                                videoOptions = videoOptions,
+                                selectedVideoId = selectedVideoId,
+                                onPickVideo = {
+                                    selectedVideoId = it
+                                    panel = Panel.None
+                                    controlsVisible = true
+                                },
                                 sources = sources,
-                                selected = sourceIndex,
-                                onPick = ::pickQuality,
+                                selectedSource = sourceIndex,
+                                onPickSource = ::pickQuality,
                             )
                             Panel.Subs -> SubsSheet(
                                 enabled = subsEnabled,
@@ -970,21 +1150,55 @@ private fun SpeedSheet(speed: Float, onPick: (Float) -> Unit) {
 
 @Composable
 private fun QualitySheet(
+    videoOptions: List<VideoOption>,
+    selectedVideoId: String,
+    onPickVideo: (String) -> Unit,
     sources: List<PlayableSource>,
-    selected: Int,
-    onPick: (Int) -> Unit,
+    selectedSource: Int,
+    onPickSource: (Int) -> Unit,
 ) {
-    SheetTitle("Quality")
+    SheetTitle("Resolution")
+    Spacer(modifier = Modifier.height(6.dp))
+    Text(
+        "Pick 1080p / 720p / … when the stream offers them",
+        color = PlayerChrome.Graphite,
+        fontSize = 12.sp,
+    )
     Spacer(modifier = Modifier.height(10.dp))
-    if (sources.isEmpty()) {
-        Text("No sources", color = PlayerChrome.Graphite, fontSize = 13.sp)
-        return
+    val resolutions = videoOptions.ifEmpty {
+        listOf(VideoOption(id = "auto", label = "Auto (best available)"))
     }
-    sources.forEachIndexed { index, src ->
+    resolutions.forEach { opt ->
         SheetRow(
-            label = src.label,
-            selected = index == selected,
-            onClick = { onPick(index) },
+            label = opt.label,
+            selected = selectedVideoId == opt.id ||
+                (opt.id == "auto" && selectedVideoId == "auto"),
+            onClick = { onPickVideo(opt.id) },
+        )
+    }
+    if (sources.size > 1) {
+        Spacer(modifier = Modifier.height(16.dp))
+        SheetTitle("Source")
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            "Alternate mirrors for this episode",
+            color = PlayerChrome.Graphite,
+            fontSize = 12.sp,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        sources.forEachIndexed { index, src ->
+            SheetRow(
+                label = src.label,
+                selected = index == selectedSource,
+                onClick = { onPickSource(index) },
+            )
+        }
+    } else if (sources.size == 1) {
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            "Source · ${sources[0].label}",
+            color = PlayerChrome.Graphite,
+            fontSize = 12.sp,
         )
     }
 }
@@ -1467,6 +1681,104 @@ private fun rematchTextId(previous: String, options: List<TextOption>): String {
         }?.id?.let { return it }
     }
     return "auto"
+}
+
+@OptIn(UnstableApi::class)
+private fun buildVideoOptions(tracks: Tracks): List<VideoOption> {
+    data class Cand(val height: Int, val width: Int, val group: TrackGroup, val index: Int, val bitrate: Int)
+    val cands = ArrayList<Cand>()
+    for (i in 0 until tracks.groups.size) {
+        val group = tracks.groups[i]
+        if (group.type != C.TRACK_TYPE_VIDEO) continue
+        val media = group.mediaTrackGroup
+        for (t in 0 until group.length) {
+            if (!group.isTrackSupported(t)) continue
+            val format = group.getTrackFormat(t)
+            val height = format.height
+            if (height <= 0) continue
+            cands += Cand(
+                height = height,
+                width = format.width.coerceAtLeast(0),
+                group = media,
+                index = t,
+                bitrate = format.bitrate,
+            )
+        }
+    }
+    if (cands.isEmpty()) {
+        return listOf(VideoOption(id = "auto", label = "Auto (best available)"))
+    }
+    // One row per unique height — keep the highest-bitrate variant for that height.
+    val bestByHeight = cands
+        .groupBy { it.height }
+        .map { (_, list) -> list.maxBy { it.bitrate } }
+        .sortedByDescending { it.height }
+    val out = ArrayList<VideoOption>(bestByHeight.size + 1)
+    out += VideoOption(id = "auto", label = "Auto (best available)")
+    for (c in bestByHeight) {
+        val label = when {
+            c.height >= 2160 -> "2160p · 4K"
+            c.height >= 1440 -> "1440p · QHD"
+            c.height >= 1080 -> "1080p · Full HD"
+            c.height >= 720 -> "720p · HD"
+            c.height >= 480 -> "480p"
+            else -> "${c.height}p"
+        }
+        out += VideoOption(
+            id = "${c.height}p",
+            label = label,
+            height = c.height,
+            width = c.width,
+            mediaGroup = c.group,
+            trackIndex = c.index,
+        )
+    }
+    return out
+}
+
+private fun rematchVideoId(previous: String, options: List<VideoOption>): String {
+    if (previous == "auto") return "auto"
+    if (options.any { it.id == previous }) return previous
+    val height = previous.removeSuffix("p").toIntOrNull()
+    if (height != null) {
+        options.firstOrNull { it.height == height }?.id?.let { return it }
+        // Closest lower-or-equal height if the exact rung disappeared after a source switch.
+        options.filter { it.height in 1..height }.maxByOrNull { it.height }?.id?.let { return it }
+    }
+    return "auto"
+}
+
+@OptIn(UnstableApi::class)
+private fun applyVideoSelection(
+    selector: DefaultTrackSelector,
+    selectedId: String,
+    options: List<VideoOption>,
+) {
+    val params = selector.buildUponParameters()
+        .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+    if (selectedId == "auto") {
+        selector.parameters = params
+            .setForceHighestSupportedBitrate(false)
+            .setMaxVideoSize(Int.MAX_VALUE, Int.MAX_VALUE)
+            .build()
+        return
+    }
+    val concrete = options.firstOrNull { it.id == selectedId && it.mediaGroup != null }
+    if (concrete?.mediaGroup != null) {
+        selector.parameters = params
+            .setOverrideForType(
+                TrackSelectionOverride(concrete.mediaGroup, listOf(concrete.trackIndex)),
+            )
+            .build()
+        return
+    }
+    // Fallback: cap by height parsed from id ("1080p").
+    val height = selectedId.removeSuffix("p").toIntOrNull()
+    selector.parameters = if (height != null && height > 0) {
+        params.setMaxVideoSize(Int.MAX_VALUE, height).build()
+    } else {
+        params.build()
+    }
 }
 
 @OptIn(UnstableApi::class)
