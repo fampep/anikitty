@@ -22,6 +22,16 @@
       "featured": true,
       "iconUrl": "https://www.google.com/s2/favicons?domain=anikoto.cz&sz=128",
       "siteUrl": "https://anikoto.cz"
+    },
+    {
+      "id": "gotaku",
+      "name": "Gotaku",
+      "description": "Bundled on-device Gotaku resolver with gotakudl HLS unwrap (ships inside the APK from v1.1.6).",
+      "github": "https://github.com/fampep/anikitty",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=gotaku.to&sz=128",
+      "siteUrl": "https://gotaku.to"
     }
   ]
 }

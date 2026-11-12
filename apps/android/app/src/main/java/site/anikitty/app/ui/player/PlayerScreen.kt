@@ -112,6 +112,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
+import site.anikitty.app.data.servers.GotakuObfDataSource
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
 import site.anikitty.app.data.servers.SubtitleTrack
@@ -263,7 +264,7 @@ fun PlayerScreen(
 
     // Fresh DefaultTrackSelector per ExoPlayer — release() owns the selector, so a
     // remembered shared instance would be detached after the first quality switch.
-    val playerBundle = remember(source?.url, source?.subtitles) {
+    val playerBundle = remember(source?.url, source?.subtitles, source?.gotakuObf) {
         if (source == null) return@remember null
         val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(source.headers["User-Agent"] ?: DEFAULT_UA)
@@ -271,10 +272,18 @@ fun PlayerScreen(
             .setAllowCrossProtocolRedirects(true)
             .setConnectTimeoutMs(12_000)
             .setReadTimeoutMs(20_000)
+        val gotakuFactory = GotakuObfDataSource.Factory(httpFactory).also {
+            it.updateObf(source.gotakuObf)
+        }
+        // Gotaku sources must not inherit MegaPlay's default PNG strip.
         stripBytes.set(
-            source.stripBytes.takeIf { it > 0 } ?: SegmentStripDataSource.DEFAULT_STRIP_BYTES,
+            when {
+                source.gotakuObf != null -> source.stripBytes.coerceAtLeast(0)
+                source.stripBytes > 0 -> source.stripBytes
+                else -> SegmentStripDataSource.DEFAULT_STRIP_BYTES
+            },
         )
-        val factory = SegmentStripDataSource.Factory(httpFactory, stripBytes = stripBytes)
+        val factory = SegmentStripDataSource.Factory(gotakuFactory, stripBytes = stripBytes)
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(2_500, 40_000, 1_500, 2_000)
             .build()
@@ -291,7 +300,8 @@ fun PlayerScreen(
             .build()
             .apply {
                 val itemBuilder = MediaItem.Builder().setUri(source.url)
-                if (source.url.contains(".m3u8", ignoreCase = true)) {
+                // Gotaku CDN playlists have no .m3u8 suffix but are HLS after unwrap.
+                if (source.url.contains(".m3u8", ignoreCase = true) || source.gotakuObf != null) {
                     itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
                 }
                 val configs = source.subtitles.mapIndexedNotNull { index, track ->

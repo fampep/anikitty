@@ -31,6 +31,8 @@ data class PlayableSource(
     /** MegaPlay PNG-disguise unwrap size for HLS segments (0 = none). */
     val stripBytes: Int = SegmentStripDataSource.DEFAULT_STRIP_BYTES,
     val subtitles: List<SubtitleTrack> = emptyList(),
+    /** Gotaku playlist/segment unwrap; when set, [GotakuObfDataSource] handles CDN crypto. */
+    val gotakuObf: GotakuObf? = null,
 )
 
 interface StreamResolver {

@@ -50,6 +50,7 @@ import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.data.extensions.StoreListing
 import site.anikitty.app.data.servers.AnikotoServer
+import site.anikitty.app.data.servers.GotakuServer
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittySectionHeading
@@ -361,8 +362,8 @@ fun ExtensionStoreFeed(
         }
 
         lazyItems(filtered, key = { "store-${it.id}" }) { listing ->
-            val isAnikoto = listing.id == AnikotoServer.ID
-            val installed = isAnikoto || installedExt.any { it.id == listing.id }
+            val isBundled = listing.id == AnikotoServer.ID || listing.id == GotakuServer.ID
+            val installed = isBundled || installedExt.any { it.id == listing.id }
             val onDevice = resolvers.any { it.server.id == listing.id }
             val selected = selectedId == listing.id
             val icon = listing.iconUrl
@@ -437,7 +438,7 @@ fun ExtensionStoreFeed(
                     Button(
                         onClick = {
                             when {
-                                onDevice || isAnikoto -> {
+                                onDevice || isBundled -> {
                                     catalog.select(listing.id)
                                     status = "Selected ${listing.name}"
                                 }
@@ -465,7 +466,7 @@ fun ExtensionStoreFeed(
                         Text(
                             when {
                                 selected -> "Selected"
-                                onDevice || isAnikoto -> "Use"
+                                onDevice || isBundled -> "Use"
                                 else -> "Install"
                             },
                             fontWeight = FontWeight.Bold,
@@ -491,7 +492,7 @@ fun ExtensionStoreFeed(
                     ) {
                         Text("GitHub", color = KittyMuted, fontSize = 12.sp)
                     }
-                    if (installed && !isAnikoto) {
+                    if (installed && !isBundled) {
                         TextButton(
                             onClick = {
                                 scope.launch {
