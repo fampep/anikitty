@@ -465,9 +465,29 @@ fun ExtensionStoreFeed(
                     if (installed && !isAnikoto) {
                         TextButton(
                             onClick = {
+                                scope.launch {
+                                    busy = true
+                                    status = runCatching {
+                                        val m = catalog.installStoreListing(
+                                            listing.github,
+                                            listing.manifestPath,
+                                        )
+                                        catalog.select(m.id)
+                                        "Updated ${m.name} (${m.version})"
+                                    }.getOrElse { e -> e.message }
+                                    busy = false
+                                }
+                            },
+                            enabled = !busy,
+                        ) {
+                            Text("Update", color = KittyMuted, fontSize = 12.sp)
+                        }
+                        TextButton(
+                            onClick = {
                                 catalog.uninstallExtension(listing.id)
                                 status = "Removed ${listing.name}"
                             },
+                            enabled = !busy,
                         ) {
                             Text("Uninstall", color = KittyFaint, fontSize = 12.sp)
                         }

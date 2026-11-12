@@ -1322,34 +1322,42 @@ private fun SettingsFeed(
                 padded = false,
             )
             Spacer(modifier = Modifier.height(8.dp))
-            OutlinedTextField(
-                value = displayName,
-                onValueChange = { displayName = it.take(24) },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                label = { Text("Name") },
-                shape = RoundedCornerShape(12.dp),
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    scope.launch {
-                        status = runCatching {
-                            val saved = api.updateDisplayName(displayName.trim())
-                            displayName = saved
-                            profile = api.me()
-                            "Saved"
-                        }.getOrElse { e -> e.message }
-                    }
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                ),
-            ) { Text("Save name", fontWeight = FontWeight.Bold) }
-            if (status != null) {
-                Text(status!!, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .kittyGlass(KittyGlassShape)
+                    .padding(14.dp),
+            ) {
+                OutlinedTextField(
+                    value = displayName,
+                    onValueChange = { displayName = it.take(24) },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    label = { Text("Name") },
+                    shape = RoundedCornerShape(12.dp),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            status = runCatching {
+                                val saved = api.updateDisplayName(displayName.trim())
+                                displayName = saved
+                                profile = api.me()
+                                "Saved"
+                            }.getOrElse { e -> e.message }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = KittyAccent,
+                        contentColor = KittyOnAccent,
+                    ),
+                ) { Text("Save name", fontWeight = FontWeight.Bold) }
+                if (status != null) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(status!!, color = KittyMuted, style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
         if (favorites.isNotEmpty()) {
@@ -1397,10 +1405,11 @@ private fun SettingsFeed(
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = onOpenStore,
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
+                    containerColor = KittyAccent,
+                    contentColor = KittyOnAccent,
                 ),
             ) {
                 Text("Open Extension Store", fontWeight = FontWeight.Bold)
@@ -1826,9 +1835,9 @@ private fun TitleDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        EpisodeLegendDot(Color.White, "Selected")
+                        EpisodeLegendDot(KittyAccent, "Selected")
                         EpisodeLegendDot(KittySurfaceElevated, "Watched")
-                        EpisodeLegendDot(Color.White.copy(alpha = 0.18f), "Continue")
+                        EpisodeLegendDot(KittyAccentGlow.copy(alpha = 0.45f), "Continue")
                     }
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
@@ -1924,22 +1933,30 @@ private fun TitleDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                shape = RoundedCornerShape(6.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
+                    containerColor = KittyAccent,
+                    contentColor = KittyOnAccent,
                 ),
             ) {
                 if (resolving) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
                         strokeWidth = 2.dp,
-                        color = Color.Black,
+                        color = KittyOnAccent,
                     )
                 } else {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Play Episode $episode", fontWeight = FontWeight.Bold)
+                    Text(
+                        buildString {
+                            append("Play Episode $episode")
+                            activeServer?.name?.let { append(" · $it") }
+                        },
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
             }
         }

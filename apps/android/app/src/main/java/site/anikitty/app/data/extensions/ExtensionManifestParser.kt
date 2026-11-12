@@ -26,11 +26,21 @@ object ExtensionManifestParser {
         require(iconUrl.startsWith("http://") || iconUrl.startsWith("https://")) {
             "iconUrl must be http(s)"
         }
+        val name = o.getString("name").trim()
+        require(name.isNotEmpty()) { "name required" }
+        val version = o.getString("version").trim()
+        require(version.isNotEmpty()) { "version required" }
+        val siteUrl = o.optionalString("siteUrl")
+        if (siteUrl != null) {
+            require(siteUrl.startsWith("http://") || siteUrl.startsWith("https://")) {
+                "siteUrl must be http(s)"
+            }
+        }
         return ExtensionManifest(
             apiVersion = api,
             id = id,
-            name = o.getString("name").trim(),
-            version = o.getString("version").trim(),
+            name = name,
+            version = version,
             description = o.optString("description", "").trim(),
             author = o.optString("author", "").trim(),
             homepage = o.optionalString("homepage"),
@@ -38,7 +48,7 @@ object ExtensionManifestParser {
             resolvePath = o.optString("resolvePath", ExtensionManifest.DEFAULT_RESOLVE_PATH)
                 .ifBlank { ExtensionManifest.DEFAULT_RESOLVE_PATH },
             iconUrl = iconUrl,
-            siteUrl = o.optionalString("siteUrl"),
+            siteUrl = siteUrl,
             nsfw = o.optBoolean("nsfw", false),
             sourceGithub = sourceGithub ?: o.optionalString("sourceGithub"),
             manifestUrl = manifestUrl ?: o.optionalString("manifestUrl"),
