@@ -273,7 +273,7 @@ fun LocalFirstApp(
                     scope.launch {
                         val next = current.episode + 1
                         runCatching {
-                            val sources = streamServers.selectedResolver().resolve(
+                            val resolved = streamServers.resolveWithFailover(
                                 anilistId = current.anime.id,
                                 episode = next,
                                 audio = "sub",
@@ -300,7 +300,7 @@ fun LocalFirstApp(
                                     totalEpisodes = current.anime.episodes,
                                 )
                             }
-                            screen = Screen.Player(current.anime, next, sources)
+                            screen = Screen.Player(current.anime, next, resolved.sources)
                         }
                     }
                 },
@@ -1592,11 +1592,18 @@ private fun TitleDetailScreen(
             status = "Getting stream…"
             runCatching {
                 historyDao.touchFromCatalog(anime)
-                val sources = streamServers.selectedResolver().resolve(
+                val resolved = streamServers.resolveWithFailover(
                     anilistId = anime.id,
                     episode = episode,
                     audio = audio,
                     titleHint = anime.searchTitles().joinToString(" || "),
+                    onAttempt = { name, index, total ->
+                        status = if (total <= 1) {
+                            "Getting stream via $name…"
+                        } else {
+                            "Trying $name (${index + 1}/$total)…"
+                        }
+                    },
                 )
                 historyDao.get(anime.id)?.let {
                     historyDao.upsert(
@@ -1607,11 +1614,14 @@ private fun TitleDetailScreen(
                     )
                 }
                 lastWatchedEp = episode
-                onPlay(episode, sources)
-                status = null
+                onPlay(episode, resolved.sources)
+                status = if (resolved.usedFallback) {
+                    "Playing via ${resolved.server.name}"
+                } else {
+                    null
+                }
             }.onFailure {
-                val source = activeServer?.name?.let { n -> " via $n" }.orEmpty()
-                status = (it.message ?: "Failed") + source
+                status = it.message ?: "All installed providers failed"
             }
             resolving = false
         }
@@ -1775,7 +1785,7 @@ private fun TitleDetailScreen(
                     Spacer(modifier = Modifier.height(18.dp))
                     KittySectionHeading(
                         title = "Stream source",
-                        subtitle = "Active resolver for Play",
+                        subtitle = "Play tries this first, then other installed providers",
                         padded = false,
                     )
                     Spacer(modifier = Modifier.height(10.dp))

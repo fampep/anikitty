@@ -66,6 +66,62 @@ class ServerCatalog(context: Context) {
             ?: error("No stream extensions installed")
     }
 
+    /**
+     * Resolve using the selected installed provider first, then automatically
+     * try every other **installed** provider until one returns sources.
+     * On success via a fallback, selects that provider so the next Play prefers it.
+     */
+    suspend fun resolveWithFailover(
+        anilistId: Int,
+        episode: Int,
+        audio: String = "sub",
+        titleHint: String? = null,
+        onAttempt: ((serverName: String, index: Int, total: Int) -> Unit)? = null,
+    ): ResolveFailoverResult {
+        val list = _resolvers.value
+        if (list.isEmpty()) error("No stream extensions installed")
+        val preferredId = _selectedId.value
+        val ordered = buildList {
+            list.firstOrNull { it.server.id == preferredId }?.let { add(it) }
+            list.filterNot { it.server.id == preferredId }.forEach { add(it) }
+        }
+        val errors = ArrayList<String>()
+        for ((index, resolver) in ordered.withIndex()) {
+            onAttempt?.invoke(resolver.server.name, index, ordered.size)
+            val sources = runCatching {
+                resolver.resolve(anilistId, episode, audio, titleHint)
+            }.getOrElse { err ->
+                val msg = err.message?.takeIf { it.isNotBlank() } ?: err::class.java.simpleName
+                errors += "${resolver.server.name}: $msg"
+                null
+            }
+            if (sources != null && sources.isNotEmpty()) {
+                val usedFallback = resolver.server.id != preferredId
+                if (usedFallback) {
+                    select(resolver.server.id)
+                }
+                return ResolveFailoverResult(
+                    sources = sources,
+                    server = resolver.server,
+                    usedFallback = usedFallback,
+                    attempted = errors + "${resolver.server.name}: ok",
+                )
+            }
+            if (sources != null) {
+                errors += "${resolver.server.name}: empty sources"
+            }
+        }
+        error(
+            buildString {
+                append("All installed providers failed")
+                if (errors.isNotEmpty()) {
+                    append(" — ")
+                    append(errors.joinToString(" · "))
+                }
+            },
+        )
+    }
+
     fun uninstallExtension(id: String) {
         if (bundled.any { it.server.id == id }) return
         extensions.remove(id)

@@ -47,3 +47,12 @@ interface StreamResolver {
         titleHint: String? = null,
     ): List<PlayableSource>
 }
+
+/** Outcome of [ServerCatalog.resolveWithFailover] across installed providers. */
+data class ResolveFailoverResult(
+    val sources: List<PlayableSource>,
+    val server: StreamServer,
+    /** True when a provider other than the previously selected one won. */
+    val usedFallback: Boolean,
+    val attempted: List<String> = emptyList(),
+)
