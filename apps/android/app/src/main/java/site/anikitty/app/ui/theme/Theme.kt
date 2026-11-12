@@ -40,13 +40,13 @@ val KittyNavPillContent = Color.White.copy(alpha = 0.48f)
 
 val KittyAmbientWash = Color(0xFF7EB6C9).copy(alpha = 0.14f)
 
-/** Page atmosphere — dual radial wash for glass depth. */
+/** Page atmosphere — deeper cinema ink (ani.pm-class density, AniKitty ice wash). */
 val KittyPageBrush: Brush
     get() = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF0E1622),
+            Color(0xFF0A101A),
             KittyPage,
-            Color(0xFF05060A),
+            Color(0xFF03040A),
         ),
     )
 

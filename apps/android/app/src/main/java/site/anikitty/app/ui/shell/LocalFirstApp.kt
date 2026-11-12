@@ -1754,7 +1754,7 @@ private fun TitleDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(420.dp),
+                        .height(500.dp),
                 ) {
                     AsyncImage(
                         model = detail.bannerImageUrl ?: detail.coverImageUrl,
@@ -1767,9 +1767,10 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.55f),
-                                    0.28f to Color.Black.copy(alpha = 0.08f),
-                                    0.7f to Color.Black.copy(alpha = 0.72f),
+                                    0f to Color.Black.copy(alpha = 0.48f),
+                                    0.22f to Color.Black.copy(alpha = 0.06f),
+                                    0.62f to Color.Black.copy(alpha = 0.55f),
+                                    0.88f to Color.Black.copy(alpha = 0.9f),
                                     1f to KittyPage,
                                 ),
                             ),
@@ -1779,8 +1780,9 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.horizontalGradient(
-                                    0f to Color.Black.copy(alpha = 0.55f),
-                                    0.55f to Color.Transparent,
+                                    0f to Color.Black.copy(alpha = 0.62f),
+                                    0.48f to Color.Black.copy(alpha = 0.18f),
+                                    0.85f to Color.Transparent,
                                 ),
                             ),
                     )

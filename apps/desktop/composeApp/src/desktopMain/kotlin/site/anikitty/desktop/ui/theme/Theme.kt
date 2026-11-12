@@ -34,9 +34,9 @@ val KittyWarm = Color(0xFFE8C9A0)
 val KittyPageBrush: Brush
     get() = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF101A28),
+            Color(0xFF0A101A),
             KittyPage,
-            Color(0xFF04050A),
+            Color(0xFF03040A),
         ),
     )
 
