@@ -505,18 +505,18 @@ fun KittyGlassHeroPager(
                     Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White)
+                            .background(KittyAccent)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             Icons.Filled.PlayArrow,
                             contentDescription = null,
-                            tint = Color.Black,
+                            tint = KittyOnAccent,
                             modifier = Modifier.size(16.dp),
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Play", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Play", color = KittyOnAccent, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
             }
@@ -530,7 +530,7 @@ fun KittyGlassHeroPager(
                         .height(4.dp)
                         .width(if (selected) 24.dp else 6.dp)
                         .clip(CircleShape)
-                        .background(if (selected) Color.White else Color.White.copy(alpha = 0.2f)),
+                        .background(if (selected) KittyAccent else Color.White.copy(alpha = 0.2f)),
                 )
             }
         }
@@ -567,7 +567,7 @@ fun KittyGenreTiles(
                         .background(Color(0xFF0F0F14))
                         .border(
                             1.dp,
-                            if (selected == name) Color.White else Color.White.copy(alpha = 0.08f),
+                            if (selected == name) KittyAccent else Color.White.copy(alpha = 0.08f),
                             shape,
                         )
                         .clickable { onSelect(name) },
@@ -933,7 +933,7 @@ fun KittyContinueCard(
                 Text(
                     listOfNotNull(badge?.takeIf { it.isNotBlank() }, "Episode $episode").joinToString(" · "),
                     maxLines = 1,
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = KittyMuted,
                     fontSize = 11.sp,
                     modifier = Modifier.padding(top = 3.dp),
                 )
@@ -943,13 +943,13 @@ fun KittyContinueCard(
                         .fillMaxWidth()
                         .height(3.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Color.White.copy(alpha = 0.12f)),
+                        .background(KittyOutlineSoft),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progress)
                             .fillMaxHeight()
-                            .background(Color.White),
+                            .background(KittyAccent),
                     )
                 }
             }

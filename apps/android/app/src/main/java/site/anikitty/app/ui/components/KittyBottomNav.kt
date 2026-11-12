@@ -33,10 +33,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyNavPillContent
 import site.anikitty.app.ui.theme.KittyNavPillSurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
-import site.anikitty.app.ui.theme.KittyText
 
 data class KittyNavTab(
     val id: String,
@@ -45,7 +45,7 @@ data class KittyNavTab(
     val selectedIcon: ImageVector,
 )
 
-/** Full-width dock — icon + tiny label, white when selected, hairline on top. */
+/** Full-width dock — icon + tiny label, pink when selected, hairline on top. */
 @Composable
 fun KittyBottomNav(
     tabs: List<KittyNavTab>,
@@ -96,7 +96,7 @@ fun KittyBottomNav(
                     Icon(
                         imageVector = if (selected) tab.selectedIcon else tab.icon,
                         contentDescription = tab.label,
-                        tint = if (selected) KittyText else KittyNavPillContent,
+                        tint = if (selected) KittyAccent else KittyNavPillContent,
                         modifier = Modifier
                             .graphicsLayer(scaleX = scale, scaleY = scale)
                             .size(18.dp),
@@ -104,7 +104,7 @@ fun KittyBottomNav(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         tab.label,
-                        color = if (selected) KittyText else KittyNavPillContent,
+                        color = if (selected) KittyAccent else KittyNavPillContent,
                         fontSize = 9.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
