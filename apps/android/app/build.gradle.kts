@@ -13,6 +13,20 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
+val localPropertiesFile = rootProject.file("local.properties")
+val localProperties = Properties()
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+
+fun configValue(property: String, env: String, default: String = ""): String {
+    val fromGradle = project.findProperty(property) as String?
+    return (fromGradle ?: localProperties.getProperty(property) ?: System.getenv(env) ?: default)
+        .trim()
+        .replace("\\", "")
+        .replace("\"", "")
+}
+
 /** Shared release cut: repo-root `VERSION` (name=… / code=…). */
 fun monorepoRelease(): Pair<String, Int> {
     val file = rootProject.file("../../VERSION")
@@ -38,19 +52,14 @@ android {
         versionCode = releaseCode
         versionName = releaseName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // Public AniList API client id (not a secret). Create at anilist.co/settings/developer
-        // with redirect URI anikitty://anilist — or leave blank and paste a token in-app.
-        val anilistClientId = (project.findProperty("anilistClientId") as String?)
-            ?: System.getenv("ANILIST_CLIENT_ID")
-            ?: ""
-        buildConfigField("String", "ANILIST_CLIENT_ID", "\"${anilistClientId.replace("\"", "")}\"")
+        // Public AniList client id. Redirect registered on that client is https://anikitty.site.
+        val anilistClientId = configValue("anilistClientId", "ANILIST_CLIENT_ID", "44419")
+        buildConfigField("String", "ANILIST_CLIENT_ID", "\"$anilistClientId\"")
         // Optional TMDB v3 API key for Fribb-mapped episode stills (Plex-style rail).
         // Set gradle property tmdbApiKey, env TMDB_API_KEY, or leave blank to keep
         // AniList streaming thumbs / cover fallbacks only.
-        val tmdbApiKey = (project.findProperty("tmdbApiKey") as String?)
-            ?: System.getenv("TMDB_API_KEY")
-            ?: ""
-        buildConfigField("String", "TMDB_API_KEY", "\"${tmdbApiKey.replace("\"", "").replace("\\", "")}\"")
+        val tmdbApiKey = configValue("tmdbApiKey", "TMDB_API_KEY")
+        buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
     }
 
     signingConfigs {

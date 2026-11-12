@@ -103,15 +103,7 @@ cd apps/android
 
 Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName` / `versionCode`. Current: **1.1.21** / code **35**.
 
-Optional AniList OAuth client id (public, not a secret):
-
-```bash
-# local.properties or env
-anilistClientId=YOUR_ID
-# or: export ANILIST_CLIENT_ID=YOUR_ID
-```
-
-Register redirect URI `anikitty://anilist` on the AniList API client. You can also paste an access token in the app.
+Optional AniList sign-in is built in. From Account, tap **Sign in with AniList**, sign in on AniList, and allow AniKitty. The registered redirect is `https://anikitty.site`. The public client id ships with the app.
 
 Default dedicated server URL is locked in `ServerConfig.DEFAULT` (VPS). Release cleartext is permitted only for that host.
 

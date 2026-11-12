@@ -8,24 +8,22 @@ import site.anikitty.app.BuildConfig
 import java.util.UUID
 
 /**
- * AniList OAuth helpers.
+ * AniList sign-in.
  *
- * Uses the implicit token grant (`response_type=token`) so the APK does not need
- * a client secret. Register redirect URI [REDIRECT_URI] on the AniList API client.
- *
- * Deep-link callbacks are only accepted after [markLinkStarted] (user tapped Link),
- * and the redirect must echo the same OAuth `state` nonce that was sent on authorize.
+ * The registered redirect is https://anikitty.site. AniList returns the access token
+ * in the URL fragment, which the sign-in page reads after the user logs in.
+ * Implicit callbacks on anikitty://anilist are still accepted.
  */
 object AniListOAuth {
-    const val REDIRECT_URI = "anikitty://anilist"
+    const val REDIRECT_URI = "https://anikitty.site"
     private const val AUTHORIZE = "https://anilist.co/api/v2/oauth/authorize"
     private const val PREFS = "anikitty_anilist_oauth"
     private const val KEY_STARTED_AT = "link_started_at_ms"
     private const val KEY_NONCE = "link_nonce"
-    /** How long a user-initiated Link AniList tap remains valid for a callback. */
+    /** How long a user-initiated sign-in remains valid for a callback. */
     private const val LINK_TTL_MS = 10 * 60_000L
 
-    fun clientId(): String = BuildConfig.ANILIST_CLIENT_ID.trim()
+    fun clientId(): String = BuildConfig.ANILIST_CLIENT_ID.trim().ifBlank { "44419" }
 
     fun isConfigured(): Boolean = clientId().isNotEmpty()
 
@@ -34,6 +32,7 @@ object AniListOAuth {
         require(state.isNotBlank()) { "OAuth state required" }
         return Uri.parse(AUTHORIZE).buildUpon()
             .appendQueryParameter("client_id", clientId)
+            .appendQueryParameter("redirect_uri", REDIRECT_URI)
             .appendQueryParameter("response_type", "token")
             .appendQueryParameter("state", state)
             .build()
@@ -94,6 +93,11 @@ object AniListOAuth {
             error("AniList OAuth state mismatch")
         }
         return map["access_token"]?.takeIf { it.isNotBlank() }
+    }
+
+    fun isAniListRedirect(uri: Uri?): Boolean {
+        if (uri == null) return false
+        return uri.scheme == "https" && uri.host.equals("anikitty.site", ignoreCase = true)
     }
 
     fun matchesCallback(intent: Intent?): Boolean {

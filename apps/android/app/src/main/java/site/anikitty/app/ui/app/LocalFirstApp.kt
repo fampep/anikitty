@@ -1150,9 +1150,8 @@ private fun SettingsFeed(
     var displayName by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var favorites by remember { mutableStateOf<List<DedicatedApiClient.Favorite>>(emptyList()) }
-    var aniToken by remember { mutableStateOf("") }
-    var showTokenPaste by remember { mutableStateOf(!AniListOAuth.isConfigured()) }
     var linkBusy by remember { mutableStateOf(false) }
+    var showAniListLogin by remember { mutableStateOf(false) }
     var extensionStatus by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -1161,20 +1160,6 @@ private fun SettingsFeed(
             displayName = it.displayName
         }
         runCatching { api.favorites() }.onSuccess { favorites = it }
-    }
-
-    suspend fun completeAniListLink(token: String): String {
-        require(!aniListAuth.isLinked) { "AniList already linked — unlink first to switch accounts" }
-        val viewer = aniList.viewer(token) ?: error("Invalid AniList token")
-        aniListAuth.saveViewer(token, viewer)
-        val synced = runCatching { aniListSync.pull() }.getOrNull()
-        onLinkTick()
-        return if (synced != null) {
-            onSyncLabel("Synced ${synced.imported} from AniList")
-            "Linked @${viewer.name} · synced ${synced.imported} titles"
-        } else {
-            "Linked @${viewer.name}"
-        }
     }
 
     // linkTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
@@ -1315,99 +1300,52 @@ private fun SettingsFeed(
                     }
                 } else {
                     Text(
-                        "Import watching / completed / planning and keep episode progress in sync. Not required to use AniKitty.",
+                        "Sign in on AniList. Allow AniKitty, and you come straight back. No token to copy.",
                         style = MaterialTheme.typography.bodySmall,
                         color = KittyMuted,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-                    if (AniListOAuth.isConfigured()) {
-                        Button(
-                            onClick = {
-                                onLinkStatus("Opening AniList…")
-                                runCatching { AniListOAuth.openAuthorize(context) }
-                                    .onFailure { e -> onLinkStatus("Error: ${e.message}") }
+                    Button(
+                        onClick = { showAniListLogin = true },
+                        enabled = !linkBusy,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = KittyAccent,
+                            contentColor = KittyOnAccent,
+                        ),
+                    ) { Text("Sign in with AniList", fontWeight = FontWeight.Bold) }
+                    if (showAniListLogin) {
+                        AniListSignIn(
+                            onDismiss = { showAniListLogin = false },
+                            onError = { message ->
+                                showAniListLogin = false
+                                onLinkStatus(message)
                             },
-                            enabled = !linkBusy,
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
-                            ),
-                        ) { Text("Link AniList", fontWeight = FontWeight.Bold) }
-                        TextButton(
-                            onClick = { showTokenPaste = !showTokenPaste },
-                            enabled = !linkBusy,
-                        ) {
-                            Text(
-                                if (showTokenPaste) "Hide token paste" else "Paste access token instead",
-                                color = KittyMuted,
-                            )
-                        }
-                    } else {
-                        Text(
-                            "Paste an AniList access token. Create an API client at anilist.co → Settings → Developer (redirect anikitty://anilist).",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = KittyMuted,
-                        )
-                        TextButton(
-                            onClick = {
-                                context.startActivity(
-                                    Intent(
-                                        Intent.ACTION_VIEW,
-                                        Uri.parse("https://anilist.co/settings/developer"),
-                                    ),
-                                )
-                            },
-                            enabled = !linkBusy,
-                        ) {
-                            Text("Open AniList developer settings", color = KittyText)
-                        }
-                        showTokenPaste = true
-                    }
-                    if (showTokenPaste) {
-                        OutlinedTextField(
-                            value = aniToken,
-                            onValueChange = { aniToken = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                            label = { Text("AniList access token") },
-                            enabled = !linkBusy,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = KittyText,
-                                unfocusedTextColor = KittyText,
-                                cursorColor = KittyAccent,
-                                focusedBorderColor = KittyAccent,
-                                unfocusedBorderColor = KittyOutlineSoft,
-                                focusedContainerColor = KittySurfaceElevated,
-                                unfocusedContainerColor = KittySurfaceElevated,
-                                focusedLabelColor = KittyAccentGlow,
-                                unfocusedLabelColor = KittyFaint,
-                            ),
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = {
+                            onToken = { token ->
+                                showAniListLogin = false
                                 scope.launch {
                                     linkBusy = true
-                                    onLinkStatus("Linking AniList…")
+                                    onLinkStatus("Signing in…")
                                     onLinkStatus(
                                         runCatching {
-                                            completeAniListLink(aniToken.trim())
-                                        }.getOrElse { e -> "Error: ${e.message}" },
+                                            val viewer = aniList.viewer(token)
+                                                ?: error("AniList did not accept that sign-in")
+                                            aniListAuth.saveViewer(token, viewer)
+                                            val synced = runCatching { aniListSync.pull() }.getOrNull()
+                                            onLinkTick()
+                                            if (synced != null) {
+                                                onSyncLabel("Synced ${synced.imported} from AniList")
+                                                "Signed in as @${viewer.name}"
+                                            } else {
+                                                "Signed in as @${viewer.name}"
+                                            }
+                                        }.getOrElse { e -> e.message ?: "AniList sign-in failed" },
                                     )
                                     linkBusy = false
                                 }
                             },
-                            enabled = !linkBusy && aniToken.isNotBlank(),
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
-                            ),
-                        ) { Text("Link with token", fontWeight = FontWeight.Bold) }
+                        )
                     }
                 }
                 if (!linkStatus.isNullOrBlank()) {
