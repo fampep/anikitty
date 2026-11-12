@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -48,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import site.anikitty.app.data.extensions.ExtensionStoreClient
+import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.data.extensions.StoreListing
 import site.anikitty.app.data.servers.AnikotoServer
 import site.anikitty.app.data.servers.ServerCatalog
@@ -202,7 +202,12 @@ fun ExtensionStoreFeed(
                     .kittyGlassSoft(RoundedCornerShape(16.dp)),
                 singleLine = true,
                 placeholder = { Text("Search extensions") },
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = KittyMuted) },
+                leadingIcon = {
+                    AnimatedSearchIcon(
+                        tint = if (query.isNotBlank()) KittyAccentGlow else KittyMuted,
+                        active = query.isBlank(),
+                    )
+                },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { query = "" }) {

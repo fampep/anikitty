@@ -97,10 +97,13 @@ import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ServerCatalog
+import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyBottomNav
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyHero
+import site.anikitty.app.ui.components.KittyMetaChip
+import site.anikitty.app.ui.components.KittyMetaChips
 import site.anikitty.app.ui.components.KittyNavTab
 import site.anikitty.app.ui.components.KittyPosterCard
 import site.anikitty.app.ui.components.KittyPosterRow
@@ -112,6 +115,7 @@ import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
+import site.anikitty.app.ui.theme.KittyGlass
 import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyGlassShapeTight
 import site.anikitty.app.ui.theme.KittyMuted
@@ -123,6 +127,7 @@ import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
 import site.anikitty.app.ui.theme.kittyGlass
+import site.anikitty.app.ui.theme.kittyGlassMirror
 import site.anikitty.app.ui.theme.kittyGlassSoft
 
 private sealed class Screen {
@@ -768,7 +773,12 @@ private fun SearchFeed(
                 .kittyGlassSoft(RoundedCornerShape(16.dp)),
             singleLine = true,
             placeholder = { Text("Title, studio, or character") },
-            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = KittyMuted) },
+            leadingIcon = {
+                AnimatedSearchIcon(
+                    tint = if (query.isNotBlank()) KittyAccentGlow else KittyMuted,
+                    active = query.isBlank() || loading,
+                )
+            },
             trailingIcon = {
                 if (query.isNotEmpty()) {
                     IconButton(
@@ -1687,22 +1697,16 @@ private fun TitleDetailScreen(
                                 anime.format,
                                 anime.episodes?.let { "$it eps" },
                                 anime.averageScore?.let { "★ $it" },
-                            ).joinToString(" · ")
-                            if (meta.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    meta,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = KittyMuted,
-                                )
+                            )
+                            if (meta.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                KittyMetaChips(items = meta, accentFirst = listBadge != null)
                             }
                             if (lastWatchedEp > 0) {
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    "Continue · ep $lastWatchedEp",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    fontWeight = FontWeight.SemiBold,
+                                Spacer(modifier = Modifier.height(10.dp))
+                                KittyMetaChip(
+                                    label = "Continue ep $lastWatchedEp",
+                                    emphasized = true,
                                 )
                             }
                         }
@@ -1712,20 +1716,39 @@ private fun TitleDetailScreen(
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                     if (!anime.description.isNullOrBlank()) {
-                        Text(
-                            anime.description!!,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = KittyMuted,
-                            maxLines = if (synopsisExpanded) 20 else 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        TextButton(onClick = { synopsisExpanded = !synopsisExpanded }) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .kittyGlassSoft(RoundedCornerShape(16.dp))
+                                .padding(14.dp),
+                        ) {
                             Text(
-                                if (synopsisExpanded) "Show less" else "Read synopsis",
-                                color = KittyText,
+                                "Overview",
+                                color = KittyFaint,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.6.sp,
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                anime.description!!,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = KittyMuted,
+                                maxLines = if (synopsisExpanded) 20 else 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            TextButton(
+                                onClick = { synopsisExpanded = !synopsisExpanded },
+                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
+                            ) {
+                                Text(
+                                    if (synopsisExpanded) "Show less" else "Read synopsis",
+                                    color = KittyAccentGlow,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Chip(if (favorited) "Favorited" else "Favorite", favorited) {
@@ -1785,21 +1808,51 @@ private fun TitleDetailScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(22.dp))
-                    KittySectionHeading(
-                        title = "Episodes",
-                        subtitle = "Ep $episode selected · $pageStart–$pageEnd of $maxEp",
-                        padded = false,
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        KittySectionHeading(
+                            title = "Episodes",
+                            subtitle = "Pick an episode to play",
+                            padded = false,
+                            modifier = Modifier.weight(1f),
+                        )
+                        KittyMetaChip(
+                            label = "Ep $episode / $maxEp",
+                            emphasized = true,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
                     if (pageCount > 1) {
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .kittyGlassSoft(RoundedCornerShape(16.dp))
+                                .padding(12.dp),
                         ) {
-                            for (p in 0 until pageCount) {
-                                val start = p * pageSize + 1
-                                val end = minOf(maxEp, start + pageSize - 1)
-                                Chip("$start–$end", p == epPage) { epPage = p }
+                            Text(
+                                "Ranges",
+                                color = KittyFaint,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.6.sp,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                for (p in 0 until pageCount) {
+                                    val start = p * pageSize + 1
+                                    val end = minOf(maxEp, start + pageSize - 1)
+                                    SeasonRangeChip(
+                                        label = "$start–$end",
+                                        selected = p == epPage,
+                                        onClick = { epPage = p },
+                                    )
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(12.dp))
@@ -1814,12 +1867,17 @@ private fun TitleDetailScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(KittySurfaceElevated.copy(alpha = 0.55f))
-                                .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
-                                .padding(10.dp),
+                                .kittyGlassMirror(RoundedCornerShape(18.dp))
+                                .padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            Text(
+                                "Showing $pageStart–$pageEnd",
+                                color = KittyFaint,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
                             for (rowStart in pageStart..pageEnd step columns) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -1846,7 +1904,7 @@ private fun TitleDetailScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1965,17 +2023,69 @@ private fun TitleDetailScreen(
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        buildString {
-                            append("Play Episode $episode")
-                            activeServer?.name?.let { append(" · $it") }
-                        },
+                        "Play Episode $episode",
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    activeServer?.name?.let { name ->
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(KittyOnAccent.copy(alpha = 0.12f))
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                name,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SeasonRangeChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .then(
+                if (selected) {
+                    Modifier
+                        .background(KittyAccent)
+                        .border(1.dp, KittyAccent, shape)
+                } else {
+                    Modifier
+                        .background(KittyGlass)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color.White.copy(alpha = 0.10f), Color.Transparent),
+                            ),
+                        )
+                        .border(1.dp, KittyOutlineSoft, shape)
+                },
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Text(
+            label,
+            color = if (selected) KittyOnAccent else KittyText.copy(alpha = 0.88f),
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+        )
     }
 }
 
@@ -1992,8 +2102,8 @@ private fun EpisodeCell(
     val bg = when {
         selected -> KittyAccent
         continueEp -> KittyAccentGlow.copy(alpha = 0.22f)
-        watched -> KittySurfaceElevated
-        else -> KittySurface
+        watched -> KittySurfaceElevated.copy(alpha = 0.72f)
+        else -> KittyGlass
     }
     val fg = when {
         selected -> KittyOnAccent
@@ -2003,9 +2113,20 @@ private fun EpisodeCell(
     }
     Box(
         modifier = modifier
-            .height(42.dp)
+            .height(44.dp)
             .clip(shape)
             .background(bg)
+            .then(
+                if (!selected) {
+                    Modifier.background(
+                        Brush.verticalGradient(
+                            listOf(Color.White.copy(alpha = 0.08f), Color.Transparent),
+                        ),
+                    )
+                } else {
+                    Modifier
+                },
+            )
             .border(
                 width = 1.dp,
                 color = when {

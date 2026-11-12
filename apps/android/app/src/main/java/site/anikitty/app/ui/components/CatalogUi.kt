@@ -323,10 +323,10 @@ fun KittyHero(
                 anime.format,
                 anime.episodes?.let { "$it eps" },
                 anime.averageScore?.let { String.format("%.1f", it / 10f) },
-            ).joinToString("  ·  ")
-            if (meta.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(meta, style = MaterialTheme.typography.labelLarge, color = KittyMuted)
+            )
+            if (meta.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                KittyMetaChips(items = meta)
             }
             Spacer(modifier = Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -452,14 +452,24 @@ fun KittyContinueCard(
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Text(
-                    buildString {
-                        append("Episode $episode")
-                        if (durationMs > 0L) append(" · ${(progress * 100f).toInt()}%")
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.72f),
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "Episode $episode",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.72f),
+                    )
+                    if (durationMs > 0L) {
+                        Text(
+                            "${(progress * 100f).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = KittyAccentGlow,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(7.dp))
                 Box(
                     modifier = Modifier
@@ -510,17 +520,12 @@ fun KittyContinueCard(
                     color = KittyText,
                     fontWeight = FontWeight.SemiBold,
                 )
-                Text(
-                    buildString {
-                        if (!badge.isNullOrBlank()) {
-                            append(badge)
-                            append(" · ")
-                        }
-                        append("Ep $episode")
-                        if (durationMs > 0L) append(" · ${(progress * 100f).toInt()}%")
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KittyFaint,
+                KittyMetaChips(
+                    items = listOfNotNull(
+                        badge?.takeIf { it.isNotBlank() },
+                        "Ep $episode",
+                        if (durationMs > 0L) "${(progress * 100f).toInt()}%" else null,
+                    ),
                 )
             }
             Box(

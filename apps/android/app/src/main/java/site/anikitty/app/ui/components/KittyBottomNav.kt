@@ -84,8 +84,10 @@ fun KittyBottomNav(
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color.White.copy(alpha = 0.08f),
+                            Color.White.copy(alpha = 0.14f),
+                            Color.White.copy(alpha = 0.03f),
                             Color.Transparent,
+                            Color.Black.copy(alpha = 0.22f),
                         ),
                     ),
                 )

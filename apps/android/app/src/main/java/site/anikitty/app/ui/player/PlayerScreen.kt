@@ -77,6 +77,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -824,35 +825,15 @@ fun PlayerScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "E$episode",
-                                color = PlayerChrome.Graphite,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                            )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            PlayerMetaPill("E$episode")
                             if (durationMs > 0L) {
-                                Text(
-                                    "  ·  ${formatDurationMinutes(durationMs)}",
-                                    color = PlayerChrome.Graphite,
-                                    fontSize = 13.sp,
-                                )
+                                PlayerMetaPill(formatDurationMinutes(durationMs))
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(Color.Black.copy(alpha = 0.55f))
-                                    .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                            ) {
-                                Text(
-                                    shortQuality(qualityLabel),
-                                    color = PlayerChrome.Paper,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
+                            PlayerMetaPill(shortQuality(qualityLabel), emphasized = true)
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
@@ -1060,52 +1041,24 @@ fun PlayerScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        if (scrubbing) {
-                            val bubbleX = (maxWidth * progress) - 28.dp
-                            Box(
-                                modifier = Modifier
-                                    .offset(
-                                        x = bubbleX.coerceIn(0.dp, (maxWidth - 56.dp).coerceAtLeast(0.dp)),
-                                        y = (-30).dp,
-                                    )
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.Black.copy(alpha = 0.82f))
-                                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                            ) {
-                                Text(
-                                    formatClock(scrubMs),
-                                    color = PlayerChrome.Paper,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        }
-                        if (durationMs > 0 && !skipTimes.isEmpty) {
-                            SkipMarkers(skipTimes = skipTimes, durationMs = durationMs)
-                        }
-                        Slider(
-                            value = progress,
-                            onValueChange = {
-                                scrubbing = true
-                                scrubValue = it
-                                controlsVisible = true
-                            },
-                            onValueChangeFinished = {
-                                activePlayer?.seekTo((scrubValue * durationMs).toLong())
-                                positionMs = (scrubValue * durationMs).toLong()
-                                scrubbing = false
-                            },
-                            colors = SliderDefaults.colors(
-                                thumbColor = PlayerChrome.Paper,
-                                activeTrackColor = PlayerChrome.Progress,
-                                inactiveTrackColor = Color.White.copy(alpha = 0.28f),
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(26.dp),
-                        )
-                    }
+                    GlassScrubber(
+                        progress = progress,
+                        durationMs = durationMs,
+                        scrubbing = scrubbing,
+                        onScrub = {
+                            scrubbing = true
+                            scrubValue = it
+                            controlsVisible = true
+                        },
+                        onScrubFinished = {
+                            activePlayer?.seekTo((scrubValue * durationMs).toLong())
+                            positionMs = (scrubValue * durationMs).toLong()
+                            scrubbing = false
+                        },
+                        formatClock = ::formatClock,
+                        skipTimes = skipTimes,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1194,11 +1147,18 @@ private fun PlayerSheet(
     onDismiss: () -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val shape = RoundedCornerShape(16.dp)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .shadow(18.dp, shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.5f))
+            .clip(shape)
             .background(PlayerChrome.Sheet)
-            .border(1.dp, PlayerChrome.SheetStroke, RoundedCornerShape(12.dp))
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.10f), Color.Transparent, Color.Black.copy(alpha = 0.18f)),
+                ),
+            )
+            .border(1.dp, PlayerChrome.SheetStroke, shape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1640,6 +1600,33 @@ private fun SkipMarkers(skipTimes: SkipTimes, durationMs: Long) {
 }
 
 @Composable
+private fun PlayerMetaPill(label: String, emphasized: Boolean = false) {
+    val shape = RoundedCornerShape(999.dp)
+    Box(
+        modifier = Modifier
+            .clip(shape)
+            .background(
+                if (emphasized) Color.Black.copy(alpha = 0.55f) else Color.Black.copy(alpha = 0.38f),
+            )
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.12f), Color.Transparent),
+                ),
+            )
+            .border(1.dp, PlayerChrome.DiscStroke, shape)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    ) {
+        Text(
+            label,
+            color = if (emphasized) PlayerChrome.Paper else PlayerChrome.Graphite,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
 private fun ChromeDisc(
     onClick: () -> Unit,
     size: androidx.compose.ui.unit.Dp = 40.dp,
@@ -1649,8 +1636,20 @@ private fun ChromeDisc(
     Box(
         modifier = Modifier
             .size(size)
+            .shadow(
+                elevation = if (large) 16.dp else 10.dp,
+                shape = CircleShape,
+                clip = false,
+                ambientColor = Color.Black.copy(alpha = 0.45f),
+                spotColor = Color.Black.copy(alpha = 0.35f),
+            )
             .clip(CircleShape)
             .background(if (large) PlayerChrome.DiscLarge else PlayerChrome.Disc)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.16f), Color.Transparent, Color.Black.copy(alpha = 0.22f)),
+                ),
+            )
             .border(1.dp, PlayerChrome.DiscStroke, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
