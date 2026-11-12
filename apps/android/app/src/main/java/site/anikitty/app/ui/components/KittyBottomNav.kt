@@ -42,11 +42,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import site.anikitty.app.ui.theme.KittyAccent
-import site.anikitty.app.ui.theme.KittyNavPillBorder
 import site.anikitty.app.ui.theme.KittyNavPillContent
 import site.anikitty.app.ui.theme.KittyNavPillSurface
 import site.anikitty.app.ui.theme.KittyOnAccent
-import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 
 data class KittyNavTab(
@@ -78,15 +76,15 @@ fun KittyBottomNav(
                 .fillMaxWidth()
                 .height(60.dp)
                 .shadow(
-                    elevation = 24.dp,
+                    elevation = 18.dp,
                     shape = bar,
                     clip = false,
                     ambientColor = Color.Black.copy(alpha = 0.55f),
-                    spotColor = Color.Black.copy(alpha = 0.7f),
+                    spotColor = KittyAccent.copy(alpha = 0.22f),
                 )
                 .clip(bar)
                 .background(KittyNavPillSurface)
-                .border(1.dp, KittyNavPillBorder, bar)
+                .border(1.dp, KittyAccent.copy(alpha = 0.28f), bar)
                 .padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp),
@@ -154,7 +152,7 @@ fun KittyRoundIconButton(
             .size(40.dp)
             .clip(CircleShape)
             .background(KittySurfaceElevated)
-            .border(1.dp, KittyOutlineSoft, CircleShape)
+            .border(1.dp, KittyAccent.copy(alpha = 0.4f), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
         content = { content() },

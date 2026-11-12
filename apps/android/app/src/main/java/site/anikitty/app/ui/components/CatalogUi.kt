@@ -515,13 +515,13 @@ fun KittyHero(
                     OutlinedButton(
                         onClick = onMoreInfo,
                         shape = CircleShape,
-                        border = BorderStroke(1.dp, KittyOutline),
+                        border = BorderStroke(1.dp, KittyAccent.copy(alpha = 0.4f)),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyText),
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
                             .background(KittySurface)
-                            .border(1.dp, KittyOutlineSoft, CircleShape),
+                            .border(1.dp, KittyAccent.copy(alpha = 0.35f), CircleShape),
                         contentPadding = PaddingValues(0.dp),
                     ) {
                         Icon(Icons.Outlined.Info, contentDescription = "Info", modifier = Modifier.size(20.dp))
