@@ -11,6 +11,10 @@ data class StreamServer(
     val id: String,
     val name: String,
     val description: String,
+    /** Site / brand icon (favicon or app icon URL). Required for store extensions. */
+    val iconUrl: String? = null,
+    /** Origin site the resolver scrapes / fronts (for attribution in the Store). */
+    val siteUrl: String? = null,
 )
 
 data class SubtitleTrack(

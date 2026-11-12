@@ -9,7 +9,19 @@
       "github": "https://github.com/fampep/anikitty/tree/main/extensions/examples/hello-http",
       "author": "fampep",
       "featured": true,
-      "manifestPath": "extensions/examples/hello-http/anikitty-extension.json"
+      "manifestPath": "extensions/examples/hello-http/anikitty-extension.json",
+      "iconUrl": "https://www.google.com/s2/favicons?domain=example.com&sz=128",
+      "siteUrl": "https://example.com"
+    },
+    {
+      "id": "anikoto",
+      "name": "Anikoto",
+      "description": "Bundled on-device Anikoto resolver (also ships inside the APK).",
+      "github": "https://github.com/fampep/anikitty",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=anikoto.cz&sz=128",
+      "siteUrl": "https://anikoto.cz"
     }
   ]
 }

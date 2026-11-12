@@ -21,6 +21,11 @@ object ExtensionManifestParser {
         require(baseUrl.startsWith("http://") || baseUrl.startsWith("https://")) {
             "baseUrl must be http(s)"
         }
+        val iconUrl = o.optionalString("iconUrl")
+            ?: error("iconUrl required — use the scraped site’s favicon / brand icon (https)")
+        require(iconUrl.startsWith("http://") || iconUrl.startsWith("https://")) {
+            "iconUrl must be http(s)"
+        }
         return ExtensionManifest(
             apiVersion = api,
             id = id,
@@ -32,7 +37,8 @@ object ExtensionManifestParser {
             baseUrl = baseUrl,
             resolvePath = o.optString("resolvePath", ExtensionManifest.DEFAULT_RESOLVE_PATH)
                 .ifBlank { ExtensionManifest.DEFAULT_RESOLVE_PATH },
-            iconUrl = o.optionalString("iconUrl"),
+            iconUrl = iconUrl,
+            siteUrl = o.optionalString("siteUrl"),
             nsfw = o.optBoolean("nsfw", false),
             sourceGithub = sourceGithub ?: o.optionalString("sourceGithub"),
             manifestUrl = manifestUrl ?: o.optionalString("manifestUrl"),
@@ -55,7 +61,8 @@ object ExtensionManifestParser {
         if (m.homepage != null) o.put("homepage", m.homepage)
         o.put("baseUrl", m.baseUrl)
         o.put("resolvePath", m.resolvePath)
-        if (m.iconUrl != null) o.put("iconUrl", m.iconUrl)
+        o.put("iconUrl", m.iconUrl)
+        if (m.siteUrl != null) o.put("siteUrl", m.siteUrl)
         o.put("nsfw", m.nsfw)
         if (m.sourceGithub != null) o.put("sourceGithub", m.sourceGithub)
         if (m.manifestUrl != null) o.put("manifestUrl", m.manifestUrl)

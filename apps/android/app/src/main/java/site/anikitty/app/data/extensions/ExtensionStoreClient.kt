@@ -35,6 +35,8 @@ class ExtensionStoreClient(
                         featured = e.optBoolean("featured", false),
                         manifestPath = e.optString("manifestPath")
                             .takeIf { it.isNotBlank() },
+                        iconUrl = e.optString("iconUrl").takeIf { it.isNotBlank() },
+                        siteUrl = e.optString("siteUrl").takeIf { it.isNotBlank() },
                     ),
                 )
             }
@@ -54,7 +56,16 @@ class ExtensionStoreClient(
         val DEFAULT_INDEX_URLS = listOf(
             "https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json",
             "https://raw.githubusercontent.com/fampep/anikitty/main/extensions/store/index.json",
-            "https://raw.githubusercontent.com/fampep/anikitty/cursor/extension-architecture-d6f2/extensions/store/index.json",
         )
+
+        /**
+         * Main store submission — opens GitHub issue form on the extensions repo
+         * (falls back to anikitty issues until that public repo exists).
+         */
+        const val SUBMIT_URL =
+            "https://github.com/fampep/anikitty-extensions/issues/new?template=extension_submit.yml"
+
+        const val SUBMIT_FALLBACK_URL =
+            "https://github.com/fampep/anikitty/issues/new?template=extension_submit.yml"
     }
 }
