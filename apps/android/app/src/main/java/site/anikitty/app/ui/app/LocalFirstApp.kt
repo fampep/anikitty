@@ -1013,11 +1013,26 @@ private fun HistoryFeed(
             }
         } else {
             item {
-                TextButton(
-                    onClick = { scope.launch { historyDao.clear() } },
-                    contentPadding = PaddingValues(horizontal = 0.dp),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Clear local", color = KittyMuted)
+                    Text(
+                        "${history.size} on this device",
+                        color = KittyFaint,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    OutlinedButton(
+                        onClick = { scope.launch { historyDao.clear() } },
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        shape = RoundedCornerShape(999.dp),
+                        border = BorderStroke(1.dp, KittyOutlineSoft),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
+                    ) {
+                        Text("Clear local", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    }
                 }
             }
             if (watching.isNotEmpty()) {
@@ -1340,6 +1355,17 @@ private fun SettingsFeed(
                             label = { Text("AniList access token") },
                             enabled = !linkBusy,
                             shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = KittyText,
+                                unfocusedTextColor = KittyText,
+                                cursorColor = KittyAccent,
+                                focusedBorderColor = KittyAccent,
+                                unfocusedBorderColor = KittyOutlineSoft,
+                                focusedContainerColor = KittySurfaceElevated,
+                                unfocusedContainerColor = KittySurfaceElevated,
+                                focusedLabelColor = KittyAccentGlow,
+                                unfocusedLabelColor = KittyFaint,
+                            ),
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Button(
@@ -1397,6 +1423,17 @@ private fun SettingsFeed(
                     singleLine = true,
                     label = { Text("Name") },
                     shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = KittyText,
+                        unfocusedTextColor = KittyText,
+                        cursorColor = KittyAccent,
+                        focusedBorderColor = KittyAccent,
+                        unfocusedBorderColor = KittyOutlineSoft,
+                        focusedContainerColor = KittySurfaceElevated,
+                        unfocusedContainerColor = KittySurfaceElevated,
+                        focusedLabelColor = KittyAccentGlow,
+                        unfocusedLabelColor = KittyFaint,
+                    ),
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(
@@ -1725,7 +1762,7 @@ private fun TitleDetailScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         KittyAtmosphere()
-        LazyColumn(contentPadding = PaddingValues(bottom = 118.dp)) {
+        LazyColumn(contentPadding = PaddingValues(bottom = 148.dp)) {
             item {
                 Box(
                     modifier = Modifier
@@ -2033,7 +2070,6 @@ private fun TitleDetailScreen(
                                     modifier = Modifier
                                         .width(112.dp)
                                         .clip(RoundedCornerShape(14.dp))
-                                        .clip(RoundedCornerShape(14.dp))
                                         .background(KittySurface)
                                         .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp))
                                         .clickable {
@@ -2254,8 +2290,20 @@ private fun TitleDetailScreen(
                         value = commentDraft,
                         onValueChange = { commentDraft = it.take(500) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Say something") },
+                        label = { Text("Say something", color = KittyFaint) },
                         minLines = 2,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = KittyText,
+                            unfocusedTextColor = KittyText,
+                            cursorColor = KittyAccent,
+                            focusedBorderColor = KittyAccent,
+                            unfocusedBorderColor = KittyOutlineSoft,
+                            focusedContainerColor = KittySurface,
+                            unfocusedContainerColor = KittySurface,
+                            focusedLabelColor = KittyAccentGlow,
+                            unfocusedLabelColor = KittyFaint,
+                        ),
+                        shape = RoundedCornerShape(14.dp),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
@@ -2293,12 +2341,13 @@ private fun TitleDetailScreen(
                                     .fillMaxWidth()
                                     .padding(vertical = 6.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
+                                    .background(KittySurface)
+                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(12.dp))
                                     .padding(12.dp),
                             ) {
                                 Text(
                                     c.displayName + (c.episode?.let { " · ep $it" } ?: ""),
-                                    color = KittyMuted,
+                                    color = KittyAccentGlow,
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -2315,57 +2364,108 @@ private fun TitleDetailScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, KittyPage.copy(alpha = 0.92f), KittyPage),
-                    ),
-                )
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .background(KittyPage),
         ) {
-            Button(
-                onClick = { playSelected() },
-                enabled = !resolving,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = KittyAccent,
-                    contentColor = KittyOnAccent,
-                ),
+                    .height(1.dp)
+                    .background(KittyAccent.copy(alpha = 0.4f)),
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
-                if (resolving) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        strokeWidth = 2.dp,
-                        color = KittyOnAccent,
-                    )
-                } else {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        "Play Episode $episode",
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    activeServer?.name?.let { name ->
-                        Spacer(modifier = Modifier.width(10.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(999.dp))
-                                .background(KittyOnAccent.copy(alpha = 0.12f))
-                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                                .background(KittySurfaceElevated)
+                                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(999.dp))
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
                         ) {
                             Text(
-                                name,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 11.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                                "Ep $episode · ${audio.uppercase()}",
+                                color = KittyText,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
                             )
                         }
+                        if (lastWatchedEp > 0 && lastWatchedEp != episode) {
+                            Text(
+                                "Last $lastWatchedEp",
+                                color = KittyFaint,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                    activeServer?.name?.let { name ->
+                        Text(
+                            name,
+                            color = KittyAccentGlow,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                if (status != null) {
+                    Text(
+                        status!!,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (
+                            status!!.startsWith("Getting") ||
+                            status!!.startsWith("Trying") ||
+                            status!!.startsWith("Playing")
+                        ) {
+                            KittyMuted
+                        } else {
+                            MaterialTheme.colorScheme.error
+                        },
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                }
+                Button(
+                    onClick = { playSelected() },
+                    enabled = !resolving,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = KittyAccent,
+                        contentColor = KittyOnAccent,
+                    ),
+                ) {
+                    if (resolving) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.dp,
+                            color = KittyOnAccent,
+                        )
+                    } else {
+                        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            "Play Episode $episode",
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
             }

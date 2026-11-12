@@ -577,7 +577,7 @@ fun KittyContinueCard(
                         .align(Alignment.TopStart)
                         .padding(7.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(KittyAccentGlow)
+                        .background(KittyAccent)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = KittyOnAccent,
@@ -670,6 +670,20 @@ fun KittyContinueCard(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .background(PlayerChrome.TrackGlass),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .fillMaxHeight()
+                            .background(KittyAccent),
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
