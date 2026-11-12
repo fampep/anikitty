@@ -201,6 +201,14 @@ fun KittySectionHeading(
             .then(if (padded) Modifier.padding(horizontal = 16.dp) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .padding(end = 10.dp)
+                .width(3.dp)
+                .height(if (subtitle.isNullOrBlank()) 18.dp else 28.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(KittyAccent),
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 title,
@@ -243,7 +251,7 @@ fun KittyPosterCard(
     width: Dp = 128.dp,
     subtitle: String? = null,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(12.dp)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -289,6 +297,29 @@ fun KittyPosterCard(
                     fontSize = 10.sp,
                 )
             }
+            anime.scoreLabel()?.let { score ->
+                Text(
+                    "★ $score",
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittySurface.copy(alpha = 0.92f))
+                        .border(1.dp, KittyAccent.copy(alpha = 0.45f), RoundedCornerShape(999.dp))
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KittyAccent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(KittyAccent.copy(alpha = 0.85f)),
+            )
         }
         Text(
             anime.title,
@@ -345,6 +376,44 @@ fun KittyPosterSkeletonRow(title: String = "Loading") {
                             .fillMaxWidth(0.88f)
                             .height(10.dp),
                         shape = RoundedCornerShape(4.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun KittyTopTenRow(
+    title: String,
+    items: List<AnimeSummary>,
+    onOpen: (AnimeSummary) -> Unit,
+    subtitle: String? = "Most watched right now",
+) {
+    val ranked = items.take(10)
+    if (ranked.isEmpty()) return
+    Column(modifier = Modifier.padding(top = 18.dp)) {
+        KittySectionHeading(title = title, subtitle = subtitle)
+        Spacer(modifier = Modifier.height(10.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            items(ranked.size) { index ->
+                val anime = ranked[index]
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        "${index + 1}",
+                        color = KittyAccent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 42.sp,
+                        letterSpacing = (-1.5).sp,
+                        modifier = Modifier.padding(end = 2.dp, bottom = 28.dp),
+                    )
+                    KittyPosterCard(
+                        anime = anime,
+                        onClick = { onOpen(anime) },
+                        width = 108.dp,
                     )
                 }
             }

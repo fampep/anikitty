@@ -120,6 +120,7 @@ import site.anikitty.app.ui.components.KittyNavTab
 import site.anikitty.app.ui.components.KittyPageHeader
 import site.anikitty.app.ui.components.KittyPosterCard
 import site.anikitty.app.ui.components.KittyPosterRow
+import site.anikitty.app.ui.components.KittyTopTenRow
 import site.anikitty.app.ui.components.KittyPosterSkeletonRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.components.KittySectionHeading
@@ -476,6 +477,21 @@ private fun HomeFeed(
     val scope = rememberCoroutineScope()
     var catalogJob by remember { mutableStateOf<Job?>(null) }
     val catalogBusy = loading || refreshing
+    var homeGenre by remember { mutableStateOf<String?>(null) }
+    val genreChips = remember(trending, popular, seasonal) {
+        (trending + popular + seasonal)
+            .flatMap { it.genres }
+            .groupingBy { it }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .map { it.key }
+            .take(8)
+    }
+    fun List<AnimeSummary>.forGenre(): List<AnimeSummary> {
+        val picked = homeGenre ?: return this
+        return filter { picked in it.genres }
+    }
     val continueWatching = remember(history) {
         history.filter {
             val s = it.listStatus?.uppercase()
@@ -557,11 +573,38 @@ private fun HomeFeed(
                             onOpenAccount = onOpenAccount,
                         )
                     }
+                    if (genreChips.isNotEmpty()) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .horizontalScroll(rememberScrollState())
+                                    .padding(start = 16.dp, end = 16.dp, top = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Chip("All", selected = homeGenre == null) { homeGenre = null }
+                                genreChips.forEach { genre ->
+                                    Chip(genre, selected = homeGenre == genre) {
+                                        homeGenre = if (homeGenre == genre) null else genre
+                                    }
+                                }
+                            }
+                        }
+                    }
                     item {
                         KittyPosterRow(
                             title = "Trending Anime",
-                            items = trending,
+                            items = trending.forGenre(),
                             onMore = onOpenSearch,
+                            onOpen = {
+                                scope.launch { historyDao.touchFromCatalog(it) }
+                                onOpen(it, null)
+                            },
+                        )
+                    }
+                    item {
+                        KittyTopTenRow(
+                            title = "Top 10",
+                            items = popular.forGenre(),
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
@@ -571,7 +614,7 @@ private fun HomeFeed(
                     item {
                         KittyPosterRow(
                             title = "Most popular",
-                            items = popular,
+                            items = popular.forGenre(),
                             onMore = onOpenSearch,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
@@ -620,7 +663,7 @@ private fun HomeFeed(
                     item {
                         KittyPosterRow(
                             title = "Airing this season",
-                            items = seasonal,
+                            items = seasonal.forGenre(),
                             onMore = onOpenSearch,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
