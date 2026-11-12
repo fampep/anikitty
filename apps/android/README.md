@@ -31,3 +31,24 @@ skip hosts stay HTTPS.
 ./gradlew :app:assembleRelease
 # app/build/outputs/apk/release/app-release.apk
 ```
+
+### Optional: TMDB episode stills (Fribb)
+
+Episode rail thumbnails prefer AniList streaming images, then TMDB stills via
+[Fribb/anime-lists](https://github.com/Fribb/anime-lists) (AniList → TMDB / IMDb),
+then the series cover.
+
+TMDB needs a free v3 API key at build time. Do **not** paste keys into chat —
+set one of:
+
+```bash
+# gradle.properties / CLI
+./gradlew :app:assembleRelease -PtmdbApiKey=YOUR_KEY
+
+# or environment (CI / local shell)
+export TMDB_API_KEY=YOUR_KEY
+./gradlew :app:assembleRelease
+```
+
+With no key the app still runs; Fribb mapping loads, but stills stay on AniList /
+cover fallbacks.

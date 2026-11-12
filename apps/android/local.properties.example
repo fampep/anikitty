@@ -1,3 +1,7 @@
 ## Copy to local.properties (gitignored) or let the Android Gradle Plugin
 ## pick up ANDROID_HOME / ANDROID_SDK_ROOT from the environment.
 sdk.dir=/path/to/Android/Sdk
+
+## Optional — TMDB v3 key for Fribb-mapped episode stills (never commit real keys).
+## Prefer: export TMDB_API_KEY=...  or  -PtmdbApiKey=...
+# tmdbApiKey=
