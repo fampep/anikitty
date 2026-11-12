@@ -1,4 +1,4 @@
 # Shared monorepo release — bump both fields together for every public cut.
-# Android versionName + desktop packageVersion read name; Android versionCode reads code.
-name=1.1.20
-code=34
+# Android versionName / versionCode read these. APK-only.
+name=1.1.21
+code=35
