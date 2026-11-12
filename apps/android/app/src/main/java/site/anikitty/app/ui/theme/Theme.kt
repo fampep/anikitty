@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -11,44 +12,57 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * Matches the Anikitty web dark theme (globals.css `.dark`):
- * pure black canvas, white primary, zinc borders — monochrome cinema.
+ * AniKitty glass dark — deep ink canvas, frosted panels, cool ice accent.
+ * On-phone cinema: monochrome glass with a single cool highlight (not purple).
  */
-val KittyInk = Color(0xFF000000)
-val KittyPage = Color(0xFF000000)
-val KittySurface = Color(0xFF0A0A0A) // --card 0 0% 4%
-val KittySurfaceElevated = Color(0xFF1A1A1A) // ~accent 10%
-val KittyText = Color(0xFFFFFFFF)
-val KittyMuted = Color(0xFFFFFFFF).copy(alpha = 0.63f) // muted-foreground
-val KittyFaint = Color(0xFFFFFFFF).copy(alpha = 0.40f)
-val KittyOutline = Color.White.copy(alpha = 0.14f) // --border
+val KittyInk = Color(0xFF05060A)
+val KittyPage = Color(0xFF07080F)
+val KittySurface = Color(0xCC12141C) // frosted panel (~80% opaque)
+val KittySurfaceElevated = Color(0xE61A1D28)
+val KittyGlass = Color(0x66141822) // lighter frost for overlays
+val KittyGlassStrong = Color(0xB31A1E2A)
+val KittyText = Color(0xFFF4F6FA)
+val KittyMuted = Color(0xFFB8C0D0)
+val KittyFaint = Color(0xFF7A8498)
+val KittyOutline = Color.White.copy(alpha = 0.14f)
+val KittyOutlineSoft = Color.White.copy(alpha = 0.08f)
 
-/** Web dark primary is white — CTAs are paper on ink. */
-val KittyAccent = Color(0xFFFFFFFF)
-val KittyOnAccent = Color(0xFF000000)
+/** Cool ice highlight — CTAs stay paper-on-ink for contrast. */
+val KittyAccent = Color(0xFFE8EEF7)
+val KittyAccentGlow = Color(0xFF7EB6C9)
+val KittyOnAccent = Color(0xFF0A0C12)
 
-val KittyNavPillSurface = Color(0xF2000000) // dark:bg-background/95
-val KittyNavPillBorder = Color.White.copy(alpha = 0.10f)
-val KittyNavPillSelected = Color(0xFFFFFFFF)
-val KittyNavPillSelectedContent = Color(0xFF000000)
-val KittyNavPillContent = Color.White.copy(alpha = 0.40f)
+val KittyNavPillSurface = Color(0xD90C0E16)
+val KittyNavPillBorder = Color.White.copy(alpha = 0.14f)
+val KittyNavPillSelected = Color(0xFFF0F3F8)
+val KittyNavPillSelectedContent = Color(0xFF0A0C12)
+val KittyNavPillContent = Color.White.copy(alpha = 0.48f)
 
-/** Soft top wash like `.dark body` radial highlight. */
-val KittyAmbientWash = Color.White.copy(alpha = 0.05f)
+val KittyAmbientWash = Color(0xFF7EB6C9).copy(alpha = 0.12f)
+
+/** Page atmosphere — dual radial wash for glass depth. */
+val KittyPageBrush: Brush
+    get() = Brush.verticalGradient(
+        colors = listOf(
+            Color(0xFF0C121C),
+            KittyPage,
+            Color(0xFF05060A),
+        ),
+    )
 
 object PlayerChrome {
-    val Paper = Color(0xFFEDEDED)
-    val Ink = Color(0xFF0B0B0C)
-    val Graphite = Paper.copy(alpha = 0.60f)
-    val Faint = Paper.copy(alpha = 0.38f)
-    val Smoke = Color(0xFF000000).copy(alpha = 0.82f)
-    val Sheet = Color(0xF0141416)
-    val SheetStroke = Color.White.copy(alpha = 0.12f)
+    val Paper = Color(0xFFF0F3F8)
+    val Ink = Color(0xFF07080F)
+    val Graphite = Paper.copy(alpha = 0.62f)
+    val Faint = Paper.copy(alpha = 0.40f)
+    val Smoke = Color(0xCC05060A)
+    val Sheet = Color(0xE6141822)
+    val SheetStroke = Color.White.copy(alpha = 0.16f)
     val RowSelected = Color.White.copy(alpha = 0.12f)
-    val Disc = Color(0xFF16171A).copy(alpha = 0.55f)
-    val DiscStroke = Color.White.copy(alpha = 0.13f)
-    val Accent = Color(0xFFFFFFFF)
-    val MarkerIntro = Paper.copy(alpha = 0.55f)
+    val Disc = Color(0x99121822)
+    val DiscStroke = Color.White.copy(alpha = 0.18f)
+    val Accent = Color(0xFFE8EEF7)
+    val MarkerIntro = KittyAccentGlow.copy(alpha = 0.55f)
     val MarkerCredits = Paper.copy(alpha = 0.35f)
     val MarkerRecap = Paper.copy(alpha = 0.45f)
 }
@@ -64,61 +78,64 @@ private val DarkColors = darkColorScheme(
     onSurface = KittyText,
     onSurfaceVariant = KittyMuted,
     outline = KittyOutline,
-    error = Color(0xFFEF4444),
+    error = Color(0xFFFF6B7A),
 )
 
 private val KittyTypography = Typography(
     displaySmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Black,
-        fontSize = 34.sp,
-        letterSpacing = (-0.5).sp,
+        fontSize = 36.sp,
+        letterSpacing = (-0.8).sp,
+        lineHeight = 40.sp,
     ),
     headlineSmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
-        letterSpacing = (-0.3).sp,
+        letterSpacing = (-0.4).sp,
     ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,
-        fontSize = 18.sp,
-        letterSpacing = (-0.2).sp,
+        fontSize = 17.sp,
+        letterSpacing = (-0.25).sp,
     ),
     titleSmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.SemiBold,
         fontSize = 15.sp,
+        letterSpacing = (-0.1).sp,
     ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
+        lineHeight = 21.sp,
     ),
     bodySmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
-        lineHeight = 16.sp,
+        lineHeight = 17.sp,
     ),
     labelLarge = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp,
+        letterSpacing = 0.1.sp,
     ),
     labelMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        letterSpacing = 0.2.sp,
+        letterSpacing = 0.3.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
         fontSize = 10.sp,
-        letterSpacing = 0.3.sp,
+        letterSpacing = 0.4.sp,
     ),
 )
 

@@ -30,11 +30,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyNavPillBorder
 import site.anikitty.app.ui.theme.KittyNavPillContent
 import site.anikitty.app.ui.theme.KittyNavPillSelected
@@ -48,7 +51,7 @@ data class KittyNavTab(
     val selectedIcon: ImageVector,
 )
 
-/** Floating capsule tab bar — content scrolls edge-to-edge behind it. */
+/** Floating glass capsule — content scrolls edge-to-edge behind it. */
 @Composable
 fun KittyBottomNav(
     tabs: List<KittyNavTab>,
@@ -56,22 +59,37 @@ fun KittyBottomNav(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val pill = RoundedCornerShape(22.dp)
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 6.dp, bottom = 8.dp),
+            .padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
                 .widthIn(max = 420.dp)
                 .fillMaxWidth()
-                .height(56.dp)
-                .shadow(16.dp, RoundedCornerShape(16.dp), clip = false, ambientColor = KittyNavPillBorder)
-                .clip(RoundedCornerShape(16.dp))
+                .height(60.dp)
+                .shadow(
+                    elevation = 24.dp,
+                    shape = pill,
+                    clip = false,
+                    ambientColor = KittyAccentGlow.copy(alpha = 0.25f),
+                    spotColor = Color.Black.copy(alpha = 0.55f),
+                )
+                .clip(pill)
                 .background(KittyNavPillSurface)
-                .border(1.dp, KittyNavPillBorder, RoundedCornerShape(16.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.08f),
+                            Color.Transparent,
+                        ),
+                    ),
+                )
+                .border(1.dp, KittyNavPillBorder, pill)
                 .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -79,20 +97,20 @@ fun KittyBottomNav(
             tabs.forEach { tab ->
                 val selected = tab.id == selectedId
                 val bg by animateColorAsState(
-                    if (selected) KittyNavPillSelected else KittyNavPillSurface.copy(alpha = 0f),
-                    animationSpec = tween(220, easing = FastOutSlowInEasing),
+                    if (selected) KittyNavPillSelected else Color.Transparent,
+                    animationSpec = tween(240, easing = FastOutSlowInEasing),
                     label = "navBg",
                 )
                 val fg by animateColorAsState(
                     if (selected) KittyNavPillSelectedContent else KittyNavPillContent,
-                    animationSpec = tween(220, easing = FastOutSlowInEasing),
+                    animationSpec = tween(240, easing = FastOutSlowInEasing),
                     label = "navFg",
                 )
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(44.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                        .height(48.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(bg)
                         .selectable(
                             selected = selected,
@@ -131,9 +149,14 @@ fun KittyRoundIconButton(
 ) {
     Box(
         modifier = modifier
-            .size(40.dp)
+            .size(42.dp)
             .clip(CircleShape)
-            .background(KittyNavPillSurface.copy(alpha = 0.72f))
+            .background(KittyNavPillSurface)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.10f), Color.Transparent),
+                ),
+            )
             .border(1.dp, KittyNavPillBorder, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,

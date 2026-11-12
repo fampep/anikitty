@@ -85,6 +85,8 @@ Rolling alpha pre-releases: https://github.com/fampep/anikitty/releases
 
 ---
 
-## License
+## License & ownership
 
-See [LICENSE](LICENSE).
+**Owned by fampep.** Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) — educational / personal / noncommercial use. Not MIT.
+
+Community stream extensions are gladly contributed by others; fampep does not own or control third-party extension backends. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
