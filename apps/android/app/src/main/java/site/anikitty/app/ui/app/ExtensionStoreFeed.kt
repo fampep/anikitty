@@ -84,7 +84,7 @@ import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
 
 /**
- * Extension Store — solid black panels, pink accent.
+ * Extension Store — black glass panels, white selection.
  * Active source lives in the header; GitHub install is a single expand panel.
  */
 @Composable

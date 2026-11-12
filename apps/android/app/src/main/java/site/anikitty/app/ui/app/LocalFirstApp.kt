@@ -699,40 +699,21 @@ private fun HomeWelcomeHeader(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(46.dp)
-                .clip(CircleShape)
-                .background(KittyAccent)
-                .border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Filled.Person,
-                contentDescription = null,
-                tint = KittyOnAccent,
-                modifier = Modifier.size(24.dp),
-            )
-        }
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 12.dp),
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                "AniKitty",
-                color = KittyAccent,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.6.sp,
+                "Home",
+                color = KittyText,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = (-0.5).sp,
             )
             Text(
                 "Welcome back, $displayName",
-                color = KittyText,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                color = KittyMuted,
+                style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(top = 2.dp),
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2632,7 +2613,7 @@ private fun TitleDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(KittyAccent.copy(alpha = 0.4f)),
+                    .background(Color.White.copy(alpha = 0.08f)),
             )
             Column(
                 modifier = Modifier
