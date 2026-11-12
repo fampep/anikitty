@@ -54,12 +54,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import site.anikitty.app.BuildConfig
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.StoreListing
 import site.anikitty.app.data.servers.AniPmServer
 import site.anikitty.app.data.servers.AnikotoServer
 import site.anikitty.app.data.servers.GotakuServer
 import site.anikitty.app.data.servers.ServerCatalog
+import site.anikitty.app.data.servers.StreamServer
 import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyEmptyState
@@ -126,12 +128,30 @@ fun ExtensionStoreFeed(
             ?: resolvers.firstOrNull()?.server
     }
 
-    val filtered = remember(listings, query, selectedId) {
+    val bundledIds = remember {
+        setOf(AnikotoServer.ID, GotakuServer.ID, AniPmServer.ID)
+    }
+
+    // Always surface on-device / bundled resolvers even if the remote index is stale
+    // (e.g. Ani.pm before the CDN refreshes, or offline).
+    val mergedListings = remember(listings, resolvers) {
+        val byId = LinkedHashMap<String, StoreListing>()
+        for (listing in listings) byId[listing.id] = listing
+        for (resolver in resolvers) {
+            val server = resolver.server
+            if (byId.containsKey(server.id)) continue
+            byId[server.id] = server.toStoreListing()
+        }
+        // Prefer remote copy, but ensure bundled ids stay featured/near top via sort.
+        byId.values.toList()
+    }
+
+    val filtered = remember(mergedListings, query, selectedId, bundledIds) {
         val q = query.trim()
         val base = if (q.isEmpty()) {
-            listings
+            mergedListings
         } else {
-            listings.filter { listing ->
+            mergedListings.filter { listing ->
                 listing.name.contains(q, ignoreCase = true) ||
                     listing.description.contains(q, ignoreCase = true) ||
                     listing.author.contains(q, ignoreCase = true) ||
@@ -140,13 +160,10 @@ fun ExtensionStoreFeed(
         }
         base.sortedWith(
             compareByDescending<StoreListing> { it.id == selectedId }
+                .thenByDescending { it.id in bundledIds }
                 .thenByDescending { it.featured }
                 .thenBy { it.name.lowercase() },
         )
-    }
-
-    val bundledIds = remember {
-        setOf(AnikotoServer.ID, GotakuServer.ID, AniPmServer.ID)
     }
 
     LazyColumn(
@@ -160,8 +177,10 @@ fun ExtensionStoreFeed(
         item {
             KittyPageHeader(
                 title = "Store",
-                subtitle = activeServer?.let { "Playing via ${it.name}" }
-                    ?: "Browse · install · switch sources",
+                subtitle = buildString {
+                    append(activeServer?.let { "Playing via ${it.name}" } ?: "Browse · install · switch")
+                    append(" · v${BuildConfig.VERSION_NAME}")
+                },
                 trailing = {
                     IconButton(
                         onClick = { refreshStore() },
@@ -214,14 +233,14 @@ fun ExtensionStoreFeed(
         if (filtered.isEmpty() && !busy) {
             item {
                 KittyEmptyState(
-                    title = if (listings.isEmpty()) "Store empty or offline" else "No matches",
-                    body = if (listings.isEmpty()) {
+                    title = if (mergedListings.isEmpty()) "Store empty or offline" else "No matches",
+                    body = if (mergedListings.isEmpty()) {
                         "Pull refresh, or expand Add from GitHub below."
                     } else {
                         "Clear search or try another keyword."
                     },
-                    actionLabel = if (listings.isEmpty()) "Refresh" else null,
-                    onAction = if (listings.isEmpty()) ({ refreshStore() }) else null,
+                    actionLabel = if (mergedListings.isEmpty()) "Refresh" else null,
+                    onAction = if (mergedListings.isEmpty()) ({ refreshStore() }) else null,
                 )
             }
         }
@@ -458,3 +477,14 @@ fun ExtensionStoreFeed(
         }
     }
 }
+
+private fun StreamServer.toStoreListing(): StoreListing = StoreListing(
+    id = id,
+    name = name,
+    description = description,
+    github = "https://github.com/fampep/anikitty",
+    author = "fampep",
+    featured = true,
+    iconUrl = iconUrl,
+    siteUrl = siteUrl,
+)
