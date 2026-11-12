@@ -1019,6 +1019,8 @@ private fun SettingsFeed(
     onSignOut: () -> Unit,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
+    val resolvers by catalog.resolvers.collectAsState()
+    val installedExt by catalog.extensions.installed.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var profile by remember { mutableStateOf<DedicatedApiClient.Profile?>(null) }
@@ -1028,6 +1030,12 @@ private fun SettingsFeed(
     var aniToken by remember { mutableStateOf("") }
     var showTokenPaste by remember { mutableStateOf(!AniListOAuth.isConfigured()) }
     var linkBusy by remember { mutableStateOf(false) }
+    var extensionUrl by remember { mutableStateOf("") }
+    var extensionStatus by remember { mutableStateOf<String?>(null) }
+    var extensionBusy by remember { mutableStateOf(false) }
+    var storeListings by remember { mutableStateOf<List<site.anikitty.app.data.extensions.StoreListing>>(emptyList()) }
+    var storeStatus by remember { mutableStateOf<String?>(null) }
+    var storeBusy by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         runCatching { api.me() }.onSuccess {
@@ -1356,13 +1364,59 @@ private fun SettingsFeed(
         }
         item {
             KittySectionHeading(
-                title = "Stream source",
-                subtitle = "Built-in resolvers · streams stay on this phone",
+                title = "Stream extensions",
+                subtitle = "BYO resolve servers · Media3 still plays on this phone",
                 padded = false,
             )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = extensionUrl,
+                onValueChange = { extensionUrl = it.take(300) },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("GitHub repo URL") },
+                placeholder = { Text("https://github.com/owner/repo") },
+                shape = RoundedCornerShape(12.dp),
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    val url = extensionUrl.trim()
+                    if (url.length < 3) return@Button
+                    scope.launch {
+                        extensionBusy = true
+                        extensionStatus = runCatching {
+                            val m = catalog.installFromGithub(url)
+                            catalog.select(m.id)
+                            "Installed ${m.name} (${m.version})"
+                        }.getOrElse { e -> e.message }
+                        extensionBusy = false
+                    }
+                },
+                enabled = !extensionBusy,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                ),
+            ) {
+                Text(
+                    if (extensionBusy) "Installing…" else "Install from GitHub",
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (extensionStatus != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    extensionStatus!!,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
         }
-        lazyItems(catalog.servers, key = { it.id }) { server ->
+        lazyItems(resolvers.map { it.server }, key = { it.id }) { server ->
             val selected = server.id == selectedId
+            val isExtension = installedExt.any { it.id == server.id }
             val shape = RoundedCornerShape(14.dp)
             Column(
                 modifier = Modifier
@@ -1377,12 +1431,133 @@ private fun SettingsFeed(
                     .clickable { catalog.select(server.id) }
                     .padding(16.dp),
             ) {
-                Text(server.name, color = Color.White, fontWeight = FontWeight.SemiBold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        server.name,
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        if (isExtension) "Extension" else "Bundled",
+                        color = Color.White.copy(alpha = 0.45f),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
                 Text(
                     server.description,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.55f),
                 )
+                if (isExtension) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = {
+                            catalog.uninstallExtension(server.id)
+                            extensionStatus = "Removed ${server.name}"
+                        },
+                        contentPadding = PaddingValues(0.dp),
+                    ) {
+                        Text("Uninstall", color = KittyFaint, fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+        item {
+            KittySectionHeading(
+                title = "Extension store",
+                subtitle = "Curated community listings · install with one tap",
+                padded = false,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    scope.launch {
+                        storeBusy = true
+                        storeStatus = null
+                        runCatching { catalog.fetchStore() }
+                            .onSuccess {
+                                storeListings = it.extensions
+                                storeStatus = "Updated ${it.updatedAt ?: "now"} · ${it.extensions.size} listed"
+                            }
+                            .onFailure { storeStatus = it.message }
+                        storeBusy = false
+                    }
+                },
+                enabled = !storeBusy,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black,
+                ),
+            ) {
+                Text(
+                    if (storeBusy) "Loading…" else "Refresh store",
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (storeStatus != null) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    storeStatus!!,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+        lazyItems(storeListings, key = { "store-${it.id}" }) { listing ->
+            val already = installedExt.any { it.id == listing.id }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(KittySurface)
+                    .padding(16.dp),
+            ) {
+                Text(listing.name, color = Color.White, fontWeight = FontWeight.SemiBold)
+                if (listing.description.isNotBlank()) {
+                    Text(
+                        listing.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.55f),
+                    )
+                }
+                Text(
+                    buildString {
+                        if (listing.author.isNotBlank()) append(listing.author)
+                        if (listing.featured) {
+                            if (isNotEmpty()) append(" · ")
+                            append("Featured")
+                        }
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.4f),
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        scope.launch {
+                            storeBusy = true
+                            storeStatus = runCatching {
+                                val m = catalog.installStoreListing(listing.github, listing.manifestPath)
+                                catalog.select(m.id)
+                                "Installed ${m.name}"
+                            }.getOrElse { e -> e.message }
+                            storeBusy = false
+                        }
+                    },
+                    enabled = !storeBusy && !already,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (already) KittySurfaceElevated else Color.White,
+                        contentColor = if (already) Color.White else Color.Black,
+                    ),
+                ) {
+                    Text(
+                        if (already) "Installed" else "Install",
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
         }
         item {

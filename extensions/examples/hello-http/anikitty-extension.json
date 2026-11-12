@@ -1,0 +1,13 @@
+{
+  "apiVersion": 1,
+  "id": "site.anikitty.example.hello",
+  "name": "Hello HTTP",
+  "version": "1.0.0",
+  "description": "Minimal BYO resolve example — replace baseUrl with your service.",
+  "author": "fampep",
+  "homepage": "https://github.com/fampep/anikitty",
+  "baseUrl": "https://example.invalid",
+  "resolvePath": "/v1/resolve",
+  "iconUrl": null,
+  "nsfw": false
+}

@@ -24,12 +24,14 @@
 
 <br />
 
-AniKitty is an **Android APK** + **Go dedicated auth server**.
+AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO stream extensions**.
 
-1. Sign in with **AniList** (list + progress sync) and/or a **password account** on your server  
+1. Sign in with a **password account** on the dedicated auth server (AniList link optional for list sync)  
 2. Browse AniList on-device  
-3. Pick a built-in **watch server** (e.g. Anikoto) — no third-party extension installs  
-4. The phone resolves a playable URL; Media3 streams on-device (with **Chromecast** when Play Services is available)  
+3. Install a **stream extension** from a GitHub link or the in-app store (bundled Anikoto remains as a default)  
+4. The extension resolves a playable URL; **Media3** streams on-device (with **Chromecast** when Play Services is available)  
+
+Extension author guide: [`extensions/GUIDE.md`](extensions/GUIDE.md) · protocol: [`extensions/spec/PROTOCOL.md`](extensions/spec/PROTOCOL.md)
 
 ---
 
@@ -39,6 +41,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server**.
 |---|---|
 | `apps/android/` | Kotlin / Jetpack Compose APK |
 | `apps/dedicated-server/` | Go auth + favorites / comments / history API |
+| `extensions/` | Manifest spec, author guide, store index, examples |
 
 ---
 
