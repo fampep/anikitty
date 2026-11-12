@@ -45,8 +45,10 @@ import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -308,6 +310,10 @@ fun LocalFirstApp(
                 historyDao = historyDao,
                 api = api,
                 onBack = { screen = Screen.Tabs },
+                onChangeSource = {
+                    screen = Screen.Tabs
+                    tab = "store"
+                },
                 onPlay = { episode, sources ->
                     screen = Screen.Player(current.anime, episode, sources)
                 },
@@ -326,7 +332,6 @@ fun LocalFirstApp(
                 history = history,
                 historyDao = historyDao,
                 onOpen = { anime, ep -> screen = Screen.Detail(anime, ep) },
-                onSignOut = onSignOut,
                 accountLabel = accountLabel,
             )
             "search" -> SearchFeed(
@@ -386,7 +391,6 @@ private fun HomeFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
-    onSignOut: () -> Unit,
     accountLabel: String,
 ) {
     var loading by remember { mutableStateOf(true) }
@@ -396,6 +400,8 @@ private fun HomeFeed(
     var popular by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var seasonal by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     val scope = rememberCoroutineScope()
+    var catalogJob by remember { mutableStateOf<Job?>(null) }
+    val catalogBusy = loading || refreshing
     val continueWatching = remember(history) {
         history.filter {
             val s = it.listStatus?.uppercase()
@@ -404,7 +410,8 @@ private fun HomeFeed(
     }
 
     fun reload(fromPull: Boolean = false) {
-        scope.launch {
+        if (catalogJob?.isActive == true) return
+        catalogJob = scope.launch {
             if (fromPull) refreshing = true else loading = true
             error = null
             runCatching {
@@ -433,7 +440,8 @@ private fun HomeFeed(
                         FloatingTopChrome(
                             accountLabel = accountLabel,
                             greeting = aniListAuth.username?.let { "Hey @$it" },
-                            onSignOut = onSignOut,
+                            onRefresh = { reload(fromPull = true) },
+                            refreshBusy = catalogBusy,
                             compact = false,
                         )
                     }
@@ -481,7 +489,8 @@ private fun HomeFeed(
                                     FloatingTopChrome(
                                         accountLabel = accountLabel,
                                         greeting = aniListAuth.username?.let { "@$it" },
-                                        onSignOut = onSignOut,
+                                        onRefresh = { reload(fromPull = true) },
+                                        refreshBusy = catalogBusy,
                                         compact = true,
                                     )
                                 },
@@ -490,38 +499,10 @@ private fun HomeFeed(
                             FloatingTopChrome(
                                 accountLabel = accountLabel,
                                 greeting = aniListAuth.username?.let { "Hey @$it" },
-                                onSignOut = onSignOut,
+                                onRefresh = { reload(fromPull = true) },
+                                refreshBusy = catalogBusy,
                                 compact = false,
                             )
-                        }
-                    }
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            TextButton(
-                                onClick = { if (!refreshing) reload(fromPull = true) },
-                                enabled = !refreshing,
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (refreshing) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(12.dp),
-                                            strokeWidth = 1.5.dp,
-                                            color = KittyFaint,
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                    }
-                                    Text(
-                                        if (refreshing) "Refreshing…" else "Refresh catalog",
-                                        color = KittyFaint,
-                                        fontSize = 12.sp,
-                                    )
-                                }
-                            }
                         }
                     }
                     item {
@@ -623,7 +604,8 @@ private fun HomeFeed(
 @Composable
 private fun FloatingTopChrome(
     accountLabel: String,
-    onSignOut: () -> Unit,
+    onRefresh: () -> Unit,
+    refreshBusy: Boolean = false,
     compact: Boolean = false,
     greeting: String? = null,
 ) {
@@ -667,16 +649,27 @@ private fun FloatingTopChrome(
         }
         Spacer(modifier = Modifier.width(8.dp))
         TextButton(
-            onClick = onSignOut,
+            onClick = onRefresh,
+            enabled = !refreshBusy,
             modifier = Modifier.kittyGlassSoft(RoundedCornerShape(14.dp)),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         ) {
-            Text(
-                "Sign out",
-                color = KittyMuted,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (refreshBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp,
+                        color = KittyMuted,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text(
+                    if (refreshBusy) "Refreshing…" else "Refresh",
+                    color = KittyMuted,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }
@@ -773,7 +766,19 @@ private fun SearchFeed(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             placeholder = { Text("Title, studio, or character") },
-            trailingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            trailingIcon = {
+                if (query.isNotEmpty()) {
+                    IconButton(
+                        onClick = {
+                            query = ""
+                            runSearch("")
+                        },
+                    ) {
+                        Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+                    }
+                }
+            },
             shape = RoundedCornerShape(16.dp),
         )
         if (recent.isNotEmpty() && query.isBlank()) {
@@ -803,21 +808,30 @@ private fun SearchFeed(
                 CircularProgressIndicator(color = Color.White)
             }
             error != null && items.isEmpty() -> Text(error!!, color = MaterialTheme.colorScheme.error)
-            items.isNotEmpty() -> LazyVerticalGrid(
-                columns = GridCells.Adaptive(110.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.weight(1f),
-            ) {
-                gridItems(items, key = { it.id }) { anime ->
-                    KittyPosterCard(
-                        anime = anime,
-                        onClick = {
-                            scope.launch { historyDao.touchFromCatalog(anime) }
-                            onOpen(anime)
-                        },
-                        width = 110.dp,
-                    )
+            items.isNotEmpty() -> Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    "${items.size} result${if (items.size == 1) "" else "s"}",
+                    color = KittyFaint,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(110.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    gridItems(items, key = { it.id }) { anime ->
+                        KittyPosterCard(
+                            anime = anime,
+                            onClick = {
+                                scope.launch { historyDao.touchFromCatalog(anime) }
+                                onOpen(anime)
+                            },
+                            width = 110.dp,
+                        )
+                    }
                 }
             }
             query.trim().length >= 2 && items.isEmpty() && !loading -> {
@@ -829,7 +843,11 @@ private fun SearchFeed(
             else -> {
                 KittySectionHeading(
                     title = if (query.isBlank()) "Trending picks" else "Keep typing…",
-                    subtitle = if (query.isBlank()) "Tap a poster to open" else "Need at least 2 characters",
+                    subtitle = if (query.isBlank()) {
+                        "Tap a poster to open"
+                    } else {
+                        "Need at least 2 characters"
+                    },
                     padded = false,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -911,12 +929,13 @@ private fun HistoryFeed(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 48.dp),
+                        .kittyGlass(KittyGlassShape)
+                        .padding(horizontal = 18.dp, vertical = 28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
                         if (aniListLinked) "No list entries yet" else "No history yet",
-                        color = Color.White,
+                        color = KittyText,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
                     )
@@ -927,7 +946,7 @@ private fun HistoryFeed(
                         } else {
                             "Watch something from Home — it shows up here with progress."
                         },
-                        color = Color.White.copy(alpha = 0.45f),
+                        color = KittyMuted,
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodySmall,
                     )
@@ -1161,9 +1180,7 @@ private fun SettingsFeed(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
-                    .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
+                    .kittyGlass(KittyGlassShape)
                     .padding(14.dp),
             ) {
                 if (isLinked) {
@@ -1400,16 +1417,16 @@ private fun SettingsFeed(
         lazyItems(resolvers.map { it.server }, key = { it.id }) { server ->
             val selected = server.id == selectedId
             val isExtension = installedExt.any { it.id == server.id }
-            val shape = RoundedCornerShape(14.dp)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(shape)
-                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
-                    .border(
-                        width = if (selected) 1.dp else 0.dp,
-                        color = if (selected) Color.White else Color.Transparent,
-                        shape = shape,
+                    .kittyGlass(KittyGlassShape)
+                    .then(
+                        if (selected) {
+                            Modifier.border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), KittyGlassShape)
+                        } else {
+                            Modifier
+                        },
                     )
                     .clickable { catalog.select(server.id) }
                     .padding(16.dp),
@@ -1424,20 +1441,31 @@ private fun SettingsFeed(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             server.name,
-                            color = Color.White,
+                            color = KittyText,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            if (isExtension) "Extension" else "Bundled",
-                            color = Color.White.copy(alpha = 0.45f),
+                            buildString {
+                                append(if (isExtension) "Extension" else "Bundled")
+                                if (selected) append(" · active")
+                            },
+                            color = if (selected) KittyAccentGlow else KittyFaint,
                             style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    if (selected) {
+                        Text(
+                            "Selected",
+                            color = KittyAccentGlow,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }
                 Text(
                     server.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = KittyMuted,
                     modifier = Modifier.padding(top = 8.dp),
                 )
                 if (isExtension) {
@@ -1478,9 +1506,16 @@ private fun TitleDetailScreen(
     historyDao: WatchHistoryDao,
     api: DedicatedApiClient,
     onBack: () -> Unit,
+    onChangeSource: () -> Unit,
     onPlay: (episode: Int, sources: List<PlayableSource>) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val selectedId by streamServers.selectedId.collectAsState()
+    val resolvers by streamServers.resolvers.collectAsState()
+    val activeServer = remember(selectedId, resolvers) {
+        resolvers.firstOrNull { it.server.id == selectedId }?.server
+            ?: resolvers.firstOrNull()?.server
+    }
     var episode by remember { mutableIntStateOf(initialEpisode ?: 1) }
     var audio by remember { mutableStateOf("sub") }
     var resolving by remember { mutableStateOf(false) }
@@ -1539,7 +1574,10 @@ private fun TitleDetailScreen(
                 lastWatchedEp = episode
                 onPlay(episode, sources)
                 status = null
-            }.onFailure { status = it.message ?: "Failed" }
+            }.onFailure {
+                val source = activeServer?.name?.let { n -> " via $n" }.orEmpty()
+                status = (it.message ?: "Failed") + source
+            }
             resolving = false
         }
     }
@@ -1686,6 +1724,41 @@ private fun TitleDetailScreen(
                         Chip("SUB", audio == "sub") { audio = "sub" }
                         Chip("DUB", audio == "dub") { audio = "dub" }
                     }
+                    Spacer(modifier = Modifier.height(18.dp))
+                    KittySectionHeading(
+                        title = "Stream source",
+                        subtitle = "Active resolver for Play",
+                        padded = false,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .kittyGlass(KittyGlassShapeTight)
+                            .clickable(onClick = onChangeSource)
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ExtensionIcon(
+                            iconUrl = activeServer?.iconUrl,
+                            contentDescription = activeServer?.name,
+                            size = 32.dp,
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                activeServer?.name ?: "No source",
+                                color = KittyText,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                "Tap to change in Store",
+                                color = KittyAccentGlow,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.height(22.dp))
                     KittySectionHeading(
                         title = "Episodes",
@@ -1762,7 +1835,7 @@ private fun TitleDetailScreen(
                         Text(
                             status!!,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = if (status!!.startsWith("Getting")) KittyMuted else MaterialTheme.colorScheme.error,
                         )
                     }
                     Spacer(modifier = Modifier.height(24.dp))
@@ -1952,12 +2025,15 @@ private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
-            .clip(shape)
-            .background(if (selected) KittyAccent else KittySurface)
-            .border(
-                width = 1.dp,
-                color = if (selected) KittyAccent else KittyOutlineSoft,
-                shape = shape,
+            .then(
+                if (selected) {
+                    Modifier
+                        .clip(shape)
+                        .background(KittyAccent)
+                        .border(1.dp, KittyAccent, shape)
+                } else {
+                    Modifier.kittyGlassSoft(shape)
+                },
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),

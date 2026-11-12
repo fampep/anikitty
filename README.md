@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.2"><img src="https://img.shields.io/badge/Pre--release-1.1.2-orange?style=for-the-badge" alt="Pre-release 1.1.2" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.3"><img src="https://img.shields.io/badge/Pre--release-1.1.3-orange?style=for-the-badge" alt="Pre-release 1.1.3" /></a>
   <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
   <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20NC-0284c7?style=for-the-badge" alt="PolyForm Noncommercial" /></a>
 </p>
@@ -17,11 +17,11 @@
 <p align="center">
   <a href="https://t.me/Anikittymoe"><img src="https://img.shields.io/badge/Telegram-Anikittymoe-28A8E9?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram" /></a>
   <a href="https://github.com/fampep/anikitty/issues"><img src="https://img.shields.io/badge/Issues-welcome-0369a1?style=for-the-badge&logo=github&logoColor=white" alt="Issues" /></a>
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.2"><img src="https://img.shields.io/badge/APK-download-0ea5e9?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.3"><img src="https://img.shields.io/badge/APK-download-0ea5e9?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
 </p>
 
 > [!WARNING]
-> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases** — each drop is for early testing, not a finished product. Latest: [**v1.1.2 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.1.2).
+> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases** — each drop is for early testing, not a finished product. Latest: [**v1.1.3 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.1.3).
 
 <br />
 
@@ -34,7 +34,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 
 | | |
 |---|---|
-| Latest APK | [v1.1.2](https://github.com/fampep/anikitty/releases/tag/v1.1.2) |
+| Latest APK | [v1.1.3](https://github.com/fampep/anikitty/releases/tag/v1.1.3) |
 | Author guide | [`extensions/GUIDE.md`](extensions/GUIDE.md) |
 | Protocol | [`extensions/spec/PROTOCOL.md`](extensions/spec/PROTOCOL.md) |
 | Submit to store | [`extensions/store/SUBMIT.md`](extensions/store/SUBMIT.md) |
@@ -46,6 +46,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 
 | Version | Highlights |
 |---|---|
+| **1.1.3** | Store Use/Selected for installed sources + active-source banner; title detail shows stream source; Search clear + result count; Home catalog refresh race guard |
 | **1.1.2** | Dedicated **Store** tab (search / install / submit); **`iconUrl` required** — scraped-site brand icon; icons in Store + Account for listings and bundled Anikoto |
 | **1.1.1** | Glass dark on-phone UI; PolyForm Noncommercial ownership license |
 | **1.1.0** | BYO HTTP extension architecture (`apiVersion` 1), GitHub install, store feed index |
@@ -98,7 +99,7 @@ cd apps/android
 # app/build/outputs/apk/release/app-release.apk
 ```
 
-Current release build: **`versionName` 1.1.2** / `versionCode` 16.
+Current release build: **`versionName` 1.1.3** / `versionCode` 17.
 
 Optional AniList OAuth client id (public, not a secret):
 
@@ -132,6 +133,7 @@ Rolling alpha pre-releases: https://github.com/fampep/anikitty/releases
 
 | Tag | Notes |
 |---|---|
+| [v1.1.3](https://github.com/fampep/anikitty/releases/tag/v1.1.3) | Store/Search/Detail polish + Home refresh guard |
 | [v1.1.2](https://github.com/fampep/anikitty/releases/tag/v1.1.2) | Extension Store + site icons |
 | [v1.1.1](https://github.com/fampep/anikitty/releases/tag/v1.1.1) | Glass UI + PolyForm NC |
 | [v1.1.0](https://github.com/fampep/anikitty/releases/tag/v1.1.0) | Extension architecture |

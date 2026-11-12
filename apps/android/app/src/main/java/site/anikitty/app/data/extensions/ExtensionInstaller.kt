@@ -27,7 +27,15 @@ class ExtensionInstaller(
             if (result.isSuccess) return@withContext result.getOrThrow()
             lastError = result.exceptionOrNull()?.message
         }
-        error(lastError ?: "anikitty-extension.json not found on that GitHub repo")
+        val hint = lastError.orEmpty()
+        when {
+            hint.contains("iconUrl", ignoreCase = true) ->
+                error("$hint — add the scraped site’s favicon as iconUrl in anikitty-extension.json")
+            hint.isNotBlank() ->
+                error(hint)
+            else ->
+                error("anikitty-extension.json not found on that GitHub repo")
+        }
     }
 
     suspend fun installFromManifestUrl(

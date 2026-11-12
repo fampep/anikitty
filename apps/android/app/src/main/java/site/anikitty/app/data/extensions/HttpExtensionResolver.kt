@@ -62,9 +62,11 @@ class HttpExtensionResolver(
                 val msg = runCatching { JSONObject(body).optString("error") }
                     .getOrNull()
                     ?.takeIf { it.isNotBlank() }
-                error(msg ?: "Extension HTTP ${resp.code}")
+                error(msg ?: "${manifest.name} HTTP ${resp.code}")
             }
-            parseSources(body)
+            parseSources(body).also {
+                if (it.isEmpty()) error("${manifest.name} returned no playable sources")
+            }
         }
     }
 
