@@ -1,5 +1,6 @@
 package site.anikitty.app.ui.app
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,12 +58,15 @@ import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.theme.KittyAccent
+import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
+import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
+import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
 
 /**
@@ -140,12 +144,15 @@ private fun LoginScreen(
     val hasSaved = savedPassphrase.hasSaved
 
     val fieldColors = OutlinedTextFieldDefaults.colors(
-        focusedBorderColor = MaterialTheme.colorScheme.primary,
-        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-        focusedLabelColor = MaterialTheme.colorScheme.primary,
-        cursorColor = MaterialTheme.colorScheme.primary,
-        focusedTextColor = MaterialTheme.colorScheme.onSurface,
-        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        focusedTextColor = KittyText,
+        unfocusedTextColor = KittyText,
+        cursorColor = KittyAccent,
+        focusedBorderColor = KittyAccent,
+        unfocusedBorderColor = KittyOutlineSoft,
+        focusedContainerColor = KittySurfaceElevated,
+        unfocusedContainerColor = KittySurfaceElevated,
+        focusedLabelColor = KittyAccentGlow,
+        unfocusedLabelColor = KittyFaint,
     )
 
     fun run(label: String, block: suspend () -> String) {
@@ -188,9 +195,10 @@ private fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "On your phone · black UI · by fampep",
+                "On your phone · black + pink · by fampep",
                 style = MaterialTheme.typography.bodyMedium,
-                color = KittyMuted,
+                color = KittyAccentGlow,
+                fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
             )
 
@@ -237,7 +245,8 @@ private fun LoginScreen(
                 TextButton(onClick = { showPassword = !showPassword }, enabled = !busy) {
                     Text(
                         if (showPassword) "Hide password" else "Show password",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = KittyMuted,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
 
@@ -250,13 +259,15 @@ private fun LoginScreen(
                         onCheckedChange = { saveOnDevice = it },
                         enabled = !busy,
                         colors = CheckboxDefaults.colors(
-                            checkedColor = MaterialTheme.colorScheme.primary,
+                            checkedColor = KittyAccent,
+                            checkmarkColor = KittyOnAccent,
+                            uncheckedColor = KittyFaint,
                         ),
                     )
                     Text(
                         "Save password on this device",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = KittyMuted,
                     )
                 }
 
@@ -280,8 +291,8 @@ private fun LoginScreen(
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = KittyAccent,
+                        contentColor = KittyOnAccent,
                     ),
                 ) {
                     Text("Sign in", fontWeight = FontWeight.Bold)
@@ -304,7 +315,9 @@ private fun LoginScreen(
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                    ) { Text("Continue with saved password") }
+                        border = BorderStroke(1.dp, KittyAccent.copy(alpha = 0.55f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyAccentGlow),
+                    ) { Text("Continue with saved password", fontWeight = FontWeight.Bold) }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -319,7 +332,9 @@ private fun LoginScreen(
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
-                ) { Text("Generate password") }
+                    border = BorderStroke(1.dp, KittyOutlineSoft),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyText),
+                ) { Text("Generate password", fontWeight = FontWeight.SemiBold) }
 
                 if (generated != null) {
                     Spacer(modifier = Modifier.height(10.dp))
@@ -327,7 +342,7 @@ private fun LoginScreen(
                         generated!!,
                         style = MaterialTheme.typography.titleSmall,
                         fontFamily = FontFamily.Monospace,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = KittyAccent,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -358,8 +373,8 @@ private fun LoginScreen(
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = KittyAccent,
+                        contentColor = KittyOnAccent,
                     ),
                 ) {
                     Text("Create account", fontWeight = FontWeight.Bold)
@@ -370,7 +385,7 @@ private fun LoginScreen(
             Text(
                 status,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = KittyMuted,
                 textAlign = TextAlign.Center,
             )
         }

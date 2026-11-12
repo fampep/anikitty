@@ -31,11 +31,11 @@ val KittyAccent = Color(0xFFFF2D6A)
 val KittyAccentGlow = Color(0xFFFF4D82)
 val KittyOnAccent = Color(0xFFFFFFFF)
 
-val KittyNavPillSurface = Color(0xEE0A0A0A)
-val KittyNavPillBorder = Color.White.copy(alpha = 0.14f)
+val KittyNavPillSurface = Color(0xF00A0A0A)
+val KittyNavPillBorder = KittyAccent.copy(alpha = 0.28f)
 val KittyNavPillSelected = KittyAccent
 val KittyNavPillSelectedContent = Color(0xFFFFFFFF)
-val KittyNavPillContent = Color.White.copy(alpha = 0.55f)
+val KittyNavPillContent = Color.White.copy(alpha = 0.58f)
 
 val KittyAmbientWash = Color.Transparent
 

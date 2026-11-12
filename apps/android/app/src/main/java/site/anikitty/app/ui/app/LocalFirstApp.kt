@@ -1292,7 +1292,9 @@ private fun SettingsFeed(
                                 onLinkStatus("AniList unlinked")
                             },
                             shape = RoundedCornerShape(12.dp),
-                        ) { Text("Unlink") }
+                            border = BorderStroke(1.dp, KittyOutlineSoft),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
+                        ) { Text("Unlink", fontWeight = FontWeight.SemiBold) }
                     }
                 } else {
                     Text(
@@ -1519,7 +1521,7 @@ private fun SettingsFeed(
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     extensionStatus!!,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = KittyMuted,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -1548,26 +1550,31 @@ private fun SettingsFeed(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                server.name,
+                                color = KittyText,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (selected) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "ACTIVE",
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(KittyAccent)
+                                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                                    color = KittyOnAccent,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                )
+                            }
+                        }
                         Text(
-                            server.name,
-                            color = KittyText,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            buildString {
-                                append(if (isExtension) "Extension" else "Bundled")
-                                if (selected) append(" · active")
-                            },
-                            color = if (selected) KittyAccentGlow else KittyFaint,
+                            if (isExtension) "Extension" else "Bundled",
+                            color = KittyFaint,
                             style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
-                    if (selected) {
-                        Text(
-                            "Selected",
-                            color = KittyAccentGlow,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }
@@ -1598,8 +1605,8 @@ private fun SettingsFeed(
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(999.dp),
-                border = BorderStroke(1.dp, KittyOutlineSoft),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
+                border = BorderStroke(1.dp, KittyAccent.copy(alpha = 0.35f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyAccentGlow),
             ) {
                 Text("Sign out", fontWeight = FontWeight.Bold)
             }
@@ -1808,7 +1815,7 @@ private fun TitleDetailScreen(
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
                             contentDescription = "Back",
-                            tint = Color.White,
+                            tint = KittyText,
                         )
                     }
                     Row(
@@ -1833,7 +1840,7 @@ private fun TitleDetailScreen(
                                 detail.title,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Black,
-                                color = Color.White,
+                                color = KittyText,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -2582,7 +2589,7 @@ private fun KittyEpisodeCard(
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(KittyAccentGlow.copy(alpha = 0.9f))
+                        .background(KittyAccent)
                         .padding(horizontal = 6.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = KittyOnAccent,
