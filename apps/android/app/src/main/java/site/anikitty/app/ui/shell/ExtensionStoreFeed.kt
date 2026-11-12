@@ -323,9 +323,23 @@ fun ExtensionStoreFeed(
                         .padding(16.dp),
                 ) {
                     Text(
-                        if (listings.isEmpty()) "Store empty or offline — try Refresh."
-                        else "No extensions match “$query”.",
+                        if (listings.isEmpty()) {
+                            "Store empty or offline"
+                        } else {
+                            "No extensions match “$query”"
+                        },
+                        color = KittyText,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        if (listings.isEmpty()) {
+                            "Pull Refresh, or paste a GitHub URL below. Main store falls back to the monorepo index until anikitty-extensions is public."
+                        } else {
+                            "Clear search or try another keyword."
+                        },
                         color = KittyMuted,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }

@@ -835,10 +835,24 @@ private fun SearchFeed(
                 }
             }
             query.trim().length >= 2 && items.isEmpty() && !loading -> {
-                Text(
-                    "No titles matched “${query.trim()}”",
-                    color = Color.White.copy(alpha = 0.55f),
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .kittyGlass(KittyGlassShape)
+                        .padding(18.dp),
+                ) {
+                    Text(
+                        "No titles matched “${query.trim()}”",
+                        color = KittyText,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Try another spelling or a shorter title.",
+                        color = KittyMuted,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
             }
             else -> {
                 KittySectionHeading(
@@ -918,8 +932,12 @@ private fun HistoryFeed(
                     )
                 }
                 if (aniListLinked) {
-                    TextButton(onClick = onSync) {
-                        Text("Sync", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    TextButton(
+                        onClick = onSync,
+                        modifier = Modifier.kittyGlassSoft(RoundedCornerShape(12.dp)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text("Sync", color = KittyText, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
