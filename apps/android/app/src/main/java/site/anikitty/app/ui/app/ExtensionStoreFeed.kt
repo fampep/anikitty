@@ -1,4 +1,4 @@
-package site.anikitty.app.ui.shell
+package site.anikitty.app.ui.app
 
 import android.content.Intent
 import android.net.Uri

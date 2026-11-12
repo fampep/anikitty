@@ -1,4 +1,4 @@
-package site.anikitty.app.ui.shell
+package site.anikitty.app.ui.app
 
 import android.content.Intent
 import android.net.Uri
@@ -36,6 +36,7 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -52,6 +53,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
@@ -399,6 +401,7 @@ fun LocalFirstApp(
                     history = history,
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
+                    onOpenSearch = { tab = "search" },
                     accountLabel = accountLabel,
                 )
                 "search" -> SearchFeed(
@@ -459,8 +462,12 @@ private fun HomeFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
+    onOpenSearch: () -> Unit,
     accountLabel: String,
 ) {
+    val homeDisplayName = aniListAuth.username?.takeIf { it.isNotBlank() }
+        ?: accountLabel.takeIf { it.isNotBlank() }
+        ?: "Guest"
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -505,16 +512,14 @@ private fun HomeFeed(
             loading && trending.isEmpty() -> {
                 LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
                     item {
-                        FloatingTopChrome(
-                            accountLabel = accountLabel,
-                            greeting = aniListAuth.username?.let { "Hey @$it" },
+                        HomeWelcomeHeader(
+                            displayName = homeDisplayName,
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
-                            compact = false,
+                            onOpenSearch = onOpenSearch,
                         )
                     }
-                    item { KittyPosterSkeletonRow("Spotlight") }
-                    item { KittyPosterSkeletonRow("Trending now") }
+                    item { KittyPosterSkeletonRow("Trending Anime") }
                     item { KittyPosterSkeletonRow("Most popular") }
                 }
             }
@@ -525,12 +530,11 @@ private fun HomeFeed(
                         .padding(24.dp)
                         .fillMaxWidth(),
                 ) {
-                    FloatingTopChrome(
-                        accountLabel = accountLabel,
-                        greeting = aniListAuth.username?.let { "Hey @$it" },
+                    HomeWelcomeHeader(
+                        displayName = homeDisplayName,
                         onRefresh = { reload(fromPull = true) },
                         refreshBusy = catalogBusy,
-                        compact = false,
+                        onOpenSearch = onOpenSearch,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                     KittyEmptyState(
@@ -544,54 +548,43 @@ private fun HomeFeed(
             else -> {
                 LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
                     item {
-                        trending.firstOrNull()?.let { hero ->
-                            KittyHero(
-                                anime = hero,
-                                eyebrow = "Featured",
-                                cta = "Play",
-                                onOpen = {
-                                    scope.launch { historyDao.touchFromCatalog(hero) }
-                                    onOpen(hero, null)
-                                },
-                                onMoreInfo = {
-                                    scope.launch { historyDao.touchFromCatalog(hero) }
-                                    onOpen(hero, null)
-                                },
-                                topOverlay = {
-                                    FloatingTopChrome(
-                                        accountLabel = accountLabel,
-                                        greeting = aniListAuth.username?.let { "@$it" },
-                                        onRefresh = { reload(fromPull = true) },
-                                        refreshBusy = catalogBusy,
-                                        compact = true,
-                                    )
-                                },
-                            )
-                        } ?: run {
-                            FloatingTopChrome(
-                                accountLabel = accountLabel,
-                                greeting = aniListAuth.username?.let { "Hey @$it" },
-                                onRefresh = { reload(fromPull = true) },
-                                refreshBusy = catalogBusy,
-                                compact = false,
-                            )
-                        }
+                        HomeWelcomeHeader(
+                            displayName = homeDisplayName,
+                            onRefresh = { reload(fromPull = true) },
+                            refreshBusy = catalogBusy,
+                            onOpenSearch = onOpenSearch,
+                        )
                     }
                     item {
-                        if (continueWatching.isNotEmpty()) {
-                            Column(modifier = Modifier.padding(top = 8.dp)) {
-                                KittySectionHeading(
-                                    title = "Continue watching",
-                                    subtitle = if (aniListAuth.isLinked) {
-                                        "Your list · synced with AniList"
-                                    } else {
-                                        "Pick up where you left off"
-                                    },
-                                )
+                        KittyPosterRow(
+                            title = "Trending Anime",
+                            items = trending,
+                            onMore = onOpenSearch,
+                            onOpen = {
+                                scope.launch { historyDao.touchFromCatalog(it) }
+                                onOpen(it, null)
+                            },
+                        )
+                    }
+                    item {
+                        KittyPosterRow(
+                            title = "Most popular",
+                            items = popular,
+                            onMore = onOpenSearch,
+                            onOpen = {
+                                scope.launch { historyDao.touchFromCatalog(it) }
+                                onOpen(it, null)
+                            },
+                        )
+                    }
+                    if (continueWatching.isNotEmpty()) {
+                        item {
+                            Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
+                                KittySectionHeading(title = "Continue watching")
                                 Spacer(modifier = Modifier.height(12.dp))
                                 LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     lazyItems(continueWatching, key = { it.anilistId }) { entry ->
                                         KittyContinueCard(
@@ -620,47 +613,13 @@ private fun HomeFeed(
                                     }
                                 }
                             }
-                        } else {
-                            Column(modifier = Modifier.padding(top = 20.dp, start = 16.dp, end = 16.dp)) {
-                                KittySectionHeading(
-                                    title = "Continue watching",
-                                    subtitle = if (aniListAuth.isLinked) {
-                                        "Nothing in progress — open a title to start"
-                                    } else {
-                                        "Start something — it’ll land here"
-                                    },
-                                    padded = false,
-                                )
-                            }
                         }
                     }
                     item {
                         KittyPosterRow(
-                            title = "Trending now",
-                            subtitle = "What everyone is watching",
-                            items = trending,
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
-                    }
-                    item {
-                        KittyPosterRow(
-                            title = "Most popular",
-                            subtitle = "All-time favorites",
-                            items = popular,
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
-                    }
-                    item {
-                        KittyPosterRow(
                             title = "Airing this season",
-                            subtitle = "New episodes weekly",
                             items = seasonal,
+                            onMore = onOpenSearch,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
@@ -674,87 +633,79 @@ private fun HomeFeed(
 }
 
 @Composable
-private fun FloatingTopChrome(
-    accountLabel: String,
+private fun HomeWelcomeHeader(
+    displayName: String,
     onRefresh: () -> Unit,
     refreshBusy: Boolean = false,
-    compact: Boolean = false,
-    greeting: String? = null,
+    onOpenSearch: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 14.dp, vertical = if (compact) 8.dp else 12.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(KittyAccent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.Person,
+                contentDescription = null,
+                tint = KittyOnAccent,
+                modifier = Modifier.size(26.dp),
+            )
+        }
+        Column(
             modifier = Modifier
                 .weight(1f)
-                .kittyGlassSoft(RoundedCornerShape(14.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
+                .padding(horizontal = 12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    "Ani",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = KittyText,
-                    letterSpacing = (-0.7).sp,
-                )
-                Text(
-                    "Kitty",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Black,
-                    color = KittyAccentGlow,
-                    letterSpacing = (-0.7).sp,
-                )
-            }
-            val chip = when {
-                !greeting.isNullOrBlank() -> greeting
-                !compact -> accountLabel
-                else -> null
-            }
-            if (!chip.isNullOrBlank()) {
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    chip,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(KittyAccentGlow.copy(alpha = 0.12f))
-                        .border(1.dp, KittyAccentGlow.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = KittyAccentGlow,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+            Text(
+                "Welcome back",
+                color = KittyAccentGlow,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                displayName,
+                color = KittyText,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        TextButton(
-            onClick = onRefresh,
-            enabled = !refreshBusy,
-            modifier = Modifier.kittyGlassSoft(RoundedCornerShape(14.dp)),
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (onOpenSearch != null) {
+                KittyRoundIconButton(onClick = onOpenSearch) {
+                    Icon(
+                        Icons.Rounded.Search,
+                        contentDescription = "Search",
+                        tint = KittyText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            KittyRoundIconButton(onClick = onRefresh) {
                 if (refreshBusy) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(12.dp),
-                        strokeWidth = 1.5.dp,
-                        color = KittyMuted,
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = KittyAccentGlow,
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                } else {
+                    Icon(
+                        Icons.Rounded.Refresh,
+                        contentDescription = "Refresh",
+                        tint = KittyText,
+                        modifier = Modifier.size(20.dp),
+                    )
                 }
-                Text(
-                    if (refreshBusy) "Refreshing…" else "Refresh",
-                    color = KittyMuted,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
             }
         }
     }

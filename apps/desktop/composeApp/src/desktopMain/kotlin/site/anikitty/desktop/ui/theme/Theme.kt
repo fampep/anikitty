@@ -12,32 +12,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * AniKitty glass dark — desktop companion to the Android chrome.
- * Deep ink canvas, frosted panels, cool ice accent (not purple).
+ * AniKitty black UI — solid near-black canvas, hot pink accent, no haze.
  */
-val KittyInk = Color(0xFF05060A)
-val KittyPage = Color(0xFF07080F)
-val KittySurface = Color(0xB8141822)
-val KittySurfaceElevated = Color(0xD91A1F2C)
-val KittyGlass = Color(0x59101820)
-val KittyGlassStrong = Color(0xA31A2030)
-val KittyText = Color(0xFFF4F6FA)
-val KittyMuted = Color(0xFFB8C0D0)
-val KittyFaint = Color(0xFF7A8498)
-val KittyOutline = Color.White.copy(alpha = 0.18f)
-val KittyOutlineSoft = Color.White.copy(alpha = 0.10f)
-val KittyAccent = Color(0xFFE8EEF7)
-val KittyAccentGlow = Color(0xFF7EB6C9)
-val KittyOnAccent = Color(0xFF0A0C12)
-val KittyWarm = Color(0xFFE8C9A0)
+val KittyInk = Color(0xFF000000)
+val KittyPage = Color(0xFF000000)
+val KittySurface = Color(0xFF141414)
+val KittySurfaceElevated = Color(0xFF1C1C1C)
+val KittyGlass = Color(0xFF1A1A1A)
+val KittyGlassStrong = Color(0xFF222222)
+val KittyText = Color(0xFFFFFFFF)
+val KittyMuted = Color(0xFFB3B3B3)
+val KittyFaint = Color(0xFF8A8A8A)
+val KittyOutline = Color.White.copy(alpha = 0.12f)
+val KittyOutlineSoft = Color.White.copy(alpha = 0.08f)
+val KittyAccent = Color(0xFFFF2D6A)
+val KittyAccentGlow = Color(0xFFFF4D82)
+val KittyOnAccent = Color(0xFFFFFFFF)
+val KittyWarm = Color(0xFFFF8FB0)
 
 val KittyPageBrush: Brush
     get() = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF0A101A),
-            KittyPage,
-            Color(0xFF03040A),
-        ),
+        colors = listOf(KittyPage, KittyPage),
     )
 
 private val DarkColors = darkColorScheme(

@@ -9,7 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import site.anikitty.app.data.anilist.AniListOAuth
-import site.anikitty.app.ui.shell.AppRoot
+import site.anikitty.app.ui.app.AppRoot
 import site.anikitty.app.ui.theme.AniKittyTheme
 
 /** AppCompatActivity so Chromecast MediaRouteButton / dialogs inflate correctly. */

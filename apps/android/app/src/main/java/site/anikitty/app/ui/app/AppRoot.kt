@@ -1,4 +1,4 @@
-package site.anikitty.app.ui.shell
+package site.anikitty.app.ui.app
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
