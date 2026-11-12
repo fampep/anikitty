@@ -25,7 +25,6 @@ class MainActivity : AppCompatActivity() {
         setContent {
             AniKittyTheme {
                 AppRoot(
-                    api = app.api,
                     session = app.session,
                     savedPassphrase = app.savedPassphrase,
                     aniList = app.aniList,
@@ -56,7 +55,7 @@ class MainActivity : AppCompatActivity() {
         val expectedState = AniListOAuth.consumeLinkStarted(this)
         if (expectedState.isNullOrBlank()) {
             oauthToken = null
-            oauthError = "Unexpected AniList callback — tap Link AniList in Account first"
+            oauthError = "Unexpected AniList callback — tap Sign in with AniList first"
             intent?.data = null
             return
         }

@@ -41,4 +41,4 @@ export ANILIST_REDIRECT_URI='http://143.246.203.212:8788/api/v1/anilist/callback
 | PUT | `/api/v1/history` | Bearer |
 | DELETE | `/api/v1/history/{anilistId}` | Bearer |
 
-Production deploy currently serves the APK default at `http://143.246.203.212:8788` (`systemd --user` unit `anikitty.service`). Override in the app login field if needed. Prefer HTTPS behind a reverse proxy when you harden the host.
+The Android app does not call this server. It is optional and unused by the phone build.

@@ -52,7 +52,7 @@ android {
         versionCode = releaseCode
         versionName = releaseName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // Public AniList client id. The secret stays on the VPS, not in this APK.
+        // Public AniList client id. Sign-in is the implicit grant, so the APK has no secret.
         val anilistClientId = configValue("anilistClientId", "ANILIST_CLIENT_ID", "56768")
         buildConfigField("String", "ANILIST_CLIENT_ID", "\"$anilistClientId\"")
         // Optional TMDB v3 API key for Fribb-mapped episode stills (Plex-style rail).

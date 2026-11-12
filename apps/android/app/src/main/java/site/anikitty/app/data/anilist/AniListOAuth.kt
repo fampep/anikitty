@@ -8,14 +8,14 @@ import site.anikitty.app.BuildConfig
 import java.util.UUID
 
 /**
- * AniList sign-in.
+ * AniList sign-in on the phone.
  *
- * AniList sends the authorization code to the VPS. The VPS exchanges it and
- * returns the app to anikitty://anilist with the access token. The client secret
- * stays on the server.
+ * Implicit grant, the flow AniList documents for mobile apps: the access token
+ * comes back in the redirect fragment. No client secret and no server.
+ * The AniList application's redirect URL must be [APP_REDIRECT].
  */
 object AniListOAuth {
-    const val REDIRECT_URI = "http://143.246.203.212:8788/api/v1/anilist/callback"
+    const val APP_REDIRECT = "anikitty://anilist"
     private const val AUTHORIZE = "https://anilist.co/api/v2/oauth/authorize"
     private const val PREFS = "anikitty_anilist_oauth"
     private const val KEY_STARTED_AT = "link_started_at_ms"
@@ -32,14 +32,13 @@ object AniListOAuth {
         require(state.isNotBlank()) { "OAuth state required" }
         return Uri.parse(AUTHORIZE).buildUpon()
             .appendQueryParameter("client_id", clientId)
-            .appendQueryParameter("redirect_uri", REDIRECT_URI)
-            .appendQueryParameter("response_type", "code")
+            .appendQueryParameter("response_type", "token")
             .appendQueryParameter("state", state)
             .build()
             .toString()
     }
 
-    /** Record that the signed-in user just started linking from Account; returns the nonce. */
+    /** Record that the user just started sign-in; returns the nonce. */
     fun markLinkStarted(context: Context): String {
         val nonce = UUID.randomUUID().toString()
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -72,24 +71,29 @@ object AniListOAuth {
     }
 
     /**
-     * Parse `anikitty://anilist#access_token=…&state=…`.
-     * Only the fragment is accepted. [expectedState] must match the fragment `state`.
+     * Parse `anikitty://anilist#access_token=…`.
+     * AniList puts the token in the fragment. State is checked when AniList echoes it.
      */
     fun parseRedirect(uri: Uri?, expectedState: String): String? {
         if (uri == null) return null
         require(expectedState.isNotBlank()) { "OAuth state required" }
         if (uri.scheme != "anikitty" || uri.host != "anilist") return null
-        val fragment = uri.fragment.orEmpty()
-        if (fragment.isBlank()) return null
-        val map = fragment.split('&').mapNotNull { part ->
-            val i = part.indexOf('=')
-            if (i <= 0) null else part.substring(0, i) to Uri.decode(part.substring(i + 1))
-        }.toMap()
+        val map = linkedMapOf<String, String>()
+        fun absorb(raw: String?) {
+            if (raw.isNullOrBlank()) return
+            raw.split('&').forEach { part ->
+                val i = part.indexOf('=')
+                if (i > 0) map[part.substring(0, i)] = Uri.decode(part.substring(i + 1))
+            }
+        }
+        absorb(uri.fragment)
+        absorb(uri.encodedFragment)
+        absorb(uri.query)
         map["error"]?.let { err ->
             error(map["error_description"] ?: err)
         }
         val returnedState = map["state"]
-        if (returnedState.isNullOrBlank() || returnedState != expectedState) {
+        if (!returnedState.isNullOrBlank() && returnedState != expectedState) {
             error("AniList OAuth state mismatch")
         }
         return map["access_token"]?.takeIf { it.isNotBlank() }

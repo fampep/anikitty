@@ -46,8 +46,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
@@ -115,7 +113,6 @@ import site.anikitty.app.data.fribb.EpisodeThumbResolver
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
 import site.anikitty.app.data.local.touchFromCatalog
-import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.AnimatedSearchIcon
@@ -168,7 +165,6 @@ fun LocalFirstApp(
     aniListSync: AniListSync,
     historyDao: WatchHistoryDao,
     streamServers: ServerCatalog,
-    api: DedicatedApiClient,
     accountLabel: String,
     pendingAniListToken: String? = null,
     pendingAniListError: String? = null,
@@ -374,7 +370,6 @@ fun LocalFirstApp(
                 streamServers = streamServers,
                 historyDao = historyDao,
                 aniList = aniList,
-                api = api,
                 onBack = { popDetailOrTabs() },
                 onChangeSource = {
                     detailBackStack = emptyList()
@@ -440,7 +435,6 @@ fun LocalFirstApp(
                 )
                 "settings" -> SettingsFeed(
                     catalog = streamServers,
-                    api = api,
                     aniList = aniList,
                     aniListAuth = aniListAuth,
                     aniListSync = aniListSync,
@@ -1320,7 +1314,6 @@ private fun androidx.compose.foundation.layout.RowScope.ProfileStat(value: Strin
 @Composable
 private fun SettingsFeed(
     catalog: ServerCatalog,
-    api: DedicatedApiClient,
     aniList: AniListClient,
     aniListAuth: AniListAuthStore,
     aniListSync: AniListSync,
@@ -1339,19 +1332,7 @@ private fun SettingsFeed(
     val installedExt by catalog.extensions.installed.collectAsState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var profile by remember { mutableStateOf<DedicatedApiClient.Profile?>(null) }
-    var displayName by remember { mutableStateOf("") }
-    var status by remember { mutableStateOf<String?>(null) }
-    var favorites by remember { mutableStateOf<List<DedicatedApiClient.Favorite>>(emptyList()) }
     var extensionStatus by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        runCatching { api.me() }.onSuccess {
-            profile = it
-            displayName = it.displayName
-        }
-        runCatching { api.favorites() }.onSuccess { favorites = it }
-    }
 
     // linkTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
     val isLinked = linkTick.let { aniListAuth.isLinked }
@@ -1367,7 +1348,7 @@ private fun SettingsFeed(
         item {
             AniListProfileCard(
                 auth = aniListAuth,
-                fallbackName = displayName.ifBlank { accountLabel }.ifBlank { "AniList" },
+                fallbackName = accountLabel.ifBlank { "AniList" },
                 syncLabel = syncLabel,
             )
         }
@@ -1425,7 +1406,7 @@ private fun SettingsFeed(
                     }
                 } else {
                     Text(
-                        "Sign in on AniList. The server brings you back. No token to copy.",
+                        "Sign in on AniList. Your list and the next episode come back with you.",
                         style = MaterialTheme.typography.bodySmall,
                         color = KittyMuted,
                     )
@@ -1446,102 +1427,6 @@ private fun SettingsFeed(
                         linkStatus,
                         style = MaterialTheme.typography.bodySmall,
                         color = KittyMuted,
-                    )
-                }
-            }
-        }
-        if (profile != null) item {
-            KittySectionHeading(
-                title = "Display name",
-                subtitle = "Shown on comments · 2–24 characters",
-                padded = false,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(KittyGlassShape)
-                    .background(KittySurface)
-                    .border(1.dp, KittyOutlineSoft, KittyGlassShape)
-                    .padding(14.dp),
-            ) {
-                OutlinedTextField(
-                    value = displayName,
-                    onValueChange = { displayName = it.take(24) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    label = { Text("Name") },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = KittyText,
-                        unfocusedTextColor = KittyText,
-                        cursorColor = KittyAccent,
-                        focusedBorderColor = KittyAccent,
-                        unfocusedBorderColor = KittyOutlineSoft,
-                        focusedContainerColor = KittySurfaceElevated,
-                        unfocusedContainerColor = KittySurfaceElevated,
-                        focusedLabelColor = KittyAccentGlow,
-                        unfocusedLabelColor = KittyFaint,
-                    ),
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = {
-                        scope.launch {
-                            status = runCatching {
-                                val saved = api.updateDisplayName(displayName.trim())
-                                displayName = saved
-                                profile = api.me()
-                                "Saved"
-                            }.getOrElse { e -> e.message }
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = KittyAccent,
-                        contentColor = KittyOnAccent,
-                    ),
-                ) { Text("Save name", fontWeight = FontWeight.Bold) }
-                if (status != null) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(status!!, color = KittyMuted, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-        if (favorites.isNotEmpty()) {
-            item {
-                KittySectionHeading(
-                    title = "Favorites",
-                    subtitle = "Synced to your dedicated server",
-                    padded = false,
-                )
-            }
-            lazyItems(favorites, key = { it.anilistId }) { fav ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(KittyGlassShapeTight)
-                        .background(KittySurface)
-                        .border(1.dp, KittyOutlineSoft, KittyGlassShapeTight)
-                        .padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AsyncImage(
-                        model = fav.coverImageUrl,
-                        contentDescription = fav.title,
-                        modifier = Modifier
-                            .width(44.dp)
-                            .aspectRatio(2f / 3f)
-                            .clip(RoundedCornerShape(6.dp)),
-                        contentScale = ContentScale.Crop,
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        fav.title,
-                        color = KittyText,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -1645,19 +1530,6 @@ private fun SettingsFeed(
                 }
             }
         }
-        item {
-            OutlinedButton(
-                onClick = onSignOut,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(999.dp),
-                border = BorderStroke(1.dp, KittyAccent.copy(alpha = 0.35f)),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyAccentGlow),
-            ) {
-                Text("Sign out", fontWeight = FontWeight.Bold)
-            }
-        }
     }
 }
 
@@ -1668,7 +1540,6 @@ private fun TitleDetailScreen(
     streamServers: ServerCatalog,
     historyDao: WatchHistoryDao,
     aniList: AniListClient,
-    api: DedicatedApiClient,
     onBack: () -> Unit,
     onChangeSource: () -> Unit,
     onOpenRelated: (AnimeSummary) -> Unit,
@@ -1689,12 +1560,6 @@ private fun TitleDetailScreen(
     var audio by remember(anime.id) { mutableStateOf("sub") }
     var resolving by remember(anime.id) { mutableStateOf(false) }
     var status by remember(anime.id) { mutableStateOf<String?>(null) }
-    var favorited by remember(anime.id) { mutableStateOf(false) }
-    var comments by remember(anime.id) {
-        mutableStateOf<List<DedicatedApiClient.Comment>>(emptyList())
-    }
-    var commentDraft by remember(anime.id) { mutableStateOf("") }
-    var commentStatus by remember(anime.id) { mutableStateOf<String?>(null) }
     var listBadge by remember(anime.id) { mutableStateOf<String?>(null) }
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
@@ -1717,11 +1582,7 @@ private fun TitleDetailScreen(
         detailLoading = !anime.detailLoaded
         resolving = false
         status = null
-        commentDraft = ""
-        commentStatus = null
         synopsisExpanded = false
-        comments = emptyList()
-        favorited = false
         val history = historyDao.get(anime.id)
         lastWatchedEp = history?.episode ?: 0
         episode = when {
@@ -1731,10 +1592,6 @@ private fun TitleDetailScreen(
         }
         audio = "sub"
         listBadge = listStatusBadge(history?.listStatus)
-        runCatching { api.favorites() }
-            .onSuccess { favorited = it.any { f -> f.anilistId.toInt() == anime.id } }
-        runCatching { api.comments(anime.id) }
-            .onSuccess { comments = it }
         if (!anime.detailLoaded) {
             runCatching { aniList.media(anime.id) }
                 .onSuccess { full ->
@@ -1940,7 +1797,7 @@ private fun TitleDetailScreen(
                             onClick = { playSelected() },
                             enabled = !resolving,
                             modifier = Modifier
-                                .weight(1f)
+                                .fillMaxWidth()
                                 .height(50.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
@@ -1956,40 +1813,6 @@ private fun TitleDetailScreen(
                                     else -> "Play Now"
                                 },
                                 fontWeight = FontWeight.Black,
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .size(50.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    if (favorited) KittyAccent.copy(alpha = 0.18f) else KittySurfaceElevated,
-                                )
-                                .border(
-                                    1.dp,
-                                    if (favorited) KittyAccent else KittyOutlineSoft,
-                                    RoundedCornerShape(14.dp),
-                                )
-                                .clickable {
-                                    scope.launch {
-                                        runCatching {
-                                            if (favorited) {
-                                                api.deleteFavorite(detail.id)
-                                                favorited = false
-                                            } else {
-                                                api.putFavorite(detail.id, detail.title, detail.coverImageUrl)
-                                                favorited = true
-                                            }
-                                        }
-                                    }
-                                },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                if (favorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                contentDescription = "Favorite",
-                                tint = if (favorited) KittyAccent else KittyText,
-                                modifier = Modifier.size(24.dp),
                             )
                         }
                     }
@@ -2186,19 +2009,6 @@ private fun TitleDetailScreen(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Chip(if (favorited) "Favorited" else "Favorite", favorited) {
-                            scope.launch {
-                                runCatching {
-                                    if (favorited) {
-                                        api.deleteFavorite(detail.id)
-                                        favorited = false
-                                    } else {
-                                        api.putFavorite(detail.id, detail.title, detail.coverImageUrl)
-                                        favorited = true
-                                    }
-                                }
-                            }
-                        }
                         Chip("AniList", false) {
                             openUrl("https://anilist.co/anime/${detail.id}")
                         }
@@ -2554,83 +2364,6 @@ private fun TitleDetailScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = if (status!!.startsWith("Getting")) KittyMuted else MaterialTheme.colorScheme.error,
                         )
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
-                    KittySectionHeading(
-                        title = "Comments",
-                        subtitle = "Stored on your dedicated server",
-                        padded = false,
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = commentDraft,
-                        onValueChange = { commentDraft = it.take(500) },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Say something", color = KittyFaint) },
-                        minLines = 2,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = KittyText,
-                            unfocusedTextColor = KittyText,
-                            cursorColor = KittyAccent,
-                            focusedBorderColor = KittyAccent,
-                            unfocusedBorderColor = KittyOutlineSoft,
-                            focusedContainerColor = KittySurface,
-                            unfocusedContainerColor = KittySurface,
-                            focusedLabelColor = KittyAccentGlow,
-                            unfocusedLabelColor = KittyFaint,
-                        ),
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            val body = commentDraft.trim()
-                            if (body.length < 2) return@Button
-                            scope.launch {
-                                runCatching {
-                                    val item = api.postComment(anime.id, body, episode)
-                                    comments = listOf(item) + comments
-                                    commentDraft = ""
-                                    commentStatus = null
-                                }.onFailure { commentStatus = it.message }
-                            }
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = KittyAccent,
-                            contentColor = KittyOnAccent,
-                        ),
-                    ) { Text("Post", fontWeight = FontWeight.Bold) }
-                    if (commentStatus != null) {
-                        Text(commentStatus!!, color = MaterialTheme.colorScheme.error)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    if (comments.isEmpty()) {
-                        Text(
-                            "No comments yet — be the first.",
-                            color = KittyMuted,
-                        )
-                    } else {
-                        comments.forEach { c ->
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(KittySurface)
-                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(12.dp))
-                                    .padding(12.dp),
-                            ) {
-                                Text(
-                                    c.displayName + (c.episode?.let { " · ep $it" } ?: ""),
-                                    color = KittyAccentGlow,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(c.body, color = KittyText, style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
                     }
                 }
             }
