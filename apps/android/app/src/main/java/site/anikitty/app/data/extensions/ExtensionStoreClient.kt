@@ -51,12 +51,13 @@ class ExtensionStoreClient(
 
     companion object {
         /**
-         * Prefer the dedicated public extensions repo when it exists; fall back
-         * to the monorepo `extensions/store` path (works while private / pre-split).
+         * Prefer the monorepo index (always published with APK/provider changes),
+         * then the dedicated `anikitty-extensions` mirror. Dedicated can lag when
+         * only fampep can push that repo — monorepo-first keeps Gotaku/Anikoto current.
          */
         val DEFAULT_INDEX_URLS = listOf(
-            "https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json",
             "https://raw.githubusercontent.com/fampep/anikitty/main/extensions/store/index.json",
+            "https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json",
         )
 
         /**

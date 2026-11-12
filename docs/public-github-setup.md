@@ -16,15 +16,23 @@ gh repo edit fampep/anikitty --visibility public --accept-visibility-change-cons
 
 ## 2. Refresh `fampep/anikitty-extensions` after monorepo `extensions/` changes
 
+Cloud / Cursor tokens **cannot** push `fampep/anikitty-extensions` (no write).
+Run this as **fampep** (laptop or self-hosted worker) after merging store/provider updates:
+
 ```bash
-git subtree split -P extensions -b extensions-publish
-git push git@github.com:fampep/anikitty-extensions.git extensions-publish:main
-# or: git push https://github.com/fampep/anikitty-extensions.git extensions-publish:main
+# from anikitty repo root (on main, clean tree)
+./extensions/scripts/publish-to-github.sh
+# equivalent:
+#   git subtree split -P extensions -b extensions-publish
+#   git push https://github.com/fampep/anikitty-extensions.git extensions-publish:main
 ```
 
-Confirm raw store index loads:
+Confirm raw store index loads and includes **Gotaku** + updated Anikoto copy:
 
 `https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`
+
+Until that mirror is refreshed, the APK prefers the monorepo
+`extensions/store/index.json` URL so new providers still appear in Store.
 
 ## 3. Topics
 
