@@ -723,13 +723,13 @@ fun PlayerScreen(
                     .size(72.dp)
                     .clip(CircleShape)
                     .background(PlayerChrome.DiscLarge)
-                    .border(1.dp, PlayerChrome.DiscStroke, CircleShape),
+                    .border(1.dp, PlayerChrome.Accent.copy(alpha = 0.55f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     if (seekFlashDir < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward30,
                     contentDescription = null,
-                    tint = PlayerChrome.Paper,
+                    tint = PlayerChrome.Accent,
                     modifier = Modifier.size(30.dp),
                 )
             }
@@ -1003,11 +1003,12 @@ fun PlayerScreen(
                             },
                             size = 76.dp,
                             large = true,
+                            accent = !playing,
                         ) {
                             Icon(
                                 if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = if (playing) "Pause" else "Play",
-                                tint = PlayerChrome.Paper,
+                                tint = if (playing) PlayerChrome.Paper else PlayerChrome.Ink,
                                 modifier = Modifier.size(38.dp),
                             )
                         }
@@ -1038,23 +1039,23 @@ fun PlayerScreen(
                             .windowInsetsPadding(WindowInsets.navigationBars)
                             .padding(end = 18.dp, bottom = 108.dp)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(PlayerChrome.DiscLarge)
-                            .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(14.dp))
+                            .background(PlayerChrome.Accent)
+                            .border(1.dp, PlayerChrome.Accent, RoundedCornerShape(14.dp))
                             .clickable { skipTo(iv.endMs) }
                             .padding(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Column {
                             Text(
                                 kind.uppercase(),
-                                color = PlayerChrome.Faint,
+                                color = PlayerChrome.Ink.copy(alpha = 0.55f),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.sp,
                             )
-                            Text(label, color = PlayerChrome.Paper, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(label, color = PlayerChrome.Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                             Text(
                                 "${remaining}s",
-                                color = PlayerChrome.Graphite,
+                                color = PlayerChrome.Ink.copy(alpha = 0.7f),
                                 fontSize = 11.sp,
                             )
                         }
@@ -1773,6 +1774,7 @@ private fun ChromeDisc(
     onClick: () -> Unit,
     size: androidx.compose.ui.unit.Dp = 40.dp,
     large: Boolean = false,
+    accent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Box(
@@ -1786,8 +1788,18 @@ private fun ChromeDisc(
                 spotColor = Color.Black.copy(alpha = 0.35f),
             )
             .clip(CircleShape)
-            .background(if (large) PlayerChrome.DiscLarge else PlayerChrome.Disc)
-            .border(1.dp, PlayerChrome.DiscStroke, CircleShape)
+            .background(
+                when {
+                    accent -> PlayerChrome.Accent
+                    large -> PlayerChrome.DiscLarge
+                    else -> PlayerChrome.Disc
+                },
+            )
+            .border(
+                1.dp,
+                if (accent) PlayerChrome.Accent else PlayerChrome.DiscStroke,
+                CircleShape,
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

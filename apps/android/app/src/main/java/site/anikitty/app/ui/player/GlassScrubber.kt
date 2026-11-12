@@ -91,13 +91,8 @@ fun GlassScrubber(
                         y = (-34).dp,
                     )
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color.Black.copy(alpha = 0.72f))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color.White.copy(alpha = 0.12f), Color.Transparent),
-                        ),
-                    )
-                    .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(10.dp))
+                    .background(PlayerChrome.DiscLarge)
+                    .border(1.dp, PlayerChrome.Accent.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 5.dp),
             ) {
                 Text(
@@ -141,22 +136,10 @@ fun GlassScrubber(
             val radius = CornerRadius(trackH / 2f, trackH / 2f)
 
             drawRoundRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.22f),
-                        Color.White.copy(alpha = 0.08f),
-                    ),
-                ),
+                color = PlayerChrome.TrackGlass,
                 topLeft = Offset(0f, cy - trackH / 2f),
                 size = Size(size.width, trackH),
                 cornerRadius = radius,
-            )
-            drawRoundRect(
-                color = Color.White.copy(alpha = 0.10f),
-                topLeft = Offset(0f, cy - trackH / 2f),
-                size = Size(size.width, trackH),
-                cornerRadius = radius,
-                style = Stroke(width = 1.dp.toPx()),
             )
 
             if (durationMs > 0 && !skipTimes.isEmpty) {

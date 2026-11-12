@@ -669,15 +669,16 @@ private fun HomeWelcomeHeader(
                 .padding(horizontal = 12.dp),
         ) {
             Text(
-                "Welcome back",
-                color = KittyAccentGlow,
+                "AniKitty",
+                color = KittyAccent,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
+                letterSpacing = 0.6.sp,
             )
             Text(
-                displayName,
+                "Welcome back, $displayName",
                 color = KittyText,
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -840,7 +841,7 @@ private fun SearchFeed(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 "Recent",
-                color = Color.White.copy(alpha = 0.45f),
+                color = KittyMuted,
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -860,7 +861,7 @@ private fun SearchFeed(
         Spacer(modifier = Modifier.height(12.dp))
         when {
             loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = KittyAccent)
             }
             error != null && items.isEmpty() -> Text(error!!, color = MaterialTheme.colorScheme.error)
             items.isNotEmpty() -> Column(modifier = Modifier.weight(1f)) {
@@ -1016,7 +1017,7 @@ private fun HistoryFeed(
                     onClick = { scope.launch { historyDao.clear() } },
                     contentPadding = PaddingValues(horizontal = 0.dp),
                 ) {
-                    Text("Clear local", color = Color.White.copy(alpha = 0.55f))
+                    Text("Clear local", color = KittyMuted)
                 }
             }
             if (watching.isNotEmpty()) {
@@ -1434,8 +1435,8 @@ private fun SettingsFeed(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(KittyGlassShapeTight)
-                            .background(KittySurface)
-                            .border(1.dp, KittyOutlineSoft, KittyGlassShapeTight)
+                        .background(KittySurface)
+                        .border(1.dp, KittyOutlineSoft, KittyGlassShapeTight)
                         .padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1451,7 +1452,7 @@ private fun SettingsFeed(
                     Spacer(modifier = Modifier.width(12.dp))
                     Text(
                         fav.title,
-                        color = Color.White,
+                        color = KittyText,
                         fontWeight = FontWeight.Medium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -1806,7 +1807,7 @@ private fun TitleDetailScreen(
                                 Text(
                                     alt,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.62f),
+                                    color = KittyMuted,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -1914,7 +1915,7 @@ private fun TitleDetailScreen(
                                         .size(56.dp)
                                         .clip(RoundedCornerShape(999.dp))
                                         .background(KittyAccent)
-                                        .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(999.dp)),
+                                        .border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), RoundedCornerShape(999.dp)),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
@@ -1930,7 +1931,7 @@ private fun TitleDetailScreen(
                                         .align(Alignment.BottomStart)
                                         .padding(12.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(KittyGlass)
+                                        .background(KittySurface)
                                         .border(1.dp, KittyOutlineSoft, RoundedCornerShape(10.dp))
                                         .padding(horizontal = 10.dp, vertical = 5.dp),
                                     style = MaterialTheme.typography.labelMedium,
