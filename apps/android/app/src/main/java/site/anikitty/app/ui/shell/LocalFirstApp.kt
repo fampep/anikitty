@@ -1871,7 +1871,7 @@ private fun TitleDetailScreen(
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                "AniList catalog",
+                                "AniList is the catalog · extensions only stream",
                                 color = KittyFaint,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(top = 2.dp),

@@ -183,7 +183,8 @@ fun ExtensionStoreFeed(
             KittyPageHeader(
                 title = "Store",
                 subtitle = buildString {
-                    append(activeServer?.let { "Playing via ${it.name}" } ?: "Browse · install · switch")
+                    append(activeServer?.let { "Playing via ${it.name}" } ?: "Stream links only")
+                    append(" · AniList stays the catalog")
                     append(" · v${BuildConfig.VERSION_NAME}")
                 },
                 trailing = {

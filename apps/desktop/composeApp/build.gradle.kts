@@ -1,10 +1,25 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.util.Properties
 
 plugins {
     kotlin("multiplatform")
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
+/** Shared release cut: repo-root `VERSION` (name=…). */
+fun monorepoPackageVersion(): String {
+    val file = rootProject.file("../../VERSION")
+    require(file.exists()) { "Missing monorepo VERSION at ${file.canonicalPath}" }
+    val props = Properties()
+    file.inputStream().use { props.load(it) }
+    val name = props.getProperty("name")?.trim().orEmpty()
+    require(name.isNotEmpty()) { "VERSION must set name=" }
+    return name
+}
+
+val releasePackageVersion = monorepoPackageVersion()
+
 
 kotlin {
     // Cloud image ships JDK 21; desktop target is JVM for Windows/Linux/macOS.
@@ -45,8 +60,9 @@ compose.desktop {
             targetFormats(TargetFormat.Exe, TargetFormat.Msi, TargetFormat.Dmg, TargetFormat.Deb)
             packageName = "AniKitty"
             // Compose native distro requires MAJOR >= 1.
-            // Keep in lockstep with Android versionName for monorepo releases.
-            packageVersion = "1.1.16"
+            // Lockstep with Android via repo-root VERSION.
+            packageVersion = releasePackageVersion
+
             description = "AniKitty — watch anime on desktop (Compose Multiplatform + FFmpeg glass player)"
             copyright = "Copyright 2026 fampep. PolyForm Noncommercial 1.0.0."
             vendor = "fampep"

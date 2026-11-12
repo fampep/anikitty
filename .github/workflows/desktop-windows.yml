@@ -10,6 +10,7 @@ on:
   push:
     branches: [main]
     paths:
+      - "VERSION"
       - "apps/desktop/**"
       - ".github/workflows/desktop-windows.yml"
 
@@ -48,8 +49,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path $Out | Out-Null
           $AppDir = Get-ChildItem -Path "composeApp/build/compose/binaries" -Recurse -Directory -Filter "AniKitty" |
             Select-Object -First 1
+          $VerProps = Get-Content (Join-Path $env:GITHUB_WORKSPACE "VERSION") |
+            Where-Object { $_ -match '^\s*name\s*=' } |
+            Select-Object -First 1
+          $Ver = if ($VerProps) { ($VerProps -split '=', 2)[1].Trim() } else { "0.0.0" }
           if ($null -ne $AppDir) {
-            $Zip = Join-Path $Out "AniKitty-1.1.16-windows-x64.zip"
+            $Zip = Join-Path $Out "AniKitty-$Ver-windows-x64.zip"
             Compress-Archive -Path $AppDir.FullName -DestinationPath $Zip -Force
           }
           Get-ChildItem -Path "composeApp/build/compose/binaries" -Recurse -Include *.exe,*.msi -File |
@@ -59,7 +64,7 @@ jobs:
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: anikitty-desktop-windows-1.1.16
+          name: anikitty-desktop-windows
           path: desktop-out/
           if-no-files-found: error
 
@@ -72,11 +77,10 @@ jobs:
           set -euo pipefail
           TAG="${INPUT_TAG:-}"
           if [[ -z "$TAG" ]]; then
-            # Default: packageVersion from Gradle → vMAJOR.MINOR.PATCH
-            VER=$(grep -oE 'packageVersion[[:space:]]*=[[:space:]]*"[^"]+"' composeApp/build.gradle.kts | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')
+            # Default: repo-root VERSION name= → vMAJOR.MINOR.PATCH
+            VER=$(grep -E '^\s*name\s*=' "$GITHUB_WORKSPACE/VERSION" | head -n1 | sed -E 's/^[^=]+=[[:space:]]*//')
             TAG="v${VER}"
           fi
-
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             cd "$GITHUB_WORKSPACE/desktop-out"
             gh release upload "$TAG" ./* --repo "${{ github.repository }}" --clobber
