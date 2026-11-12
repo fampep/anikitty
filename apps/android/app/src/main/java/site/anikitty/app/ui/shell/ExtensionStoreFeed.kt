@@ -92,7 +92,14 @@ fun ExtensionStoreFeed(
             runCatching { catalog.fetchStore() }
                 .onSuccess {
                     listings = it.extensions
-                    status = "Store · ${it.extensions.size} listed" +
+                    val from = when {
+                        it.sourceUrl?.contains("anikitty-extensions") == true ->
+                            "main store"
+                        it.sourceUrl?.contains("fampep/anikitty") == true ->
+                            "monorepo fallback"
+                        else -> "store"
+                    }
+                    status = "Store · ${it.extensions.size} listed · $from" +
                         (it.updatedAt?.let { d -> " · $d" } ?: "")
                 }
                 .onFailure { status = it.message }
@@ -242,7 +249,7 @@ fun ExtensionStoreFeed(
                 }
             }
             Text(
-                "Submit opens the main fampep store submission form. You keep ownership of your extension.",
+                "Submit opens the fampep/anikitty-extensions issue form. You keep ownership of your extension.",
                 style = MaterialTheme.typography.labelSmall,
                 color = KittyFaint,
                 modifier = Modifier.padding(top = 6.dp),
@@ -337,7 +344,7 @@ fun ExtensionStoreFeed(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         if (listings.isEmpty()) {
-                            "Pull Refresh, or paste a GitHub URL below. Main store falls back to the monorepo index until anikitty-extensions is public."
+                            "Pull Refresh, or paste a GitHub URL below. Main store: fampep/anikitty-extensions."
                         } else {
                             "Clear search or try another keyword."
                         },

@@ -38,7 +38,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 | Author guide | [`extensions/GUIDE.md`](extensions/GUIDE.md) |
 | Protocol | [`extensions/spec/PROTOCOL.md`](extensions/spec/PROTOCOL.md) |
 | Submit to store | [`extensions/store/SUBMIT.md`](extensions/store/SUBMIT.md) |
-| Extension home | [`extensions/README.md`](extensions/README.md) |
+| Extension home | [`extensions/README.md`](extensions/README.md) · public [`anikitty-extensions`](https://github.com/fampep/anikitty-extensions) |
 
 ---
 
@@ -46,7 +46,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 
 | Version | Highlights |
 |---|---|
-| **1.1.3** | Store Use/Selected for installed sources + active-source banner; title detail shows stream source; Search clear + result count; Home catalog refresh race guard |
+| **1.1.3** | Store/Search/Detail polish; Plex-like floating player; Home refresh guard; live public [`anikitty-extensions`](https://github.com/fampep/anikitty-extensions) store |
 | **1.1.2** | Dedicated **Store** tab (search / install / submit); **`iconUrl` required** — scraped-site brand icon; icons in Store + Account for listings and bundled Anikoto |
 | **1.1.1** | Glass dark on-phone UI; PolyForm Noncommercial ownership license |
 | **1.1.0** | BYO HTTP extension architecture (`apiVersion` 1), GitHub install, store feed index |

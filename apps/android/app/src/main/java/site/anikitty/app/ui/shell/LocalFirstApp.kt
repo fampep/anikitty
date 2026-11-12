@@ -983,11 +983,10 @@ private fun HistoryFeed(
             }
             if (watching.isNotEmpty()) {
                 item {
-                    Text(
-                        "Watching",
-                        color = Color.White.copy(alpha = 0.55f),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.labelLarge,
+                    KittySectionHeading(
+                        title = "Watching",
+                        subtitle = "${watching.size} title${if (watching.size == 1) "" else "s"}",
+                        padded = false,
                     )
                 }
                 lazyItems(watching, key = { "w-${it.anilistId}" }) { entry ->
@@ -996,11 +995,10 @@ private fun HistoryFeed(
             }
             if (completed.isNotEmpty()) {
                 item {
-                    Text(
-                        "Completed",
-                        color = Color.White.copy(alpha = 0.55f),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.labelLarge,
+                    KittySectionHeading(
+                        title = "Completed",
+                        subtitle = "${completed.size} title${if (completed.size == 1) "" else "s"}",
+                        padded = false,
                     )
                 }
                 lazyItems(completed, key = { "c-${it.anilistId}" }) { entry ->
@@ -1009,11 +1007,10 @@ private fun HistoryFeed(
             }
             if (other.isNotEmpty()) {
                 item {
-                    Text(
-                        "More",
-                        color = Color.White.copy(alpha = 0.55f),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.labelLarge,
+                    KittySectionHeading(
+                        title = "More",
+                        subtitle = "${other.size} title${if (other.size == 1) "" else "s"}",
+                        padded = false,
                     )
                 }
                 lazyItems(other, key = { "o-${it.anilistId}" }) { entry ->
@@ -1512,17 +1509,16 @@ private fun SettingsFeed(
             }
         }
         item {
-            Button(
+            OutlinedButton(
                 onClick = onSignOut,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black,
-                ),
-            ) { Text("Sign out", fontWeight = FontWeight.Bold) }
+                    .height(48.dp)
+                    .kittyGlassSoft(RoundedCornerShape(14.dp)),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text("Sign out", fontWeight = FontWeight.Bold, color = KittyMuted)
+            }
         }
     }
 }

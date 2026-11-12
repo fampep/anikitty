@@ -49,4 +49,6 @@ data class StoreIndex(
     val apiVersion: Int,
     val updatedAt: String?,
     val extensions: List<StoreListing>,
+    /** Which index URL served this payload (for Store status chrome). */
+    val sourceUrl: String? = null,
 )

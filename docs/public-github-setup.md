@@ -1,11 +1,12 @@
 # Public GitHub setup (maintainers)
 
-Cloud agent tokens for this project **cannot**:
+## Live
 
-- `gh repo create fampep/anikitty-extensions` (`createRepository` forbidden for the integration)
-- always flip `fampep/anikitty` → public
+- **[`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions)** is **public**
+- Store index: https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json
+- Android prefers that URL in `ExtensionStoreClient.DEFAULT_INDEX_URLS` (monorepo fallback retained)
 
-Run these as the **fampep** GitHub user when ready.
+Cloud agent tokens still cannot always `createRepository` / flip visibility — use the **fampep** GitHub user (or a self-hosted worker with fampep credentials) for those ops.
 
 ## 1. Make the app repo public (optional community surface)
 
@@ -13,24 +14,17 @@ Run these as the **fampep** GitHub user when ready.
 gh repo edit fampep/anikitty --visibility public --accept-visibility-change-consequences
 ```
 
-## 2. Create & publish `fampep/anikitty-extensions` (required for store raw URLs)
-
-From a clone of anikitty that contains the `extensions/` tree (MIT + DISCLAIMER included):
+## 2. Refresh `fampep/anikitty-extensions` after monorepo `extensions/` changes
 
 ```bash
-gh repo create fampep/anikitty-extensions --public \
-  --description "Educational AniKitty extension protocol — community BYO resolvers. Maintainers do not control third-party backends." \
-  --homepage "https://github.com/fampep/anikitty"
-
 git subtree split -P extensions -b extensions-publish
 git push git@github.com:fampep/anikitty-extensions.git extensions-publish:main
+# or: git push https://github.com/fampep/anikitty-extensions.git extensions-publish:main
 ```
 
 Confirm raw store index loads:
 
 `https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`
-
-Android already prefers that URL in `ExtensionStoreClient.DEFAULT_INDEX_URLS`.
 
 ## 3. Topics
 
