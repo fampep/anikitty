@@ -3,20 +3,9 @@
   "updatedAt": "2026-11-12",
   "extensions": [
     {
-      "id": "site.anikitty.example.hello",
-      "name": "Hello HTTP",
-      "description": "Minimal BYO resolve example (template — not a live CDN).",
-      "github": "https://github.com/fampep/anikitty/tree/main/extensions/examples/hello-http",
-      "author": "fampep",
-      "featured": true,
-      "manifestPath": "extensions/examples/hello-http/anikitty-extension.json",
-      "iconUrl": "https://www.google.com/s2/favicons?domain=example.com&sz=128",
-      "siteUrl": "https://example.com"
-    },
-    {
       "id": "anikoto",
       "name": "Anikoto",
-      "description": "Bundled on-device Anikoto resolver (also ships inside the APK).",
+      "description": "Bundled on-device Anikoto → MegaPlay resolver. Play fails over to other installed providers when a title is missing (APK 1.1.5+).",
       "github": "https://github.com/fampep/anikitty",
       "author": "fampep",
       "featured": true,
@@ -26,12 +15,33 @@
     {
       "id": "gotaku",
       "name": "Gotaku",
-      "description": "Bundled on-device Gotaku resolver with gotakudl HLS unwrap (ships inside the APK from v1.1.6).",
+      "description": "Bundled on-device Gotaku resolver with gotakudl HLS unwrap (playlist GCM + segment CTR). Ships in the APK from v1.1.6.",
       "github": "https://github.com/fampep/anikitty",
       "author": "fampep",
       "featured": true,
       "iconUrl": "https://www.google.com/s2/favicons?domain=gotaku.to&sz=128",
       "siteUrl": "https://gotaku.to"
+    },
+    {
+      "id": "anipm",
+      "name": "Ani.pm",
+      "description": "Bundled on-device ani.pm → Settlar HLS resolver (Media3, no WebView). Ships in the APK from v1.1.12.",
+      "github": "https://github.com/fampep/anikitty",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=ani.pm&sz=128",
+      "siteUrl": "https://ani.pm"
+    },
+    {
+      "id": "site.anikitty.example.hello",
+      "name": "Hello HTTP",
+      "description": "Minimal BYO resolve example (template — not a live CDN). Copy this when authoring a community HTTP extension.",
+      "github": "https://github.com/fampep/anikitty/tree/main/extensions/examples/hello-http",
+      "author": "fampep",
+      "featured": false,
+      "manifestPath": "extensions/examples/hello-http/anikitty-extension.json",
+      "iconUrl": "https://www.google.com/s2/favicons?domain=example.com&sz=128",
+      "siteUrl": "https://example.com"
     }
   ]
 }
