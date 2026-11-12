@@ -13,6 +13,20 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
+/** Shared release cut: repo-root `VERSION` (name=… / code=…). */
+fun monorepoRelease(): Pair<String, Int> {
+    val file = rootProject.file("../../VERSION")
+    require(file.exists()) { "Missing monorepo VERSION at ${file.canonicalPath}" }
+    val props = Properties()
+    file.inputStream().use { props.load(it) }
+    val name = props.getProperty("name")?.trim().orEmpty()
+    val code = props.getProperty("code")?.trim()?.toIntOrNull()
+    require(name.isNotEmpty() && code != null) { "VERSION must set name= and code=" }
+    return name to code
+}
+
+val (releaseName, releaseCode) = monorepoRelease()
+
 android {
     namespace = "site.anikitty.app"
     compileSdk = 35
@@ -21,8 +35,8 @@ android {
         applicationId = "site.anikitty.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 30
-        versionName = "1.1.16"
+        versionCode = releaseCode
+        versionName = releaseName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Public AniList API client id (not a secret). Create at anilist.co/settings/developer
         // with redirect URI anikitty://anilist — or leave blank and paste a token in-app.

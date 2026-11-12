@@ -7,7 +7,7 @@ Compose Multiplatform **JVM desktop** app — the Windows companion to `apps/and
 | Stack | Kotlin 2.0.21 · Compose Multiplatform 1.7.3 · Material3 |
 | Auth | Same fixed Go VPS URL as Android (`ServerConfig.DEFAULT`) |
 | Catalog | AniList GraphQL (trending + search) |
-| Version | `packageVersion` **1.1.16** (aligned with Android) |
+| Version | Repo-root `VERSION` → `packageVersion` (lockstep with Android) |
 | Playback | Glass player + system **FFmpeg** / Ani.pm Settlar HLS · **no WebView** · not VLC |
 | License | PolyForm Noncommercial 1.0.0 · Copyright 2026 fampep |
 

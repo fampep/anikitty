@@ -99,7 +99,7 @@ cd apps/android
 # app/build/outputs/apk/release/app-release.apk
 ```
 
-Current release build: **`versionName` 1.1.3** / `versionCode` 17.
+Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName`/`versionCode` and desktop `packageVersion` both read it. Current: **1.1.17** / code **31**.
 
 Optional AniList OAuth client id (public, not a secret):
 
