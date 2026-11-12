@@ -114,6 +114,17 @@ fun KittyBottomNav(
                         .height(48.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(bg)
+                        .then(
+                            if (selected) {
+                                Modifier.border(
+                                    1.dp,
+                                    KittyAccentGlow.copy(alpha = 0.28f),
+                                    RoundedCornerShape(16.dp),
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
                         .selectable(
                             selected = selected,
                             onClick = { onSelect(tab.id) },

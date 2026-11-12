@@ -2,6 +2,10 @@ package site.anikitty.app.ui.shell
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,6 +60,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -101,10 +106,12 @@ import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyBottomNav
 import site.anikitty.app.ui.components.KittyContinueCard
+import site.anikitty.app.ui.components.KittyEmptyState
 import site.anikitty.app.ui.components.KittyHero
 import site.anikitty.app.ui.components.KittyMetaChip
 import site.anikitty.app.ui.components.KittyMetaChips
 import site.anikitty.app.ui.components.KittyNavTab
+import site.anikitty.app.ui.components.KittyPageHeader
 import site.anikitty.app.ui.components.KittyPosterCard
 import site.anikitty.app.ui.components.KittyPosterRow
 import site.anikitty.app.ui.components.KittyPosterSkeletonRow
@@ -127,6 +134,7 @@ import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
 import site.anikitty.app.ui.theme.kittyGlass
+import site.anikitty.app.ui.theme.kittyGlassField
 import site.anikitty.app.ui.theme.kittyGlassMirror
 import site.anikitty.app.ui.theme.kittyGlassSoft
 
@@ -313,14 +321,18 @@ fun LocalFirstApp(
                 initialEpisode = current.startEpisode,
                 streamServers = streamServers,
                 historyDao = historyDao,
+                aniList = aniList,
                 api = api,
                 onBack = { screen = Screen.Tabs },
                 onChangeSource = {
                     screen = Screen.Tabs
                     tab = "store"
                 },
-                onPlay = { episode, sources ->
-                    screen = Screen.Player(current.anime, episode, sources)
+                onOpenRelated = { related ->
+                    screen = Screen.Detail(related)
+                },
+                onPlay = { episode, sources, resolvedAnime ->
+                    screen = Screen.Player(resolvedAnime, episode, sources)
                 },
             )
             return
@@ -330,54 +342,64 @@ fun LocalFirstApp(
 
     Box(modifier = Modifier.fillMaxSize()) {
         KittyAtmosphere()
-        when (tab) {
-            "home" -> HomeFeed(
-                aniList = aniList,
-                aniListAuth = aniListAuth,
-                history = history,
-                historyDao = historyDao,
-                onOpen = { anime, ep -> screen = Screen.Detail(anime, ep) },
-                accountLabel = accountLabel,
-            )
-            "search" -> SearchFeed(
-                aniList = aniList,
-                historyDao = historyDao,
-                onOpen = { screen = Screen.Detail(it) },
-            )
-            "store" -> ExtensionStoreFeed(catalog = streamServers)
-            "history" -> HistoryFeed(
-                history = history,
-                historyDao = historyDao,
-                aniList = aniList,
-                aniListLinked = aniListAuth.isLinked,
-                syncLabel = syncLabel,
-                onSync = {
-                    scope.launch {
-                        syncLabel = "Syncing…"
-                        syncLabel = runCatching {
-                            val result = aniListSync.pull()
-                            "Synced ${result.imported} from AniList"
-                        }.getOrElse { e -> e.message }
-                    }
-                },
-                onOpen = { screen = Screen.Detail(it) },
-            )
-            "settings" -> SettingsFeed(
-                catalog = streamServers,
-                api = api,
-                aniList = aniList,
-                aniListAuth = aniListAuth,
-                aniListSync = aniListSync,
-                accountLabel = accountLabel,
-                syncLabel = syncLabel,
-                onSyncLabel = { syncLabel = it },
-                linkStatus = aniLinkStatus,
-                onLinkStatus = { aniLinkStatus = it },
-                linkTick = aniLinkTick,
-                onLinkTick = { aniLinkTick++ },
-                onSignOut = onSignOut,
-                onOpenStore = { tab = "store" },
-            )
+        AnimatedContent(
+            targetState = tab,
+            transitionSpec = {
+                fadeIn(animationSpec = androidx.compose.animation.core.tween(180)) togetherWith
+                    fadeOut(animationSpec = androidx.compose.animation.core.tween(120))
+            },
+            label = "tabFade",
+            modifier = Modifier.fillMaxSize(),
+        ) { currentTab ->
+            when (currentTab) {
+                "home" -> HomeFeed(
+                    aniList = aniList,
+                    aniListAuth = aniListAuth,
+                    history = history,
+                    historyDao = historyDao,
+                    onOpen = { anime, ep -> screen = Screen.Detail(anime, ep) },
+                    accountLabel = accountLabel,
+                )
+                "search" -> SearchFeed(
+                    aniList = aniList,
+                    historyDao = historyDao,
+                    onOpen = { screen = Screen.Detail(it) },
+                )
+                "store" -> ExtensionStoreFeed(catalog = streamServers)
+                "history" -> HistoryFeed(
+                    history = history,
+                    historyDao = historyDao,
+                    aniList = aniList,
+                    aniListLinked = aniListAuth.isLinked,
+                    syncLabel = syncLabel,
+                    onSync = {
+                        scope.launch {
+                            syncLabel = "Syncing…"
+                            syncLabel = runCatching {
+                                val result = aniListSync.pull()
+                                "Synced ${result.imported} from AniList"
+                            }.getOrElse { e -> e.message }
+                        }
+                    },
+                    onOpen = { screen = Screen.Detail(it) },
+                )
+                "settings" -> SettingsFeed(
+                    catalog = streamServers,
+                    api = api,
+                    aniList = aniList,
+                    aniListAuth = aniListAuth,
+                    aniListSync = aniListSync,
+                    accountLabel = accountLabel,
+                    syncLabel = syncLabel,
+                    onSyncLabel = { syncLabel = it },
+                    linkStatus = aniLinkStatus,
+                    onLinkStatus = { aniLinkStatus = it },
+                    linkTick = aniLinkTick,
+                    onLinkTick = { aniLinkTick++ },
+                    onSignOut = onSignOut,
+                    onOpenStore = { tab = "store" },
+                )
+            }
         }
 
         KittyBottomNav(
@@ -457,21 +479,25 @@ private fun HomeFeed(
             }
             error != null && trending.isEmpty() -> {
                 Column(
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(24.dp)
+                        .fillMaxWidth(),
                 ) {
-                    Text("Couldn’t load the catalog", color = Color.White, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(error!!, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = { reload() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color.Black,
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                    ) { Text("Retry", fontWeight = FontWeight.Bold) }
+                    FloatingTopChrome(
+                        accountLabel = accountLabel,
+                        greeting = aniListAuth.username?.let { "Hey @$it" },
+                        onRefresh = { reload(fromPull = true) },
+                        refreshBusy = catalogBusy,
+                        compact = false,
+                    )
+                    Spacer(modifier = Modifier.height(28.dp))
+                    KittyEmptyState(
+                        title = "Couldn’t load the catalog",
+                        body = error ?: "Check your connection and try again.",
+                        actionLabel = "Retry",
+                        onAction = { reload() },
+                    )
                 }
             }
             else -> {
@@ -628,13 +654,22 @@ private fun FloatingTopChrome(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                "AniKitty",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = KittyText,
-                letterSpacing = (-0.7).sp,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Ani",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = KittyText,
+                    letterSpacing = (-0.7).sp,
+                )
+                Text(
+                    "Kitty",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = KittyAccentGlow,
+                    letterSpacing = (-0.7).sp,
+                )
+            }
             val chip = when {
                 !greeting.isNullOrBlank() -> greeting
                 !compact -> accountLabel
@@ -644,6 +679,11 @@ private fun FloatingTopChrome(
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     chip,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittyAccentGlow.copy(alpha = 0.12f))
+                        .border(1.dp, KittyAccentGlow.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = KittyAccentGlow,
                     fontWeight = FontWeight.SemiBold,
@@ -749,17 +789,9 @@ private fun SearchFeed(
             .padding(horizontal = 16.dp)
             .padding(top = 12.dp, bottom = 100.dp),
     ) {
-        Text(
-            "Search",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Black,
-            color = KittyText,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            "Find something to watch",
-            style = MaterialTheme.typography.bodyMedium,
-            color = KittyMuted,
+        KittyPageHeader(
+            title = "Search",
+            subtitle = "Find something to watch",
         )
         Spacer(modifier = Modifier.height(14.dp))
         OutlinedTextField(
@@ -770,9 +802,18 @@ private fun SearchFeed(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .kittyGlassSoft(RoundedCornerShape(16.dp)),
+                .kittyGlassField(RoundedCornerShape(16.dp)),
             singleLine = true,
-            placeholder = { Text("Title, studio, or character") },
+            placeholder = { Text("Title, studio, or character", color = KittyFaint) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = KittyText,
+                unfocusedTextColor = KittyText,
+                cursorColor = KittyAccentGlow,
+                focusedBorderColor = KittyAccentGlow.copy(alpha = 0.45f),
+                unfocusedBorderColor = Color.Transparent,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+            ),
             leadingIcon = {
                 AnimatedSearchIcon(
                     tint = if (query.isNotBlank()) KittyAccentGlow else KittyMuted,
@@ -929,58 +970,37 @@ private fun HistoryFeed(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    KittySectionHeading(
-                        title = "Library",
-                        subtitle = when {
-                            aniListLinked -> syncLabel ?: "Synced from AniList + this device"
-                            else -> "Kept on this device"
-                        },
-                        padded = false,
-                    )
-                }
-                if (aniListLinked) {
-                    TextButton(
-                        onClick = onSync,
-                        modifier = Modifier.kittyGlassSoft(RoundedCornerShape(12.dp)),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                    ) {
-                        Text("Sync", color = KittyText, fontWeight = FontWeight.SemiBold)
+            KittyPageHeader(
+                title = "Library",
+                subtitle = when {
+                    aniListLinked -> syncLabel ?: "Synced from AniList + this device"
+                    else -> "Kept on this device"
+                },
+                trailing = if (aniListLinked) {
+                    {
+                        TextButton(
+                            onClick = onSync,
+                            modifier = Modifier.kittyGlassSoft(RoundedCornerShape(12.dp)),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Text("Sync", color = KittyText, fontWeight = FontWeight.SemiBold)
+                        }
                     }
-                }
-            }
+                } else {
+                    null
+                },
+            )
         }
         if (history.isEmpty()) {
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .kittyGlass(KittyGlassShape)
-                        .padding(horizontal = 18.dp, vertical = 28.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        if (aniListLinked) "No list entries yet" else "No history yet",
-                        color = KittyText,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium,
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        if (aniListLinked) {
-                            "Pull Sync to import your AniList watching / completed shows."
-                        } else {
-                            "Watch something from Home — it shows up here with progress."
-                        },
-                        color = KittyMuted,
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
+                KittyEmptyState(
+                    title = if (aniListLinked) "No list entries yet" else "No history yet",
+                    body = if (aniListLinked) {
+                        "Pull Sync after linking, or start watching a title."
+                    } else {
+                        "Open something from Home or Search — it’ll land here."
+                    },
+                )
             }
         } else {
             item {
@@ -1539,18 +1559,22 @@ private fun TitleDetailScreen(
     initialEpisode: Int?,
     streamServers: ServerCatalog,
     historyDao: WatchHistoryDao,
+    aniList: AniListClient,
     api: DedicatedApiClient,
     onBack: () -> Unit,
     onChangeSource: () -> Unit,
-    onPlay: (episode: Int, sources: List<PlayableSource>) -> Unit,
+    onOpenRelated: (AnimeSummary) -> Unit,
+    onPlay: (episode: Int, sources: List<PlayableSource>, anime: AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val selectedId by streamServers.selectedId.collectAsState()
     val resolvers by streamServers.resolvers.collectAsState()
     val activeServer = remember(selectedId, resolvers) {
         resolvers.firstOrNull { it.server.id == selectedId }?.server
             ?: resolvers.firstOrNull()?.server
     }
+    var detail by remember(anime.id) { mutableStateOf(anime) }
     var episode by remember { mutableIntStateOf(initialEpisode ?: 1) }
     var audio by remember { mutableStateOf("sub") }
     var resolving by remember { mutableStateOf(false) }
@@ -1562,12 +1586,15 @@ private fun TitleDetailScreen(
     var listBadge by remember { mutableStateOf<String?>(null) }
     var lastWatchedEp by remember { mutableIntStateOf(0) }
     var synopsisExpanded by remember { mutableStateOf(false) }
-    val maxEp = (anime.episodes ?: 24).coerceAtLeast(1).coerceAtMost(500)
+    var detailLoading by remember { mutableStateOf(!anime.detailLoaded) }
+    val maxEp = (detail.episodes ?: anime.episodes ?: 24).coerceAtLeast(1).coerceAtMost(500)
     val pageSize = 24
     val pageCount = ((maxEp - 1) / pageSize) + 1
     var epPage by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(anime.id, initialEpisode) {
+        detail = anime
+        detailLoading = !anime.detailLoaded
         val history = historyDao.get(anime.id)
         lastWatchedEp = history?.episode ?: 0
         if (initialEpisode != null) {
@@ -1576,27 +1603,48 @@ private fun TitleDetailScreen(
             history?.episode?.let { episode = it.coerceIn(1, maxEp) }
         }
         listBadge = listStatusBadge(history?.listStatus)
-        epPage = ((episode - 1) / pageSize).coerceIn(0, pageCount - 1)
+        epPage = ((episode - 1) / pageSize).coerceIn(0, (pageCount - 1).coerceAtLeast(0))
         runCatching { api.favorites() }
             .onSuccess { favorited = it.any { f -> f.anilistId.toInt() == anime.id } }
         runCatching { api.comments(anime.id) }
             .onSuccess { comments = it }
+        if (!anime.detailLoaded) {
+            runCatching { aniList.media(anime.id) }
+                .onSuccess { full ->
+                    if (full != null) {
+                        detail = full
+                        val freshMax = (full.episodes ?: maxEp).coerceAtLeast(1).coerceAtMost(500)
+                        episode = episode.coerceIn(1, freshMax)
+                        epPage = ((episode - 1) / pageSize).coerceIn(0, ((freshMax - 1) / pageSize))
+                    }
+                }
+            detailLoading = false
+        }
     }
 
     val pageStart = epPage * pageSize + 1
     val pageEnd = minOf(maxEp, pageStart + pageSize - 1)
+    val heroMeta = listOfNotNull(
+        listBadge,
+        detail.statusLabel(),
+        detail.format,
+        detail.seasonLabel(),
+        detail.episodes?.let { "$it eps" },
+        detail.durationMinutes?.let { "${it}m" },
+        detail.scoreLabel()?.let { "★ $it" },
+    )
 
     fun playSelected() {
         scope.launch {
             resolving = true
             status = "Getting stream…"
             runCatching {
-                historyDao.touchFromCatalog(anime)
+                historyDao.touchFromCatalog(detail)
                 val resolved = streamServers.resolveWithFailover(
-                    anilistId = anime.id,
+                    anilistId = detail.id,
                     episode = episode,
                     audio = audio,
-                    titleHint = anime.searchTitles().joinToString(" || "),
+                    titleHint = detail.searchTitles().joinToString(" || "),
                     onAttempt = { name, index, total ->
                         status = if (total <= 1) {
                             "Getting stream via $name…"
@@ -1605,7 +1653,7 @@ private fun TitleDetailScreen(
                         }
                     },
                 )
-                historyDao.get(anime.id)?.let {
+                historyDao.get(detail.id)?.let {
                     historyDao.upsert(
                         it.copy(
                             episode = episode,
@@ -1614,7 +1662,7 @@ private fun TitleDetailScreen(
                     )
                 }
                 lastWatchedEp = episode
-                onPlay(episode, resolved.sources)
+                onPlay(episode, resolved.sources, detail)
                 status = if (resolved.usedFallback) {
                     "Playing via ${resolved.server.name}"
                 } else {
@@ -1627,6 +1675,12 @@ private fun TitleDetailScreen(
         }
     }
 
+    fun openUrl(url: String) {
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         KittyAtmosphere()
         LazyColumn(contentPadding = PaddingValues(bottom = 118.dp)) {
@@ -1634,11 +1688,11 @@ private fun TitleDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(380.dp),
+                        .height(420.dp),
                 ) {
                     AsyncImage(
-                        model = anime.bannerImageUrl ?: anime.coverImageUrl,
-                        contentDescription = anime.title,
+                        model = detail.bannerImageUrl ?: detail.coverImageUrl,
+                        contentDescription = detail.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                     )
@@ -1647,9 +1701,9 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.5f),
-                                    0.35f to Color.Black.copy(alpha = 0.12f),
-                                    0.75f to Color.Black.copy(alpha = 0.75f),
+                                    0f to Color.Black.copy(alpha = 0.55f),
+                                    0.28f to Color.Black.copy(alpha = 0.08f),
+                                    0.7f to Color.Black.copy(alpha = 0.72f),
                                     1f to KittyPage,
                                 ),
                             ),
@@ -1659,7 +1713,7 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.horizontalGradient(
-                                    0f to Color.Black.copy(alpha = 0.5f),
+                                    0f to Color.Black.copy(alpha = 0.55f),
                                     0.55f to Color.Transparent,
                                 ),
                             ),
@@ -1683,34 +1737,40 @@ private fun TitleDetailScreen(
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         AsyncImage(
-                            model = anime.coverImageUrl,
+                            model = detail.coverImageUrl,
                             contentDescription = null,
                             modifier = Modifier
-                                .width(118.dp)
+                                .width(124.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .border(1.dp, KittyOutline, RoundedCornerShape(6.dp)),
+                                .clip(RoundedCornerShape(14.dp))
+                                .border(1.dp, KittyOutline, RoundedCornerShape(14.dp)),
                             contentScale = ContentScale.Crop,
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                anime.title,
+                                detail.title,
                                 style = MaterialTheme.typography.headlineSmall,
                                 fontWeight = FontWeight.Black,
                                 color = Color.White,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            val meta = listOfNotNull(
-                                listBadge,
-                                anime.format,
-                                anime.episodes?.let { "$it eps" },
-                                anime.averageScore?.let { "★ $it" },
-                            )
-                            if (meta.isNotEmpty()) {
+                            val alt = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
+                                .firstOrNull()
+                            if (!alt.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    alt,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.62f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            if (heroMeta.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(10.dp))
-                                KittyMetaChips(items = meta, accentFirst = listBadge != null)
+                                KittyMetaChips(items = heroMeta, accentFirst = listBadge != null)
                             }
                             if (lastWatchedEp > 0) {
                                 Spacer(modifier = Modifier.height(10.dp))
@@ -1725,7 +1785,7 @@ private fun TitleDetailScreen(
             }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    if (!anime.description.isNullOrBlank()) {
+                    if (detail.genres.isNotEmpty() || detail.studios.isNotEmpty() || detail.popularity != null) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1733,7 +1793,107 @@ private fun TitleDetailScreen(
                                 .padding(14.dp),
                         ) {
                             Text(
-                                "Overview",
+                                "Details",
+                                color = KittyFaint,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 0.6.sp,
+                            )
+                            if (detail.genres.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                KittyMetaChips(items = detail.genres.take(8))
+                            }
+                            val facts = listOfNotNull(
+                                detail.studios.takeIf { it.isNotEmpty() }?.joinToString(" · "),
+                                detail.popularity?.let { "#$it popular" },
+                                detail.malId?.let { "MAL ${it}" },
+                            )
+                            if (facts.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Text(
+                                    facts.joinToString("  ·  "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = KittyMuted,
+                                )
+                            }
+                            if (detailLoading) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Loading AniList details…",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = KittyFaint,
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+
+                    detail.trailer?.let { trailer ->
+                        val thumb = trailer.thumbnailUrl
+                        val watch = trailer.watchUrl()
+                        if (watch != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(16f / 9f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
+                                    .clickable { openUrl(watch) },
+                            ) {
+                                AsyncImage(
+                                    model = thumb ?: detail.bannerImageUrl ?: detail.coverImageUrl,
+                                    contentDescription = "Trailer",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black.copy(alpha = 0.35f)),
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .size(56.dp)
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(KittyAccent)
+                                        .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(999.dp)),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Icon(
+                                        Icons.Filled.PlayArrow,
+                                        contentDescription = "Play trailer",
+                                        tint = KittyOnAccent,
+                                        modifier = Modifier.size(30.dp),
+                                    )
+                                }
+                                Text(
+                                    "Trailer · ${trailer.site.replaceFirstChar { it.titlecase() }}",
+                                    modifier = Modifier
+                                        .align(Alignment.BottomStart)
+                                        .padding(12.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(KittyGlass)
+                                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = KittyText,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+                    }
+
+                    if (!detail.description.isNullOrBlank()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .kittyGlassSoft(RoundedCornerShape(16.dp))
+                                .padding(14.dp),
+                        ) {
+                            Text(
+                                "Synopsis",
                                 color = KittyFaint,
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
@@ -1741,10 +1901,10 @@ private fun TitleDetailScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                anime.description!!,
+                                detail.description!!,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = KittyMuted,
-                                maxLines = if (synopsisExpanded) 20 else 3,
+                                maxLines = if (synopsisExpanded) 40 else 4,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             TextButton(
@@ -1752,7 +1912,7 @@ private fun TitleDetailScreen(
                                 contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
                             ) {
                                 Text(
-                                    if (synopsisExpanded) "Show less" else "Read synopsis",
+                                    if (synopsisExpanded) "Show less" else "Read more",
                                     color = KittyAccentGlow,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -1760,21 +1920,102 @@ private fun TitleDetailScreen(
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         Chip(if (favorited) "Favorited" else "Favorite", favorited) {
                             scope.launch {
                                 runCatching {
                                     if (favorited) {
-                                        api.deleteFavorite(anime.id)
+                                        api.deleteFavorite(detail.id)
                                         favorited = false
                                     } else {
-                                        api.putFavorite(anime.id, anime.title, anime.coverImageUrl)
+                                        api.putFavorite(detail.id, detail.title, detail.coverImageUrl)
                                         favorited = true
                                     }
                                 }
                             }
                         }
+                        Chip("AniList", false) {
+                            openUrl("https://anilist.co/anime/${detail.id}")
+                        }
+                        detail.malId?.let { mal ->
+                            Chip("MyAnimeList", false) {
+                                openUrl("https://myanimelist.net/anime/$mal")
+                            }
+                        }
+                        detail.externalLinks
+                            .filter { link ->
+                                link.site !in setOf("AniList", "MyAnimeList")
+                            }
+                            .take(4)
+                            .forEach { link ->
+                                Chip(link.site, false) { openUrl(link.url) }
+                            }
                     }
+
+                    if (detail.relations.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        KittySectionHeading(
+                            title = "Related",
+                            subtitle = "Sequels, prequels, and spin-offs",
+                            padded = false,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            lazyItems(detail.relations, key = { it.id }) { rel ->
+                                Column(
+                                    modifier = Modifier
+                                        .width(108.dp)
+                                        .clickable {
+                                            onOpenRelated(
+                                                AnimeSummary(
+                                                    id = rel.id,
+                                                    title = rel.title,
+                                                    coverImageUrl = rel.coverImageUrl,
+                                                    episodes = null,
+                                                    format = rel.format,
+                                                    averageScore = null,
+                                                ),
+                                            )
+                                        },
+                                ) {
+                                    AsyncImage(
+                                        model = rel.coverImageUrl,
+                                        contentDescription = rel.title,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(2f / 3f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(12.dp)),
+                                        contentScale = ContentScale.Crop,
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        rel.relationType,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = KittyAccentGlow,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 1,
+                                    )
+                                    Text(
+                                        rel.title,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = KittyText,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        lineHeight = 15.sp,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(18.dp))
                     KittySectionHeading(title = "Audio", subtitle = "Stream language", padded = false)
                     Spacer(modifier = Modifier.height(10.dp))

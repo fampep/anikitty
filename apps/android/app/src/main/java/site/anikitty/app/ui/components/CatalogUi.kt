@@ -1,9 +1,18 @@
 package site.anikitty.app.ui.components
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,13 +39,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -47,6 +60,7 @@ import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyGlass
+import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
@@ -54,7 +68,121 @@ import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.PlayerChrome
+import site.anikitty.app.ui.theme.kittyGlass
 import site.anikitty.app.ui.theme.kittyGlassSoft
+
+@Composable
+fun KittyPageHeader(
+    title: String,
+    subtitle: String? = null,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = KittyText,
+                letterSpacing = (-0.5).sp,
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = KittyMuted,
+                )
+            }
+        }
+        if (trailing != null) {
+            Spacer(modifier = Modifier.width(10.dp))
+            trailing()
+        }
+    }
+}
+
+@Composable
+fun KittyEmptyState(
+    title: String,
+    body: String,
+    modifier: Modifier = Modifier,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .kittyGlass(KittyGlassShape)
+            .padding(horizontal = 18.dp, vertical = 26.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            title,
+            color = KittyText,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            body,
+            color = KittyMuted,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+        )
+        if (!actionLabel.isNullOrBlank() && onAction != null) {
+            Spacer(modifier = Modifier.height(14.dp))
+            Button(
+                onClick = onAction,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = KittyAccent,
+                    contentColor = KittyOnAccent,
+                ),
+                shape = RoundedCornerShape(12.dp),
+                contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
+            ) {
+                Text(actionLabel, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun KittyShimmerBox(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(14.dp),
+) {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val shift by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1100, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "shimmerShift",
+    )
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.06f))
+            .background(
+                Brush.horizontalGradient(
+                    0f to Color.Transparent,
+                    (shift - 0.25f).coerceIn(0f, 1f) to Color.Transparent,
+                    shift to Color.White.copy(alpha = 0.12f),
+                    (shift + 0.25f).coerceIn(0f, 1f) to Color.Transparent,
+                    1f to Color.Transparent,
+                ),
+            ),
+    )
+}
 
 @Composable
 fun KittySectionHeading(
@@ -95,10 +223,22 @@ fun KittyPosterCard(
     subtitle: String? = null,
 ) {
     val shape = RoundedCornerShape(14.dp)
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.96f else 1f,
+        animationSpec = tween(140, easing = FastOutSlowInEasing),
+        label = "posterPress",
+    )
     Column(
         modifier = modifier
             .width(width)
-            .clickable(onClick = onClick),
+            .scale(scale)
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                onClick = onClick,
+            ),
     ) {
         Box(
             modifier = Modifier
@@ -184,19 +324,18 @@ fun KittyPosterSkeletonRow(title: String = "Loading") {
         ) {
             items(6) {
                 Column(modifier = Modifier.width(118.dp)) {
-                    Box(
+                    KittyShimmerBox(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(2f / 3f)
-                            .kittyGlassSoft(RoundedCornerShape(14.dp)),
+                            .aspectRatio(2f / 3f),
+                        shape = RoundedCornerShape(14.dp),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Box(
+                    KittyShimmerBox(
                         modifier = Modifier
                             .fillMaxWidth(0.88f)
-                            .height(10.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color.White.copy(alpha = 0.10f)),
+                            .height(10.dp),
+                        shape = RoundedCornerShape(4.dp),
                     )
                 }
             }
@@ -476,14 +615,14 @@ fun KittyContinueCard(
                         .fillMaxWidth()
                         .height(3.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(Color.White.copy(alpha = 0.18f)),
+                        .background(PlayerChrome.TrackGlass),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progress)
                             .height(3.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .background(KittyAccentGlow),
+                            .background(PlayerChrome.Progress),
                     )
                 }
             }

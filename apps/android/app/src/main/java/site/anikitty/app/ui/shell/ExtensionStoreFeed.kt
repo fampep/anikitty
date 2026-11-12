@@ -53,6 +53,7 @@ import site.anikitty.app.data.servers.AnikotoServer
 import site.anikitty.app.data.servers.GotakuServer
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.ExtensionIcon
+import site.anikitty.app.ui.components.KittyPageHeader
 import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
@@ -143,17 +144,9 @@ fun ExtensionStoreFeed(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
-                "Extension Store",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black,
-                color = KittyText,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                "Browse community resolvers · search · install · submit to the main store",
-                style = MaterialTheme.typography.bodyMedium,
-                color = KittyMuted,
+            KittyPageHeader(
+                title = "Extension Store",
+                subtitle = "Browse community resolvers · search · install · submit",
             )
         }
 
