@@ -1,8 +1,6 @@
 package site.anikitty.app.ui.shell
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,8 +34,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -58,10 +54,11 @@ import site.anikitty.app.data.auth.SessionStore
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.servers.ServerCatalog
-import site.anikitty.app.ui.theme.KittyInk
+import site.anikitty.app.ui.theme.KittyAtmosphere
+import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyMuted
-import site.anikitty.app.ui.theme.KittyOutline
-import site.anikitty.app.ui.theme.KittySurface
+import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.kittyGlass
 
 /**
  * Password-account gate → anime browse + on-device streams.
@@ -159,20 +156,8 @@ private fun LoginScreen(
         if (saveOnDevice) savedPassphrase.save(pass)
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(KittyInk)
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.08f),
-                        Color.Transparent,
-                    ),
-                    radius = 900f,
-                ),
-            ),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        KittyAtmosphere()
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -186,7 +171,7 @@ private fun LoginScreen(
                 contentDescription = "AniKitty",
                 modifier = Modifier
                     .size(96.dp)
-                    .clip(RoundedCornerShape(22.dp)),
+                    .clip(RoundedCornerShape(24.dp)),
                 contentScale = ContentScale.Fit,
             )
             Spacer(modifier = Modifier.height(14.dp))
@@ -194,11 +179,11 @@ private fun LoginScreen(
                 "AniKitty",
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Black,
-                color = Color.White,
+                color = KittyText,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Cinema on your phone · by fampep",
+                "On your phone · glassy dark · by fampep",
                 style = MaterialTheme.typography.bodyMedium,
                 color = KittyMuted,
                 textAlign = TextAlign.Center,
@@ -209,20 +194,18 @@ private fun LoginScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(KittySurface)
-                    .border(1.dp, KittyOutline, RoundedCornerShape(16.dp))
-                    .padding(16.dp),
+                    .kittyGlass(KittyGlassShape)
+                    .padding(18.dp),
             ) {
                 Text(
-                    "Account",
+                    "Welcome",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = KittyText,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Password-only sign-in to your dedicated server. Link AniList later from Account if you want list sync.",
+                    "Password sign-in. Catalog, extensions, and playback run on this phone — link AniList later from Account if you want list sync.",
                     style = MaterialTheme.typography.bodySmall,
                     color = KittyMuted,
                 )
@@ -241,7 +224,7 @@ private fun LoginScreen(
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     enabled = !busy,
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = fieldColors,
                 )
                 TextButton(onClick = { showPassword = !showPassword }, enabled = !busy) {
@@ -288,7 +271,7 @@ private fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -313,7 +296,7 @@ private fun LoginScreen(
                         },
                         enabled = !busy,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(14.dp),
                     ) { Text("Continue with saved password") }
                 }
 
@@ -328,7 +311,7 @@ private fun LoginScreen(
                     },
                     enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(14.dp),
                 ) { Text("Generate password") }
 
                 if (generated != null) {
@@ -366,7 +349,7 @@ private fun LoginScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
-                    shape = RoundedCornerShape(10.dp),
+                    shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary,

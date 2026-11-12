@@ -1,5 +1,6 @@
 package site.anikitty.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,10 +22,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,13 +43,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.ui.theme.KittyAccent
+import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyFaint
+import site.anikitty.app.ui.theme.KittyGlass
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.ui.theme.KittyOnAccent
+import site.anikitty.app.ui.theme.KittyOutline
+import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.kittyGlassSoft
 
-/** Web `HomeSectionLink` — left paper gradient bar + bold title. */
 @Composable
 fun KittySectionHeading(
     title: String,
@@ -54,43 +63,25 @@ fun KittySectionHeading(
     modifier: Modifier = Modifier,
     padded: Boolean = true,
 ) {
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .then(if (padded) Modifier.padding(horizontal = 16.dp) else Modifier),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(
-            modifier = Modifier
-                .width(2.dp)
-                .height(if (subtitle == null) 22.dp else 30.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.90f),
-                            Color.White.copy(alpha = 0.35f),
-                            Color.White.copy(alpha = 0.08f),
-                        ),
-                    ),
-                ),
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = KittyText,
+            letterSpacing = (-0.3).sp,
         )
-        Column(modifier = Modifier.weight(1f)) {
+        if (!subtitle.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
-                title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = KittyText,
+                subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = KittyFaint,
             )
-            if (!subtitle.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = KittyFaint,
-                )
-            }
         }
     }
 }
@@ -100,9 +91,10 @@ fun KittyPosterCard(
     anime: AnimeSummary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    width: Dp = 128.dp,
+    width: Dp = 118.dp,
     subtitle: String? = null,
 ) {
+    val shape = RoundedCornerShape(14.dp)
     Column(
         modifier = modifier
             .width(width)
@@ -112,8 +104,9 @@ fun KittyPosterCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(6.dp))
-                .background(KittySurface),
+                .clip(shape)
+                .background(KittySurface)
+                .border(1.dp, KittyOutlineSoft, shape),
         ) {
             AsyncImage(
                 model = anime.coverImageUrl,
@@ -127,8 +120,8 @@ fun KittyPosterCard(
                     .background(
                         Brush.verticalGradient(
                             0f to Color.Transparent,
-                            0.62f to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.78f),
+                            0.65f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.7f),
                         ),
                     ),
             )
@@ -138,11 +131,12 @@ fun KittyPosterCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(6.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color.Black.copy(alpha = 0.72f))
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(KittyGlass)
+                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(8.dp))
                         .padding(horizontal = 6.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
+                    color = KittyText,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -152,9 +146,10 @@ fun KittyPosterCard(
             modifier = Modifier.padding(top = 8.dp),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelLarge,
             color = KittyText,
             fontWeight = FontWeight.SemiBold,
+            lineHeight = 16.sp,
         )
         if (!subtitle.isNullOrBlank()) {
             Text(
@@ -165,13 +160,9 @@ fun KittyPosterCard(
                 color = KittyFaint,
             )
         } else {
-            val meta = listOfNotNull(
-                anime.format,
-                anime.averageScore?.let { "★ $it" },
-            ).joinToString(" · ")
-            if (meta.isNotBlank()) {
+            anime.format?.let { format ->
                 Text(
-                    meta,
+                    format,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelSmall,
@@ -184,37 +175,28 @@ fun KittyPosterCard(
 
 @Composable
 fun KittyPosterSkeletonRow(title: String = "Loading") {
-    Column(modifier = Modifier.padding(top = 22.dp)) {
-        KittySectionHeading(title = title, subtitle = "Fetching the catalog…")
-        Spacer(modifier = Modifier.height(12.dp))
+    Column(modifier = Modifier.padding(top = 24.dp)) {
+        KittySectionHeading(title = title, subtitle = "Loading titles…")
+        Spacer(modifier = Modifier.height(14.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             items(6) {
-                Column(modifier = Modifier.width(120.dp)) {
+                Column(modifier = Modifier.width(118.dp)) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(2f / 3.05f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(KittySurface),
+                            .aspectRatio(2f / 3f)
+                            .kittyGlassSoft(RoundedCornerShape(14.dp)),
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.85f)
+                            .fillMaxWidth(0.88f)
                             .height(10.dp)
                             .clip(RoundedCornerShape(4.dp))
                             .background(Color.White.copy(alpha = 0.10f)),
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.45f)
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color.White.copy(alpha = 0.06f)),
                     )
                 }
             }
@@ -231,9 +213,9 @@ fun KittyPosterRow(
     subtitleFor: ((AnimeSummary) -> String?)? = null,
 ) {
     if (items.isEmpty()) return
-    Column(modifier = Modifier.padding(top = 26.dp)) {
+    Column(modifier = Modifier.padding(top = 28.dp)) {
         KittySectionHeading(title = title, subtitle = subtitle)
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -249,25 +231,26 @@ fun KittyPosterRow(
     }
 }
 
-/** Full-bleed streaming hero — tall edge-to-edge media + cinema gradients. */
 @Composable
 fun KittyHero(
     anime: AnimeSummary,
     eyebrow: String = "Featured",
     cta: String = "Play",
     onOpen: () -> Unit,
+    onMoreInfo: (() -> Unit)? = null,
     topOverlay: (@Composable () -> Unit)? = null,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(420.dp)
-            .clickable(onClick = onOpen),
+            .height(470.dp),
     ) {
         AsyncImage(
             model = anime.bannerImageUrl ?: anime.coverImageUrl,
             contentDescription = anime.title,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(onClick = onOpen),
             contentScale = ContentScale.Crop,
         )
         Box(
@@ -276,8 +259,8 @@ fun KittyHero(
                 .background(
                     Brush.verticalGradient(
                         0f to KittyInk.copy(alpha = 0.55f),
-                        0.28f to KittyInk.copy(alpha = 0.08f),
-                        0.62f to KittyInk.copy(alpha = 0.55f),
+                        0.2f to KittyInk.copy(alpha = 0.05f),
+                        0.55f to KittyInk.copy(alpha = 0.4f),
                         0.82f to KittyInk.copy(alpha = 0.92f),
                         1f to KittyInk,
                     ),
@@ -288,9 +271,24 @@ fun KittyHero(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0f to KittyInk.copy(alpha = 0.55f),
-                        0.5f to Color.Transparent,
+                        0f to KittyInk.copy(alpha = 0.45f),
+                        0.55f to Color.Transparent,
                         1f to Color.Transparent,
+                    ),
+                ),
+        )
+        // Soft ice glow at the bottom for glass depth.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(160.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Transparent,
+                            KittyAccentGlow.copy(alpha = 0.10f),
+                        ),
                     ),
                 ),
         )
@@ -302,20 +300,20 @@ fun KittyHero(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .fillMaxWidth(0.92f)
-                .padding(horizontal = 20.dp, vertical = 24.dp),
+                .fillMaxWidth(0.94f)
+                .padding(horizontal = 20.dp, vertical = 28.dp),
         ) {
             Text(
                 eyebrow.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
-                color = KittyMuted,
+                color = KittyAccentGlow,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.6.sp,
+                letterSpacing = 1.8.sp,
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 anime.title,
-                style = MaterialTheme.typography.displaySmall.copy(fontSize = 28.sp),
+                style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp, lineHeight = 36.sp),
                 fontWeight = FontWeight.Black,
                 color = KittyText,
                 maxLines = 2,
@@ -323,41 +321,46 @@ fun KittyHero(
             )
             val meta = listOfNotNull(
                 anime.format,
-                anime.episodes?.let { "$it episodes" },
-                anime.averageScore?.let { "${it / 10f} ★" },
+                anime.episodes?.let { "$it eps" },
+                anime.averageScore?.let { String.format("%.1f", it / 10f) },
             ).joinToString("  ·  ")
             if (meta.isNotBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    meta,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = KittyMuted,
-                )
+                Text(meta, style = MaterialTheme.typography.labelLarge, color = KittyMuted)
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(
                     onClick = onOpen,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black,
+                        containerColor = KittyAccent,
+                        contentColor = KittyOnAccent,
                     ),
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp),
                 ) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(cta, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
+                if (onMoreInfo != null) {
+                    OutlinedButton(
+                        onClick = onMoreInfo,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, KittyOutline),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyText),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                    ) {
+                        Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Info", fontWeight = FontWeight.SemiBold)
+                    }
+                }
             }
         }
     }
 }
 
-/**
- * Cinema continue card — landscape still with progress rail.
- * Inspired by anime streaming continue rails, kept monochrome.
- */
 @Composable
 fun KittyContinueCard(
     title: String,
@@ -374,12 +377,14 @@ fun KittyContinueCard(
     } else {
         0.08f
     }
+    val shape = RoundedCornerShape(14.dp)
     if (wide) {
         Box(
             modifier = Modifier
-                .width(240.dp)
+                .width(256.dp)
                 .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(4.dp))
+                .clip(shape)
+                .border(1.dp, KittyOutlineSoft, shape)
                 .clickable(onClick = onClick),
         ) {
             AsyncImage(
@@ -394,55 +399,53 @@ fun KittyContinueCard(
                     .background(
                         Brush.verticalGradient(
                             0f to Color.Transparent,
-                            0.45f to Color.Black.copy(alpha = 0.25f),
+                            0.45f to Color.Black.copy(alpha = 0.2f),
                             1f to Color.Black.copy(alpha = 0.88f),
                         ),
                     ),
             )
             if (!badge.isNullOrBlank()) {
                 Text(
-                    badge,
+                    badge.uppercase(),
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(Color.Black.copy(alpha = 0.72f))
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(KittyGlass)
+                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(8.dp))
                         .padding(horizontal = 7.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White,
+                    color = KittyText,
                     fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.6.sp,
                     maxLines = 1,
                 )
             }
             Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .size(44.dp)
+                    .size(48.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .border(
-                        width = 1.dp,
-                        color = Color.White.copy(alpha = 0.35f),
-                        shape = RoundedCornerShape(999.dp),
-                    ),
+                    .background(KittyGlass)
+                    .border(1.dp, KittyOutline, RoundedCornerShape(999.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Filled.PlayArrow,
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(22.dp),
+                    tint = KittyText,
+                    modifier = Modifier.size(24.dp),
                 )
             }
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(10.dp),
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
             ) {
                 Text(
                     title,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.titleSmall,
                     color = Color.White,
@@ -450,28 +453,26 @@ fun KittyContinueCard(
                 )
                 Text(
                     buildString {
-                        append("Ep $episode")
-                        if (durationMs > 0L) {
-                            append(" · ${(progress * 100f).toInt()}%")
-                        }
+                        append("Episode $episode")
+                        if (durationMs > 0L) append(" · ${(progress * 100f).toInt()}%")
                     },
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.70f),
+                    color = Color.White.copy(alpha = 0.72f),
                 )
                 Spacer(modifier = Modifier.height(7.dp))
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(2.5.dp)
+                        .height(3.dp)
                         .clip(RoundedCornerShape(999.dp))
                         .background(Color.White.copy(alpha = 0.18f)),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(progress)
-                            .height(2.5.dp)
+                            .height(3.dp)
                             .clip(RoundedCornerShape(999.dp))
-                            .background(Color.White),
+                            .background(KittyAccentGlow),
                     )
                 }
             }
@@ -480,17 +481,16 @@ fun KittyContinueCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(KittySurface)
+                .kittyGlassSoft(RoundedCornerShape(14.dp))
                 .clickable(onClick = onClick)
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .width(88.dp)
-                    .aspectRatio(16f / 10f)
-                    .clip(RoundedCornerShape(8.dp)),
+                    .width(96.dp)
+                    .aspectRatio(16f / 9f)
+                    .clip(RoundedCornerShape(10.dp)),
             ) {
                 AsyncImage(
                     model = coverUrl,
@@ -498,20 +498,6 @@ fun KittyContinueCard(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(Color.White.copy(alpha = 0.18f)),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(progress)
-                            .height(3.dp)
-                            .background(Color.White),
-                    )
-                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -520,7 +506,8 @@ fun KittyContinueCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.titleSmall,
-                    color = Color.White,
+                    color = KittyText,
+                    fontWeight = FontWeight.SemiBold,
                 )
                 Text(
                     buildString {
@@ -529,25 +516,23 @@ fun KittyContinueCard(
                             append(" · ")
                         }
                         append("Ep $episode")
-                        if (durationMs > 0L) {
-                            append(" · ${(progress * 100f).toInt()}%")
-                        }
+                        if (durationMs > 0L) append(" · ${(progress * 100f).toInt()}%")
                     },
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = KittyFaint,
                 )
             }
             Box(
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(36.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White),
+                    .background(KittyAccent),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Filled.PlayArrow,
                     contentDescription = null,
-                    tint = Color.Black,
+                    tint = KittyOnAccent,
                     modifier = Modifier.size(20.dp),
                 )
             }

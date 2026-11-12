@@ -103,13 +103,22 @@ import site.anikitty.app.ui.components.KittyPosterSkeletonRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.player.PlayerScreen
+import site.anikitty.app.ui.theme.KittyAccent
+import site.anikitty.app.ui.theme.KittyAccentGlow
+import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
+import site.anikitty.app.ui.theme.KittyGlassShape
+import site.anikitty.app.ui.theme.KittyGlassShapeTight
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutline
+import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittyPage
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.kittyGlass
+import site.anikitty.app.ui.theme.kittyGlassSoft
 
 private sealed class Screen {
     data object Tabs : Screen()
@@ -304,11 +313,8 @@ fun LocalFirstApp(
         Screen.Tabs -> Unit
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(KittyPage),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        KittyAtmosphere()
         when (tab) {
             "home" -> HomeFeed(
                 aniList = aniList,
@@ -455,9 +461,13 @@ private fun HomeFeed(
                         trending.firstOrNull()?.let { hero ->
                             KittyHero(
                                 anime = hero,
-                                eyebrow = "Spotlight",
-                                cta = "Watch now",
+                                eyebrow = "Featured",
+                                cta = "Play",
                                 onOpen = {
+                                    scope.launch { historyDao.touchFromCatalog(hero) }
+                                    onOpen(hero, null)
+                                },
+                                onMoreInfo = {
                                     scope.launch { historyDao.touchFromCatalog(hero) }
                                     onOpen(hero, null)
                                 },
@@ -615,52 +625,51 @@ private fun FloatingTopChrome(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(
-                horizontal = 16.dp,
-                vertical = if (compact) 6.dp else 10.dp,
-            ),
+            .padding(horizontal = 14.dp, vertical = if (compact) 8.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .kittyGlassSoft(RoundedCornerShape(14.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 "AniKitty",
-                style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Black,
                 color = KittyText,
-                letterSpacing = (-0.6).sp,
+                letterSpacing = (-0.7).sp,
             )
-            if (!greeting.isNullOrBlank() && !compact) {
+            val chip = when {
+                !greeting.isNullOrBlank() -> greeting
+                !compact -> accountLabel
+                else -> null
+            }
+            if (!chip.isNullOrBlank()) {
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    greeting,
+                    chip,
                     style = MaterialTheme.typography.labelMedium,
-                    color = KittyFaint,
+                    color = KittyAccentGlow,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
-        if (!compact) {
-            Text(
-                accountLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = KittyFaint,
-                modifier = Modifier.padding(end = 6.dp),
-            )
-        } else if (!greeting.isNullOrBlank()) {
-            Text(
-                greeting,
-                style = MaterialTheme.typography.labelSmall,
-                color = KittyFaint,
-                modifier = Modifier.padding(end = 6.dp),
-            )
-        }
+        Spacer(modifier = Modifier.width(8.dp))
         TextButton(
             onClick = onSignOut,
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+            modifier = Modifier.kittyGlassSoft(RoundedCornerShape(14.dp)),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         ) {
             Text(
                 "Sign out",
-                color = KittyFaint,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
+                color = KittyMuted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
             )
         }
     }
@@ -759,7 +768,7 @@ private fun SearchFeed(
             singleLine = true,
             placeholder = { Text("Title, studio, or character") },
             trailingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-            shape = RoundedCornerShape(8.dp),
+            shape = RoundedCornerShape(16.dp),
         )
         if (recent.isNotEmpty() && query.isBlank()) {
             Spacer(modifier = Modifier.height(10.dp))
@@ -1074,8 +1083,7 @@ private fun SettingsFeed(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(KittySurface)
+                    .kittyGlass(KittyGlassShape)
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1152,7 +1160,7 @@ private fun SettingsFeed(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(KittySurface)
+                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
                     .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
                     .padding(14.dp),
             ) {
@@ -1337,8 +1345,7 @@ private fun SettingsFeed(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(KittySurface)
+                        .kittyGlass(KittyGlassShapeTight)
                         .padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1422,7 +1429,7 @@ private fun SettingsFeed(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(shape)
-                    .background(KittySurface)
+                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
                     .border(
                         width = if (selected) 1.dp else 0.dp,
                         color = if (selected) Color.White else Color.Transparent,
@@ -1511,7 +1518,7 @@ private fun SettingsFeed(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(KittySurface)
+                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
                     .padding(16.dp),
             ) {
                 Text(listing.name, color = Color.White, fontWeight = FontWeight.SemiBold)
@@ -1650,11 +1657,8 @@ private fun TitleDetailScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(KittyPage),
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        KittyAtmosphere()
         LazyColumn(contentPadding = PaddingValues(bottom = 118.dp)) {
             item {
                 Box(
@@ -1826,7 +1830,7 @@ private fun TitleDetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(14.dp))
-                                .background(KittySurface)
+                                .background(KittySurfaceElevated.copy(alpha = 0.55f))
                                 .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
                                 .padding(10.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -1924,7 +1928,7 @@ private fun TitleDetailScreen(
                                     .fillMaxWidth()
                                     .padding(vertical = 6.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(KittySurface)
+                                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
                                     .padding(12.dp),
                             ) {
                                 Text(
@@ -1991,47 +1995,50 @@ private fun EpisodeCell(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+    val shape = RoundedCornerShape(12.dp)
     val bg = when {
-        selected -> Color.White
-        continueEp -> Color.White.copy(alpha = 0.18f)
+        selected -> KittyAccent
+        continueEp -> KittyAccentGlow.copy(alpha = 0.22f)
         watched -> KittySurfaceElevated
-        else -> Color(0xFF121212)
+        else -> KittySurface
     }
     val fg = when {
-        selected -> Color.Black
-        else -> Color.White.copy(alpha = if (watched) 0.55f else 0.92f)
+        selected -> KittyOnAccent
+        continueEp -> KittyText
+        watched -> KittyFaint
+        else -> KittyText.copy(alpha = 0.9f)
     }
     Box(
         modifier = modifier
-            .height(44.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .height(42.dp)
+            .clip(shape)
             .background(bg)
             .border(
                 width = 1.dp,
                 color = when {
-                    selected -> Color.White
-                    continueEp -> Color.White.copy(alpha = 0.35f)
-                    else -> Color.White.copy(alpha = 0.08f)
+                    selected -> KittyAccent
+                    continueEp -> KittyAccentGlow.copy(alpha = 0.45f)
+                    else -> KittyOutlineSoft
                 },
-                shape = RoundedCornerShape(10.dp),
+                shape = shape,
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (watched && !selected) {
+            if (watched && !selected && !continueEp) {
                 Icon(
                     Icons.Rounded.Check,
                     contentDescription = null,
                     tint = fg,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(11.dp),
                 )
                 Spacer(modifier = Modifier.width(2.dp))
             }
             Text(
                 "$number",
                 color = fg,
-                fontWeight = if (selected || continueEp) FontWeight.Bold else FontWeight.SemiBold,
+                fontWeight = if (selected || continueEp) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 13.sp,
             )
         }
@@ -2044,9 +2051,9 @@ private fun EpisodeLegendDot(color: Color, label: String) {
         Box(
             modifier = Modifier
                 .size(8.dp)
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(3.dp))
                 .background(color)
-                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(999.dp)),
+                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(3.dp)),
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(label, color = KittyFaint, fontSize = 11.sp)
@@ -2055,21 +2062,22 @@ private fun EpisodeLegendDot(color: Color, label: String) {
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(12.dp)
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) Color.White else KittySurface)
+            .clip(shape)
+            .background(if (selected) KittyAccent else KittySurface)
             .border(
                 width = 1.dp,
-                color = if (selected) Color.White else Color.White.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(12.dp),
+                color = if (selected) KittyAccent else KittyOutlineSoft,
+                shape = shape,
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
     ) {
         Text(
             label,
-            color = if (selected) Color.Black else Color.White.copy(alpha = 0.78f),
+            color = if (selected) KittyOnAccent else KittyText.copy(alpha = 0.82f),
             fontWeight = FontWeight.SemiBold,
             fontSize = 12.sp,
         )

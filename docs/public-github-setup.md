@@ -1,35 +1,48 @@
 # Public GitHub setup (maintainers)
 
-Cloud agent tokens for this project **cannot** always:
+Cloud agent tokens for this project **cannot**:
 
-- `gh repo create fampep/anikitty-extensions`
-- `gh repo edit fampep/anikitty --visibility public`
+- `gh repo create fampep/anikitty-extensions` (`createRepository` forbidden for the integration)
+- always flip `fampep/anikitty` → public
 
-Run these as the `fampep` account when ready:
+Run these as the **fampep** GitHub user when ready.
 
-## 1. Make the app repo public (AP-36)
+## 1. Make the app repo public (optional community surface)
 
 ```bash
 gh repo edit fampep/anikitty --visibility public --accept-visibility-change-consequences
 ```
 
-## 2. Publish the extensions repo (AP-33)
+## 2. Create & publish `fampep/anikitty-extensions` (required for store raw URLs)
+
+From a clone of anikitty that contains the `extensions/` tree (MIT + DISCLAIMER included):
 
 ```bash
-# from a clean clone of anikitty
-git subtree split -P extensions -b extensions-publish
 gh repo create fampep/anikitty-extensions --public \
-  --description "AniKitty stream-server extensions: manifest spec, SDK guide, store, examples"
+  --description "Educational AniKitty extension protocol — community BYO resolvers. Maintainers do not control third-party backends." \
+  --homepage "https://github.com/fampep/anikitty"
+
+git subtree split -P extensions -b extensions-publish
 git push git@github.com:fampep/anikitty-extensions.git extensions-publish:main
 ```
 
-Or copy the `extensions/` tree into a new empty public repo.
+Confirm raw store index loads:
 
-Update Android `ExtensionStoreClient.DEFAULT_INDEX_URLS` if the raw URLs change (already prefers `fampep/anikitty-extensions` first).
+`https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`
 
-## 3. Topics / homepage (optional)
+Android already prefers that URL in `ExtensionStoreClient.DEFAULT_INDEX_URLS`.
+
+## 3. Topics
 
 ```bash
-gh repo edit fampep/anikitty --add-topic android,anime,compose,kotlin
-gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions
+gh repo edit fampep/anikitty --add-topic android,anime,compose,kotlin,educational
+gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions,educational,polyform-noncommercial
 ```
+
+## 4. Framing
+
+Keep [extensions/DISCLAIMER.md](../extensions/DISCLAIMER.md) and PolyForm Noncommercial [LICENSE](../extensions/LICENSE) at the repo root after the split:
+
+- **fampep owns** AniKitty / protocol code  
+- educational / noncommercial use  
+- community extensions gladly accepted; **owner does not control third-party backends**

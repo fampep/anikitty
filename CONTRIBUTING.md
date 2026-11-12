@@ -31,6 +31,8 @@ cd apps/android
 ./gradlew :app:assembleRelease
 ```
 
-## License
+## License & ownership
 
-See [LICENSE](LICENSE).
+AniKitty is **owned by fampep** and licensed under [PolyForm Noncommercial 1.0.0](LICENSE). Contributions to this repository are accepted under those same terms and do not transfer ownership away from fampep.
+
+Your own extension GitHub repos remain yours — see [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
