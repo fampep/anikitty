@@ -30,6 +30,8 @@ class AnikotoServer(
         id = ID,
         name = "Anikoto",
         description = "Fast on-device URL resolve. Playback bandwidth stays on this phone.",
+        iconUrl = SITE_ICON_URL,
+        siteUrl = ANIKOTO_BASE,
     )
 
     override suspend fun resolve(
@@ -401,6 +403,9 @@ class AnikotoServer(
         const val ID = "anikoto"
 
         private const val ANIKOTO_BASE = "https://anikoto.cz"
+        /** Official site favicon — shown in Extension Store / installed sources. */
+        private const val SITE_ICON_URL =
+            "https://www.google.com/s2/favicons?domain=anikoto.cz&sz=128"
         private const val CHROME_UA =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
 

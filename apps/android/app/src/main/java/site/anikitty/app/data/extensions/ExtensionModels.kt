@@ -14,7 +14,10 @@ data class ExtensionManifest(
     val homepage: String? = null,
     val baseUrl: String,
     val resolvePath: String = DEFAULT_RESOLVE_PATH,
-    val iconUrl: String? = null,
+    /** Required HTTPS icon of the site this extension scrapes / fronts. */
+    val iconUrl: String,
+    /** Public site origin shown in the Store (usually the scraped host). */
+    val siteUrl: String? = null,
     val nsfw: Boolean = false,
     /** GitHub repo URL this was installed from (if any). */
     val sourceGithub: String? = null,
@@ -37,6 +40,9 @@ data class StoreListing(
     val author: String = "",
     val featured: Boolean = false,
     val manifestPath: String? = null,
+    /** Site icon shown in the Store grid (required for new listings). */
+    val iconUrl: String? = null,
+    val siteUrl: String? = null,
 )
 
 data class StoreIndex(

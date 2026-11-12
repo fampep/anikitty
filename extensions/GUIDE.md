@@ -17,7 +17,8 @@ Create `anikitty-extension.json` at the **root** of a public GitHub repository:
   "homepage": "https://github.com/you/hello-anikitty-ext",
   "baseUrl": "https://your-resolver.example.com",
   "resolvePath": "/v1/resolve",
-  "iconUrl": null,
+  "iconUrl": "https://www.google.com/s2/favicons?domain=watch.example.com&sz=128",
+  "siteUrl": "https://watch.example.com",
   "nsfw": false
 }
 ```
@@ -28,6 +29,8 @@ Rules:
 - `apiVersion` — must be `1` for current AniKitty builds.
 - `baseUrl` — HTTPS origin of your resolver (no trailing slash).
 - `resolvePath` — path joined to `baseUrl` (default `/v1/resolve`).
+- **`iconUrl` — required.** Must be the **brand/favicon of the site you scrape or front** (HTTPS). The Store shows this icon next to Anikoto and every listing.
+- `siteUrl` — recommended public origin of that site (attribution / “Site” button).
 
 Validate against [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json).
 

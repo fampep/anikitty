@@ -1,0 +1,64 @@
+name: Extension store submission
+description: Propose your BYO stream extension for the main AniKitty store
+title: "[Extension] "
+labels: ["extension-store"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Submit a listing for the **main Extension Store**. You keep ownership of your resolver.
+        Manifests **must** include `iconUrl` (the scraped site’s favicon/brand icon).
+  - type: input
+    id: github
+    attributes:
+      label: GitHub repo URL
+      description: Public repo containing anikitty-extension.json
+      placeholder: https://github.com/you/my-anikitty-ext
+    validations:
+      required: true
+  - type: input
+    id: extension_id
+    attributes:
+      label: Extension id
+      description: Reverse-DNS id from your manifest
+      placeholder: com.example.mysource
+    validations:
+      required: true
+  - type: input
+    id: icon_url
+    attributes:
+      label: Site icon URL (required)
+      description: HTTPS favicon/brand icon of the site you scrape or front
+      placeholder: https://www.google.com/s2/favicons?domain=example.com&sz=128
+    validations:
+      required: true
+  - type: input
+    id: site_url
+    attributes:
+      label: Site URL
+      description: Public origin of that site
+      placeholder: https://example.com
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: Display name
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Short description
+      description: Max ~280 characters for the Store
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirm
+      options:
+        - label: My manifest validates against apiVersion 1 and includes iconUrl
+          required: true
+        - label: I own/operate this extension backend; fampep does not control it
+          required: true

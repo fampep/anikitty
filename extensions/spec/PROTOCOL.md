@@ -12,8 +12,11 @@
 
 Primary file: `anikitty-extension.json` (repo root).
 
-Required fields: `apiVersion`, `id`, `name`, `version`, `baseUrl`.  
-Optional: `description`, `author`, `homepage`, `resolvePath`, `iconUrl`, `nsfw`.
+Required fields: `apiVersion`, `id`, `name`, `version`, `baseUrl`, `iconUrl`.  
+Optional: `description`, `author`, `homepage`, `resolvePath`, `siteUrl`, `nsfw`.
+
+- `iconUrl` — HTTPS brand/favicon of the **site you scrape or front** (shown in the Extension Store).
+- `siteUrl` — recommended public origin of that site.
 
 `resolvePath` defaults to `/v1/resolve`.
 

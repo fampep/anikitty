@@ -4,7 +4,7 @@
   "title": "AniKittyExtensionManifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["apiVersion", "id", "name", "version", "baseUrl"],
+  "required": ["apiVersion", "id", "name", "version", "baseUrl", "iconUrl"],
   "properties": {
     "apiVersion": {
       "type": "integer",
@@ -41,7 +41,7 @@
     "baseUrl": {
       "type": "string",
       "pattern": "^https?://[^\\s/$.?#].[^\\s]*[^/]$",
-      "description": "HTTPS (preferred) origin with no trailing slash."
+      "description": "HTTPS (preferred) origin of your resolve API with no trailing slash."
     },
     "resolvePath": {
       "type": "string",
@@ -49,8 +49,14 @@
       "default": "/v1/resolve"
     },
     "iconUrl": {
-      "type": ["string", "null"],
-      "format": "uri"
+      "type": "string",
+      "format": "uri",
+      "description": "Required. Brand/favicon of the site this extension scrapes or fronts (https)."
+    },
+    "siteUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Public origin of that site (shown in the Store for attribution)."
     },
     "nsfw": {
       "type": "boolean",

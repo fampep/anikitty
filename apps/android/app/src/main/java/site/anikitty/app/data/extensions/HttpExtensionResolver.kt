@@ -30,6 +30,8 @@ class HttpExtensionResolver(
             if (isEmpty()) append("Community extension")
             append(" · v").append(manifest.version)
         },
+        iconUrl = manifest.iconUrl,
+        siteUrl = manifest.siteUrl ?: manifest.homepage,
     )
 
     override suspend fun resolve(
