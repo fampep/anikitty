@@ -736,12 +736,19 @@ private fun SearchFeed(
             .padding(horizontal = 16.dp)
             .padding(top = 12.dp, bottom = 100.dp),
     ) {
-        KittySectionHeading(
-            title = "Search",
-            subtitle = "Type a title — results update as you type",
-            padded = false,
+        Text(
+            "Search",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black,
+            color = Color.White,
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "Find something to watch",
+            style = MaterialTheme.typography.bodyMedium,
+            color = KittyMuted,
+        )
+        Spacer(modifier = Modifier.height(14.dp))
         OutlinedTextField(
             value = query,
             onValueChange = {
@@ -750,9 +757,9 @@ private fun SearchFeed(
             },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
-            placeholder = { Text("Anime title") },
+            placeholder = { Text("Title, studio, or character") },
             trailingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(8.dp),
         )
         if (recent.isNotEmpty() && query.isBlank()) {
             Spacer(modifier = Modifier.height(10.dp))

@@ -21,8 +21,8 @@ android {
         applicationId = "site.anikitty.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.0.6"
+        versionCode = 10
+        versionName = "1.0.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Public AniList API client id (not a secret). Create at anilist.co/settings/developer
         // with redirect URI anikitty://anilist — or leave blank and paste a token in-app.

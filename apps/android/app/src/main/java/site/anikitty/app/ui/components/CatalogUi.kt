@@ -1,6 +1,7 @@
 package site.anikitty.app.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -230,9 +231,9 @@ fun KittyPosterRow(
     subtitleFor: ((AnimeSummary) -> String?)? = null,
 ) {
     if (items.isEmpty()) return
-    Column(modifier = Modifier.padding(top = 22.dp)) {
+    Column(modifier = Modifier.padding(top = 26.dp)) {
         KittySectionHeading(title = title, subtitle = subtitle)
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -376,9 +377,9 @@ fun KittyContinueCard(
     if (wide) {
         Box(
             modifier = Modifier
-                .width(220.dp)
-                .aspectRatio(16f / 10f)
-                .clip(RoundedCornerShape(14.dp))
+                .width(240.dp)
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(4.dp))
                 .clickable(onClick = onClick),
         ) {
             AsyncImage(
@@ -404,29 +405,33 @@ fun KittyContinueCard(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(8.dp)
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(Color.White.copy(alpha = 0.92f))
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(Color.Black.copy(alpha = 0.72f))
                         .padding(horizontal = 7.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
-                    color = KittyInk,
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                 )
             }
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(30.dp)
+                    .align(Alignment.Center)
+                    .size(44.dp)
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White),
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .border(
+                        width = 1.dp,
+                        color = Color.White.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(999.dp),
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     Icons.Filled.PlayArrow,
                     contentDescription = null,
-                    tint = Color.Black,
-                    modifier = Modifier.size(18.dp),
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp),
                 )
             }
             Column(

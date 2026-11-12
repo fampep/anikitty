@@ -130,11 +130,12 @@ private enum class Panel { None, Quality, Subs, Style, Display, Speed }
 private enum class SubBgMode { None, Soft, Solid, Blur }
 
 /**
- * Caption look. [sizeFraction] scales density-aware base size.
+ * Fully user-controlled caption look.
+ * [sizeSp] is the real text size in sp — no forced “large” floor.
  * [bottomPad] is Media3 bottom padding fraction — higher lifts captions up.
  */
 private data class SubStyle(
-    val sizeFraction: Float = DEFAULT_SUB_SIZE_FRACTION,
+    val sizeSp: Float = DEFAULT_SUB_SIZE_SP,
     val bottomPad: Float = DEFAULT_SUB_BOTTOM_PAD,
     val color: Int = AndroidColor.WHITE,
     val bgMode: SubBgMode = SubBgMode.Soft,
@@ -499,7 +500,8 @@ fun PlayerScreen(
     LaunchedEffect(subStyle, playerViewRef) {
         applyCaptionStyle(playerViewRef, subStyle)
         context.getSharedPreferences("anikitty_player", 0).edit()
-            .putFloat("sub_size_frac", subStyle.sizeFraction)
+            .putInt("sub_style_v", SUB_STYLE_VERSION)
+            .putFloat("sub_size_sp", subStyle.sizeSp)
             .putFloat("sub_bottom", subStyle.bottomPad)
             .putInt("sub_color", subStyle.color)
             .putString("sub_bg_mode", subStyle.bgMode.name)
@@ -1123,9 +1125,9 @@ private fun PlayerSheet(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(PlayerChrome.Sheet)
-            .border(1.dp, PlayerChrome.SheetStroke, RoundedCornerShape(18.dp))
+            .border(1.dp, PlayerChrome.SheetStroke, RoundedCornerShape(12.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -1259,12 +1261,10 @@ private fun StyleSheet(
     onChange: (SubStyle) -> Unit,
     onBack: () -> Unit,
 ) {
-    val previewSp = (11f + (style.sizeFraction - SUB_SIZE_MIN) /
-        (SUB_SIZE_MAX - SUB_SIZE_MIN) * 12f).coerceIn(11f, 24f)
     val positionLabel = when {
         style.bottomPad <= 0.08f -> "Low"
-        style.bottomPad <= 0.14f -> "Mid"
-        style.bottomPad <= 0.20f -> "High"
+        style.bottomPad <= 0.13f -> "Mid"
+        style.bottomPad <= 0.19f -> "High"
         else -> "Top"
     }
     SheetTitle("Captions")
@@ -1278,30 +1278,42 @@ private fun StyleSheet(
             .clickable(onClick = onBack),
     )
 
-    Text("Size", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Size", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+        Text(
+            String.format(Locale.US, "%.0f sp", style.sizeSp),
+            color = PlayerChrome.Faint,
+            fontSize = 11.sp,
+        )
+    }
     Spacer(modifier = Modifier.height(6.dp))
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         listOf(
-            0.024f to "S",
-            DEFAULT_SUB_SIZE_FRACTION to "M",
-            0.042f to "L",
-            0.055f to "XL",
-            0.068f to "High",
-        ).forEach { (frac, label) ->
+            8f to "Tiny",
+            10f to "Small",
+            DEFAULT_SUB_SIZE_SP to "Default",
+            14f to "Large",
+            18f to "XL",
+            22f to "Max",
+        ).forEach { (sp, label) ->
             ChoicePill(
                 label = label,
-                selected = kotlin.math.abs(style.sizeFraction - frac) < 0.003f,
-                onClick = { onChange(style.copy(sizeFraction = frac)) },
+                selected = kotlin.math.abs(style.sizeSp - sp) < 0.4f,
+                onClick = { onChange(style.copy(sizeSp = sp)) },
             )
         }
     }
     Slider(
-        value = style.sizeFraction,
-        onValueChange = { onChange(style.copy(sizeFraction = it)) },
-        valueRange = SUB_SIZE_MIN..SUB_SIZE_MAX,
+        value = style.sizeSp,
+        onValueChange = { onChange(style.copy(sizeSp = it)) },
+        valueRange = SUB_SIZE_SP_MIN..SUB_SIZE_SP_MAX,
         colors = SliderDefaults.colors(
             thumbColor = PlayerChrome.Paper,
             activeTrackColor = PlayerChrome.Paper,
@@ -1320,7 +1332,7 @@ private fun StyleSheet(
         Text(positionLabel, color = PlayerChrome.Faint, fontSize = 11.sp)
     }
     Text(
-        "Drag right to raise captions above the controls",
+        "Drag right to raise captions",
         color = PlayerChrome.Faint,
         fontSize = 11.sp,
     )
@@ -1419,7 +1431,7 @@ private fun StyleSheet(
         Text(
             "Preview · 字幕サンプル",
             color = Color(style.color),
-            fontSize = previewSp.sp,
+            fontSize = style.sizeSp.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -1505,21 +1517,21 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
 private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(999.dp))
+            .clip(RoundedCornerShape(6.dp))
             .background(if (selected) PlayerChrome.Paper else Color.White.copy(alpha = 0.08f))
             .border(
                 1.dp,
                 if (selected) PlayerChrome.Paper else Color.White.copy(alpha = 0.12f),
-                RoundedCornerShape(999.dp),
+                RoundedCornerShape(6.dp),
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .padding(horizontal = 11.dp, vertical = 7.dp),
     ) {
         Text(
             label,
             color = if (selected) PlayerChrome.Ink else PlayerChrome.Paper,
             fontSize = 12.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
         )
     }
 }
@@ -1533,15 +1545,15 @@ private fun ToolChip(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (active) PlayerChrome.Paper else Color.White.copy(alpha = 0.08f))
+            .clip(RoundedCornerShape(6.dp))
+            .background(if (active) PlayerChrome.Paper else Color.White.copy(alpha = 0.10f))
             .border(
                 1.dp,
                 if (active) PlayerChrome.Paper else PlayerChrome.DiscStroke,
-                RoundedCornerShape(12.dp),
+                RoundedCornerShape(6.dp),
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 10.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
@@ -1555,7 +1567,7 @@ private fun ToolChip(
             label,
             color = if (active) PlayerChrome.Ink else PlayerChrome.Paper,
             fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -1848,9 +1860,9 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
     // Backdrop modes approximate Netflix-style caption plates on Media3 SubtitleView.
     val (bg, window) = when (style.bgMode) {
         SubBgMode.None -> AndroidColor.TRANSPARENT to AndroidColor.TRANSPARENT
-        SubBgMode.Soft -> AndroidColor.TRANSPARENT to AndroidColor.argb(110, 0, 0, 0)
-        SubBgMode.Blur -> AndroidColor.argb(90, 16, 16, 18) to AndroidColor.argb(150, 0, 0, 0)
-        SubBgMode.Solid -> AndroidColor.argb(210, 0, 0, 0) to AndroidColor.TRANSPARENT
+        SubBgMode.Soft -> AndroidColor.TRANSPARENT to AndroidColor.argb(100, 0, 0, 0)
+        SubBgMode.Blur -> AndroidColor.argb(80, 16, 16, 18) to AndroidColor.argb(140, 0, 0, 0)
+        SubBgMode.Solid -> AndroidColor.argb(200, 0, 0, 0) to AndroidColor.TRANSPARENT
     }
     view.setStyle(
         CaptionStyleCompat(
@@ -1862,50 +1874,16 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
             Typeface.DEFAULT,
         ),
     )
-    val fraction = style.sizeFraction.coerceIn(SUB_SIZE_MIN, SUB_SIZE_MAX)
     val metrics = view.resources.displayMetrics
-    val widthPx = when {
-        playerView.width > 0 -> playerView.width
-        view.width > 0 -> view.width
-        else -> metrics.widthPixels
-    }
-    val heightPx = when {
-        playerView.height > 0 -> playerView.height
-        view.height > 0 -> view.height
-        else -> metrics.heightPixels
-    }
-    val shortPx = minOf(widthPx, heightPx).coerceAtLeast(1)
-    val shortDp = shortPx / metrics.density
-    val baseSp = when {
-        shortDp < 400f -> 13f
-        shortDp < 600f -> 14f
-        shortDp < 800f -> 15f
-        else -> 16f
-    }
-    val scale = fraction / DEFAULT_SUB_SIZE_FRACTION
-    // Clamp in density-independent space so L / XL / High visibly scale on xxhdpi.
-    val rawPx = baseSp * scale * metrics.density
-    val maxPx = 28f * metrics.density // ~28sp ceiling
-    val px = rawPx.coerceIn(12f * metrics.density, maxPx)
+    val sizeSp = style.sizeSp.coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX)
+    // Exact sp → px. No hidden density floor that keeps captions oversized.
+    val px = sizeSp * metrics.density
     view.setFixedTextSize(Cue.TEXT_SIZE_TYPE_ABSOLUTE, px)
-    // Higher fraction lifts captions above the transport chrome.
     view.setBottomPaddingFraction(style.bottomPad.coerceIn(SUB_BOTTOM_MIN, SUB_BOTTOM_MAX))
 }
 
 private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
-    val storedFrac = if (prefs.contains("sub_size_frac")) {
-        prefs.getFloat("sub_size_frac", DEFAULT_SUB_SIZE_FRACTION)
-    } else {
-        val legacySp = prefs.getFloat("sub_size", -1f)
-        when {
-            legacySp < 0f -> DEFAULT_SUB_SIZE_FRACTION
-            legacySp <= 16f -> 0.024f
-            legacySp <= 20f -> 0.028f
-            legacySp <= 24f -> DEFAULT_SUB_SIZE_FRACTION
-            legacySp <= 30f -> 0.042f
-            else -> 0.055f
-        }
-    }
+    val version = prefs.getInt("sub_style_v", 0)
     val bgMode = when (prefs.getString("sub_bg_mode", null)) {
         SubBgMode.None.name -> SubBgMode.None
         SubBgMode.Soft.name -> SubBgMode.Soft
@@ -1913,15 +1891,23 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
         SubBgMode.Solid.name -> SubBgMode.Solid
         else -> if (prefs.getBoolean("sub_bg", true)) SubBgMode.Soft else SubBgMode.None
     }
-    var bottom = if (prefs.contains("sub_bottom")) {
-        prefs.getFloat("sub_bottom", DEFAULT_SUB_BOTTOM_PAD)
-    } else {
-        DEFAULT_SUB_BOTTOM_PAD
+    // v3 resets prior oversized defaults to a compact streaming size the user can raise.
+    val sizeSp = when {
+        version >= SUB_STYLE_VERSION && prefs.contains("sub_size_sp") ->
+            prefs.getFloat("sub_size_sp", DEFAULT_SUB_SIZE_SP)
+        prefs.contains("sub_size_sp") ->
+            prefs.getFloat("sub_size_sp", DEFAULT_SUB_SIZE_SP).coerceAtMost(14f)
+        else -> DEFAULT_SUB_SIZE_SP
     }
-    // Lift legacy “stuck at the bottom” defaults into a readable streaming position.
-    if (bottom < 0.09f) bottom = DEFAULT_SUB_BOTTOM_PAD
+    val bottom = when {
+        version >= SUB_STYLE_VERSION && prefs.contains("sub_bottom") ->
+            prefs.getFloat("sub_bottom", DEFAULT_SUB_BOTTOM_PAD)
+        prefs.contains("sub_bottom") ->
+            prefs.getFloat("sub_bottom", DEFAULT_SUB_BOTTOM_PAD).coerceAtLeast(0.10f)
+        else -> DEFAULT_SUB_BOTTOM_PAD
+    }
     return SubStyle(
-        sizeFraction = storedFrac.coerceIn(SUB_SIZE_MIN, SUB_SIZE_MAX),
+        sizeSp = sizeSp.coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX),
         bottomPad = bottom.coerceIn(SUB_BOTTOM_MIN, SUB_BOTTOM_MAX),
         color = prefs.getInt("sub_color", AndroidColor.WHITE),
         bgMode = bgMode,
@@ -1929,14 +1915,15 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     )
 }
 
-/** Default readable size; S–High presets scale around this. */
-private const val DEFAULT_SUB_SIZE_FRACTION = 0.034f
-private const val SUB_SIZE_MIN = 0.020f
-private const val SUB_SIZE_MAX = 0.072f
+/** Compact Netflix-like default; full Tiny→Max range is user-controlled. */
+private const val SUB_STYLE_VERSION = 3
+private const val DEFAULT_SUB_SIZE_SP = 10.5f
+private const val SUB_SIZE_SP_MIN = 8f
+private const val SUB_SIZE_SP_MAX = 24f
 /** Raised so captions clear the player chrome by default. */
-private const val DEFAULT_SUB_BOTTOM_PAD = 0.14f
-private const val SUB_BOTTOM_MIN = 0.04f
-private const val SUB_BOTTOM_MAX = 0.28f
+private const val DEFAULT_SUB_BOTTOM_PAD = 0.13f
+private const val SUB_BOTTOM_MIN = 0.03f
+private const val SUB_BOTTOM_MAX = 0.30f
 
 private fun shortQuality(label: String): String {
     val m = Regex("""(\d{3,4}p)""", RegexOption.IGNORE_CASE).find(label)
