@@ -1,0 +1,8 @@
+{
+  "name": "anikitty-android",
+  "private": true,
+  "scripts": {
+    "assembleDebug": "./gradlew :app:assembleDebug",
+    "assembleRelease": "./gradlew :app:assembleRelease"
+  }
+}
