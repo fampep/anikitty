@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items as lazyItems
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -95,6 +96,7 @@ import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
+import site.anikitty.app.data.anilist.AnimeEpisodeItem
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
@@ -125,6 +127,7 @@ import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyGlass
 import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyGlassShapeTight
+import site.anikitty.app.ui.theme.KittyGlassStrong
 import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutline
@@ -166,11 +169,36 @@ fun LocalFirstApp(
     // so landscape lock in PlayerScreen does not wipe navigation.
     var tab by rememberSaveable { mutableStateOf("home") }
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
+    /** Prior detail frames when drilling into related / other seasons. */
+    var detailBackStack by remember { mutableStateOf<List<Screen.Detail>>(emptyList()) }
     val history by historyDao.observeAll().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var syncLabel by remember { mutableStateOf<String?>(null) }
     var aniLinkStatus by remember { mutableStateOf<String?>(null) }
     var aniLinkTick by remember { mutableIntStateOf(0) }
+
+    fun openDetail(anime: AnimeSummary, startEpisode: Int? = null, pushCurrent: Boolean = false) {
+        val next = Screen.Detail(anime, startEpisode)
+        if (pushCurrent) {
+            val current = screen
+            if (current is Screen.Detail) {
+                detailBackStack = detailBackStack + current
+            }
+        } else {
+            detailBackStack = emptyList()
+        }
+        screen = next
+    }
+
+    fun popDetailOrTabs() {
+        val prior = detailBackStack.lastOrNull()
+        if (prior != null) {
+            detailBackStack = detailBackStack.dropLast(1)
+            screen = prior
+        } else {
+            screen = Screen.Tabs
+        }
+    }
 
     // Apply OAuth callbacks at app-root (not only Account). Custom Tabs / singleTop
     // often resume on Home — keep the token until this effect consumes it.
@@ -257,7 +285,10 @@ fun LocalFirstApp(
                 anilistId = current.anime.id,
                 malId = current.anime.malId,
                 startPositionMs = resumeMs,
-                onClose = { screen = Screen.Detail(current.anime, current.episode) },
+                onClose = {
+                    // Return to detail for this title without wiping related back-stack.
+                    screen = Screen.Detail(current.anime, current.episode)
+                },
                 onProgress = { pos, dur ->
                     scope.launch {
                         val existing = historyDao.get(current.anime.id)
@@ -277,38 +308,46 @@ fun LocalFirstApp(
                         )
                     }
                 },
-                onNextEpisode = {
-                    scope.launch {
-                        val next = current.episode + 1
-                        runCatching {
-                            val resolved = streamServers.resolveWithFailover(
-                                anilistId = current.anime.id,
-                                episode = next,
-                                audio = "sub",
-                                titleHint = current.anime.searchTitles().joinToString(" || "),
-                            )
-                            val existing = historyDao.get(current.anime.id)
-                            historyDao.upsert(
-                                WatchHistoryEntity(
-                                    anilistId = current.anime.id,
-                                    title = current.anime.title,
-                                    coverImageUrl = current.anime.coverImageUrl,
-                                    episode = next,
-                                    positionMs = 0L,
-                                    durationMs = 0L,
-                                    updatedAtEpochMs = System.currentTimeMillis(),
-                                    listStatus = existing?.listStatus ?: "CURRENT",
-                                    malId = current.anime.malId ?: existing?.malId,
-                                ),
-                            )
-                            if (aniListAuth.isLinked) {
-                                aniListSync.pushProgress(
-                                    anilistId = current.anime.id,
-                                    episode = next,
-                                    totalEpisodes = current.anime.episodes,
-                                )
+                onNextEpisode = run {
+                    val total = current.anime.episodes
+                    val hasNext = total == null || current.episode < total
+                    if (!hasNext) {
+                        null
+                    } else {
+                        {
+                            scope.launch {
+                                val next = current.episode + 1
+                                runCatching {
+                                    val resolved = streamServers.resolveWithFailover(
+                                        anilistId = current.anime.id,
+                                        episode = next,
+                                        audio = "sub",
+                                        titleHint = current.anime.searchTitles().joinToString(" || "),
+                                    )
+                                    val existing = historyDao.get(current.anime.id)
+                                    historyDao.upsert(
+                                        WatchHistoryEntity(
+                                            anilistId = current.anime.id,
+                                            title = current.anime.title,
+                                            coverImageUrl = current.anime.coverImageUrl,
+                                            episode = next,
+                                            positionMs = 0L,
+                                            durationMs = 0L,
+                                            updatedAtEpochMs = System.currentTimeMillis(),
+                                            listStatus = existing?.listStatus ?: "CURRENT",
+                                            malId = current.anime.malId ?: existing?.malId,
+                                        ),
+                                    )
+                                    if (aniListAuth.isLinked) {
+                                        aniListSync.pushProgress(
+                                            anilistId = current.anime.id,
+                                            episode = next,
+                                            totalEpisodes = current.anime.episodes,
+                                        )
+                                    }
+                                    screen = Screen.Player(current.anime, next, resolved.sources)
+                                }
                             }
-                            screen = Screen.Player(current.anime, next, resolved.sources)
                         }
                     }
                 },
@@ -323,13 +362,14 @@ fun LocalFirstApp(
                 historyDao = historyDao,
                 aniList = aniList,
                 api = api,
-                onBack = { screen = Screen.Tabs },
+                onBack = { popDetailOrTabs() },
                 onChangeSource = {
+                    detailBackStack = emptyList()
                     screen = Screen.Tabs
                     tab = "store"
                 },
                 onOpenRelated = { related ->
-                    screen = Screen.Detail(related)
+                    openDetail(related, pushCurrent = true)
                 },
                 onPlay = { episode, sources, resolvedAnime ->
                     screen = Screen.Player(resolvedAnime, episode, sources)
@@ -357,13 +397,13 @@ fun LocalFirstApp(
                     aniListAuth = aniListAuth,
                     history = history,
                     historyDao = historyDao,
-                    onOpen = { anime, ep -> screen = Screen.Detail(anime, ep) },
+                    onOpen = { anime, ep -> openDetail(anime, ep) },
                     accountLabel = accountLabel,
                 )
                 "search" -> SearchFeed(
                     aniList = aniList,
                     historyDao = historyDao,
-                    onOpen = { screen = Screen.Detail(it) },
+                    onOpen = { openDetail(it) },
                 )
                 "store" -> ExtensionStoreFeed(catalog = streamServers)
                 "history" -> HistoryFeed(
@@ -381,7 +421,7 @@ fun LocalFirstApp(
                             }.getOrElse { e -> e.message }
                         }
                     },
-                    onOpen = { screen = Screen.Detail(it) },
+                    onOpen = { openDetail(it) },
                 )
                 "settings" -> SettingsFeed(
                     catalog = streamServers,
@@ -1574,36 +1614,46 @@ private fun TitleDetailScreen(
         resolvers.firstOrNull { it.server.id == selectedId }?.server
             ?: resolvers.firstOrNull()?.server
     }
+    // Keyed by anime.id so related/season navigation never reuses prior episode/audio/comments.
     var detail by remember(anime.id) { mutableStateOf(anime) }
-    var episode by remember { mutableIntStateOf(initialEpisode ?: 1) }
-    var audio by remember { mutableStateOf("sub") }
-    var resolving by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf<String?>(null) }
-    var favorited by remember { mutableStateOf(false) }
-    var comments by remember { mutableStateOf<List<DedicatedApiClient.Comment>>(emptyList()) }
-    var commentDraft by remember { mutableStateOf("") }
-    var commentStatus by remember { mutableStateOf<String?>(null) }
-    var listBadge by remember { mutableStateOf<String?>(null) }
-    var lastWatchedEp by remember { mutableIntStateOf(0) }
-    var synopsisExpanded by remember { mutableStateOf(false) }
-    var detailLoading by remember { mutableStateOf(!anime.detailLoaded) }
-    val maxEp = (detail.episodes ?: anime.episodes ?: 24).coerceAtLeast(1).coerceAtMost(500)
-    val pageSize = 24
-    val pageCount = ((maxEp - 1) / pageSize) + 1
-    var epPage by remember { mutableIntStateOf(0) }
+    var episode by remember(anime.id) { mutableIntStateOf(initialEpisode ?: 1) }
+    var audio by remember(anime.id) { mutableStateOf("sub") }
+    var resolving by remember(anime.id) { mutableStateOf(false) }
+    var status by remember(anime.id) { mutableStateOf<String?>(null) }
+    var favorited by remember(anime.id) { mutableStateOf(false) }
+    var comments by remember(anime.id) {
+        mutableStateOf<List<DedicatedApiClient.Comment>>(emptyList())
+    }
+    var commentDraft by remember(anime.id) { mutableStateOf("") }
+    var commentStatus by remember(anime.id) { mutableStateOf<String?>(null) }
+    var listBadge by remember(anime.id) { mutableStateOf<String?>(null) }
+    var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
+    var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
+    var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
+    val episodeList = remember(detail) { detail.episodeItems() }
+    val maxEp = episodeList.size.coerceAtLeast(1)
+    val seasonTabs = remember(detail) { detail.seasonEntries() }
+    val episodeListState = rememberLazyListState()
 
     LaunchedEffect(anime.id, initialEpisode) {
         detail = anime
         detailLoading = !anime.detailLoaded
+        resolving = false
+        status = null
+        commentDraft = ""
+        commentStatus = null
+        synopsisExpanded = false
+        comments = emptyList()
+        favorited = false
         val history = historyDao.get(anime.id)
         lastWatchedEp = history?.episode ?: 0
-        if (initialEpisode != null) {
-            episode = initialEpisode.coerceIn(1, maxEp)
-        } else {
-            history?.episode?.let { episode = it.coerceIn(1, maxEp) }
+        episode = when {
+            initialEpisode != null -> initialEpisode.coerceAtLeast(1)
+            history?.episode != null -> history.episode.coerceAtLeast(1)
+            else -> 1
         }
+        audio = "sub"
         listBadge = listStatusBadge(history?.listStatus)
-        epPage = ((episode - 1) / pageSize).coerceIn(0, (pageCount - 1).coerceAtLeast(0))
         runCatching { api.favorites() }
             .onSuccess { favorited = it.any { f -> f.anilistId.toInt() == anime.id } }
         runCatching { api.comments(anime.id) }
@@ -1613,17 +1663,23 @@ private fun TitleDetailScreen(
                 .onSuccess { full ->
                     if (full != null) {
                         detail = full
-                        val freshMax = (full.episodes ?: maxEp).coerceAtLeast(1).coerceAtMost(500)
+                        val freshMax = full.episodeItems().size.coerceAtLeast(1)
                         episode = episode.coerceIn(1, freshMax)
-                        epPage = ((episode - 1) / pageSize).coerceIn(0, ((freshMax - 1) / pageSize))
                     }
                 }
+            detailLoading = false
+        } else {
             detailLoading = false
         }
     }
 
-    val pageStart = epPage * pageSize + 1
-    val pageEnd = minOf(maxEp, pageStart + pageSize - 1)
+    LaunchedEffect(episode, episodeList.size) {
+        val index = (episode - 1).coerceIn(0, (episodeList.size - 1).coerceAtLeast(0))
+        if (episodeList.isNotEmpty()) {
+            runCatching { episodeListState.animateScrollToItem(index) }
+        }
+    }
+
     val heroMeta = listOfNotNull(
         listBadge,
         detail.statusLabel(),
@@ -1805,7 +1861,7 @@ private fun TitleDetailScreen(
                             }
                             val facts = listOfNotNull(
                                 detail.studios.takeIf { it.isNotEmpty() }?.joinToString(" · "),
-                                detail.popularity?.let { "#$it popular" },
+                                detail.popularity?.let { "${"%,d".format(it)} popularity" },
                                 detail.malId?.let { "MAL ${it}" },
                             )
                             if (facts.isNotEmpty()) {
@@ -2066,7 +2122,11 @@ private fun TitleDetailScreen(
                     ) {
                         KittySectionHeading(
                             title = "Episodes",
-                            subtitle = "Pick an episode to play",
+                            subtitle = if (seasonTabs.size > 1) {
+                                "All episodes · switch seasons above the rail"
+                            } else {
+                                "Swipe the rail · tap to select"
+                            },
                             padded = false,
                             modifier = Modifier.weight(1f),
                         )
@@ -2075,84 +2135,65 @@ private fun TitleDetailScreen(
                             emphasized = true,
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    if (pageCount > 1) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .kittyGlassSoft(RoundedCornerShape(16.dp))
-                                .padding(12.dp),
-                        ) {
-                            Text(
-                                "Ranges",
-                                color = KittyFaint,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 0.6.sp,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                for (p in 0 until pageCount) {
-                                    val start = p * pageSize + 1
-                                    val end = minOf(maxEp, start + pageSize - 1)
-                                    SeasonRangeChip(
-                                        label = "$start–$end",
-                                        selected = p == epPage,
-                                        onClick = { epPage = p },
-                                    )
-                                }
-                            }
-                        }
+                    if (seasonTabs.size > 1) {
                         Spacer(modifier = Modifier.height(12.dp))
-                    }
-                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val columns = when {
-                            maxWidth < 380.dp -> 4
-                            maxWidth < 560.dp -> 5
-                            maxWidth < 720.dp -> 6
-                            else -> 8
-                        }
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .kittyGlassMirror(RoundedCornerShape(18.dp))
-                                .padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            Text(
-                                "Showing $pageStart–$pageEnd",
-                                color = KittyFaint,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            for (rowStart in pageStart..pageEnd step columns) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                ) {
-                                    val filled = minOf(columns, pageEnd + 1 - rowStart)
-                                    for (n in rowStart until rowStart + filled) {
-                                        val selected = n == episode
-                                        val watched = lastWatchedEp > 0 && n < lastWatchedEp
-                                        val continueEp = n == lastWatchedEp && lastWatchedEp > 0
-                                        EpisodeCell(
-                                            number = n,
-                                            selected = selected,
-                                            watched = watched,
-                                            continueEp = continueEp,
-                                            modifier = Modifier.weight(1f),
-                                            onClick = { episode = n },
-                                        )
-                                    }
-                                    repeat(columns - filled) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
+                            seasonTabs.forEach { season ->
+                                val selectedSeason = season.id == detail.id
+                                val label = buildString {
+                                    append(
+                                        when {
+                                            selectedSeason && !detail.seasonLabel().isNullOrBlank() ->
+                                                detail.seasonLabel()!!
+                                            season.seasonYear != null -> season.seasonYear.toString()
+                                            season.relationType.equals("Current", true) -> "This season"
+                                            else -> season.relationType
+                                        },
+                                    )
+                                    season.episodes?.let { append(" · $it ep") }
                                 }
+                                SeasonRangeChip(
+                                    label = label,
+                                    selected = selectedSeason,
+                                    onClick = {
+                                        if (!selectedSeason) {
+                                            onOpenRelated(
+                                                AnimeSummary(
+                                                    id = season.id,
+                                                    title = season.title,
+                                                    coverImageUrl = season.coverImageUrl,
+                                                    episodes = season.episodes,
+                                                    format = season.format,
+                                                    averageScore = null,
+                                                    seasonYear = season.seasonYear,
+                                                ),
+                                            )
+                                        }
+                                    },
+                                )
                             }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                    LazyRow(
+                        state = episodeListState,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 2.dp),
+                    ) {
+                        lazyItems(episodeList, key = { it.number }) { item ->
+                            val selected = item.number == episode
+                            val watched = lastWatchedEp > 0 && item.number < lastWatchedEp
+                            val continueEp = item.number == lastWatchedEp && lastWatchedEp > 0
+                            KittyEpisodeCard(
+                                episode = item,
+                                selected = selected,
+                                watched = watched,
+                                continueEp = continueEp,
+                                onClick = { episode = item.number },
+                            )
                         }
                     }
                     Spacer(modifier = Modifier.height(10.dp))
@@ -2337,6 +2378,120 @@ private fun SeasonRangeChip(
             fontWeight = FontWeight.Bold,
             fontSize = 13.sp,
         )
+    }
+}
+
+@Composable
+private fun KittyEpisodeCard(
+    episode: AnimeEpisodeItem,
+    selected: Boolean,
+    watched: Boolean,
+    continueEp: Boolean,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val border = when {
+        selected -> KittyAccent
+        continueEp -> KittyAccentGlow.copy(alpha = 0.55f)
+        else -> KittyOutlineSoft
+    }
+    Column(
+        modifier = Modifier
+            .width(168.dp)
+            .clip(shape)
+            .then(
+                if (selected) {
+                    Modifier.border(2.dp, border, shape)
+                } else {
+                    Modifier.border(1.dp, border, shape)
+                },
+            )
+            .clickable(onClick = onClick),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .background(KittySurface),
+        ) {
+            AsyncImage(
+                model = episode.thumbnailUrl,
+                contentDescription = episode.title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Transparent,
+                            0.55f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.78f),
+                        ),
+                    ),
+            )
+            Text(
+                "E${episode.number}",
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(
+                        when {
+                            selected -> KittyAccent
+                            continueEp -> KittyAccentGlow.copy(alpha = 0.85f)
+                            watched -> KittyGlassStrong
+                            else -> KittyGlass
+                        },
+                    )
+                    .padding(horizontal = 7.dp, vertical = 3.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = if (selected) KittyOnAccent else KittyText,
+                fontWeight = FontWeight.Bold,
+            )
+            if (continueEp && !selected) {
+                Text(
+                    "CONTINUE",
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(KittyAccentGlow.copy(alpha = 0.9f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KittyOnAccent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 9.sp,
+                )
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(if (selected) KittySurfaceElevated else KittyGlass)
+                .padding(horizontal = 10.dp, vertical = 9.dp),
+        ) {
+            Text(
+                episode.title,
+                style = MaterialTheme.typography.labelLarge,
+                color = KittyText,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 16.sp,
+            )
+            episode.site?.takeIf { it.isNotBlank() }?.let { site ->
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    site,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = KittyFaint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 

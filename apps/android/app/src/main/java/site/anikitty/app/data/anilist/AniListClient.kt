@@ -53,9 +53,10 @@ class AniListClient(
         externalLinks { site url }
     """.trimIndent()
 
-    /** Richer payload for the title detail screen (relations). */
+    /** Richer payload for the title detail screen (episodes + relations). */
     private val mediaDetailFields = """
         $mediaFields
+        streamingEpisodes { title thumbnail url site }
         relations {
           edges {
             relationType
@@ -65,6 +66,8 @@ class AniListClient(
               coverImage { large }
               format
               type
+              episodes
+              seasonYear
             }
           }
         }
@@ -251,7 +254,7 @@ class AniListClient(
         )
 
     suspend fun media(id: Int): AnimeSummary? = withContext(Dispatchers.IO) {
-        val cacheKey = "mediaDetail:v2:$id"
+        val cacheKey = "mediaDetail:v3:$id"
         cache?.get(cacheKey, AniListCache.TTL_MEDIA_MS)?.let { body ->
             val media = JSONObject(body).optJSONObject("data")?.optJSONObject("Media")
             if (media != null) return@withContext parseMedia(media, detail = true)
@@ -423,11 +426,29 @@ class AniListClient(
                             .lowercase()
                             .replaceFirstChar { it.titlecase() },
                         format = node.nullableString("format"),
+                        episodes = node.nullableInt("episodes"),
+                        seasonYear = node.nullableInt("seasonYear"),
                     )
                 }
                 .orEmpty()
                 .distinctBy { it.id }
-                .take(12)
+                .take(24)
+        } else {
+            emptyList()
+        }
+        val streaming = if (detail) {
+            item.optJSONArray("streamingEpisodes")
+                ?.toObjectList()
+                ?.mapNotNull { row ->
+                    val epTitle = row.nullableString("title") ?: return@mapNotNull null
+                    AnimeStreamingEpisode(
+                        title = epTitle,
+                        thumbnailUrl = row.nullableString("thumbnail"),
+                        url = row.nullableString("url"),
+                        site = row.nullableString("site"),
+                    )
+                }
+                .orEmpty()
         } else {
             emptyList()
         }
@@ -455,6 +476,7 @@ class AniListClient(
             trailer = trailer,
             externalLinks = links,
             relations = relations,
+            streamingEpisodes = streaming,
             detailLoaded = detail,
         )
     }
