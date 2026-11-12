@@ -52,12 +52,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun consumeOAuthIntent(intent: Intent?) {
         if (!AniListOAuth.matchesCallback(intent)) return
+        // Only honor callbacks after Account → Link AniList (short-lived expectation).
+        if (!AniListOAuth.consumeLinkStarted(this)) {
+            oauthToken = null
+            oauthError = "Unexpected AniList callback — tap Link AniList in Account first"
+            intent?.data = null
+            return
+        }
         runCatching {
             oauthToken = AniListOAuth.parseRedirect(intent?.data)
+                ?: error("No access token in AniList redirect")
             oauthError = null
         }.onFailure { e ->
             oauthToken = null
-            oauthError = e.message ?: "AniList sign-in failed"
+            oauthError = e.message ?: "AniList link failed"
         }
+        intent?.data = null
     }
 }

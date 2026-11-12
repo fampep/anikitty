@@ -992,6 +992,7 @@ private fun SettingsFeed(
     }
 
     suspend fun completeAniListLink(token: String): String {
+        require(!aniListAuth.isLinked) { "AniList already linked — unlink first to switch accounts" }
         val viewer = aniList.viewer(token) ?: error("Invalid AniList token")
         aniListAuth.saveViewer(token, viewer)
         val synced = runCatching { aniListSync.pull() }.getOrNull()
@@ -1010,12 +1011,17 @@ private fun SettingsFeed(
                 onConsumedAniListToken()
             }
             !pendingAniListToken.isNullOrBlank() -> {
-                linkBusy = true
-                linkStatus = "Linking AniList…"
-                linkStatus = runCatching { completeAniListLink(pendingAniListToken) }
-                    .getOrElse { e -> "Error: ${e.message}" }
-                linkBusy = false
-                onConsumedAniListToken()
+                if (aniListAuth.isLinked) {
+                    linkStatus = "AniList already linked — unlink first to switch accounts"
+                    onConsumedAniListToken()
+                } else {
+                    linkBusy = true
+                    linkStatus = "Linking AniList…"
+                    linkStatus = runCatching { completeAniListLink(pendingAniListToken) }
+                        .getOrElse { e -> "Error: ${e.message}" }
+                    linkBusy = false
+                    onConsumedAniListToken()
+                }
             }
         }
     }
