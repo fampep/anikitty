@@ -55,6 +55,8 @@ Runnable surface (AP-54 / AP-55):
 - Glass dark AniKitty chrome (rail + Home / Search / Store / Account)
 - Live AniList trending + search grids
 - Title **Overview** (tap a poster): synopsis, genres, AniList season chips (PREQUEL/SEQUEL only), episode rail, related
+- **Glass player** (AniKitty custom chrome + GlassScrubber): tap an episode → Ani.pm Settlar resolve → system **FFmpeg** decode (not VLC)
+- Requires `ffmpeg` / `ffprobe` on PATH
 - AniList is the sole catalog source; Store providers are stream links only
 - Account shows dedicated auth server URL (sign-in UI next)
 
