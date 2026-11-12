@@ -67,6 +67,7 @@ class AniListClient(
               format
               type
               episodes
+              season
               seasonYear
             }
           }
@@ -427,6 +428,7 @@ class AniListClient(
                             .replaceFirstChar { it.titlecase() },
                         format = node.nullableString("format"),
                         episodes = node.nullableInt("episodes"),
+                        season = node.nullableString("season"),
                         seasonYear = node.nullableInt("seasonYear"),
                     )
                 }

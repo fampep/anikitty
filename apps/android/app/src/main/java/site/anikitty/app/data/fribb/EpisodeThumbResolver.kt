@@ -6,10 +6,12 @@ import kotlinx.coroutines.withContext
 import site.anikitty.app.data.anilist.AnimeEpisodeItem
 
 /**
- * Fills missing Plex-rail episode thumbnails via Fribb (AniList→TMDB/IMDb) + TMDB stills.
+ * Image-only enrichment for the episode rail.
  *
- * Priority per episode: real AniList streaming thumb → TMDB still → series cover.
- * Cover URLs from [AnimeSummary.episodeItems] are treated as placeholders and replaced.
+ * Catalog truth (titles, seasons, episode counts, related) stays on AniList.
+ * Fribb→TMDB/IMDb is used solely to fill missing stills — never as a season/episode source.
+ *
+ * Priority per episode: AniList streaming thumb → TMDB still → series cover.
  */
 class EpisodeThumbResolver(
     context: Context,
@@ -33,7 +35,8 @@ class EpisodeThumbResolver(
                     ep
                 } else {
                     stills[ep.number]?.let { url ->
-                        ep.copy(thumbnailUrl = url, site = ep.site ?: "TMDB")
+                        // Keep AniList streaming [site] if present; never label TMDB as a source.
+                        ep.copy(thumbnailUrl = url)
                     } ?: ep
                 }
             }

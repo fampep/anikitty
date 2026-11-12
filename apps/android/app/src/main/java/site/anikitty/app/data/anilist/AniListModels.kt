@@ -39,8 +39,20 @@ data class AnimeRelation(
     val relationType: String,
     val format: String? = null,
     val episodes: Int? = null,
+    val season: String? = null,
     val seasonYear: Int? = null,
-)
+) {
+    /** AniList airing season label (e.g. "Fall 2024") — never TMDB season numbers. */
+    fun seasonLabel(): String? {
+        val s = season?.lowercase()?.replaceFirstChar { it.titlecase() }
+        return when {
+            s != null && seasonYear != null -> "$s $seasonYear"
+            seasonYear != null -> seasonYear.toString()
+            s != null -> s
+            else -> null
+        }
+    }
+}
 
 data class AnimeSummary(
     val id: Int,
@@ -98,7 +110,10 @@ data class AnimeSummary(
 
     fun scoreLabel(): String? = averageScore?.let { String.format("%.1f", it / 10f) }
 
-    /** Season chips: this title + TV/ONA prequels/sequels (AniList seasons are separate media). */
+    /**
+     * Season switcher from AniList only: this media + direct PREQUEL/SEQUEL TV/ONA entries.
+     * Side stories / alternatives / movies stay in [relations] — not mixed into seasons.
+     */
     fun seasonEntries(): List<AnimeRelation> {
         val self = AnimeRelation(
             id = id,
@@ -107,16 +122,27 @@ data class AnimeSummary(
             relationType = "Current",
             format = format,
             episodes = episodes,
+            season = season,
             seasonYear = seasonYear,
         )
-        val seasonFormats = setOf("TV", "TV_SHORT", "ONA", "OVA")
-        val related = relations.filter { rel ->
+        val seasonFormats = setOf("TV", "TV_SHORT", "ONA")
+        val chain = relations.filter { rel ->
             val fmt = rel.format?.uppercase()
-            val kind = rel.relationType.uppercase()
-            (fmt == null || fmt in seasonFormats) &&
-                kind in setOf("PREQUEL", "SEQUEL", "PARENT", "ALTERNATIVE", "SIDE STORY", "SIDE_STORY")
+            val kind = rel.relationType.uppercase().replace(' ', '_')
+            (fmt == null || fmt in seasonFormats) && kind in setOf("PREQUEL", "SEQUEL")
         }
-        return (listOf(self) + related).distinctBy { it.id }
+        return (listOf(self) + chain)
+            .distinctBy { it.id }
+            .sortedWith(
+                compareBy<AnimeRelation> { it.seasonYear ?: Int.MAX_VALUE }
+                    .thenBy { it.id },
+            )
+    }
+
+    /** Related row excludes titles already shown as season chips. */
+    fun relatedOutsideSeasons(): List<AnimeRelation> {
+        val seasonIds = seasonEntries().map { it.id }.toSet()
+        return relations.filterNot { it.id in seasonIds }
     }
 
     /** Plex-style episode list for the current media (all episodes, with thumbs/titles when known). */
