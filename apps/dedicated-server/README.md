@@ -4,7 +4,7 @@
 
 - Sign-in is required
 - Accounts live only in this server’s database (username + password)
-- **No** Discord / AniList login
+- **No** Discord login. AniList linking is finished on this server so the phone never holds the client secret.
 - Argon2id passwords, JWT sessions, rate-limited auth, revoked session checks
 
 ## Run on your laptop / VPS
@@ -21,6 +21,10 @@ Optional:
 ```bash
 export LISTEN_ADDR=:8788
 export DATABASE_URL='file:./data/anikitty.db?_fk=1&_journal_mode=WAL'
+# AniList code exchange. Copy anilist.env.example and set the secret only on the server.
+export ANILIST_CLIENT_ID=56768
+export ANILIST_CLIENT_SECRET='paste-the-secret-on-the-server'
+export ANILIST_REDIRECT_URI='http://198.50.123.153:8788/api/v1/anilist/callback'
 ```
 
 ## API
@@ -28,6 +32,7 @@ export DATABASE_URL='file:./data/anikitty.db?_fk=1&_journal_mode=WAL'
 | Method | Path | Auth |
 |---|---|---|
 | GET | `/health` | no |
+| GET | `/api/v1/anilist/callback` | no — AniList redirects here with `code` |
 | POST | `/api/v1/auth/signup` | no `{username,password}` |
 | POST | `/api/v1/auth/login` | no `{username,password}` |
 | POST | `/api/v1/auth/logout` | Bearer |

@@ -42,6 +42,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
+	s.mux.HandleFunc("GET /api/v1/anilist/callback", s.limit(s.handleAniListCallback))
 	s.mux.HandleFunc("POST /api/v1/auth/signup", s.limit(s.handleSignup))
 	s.mux.HandleFunc("POST /api/v1/auth/login", s.limit(s.handleLogin))
 	s.mux.HandleFunc("POST /api/v1/auth/logout", s.auth(s.handleLogout))
