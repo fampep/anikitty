@@ -142,9 +142,48 @@ fun LocalFirstApp(
     val history by historyDao.observeAll().collectAsState(initial = emptyList())
     val scope = rememberCoroutineScope()
     var syncLabel by remember { mutableStateOf<String?>(null) }
+    var aniLinkStatus by remember { mutableStateOf<String?>(null) }
+    var aniLinkTick by remember { mutableIntStateOf(0) }
+
+    // Apply OAuth callbacks at app-root (not only Account). Custom Tabs / singleTop
+    // often resume on Home — keep the token until this effect consumes it.
+    LaunchedEffect(pendingAniListToken, pendingAniListError) {
+        when {
+            !pendingAniListError.isNullOrBlank() -> {
+                aniLinkStatus = "AniList: $pendingAniListError"
+                screen = Screen.Tabs
+                tab = "settings"
+                onConsumedAniListToken()
+            }
+            !pendingAniListToken.isNullOrBlank() -> {
+                screen = Screen.Tabs
+                tab = "settings"
+                if (aniListAuth.isLinked) {
+                    aniLinkStatus = "AniList already linked — unlink first to switch accounts"
+                    onConsumedAniListToken()
+                } else {
+                    aniLinkStatus = "Linking AniList…"
+                    aniLinkStatus = runCatching {
+                        val viewer = aniList.viewer(pendingAniListToken)
+                            ?: error("Invalid AniList token")
+                        aniListAuth.saveViewer(pendingAniListToken, viewer)
+                        val synced = runCatching { aniListSync.pull() }.getOrNull()
+                        aniLinkTick++
+                        if (synced != null) {
+                            syncLabel = "Synced ${synced.imported} from AniList"
+                            "Linked @${viewer.name} · synced ${synced.imported} titles"
+                        } else {
+                            "Linked @${viewer.name}"
+                        }
+                    }.getOrElse { e -> "Error: ${e.message}" }
+                    onConsumedAniListToken()
+                }
+            }
+        }
+    }
 
     // Pull AniList list on enter + every few minutes while the app is open.
-    LaunchedEffect(aniListAuth.isLinked) {
+    LaunchedEffect(aniListAuth.isLinked, aniLinkTick) {
         if (!aniListAuth.isLinked) return@LaunchedEffect
         while (true) {
             runCatching {
@@ -311,9 +350,10 @@ fun LocalFirstApp(
                 accountLabel = accountLabel,
                 syncLabel = syncLabel,
                 onSyncLabel = { syncLabel = it },
-                pendingAniListToken = pendingAniListToken,
-                pendingAniListError = pendingAniListError,
-                onConsumedAniListToken = onConsumedAniListToken,
+                linkStatus = aniLinkStatus,
+                onLinkStatus = { aniLinkStatus = it },
+                linkTick = aniLinkTick,
+                onLinkTick = { aniLinkTick++ },
                 onSignOut = onSignOut,
             )
         }
@@ -965,9 +1005,10 @@ private fun SettingsFeed(
     accountLabel: String,
     syncLabel: String?,
     onSyncLabel: (String?) -> Unit,
-    pendingAniListToken: String?,
-    pendingAniListError: String?,
-    onConsumedAniListToken: () -> Unit,
+    linkStatus: String?,
+    onLinkStatus: (String?) -> Unit,
+    linkTick: Int,
+    onLinkTick: () -> Unit,
     onSignOut: () -> Unit,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
@@ -980,8 +1021,6 @@ private fun SettingsFeed(
     var aniToken by remember { mutableStateOf("") }
     var showTokenPaste by remember { mutableStateOf(!AniListOAuth.isConfigured()) }
     var linkBusy by remember { mutableStateOf(false) }
-    var linkStatus by remember { mutableStateOf<String?>(null) }
-    var linkedTick by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         runCatching { api.me() }.onSuccess {
@@ -996,38 +1035,17 @@ private fun SettingsFeed(
         val viewer = aniList.viewer(token) ?: error("Invalid AniList token")
         aniListAuth.saveViewer(token, viewer)
         val synced = runCatching { aniListSync.pull() }.getOrNull()
-        linkedTick++
+        onLinkTick()
         return if (synced != null) {
+            onSyncLabel("Synced ${synced.imported} from AniList")
             "Linked @${viewer.name} · synced ${synced.imported} titles"
         } else {
             "Linked @${viewer.name}"
         }
     }
 
-    LaunchedEffect(pendingAniListToken, pendingAniListError) {
-        when {
-            !pendingAniListError.isNullOrBlank() -> {
-                linkStatus = "AniList: $pendingAniListError"
-                onConsumedAniListToken()
-            }
-            !pendingAniListToken.isNullOrBlank() -> {
-                if (aniListAuth.isLinked) {
-                    linkStatus = "AniList already linked — unlink first to switch accounts"
-                    onConsumedAniListToken()
-                } else {
-                    linkBusy = true
-                    linkStatus = "Linking AniList…"
-                    linkStatus = runCatching { completeAniListLink(pendingAniListToken) }
-                        .getOrElse { e -> "Error: ${e.message}" }
-                    linkBusy = false
-                    onConsumedAniListToken()
-                }
-            }
-        }
-    }
-
-    // linkedTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
-    val isLinked = linkedTick.let { aniListAuth.isLinked }
+    // linkTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
+    val isLinked = linkTick.let { aniListAuth.isLinked }
 
     LazyColumn(
         modifier = Modifier
@@ -1152,9 +1170,9 @@ private fun SettingsFeed(
                         OutlinedButton(
                             onClick = {
                                 aniListAuth.clear()
-                                linkedTick++
+                                onLinkTick()
                                 onSyncLabel(null)
-                                linkStatus = "AniList unlinked"
+                                onLinkStatus("AniList unlinked")
                             },
                             shape = RoundedCornerShape(12.dp),
                         ) { Text("Unlink") }
@@ -1169,8 +1187,9 @@ private fun SettingsFeed(
                     if (AniListOAuth.isConfigured()) {
                         Button(
                             onClick = {
+                                onLinkStatus("Opening AniList…")
                                 runCatching { AniListOAuth.openAuthorize(context) }
-                                    .onFailure { e -> linkStatus = "Error: ${e.message}" }
+                                    .onFailure { e -> onLinkStatus("Error: ${e.message}") }
                             },
                             enabled = !linkBusy,
                             modifier = Modifier.fillMaxWidth(),
@@ -1225,10 +1244,12 @@ private fun SettingsFeed(
                             onClick = {
                                 scope.launch {
                                     linkBusy = true
-                                    linkStatus = "Linking AniList…"
-                                    linkStatus = runCatching {
-                                        completeAniListLink(aniToken.trim())
-                                    }.getOrElse { e -> "Error: ${e.message}" }
+                                    onLinkStatus("Linking AniList…")
+                                    onLinkStatus(
+                                        runCatching {
+                                            completeAniListLink(aniToken.trim())
+                                        }.getOrElse { e -> "Error: ${e.message}" },
+                                    )
                                     linkBusy = false
                                 }
                             },
@@ -1245,7 +1266,7 @@ private fun SettingsFeed(
                 if (!linkStatus.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        linkStatus!!,
+                        linkStatus,
                         style = MaterialTheme.typography.bodySmall,
                         color = KittyMuted,
                     )
@@ -1457,7 +1478,7 @@ private fun TitleDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(340.dp),
+                        .height(380.dp),
                 ) {
                     AsyncImage(
                         model = anime.bannerImageUrl ?: anime.coverImageUrl,
@@ -1470,8 +1491,9 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.42f),
-                                    0.4f to Color.Black.copy(alpha = 0.18f),
+                                    0f to Color.Black.copy(alpha = 0.5f),
+                                    0.35f to Color.Black.copy(alpha = 0.12f),
+                                    0.75f to Color.Black.copy(alpha = 0.75f),
                                     1f to KittyPage,
                                 ),
                             ),
@@ -1481,7 +1503,7 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.horizontalGradient(
-                                    0f to Color.Black.copy(alpha = 0.45f),
+                                    0f to Color.Black.copy(alpha = 0.5f),
                                     0.55f to Color.Transparent,
                                 ),
                             ),
@@ -1501,33 +1523,25 @@ private fun TitleDetailScreen(
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(horizontal = 16.dp, vertical = 18.dp),
+                            .padding(horizontal = 18.dp, vertical = 20.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         AsyncImage(
                             model = anime.coverImageUrl,
                             contentDescription = null,
                             modifier = Modifier
-                                .width(112.dp)
+                                .width(118.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .border(1.dp, KittyOutline, RoundedCornerShape(12.dp)),
+                                .clip(RoundedCornerShape(6.dp))
+                                .border(1.dp, KittyOutline, RoundedCornerShape(6.dp)),
                             contentScale = ContentScale.Crop,
                         )
-                        Spacer(modifier = Modifier.width(14.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "OVERVIEW",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = KittyFaint,
-                                letterSpacing = 1.2.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 anime.title,
                                 style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = FontWeight.Black,
                                 color = Color.White,
                                 maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
@@ -1764,7 +1778,7 @@ private fun TitleDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(54.dp),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(6.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black,
@@ -1779,7 +1793,7 @@ private fun TitleDetailScreen(
                 } else {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Play episode $episode · ${audio.uppercase()}", fontWeight = FontWeight.Bold)
+                    Text("Play Episode $episode", fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -14,8 +14,7 @@ import java.util.UUID
  * a client secret. Register redirect URI [REDIRECT_URI] on the AniList API client.
  *
  * Deep-link callbacks are only accepted after [markLinkStarted] (user tapped Link),
- * so a crafted `anikitty://anilist` intent cannot silently bind another identity
- * to a signed-in password session.
+ * and the redirect must echo the same OAuth `state` nonce that was sent on authorize.
  */
 object AniListOAuth {
     const val REDIRECT_URI = "anikitty://anilist"
@@ -30,51 +29,56 @@ object AniListOAuth {
 
     fun isConfigured(): Boolean = clientId().isNotEmpty()
 
-    fun authorizeUrl(clientId: String = clientId()): String {
+    fun authorizeUrl(clientId: String = clientId(), state: String): String {
         require(clientId.isNotEmpty()) { "AniList client id not configured" }
+        require(state.isNotBlank()) { "OAuth state required" }
         return Uri.parse(AUTHORIZE).buildUpon()
             .appendQueryParameter("client_id", clientId)
             .appendQueryParameter("response_type", "token")
+            .appendQueryParameter("state", state)
             .build()
             .toString()
     }
 
-    /** Record that the signed-in user just started linking from Account. */
-    fun markLinkStarted(context: Context) {
+    /** Record that the signed-in user just started linking from Account; returns the nonce. */
+    fun markLinkStarted(context: Context): String {
+        val nonce = UUID.randomUUID().toString()
         context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putLong(KEY_STARTED_AT, System.currentTimeMillis())
-            .putString(KEY_NONCE, UUID.randomUUID().toString())
+            .putString(KEY_NONCE, nonce)
             .apply()
+        return nonce
     }
 
     /**
-     * Returns true once if a recent [markLinkStarted] is still within [LINK_TTL_MS].
+     * Returns the pending nonce once if a recent [markLinkStarted] is still within [LINK_TTL_MS].
      * Clears the expectation either way so stray callbacks cannot reuse it.
      */
-    fun consumeLinkStarted(context: Context): Boolean {
+    fun consumeLinkStarted(context: Context): String? {
         val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val startedAt = prefs.getLong(KEY_STARTED_AT, 0L)
         val nonce = prefs.getString(KEY_NONCE, null)
         prefs.edit().remove(KEY_STARTED_AT).remove(KEY_NONCE).apply()
-        if (nonce.isNullOrBlank() || startedAt <= 0L) return false
+        if (nonce.isNullOrBlank() || startedAt <= 0L) return null
         val age = System.currentTimeMillis() - startedAt
-        return age in 0..LINK_TTL_MS
+        if (age !in 0..LINK_TTL_MS) return null
+        return nonce
     }
 
     fun openAuthorize(context: Context, clientId: String = clientId()) {
-        markLinkStarted(context)
-        val url = authorizeUrl(clientId)
+        val state = markLinkStarted(context)
+        val url = authorizeUrl(clientId, state)
         CustomTabsIntent.Builder().build().launchUrl(context, Uri.parse(url))
     }
 
     /**
-     * Parse `anikitty://anilist#access_token=…&token_type=Bearer`.
-     * Only the fragment is accepted (AniList implicit grant). Query
-     * `access_token` is ignored so crafted VIEW intents cannot inject a token.
+     * Parse `anikitty://anilist#access_token=…&state=…`.
+     * Only the fragment is accepted. [expectedState] must match the fragment `state`.
      */
-    fun parseRedirect(uri: Uri?): String? {
+    fun parseRedirect(uri: Uri?, expectedState: String): String? {
         if (uri == null) return null
+        require(expectedState.isNotBlank()) { "OAuth state required" }
         if (uri.scheme != "anikitty" || uri.host != "anilist") return null
         val fragment = uri.fragment.orEmpty()
         if (fragment.isBlank()) return null
@@ -82,11 +86,14 @@ object AniListOAuth {
             val i = part.indexOf('=')
             if (i <= 0) null else part.substring(0, i) to Uri.decode(part.substring(i + 1))
         }.toMap()
-        map["access_token"]?.takeIf { it.isNotBlank() }?.let { return it }
         map["error"]?.let { err ->
             error(map["error_description"] ?: err)
         }
-        return null
+        val returnedState = map["state"]
+        if (returnedState.isNullOrBlank() || returnedState != expectedState) {
+            error("AniList OAuth state mismatch")
+        }
+        return map["access_token"]?.takeIf { it.isNotBlank() }
     }
 
     fun matchesCallback(intent: Intent?): Boolean {
