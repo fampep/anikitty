@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -64,6 +65,8 @@ fun ScheduleFeed(
     aniList: AniListClient,
     onBack: () -> Unit,
     onOpen: (AnimeSummary) -> Unit,
+    showBack: Boolean = true,
+    bottomInset: Dp = 12.dp,
 ) {
     val days = remember { upcomingDays(5) }
     var selected by remember { mutableIntStateOf(0) }
@@ -99,7 +102,7 @@ fun ScheduleFeed(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(bottom = 12.dp),
+            .padding(bottom = bottomInset),
     ) {
         Row(
             modifier = Modifier
@@ -107,8 +110,12 @@ fun ScheduleFeed(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = KittyText)
+            if (showBack) {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = KittyText)
+                }
+            } else {
+                Spacer(modifier = Modifier.width(8.dp))
             }
             Column {
                 Text(

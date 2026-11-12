@@ -2,6 +2,7 @@ package site.anikitty.app.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,7 @@ fun KittyMetaChips(
     items: List<String>,
     modifier: Modifier = Modifier,
     accentFirst: Boolean = false,
+    onItemClick: ((String) -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
     Row(
@@ -41,6 +43,7 @@ fun KittyMetaChips(
             KittyMetaChip(
                 label = label,
                 emphasized = accentFirst && index == 0,
+                onClick = onItemClick?.let { click -> { click(label) } },
             )
         }
     }
@@ -51,6 +54,7 @@ fun KittyMetaChip(
     label: String,
     modifier: Modifier = Modifier,
     emphasized: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(999.dp)
     Box(
@@ -62,6 +66,7 @@ fun KittyMetaChip(
                 if (emphasized) KittyAccent else KittyOutlineSoft,
                 shape,
             )
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 10.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center,
     ) {

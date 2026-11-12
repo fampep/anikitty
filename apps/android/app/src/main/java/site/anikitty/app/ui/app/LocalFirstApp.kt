@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -45,13 +46,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -177,6 +181,7 @@ fun LocalFirstApp(
     // so landscape lock in PlayerScreen does not wipe navigation.
     var tab by rememberSaveable { mutableStateOf("home") }
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
+    var searchGenre by remember { mutableStateOf<String?>(null) }
     /** Prior detail frames when drilling into related / other seasons. */
     var detailBackStack by remember { mutableStateOf<List<Screen.Detail>>(emptyList()) }
     val history by historyDao.observeAll().collectAsState(initial = emptyList())
@@ -265,7 +270,7 @@ fun LocalFirstApp(
         listOf(
             KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home),
             KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search),
-            KittyNavTab("store", "Store", Icons.Outlined.Extension, Icons.Filled.Extension),
+            KittyNavTab("schedule", "Schedule", Icons.Filled.DateRange, Icons.Filled.DateRange),
             KittyNavTab("history", "Library", Icons.Outlined.History, Icons.Rounded.History),
             KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person),
         )
@@ -388,6 +393,13 @@ fun LocalFirstApp(
                 onOpenRelated = { related ->
                     openDetail(related, pushCurrent = true)
                 },
+                onOpenGenre = { genre ->
+                    searchGenre = genre
+                    detailBackStack = emptyList()
+                    screen = Screen.Tabs
+                    tab = "search"
+                },
+                aniListAuth = aniListAuth,
                 onPlay = { episode, sources, resolvedAnime ->
                     screen = Screen.Player(resolvedAnime, episode, sources)
                 },
@@ -416,13 +428,29 @@ fun LocalFirstApp(
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
                     onOpenSearch = { tab = "search" },
-                    onOpenSchedule = { screen = Screen.Schedule },
+                    onOpenGenre = { genre ->
+                        searchGenre = genre
+                        tab = "search"
+                    },
+                    onOpenSchedule = {
+                        screen = Screen.Tabs
+                        tab = "schedule"
+                    },
                     onOpenAccount = { tab = "settings" },
                     accountLabel = accountLabel,
+                )
+                "schedule" -> ScheduleFeed(
+                    aniList = aniList,
+                    onBack = { tab = "home" },
+                    onOpen = { openDetail(it) },
+                    showBack = false,
+                    bottomInset = 100.dp,
                 )
                 "search" -> SearchFeed(
                     aniList = aniList,
                     historyDao = historyDao,
+                    requestedGenre = searchGenre,
+                    onRequestedGenreConsumed = { searchGenre = null },
                     onOpen = { openDetail(it) },
                 )
                 "store" -> ExtensionStoreFeed(catalog = streamServers)
@@ -431,6 +459,7 @@ fun LocalFirstApp(
                     historyDao = historyDao,
                     aniList = aniList,
                     aniListLinked = aniListAuth.isLinked,
+                    accessToken = aniListAuth.accessToken,
                     syncLabel = syncLabel,
                     onSync = {
                         scope.launch {
@@ -478,6 +507,7 @@ private fun HomeFeed(
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenGenre: (String) -> Unit,
     onOpenSchedule: () -> Unit,
     onOpenAccount: () -> Unit,
     accountLabel: String,
@@ -604,7 +634,9 @@ private fun HomeFeed(
                             genres = tiles,
                             selected = homeGenre,
                             onSelect = { name ->
-                                homeGenre = if (homeGenre == name) null else name
+                                val next = if (homeGenre == name) null else name
+                                homeGenre = next
+                                if (next != null) onOpenGenre(next)
                             },
                         )
                     }
@@ -826,12 +858,18 @@ private fun SearchFeed(
     aniList: AniListClient,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary) -> Unit,
+    requestedGenre: String? = null,
+    onRequestedGenreConsumed: () -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
     var format by remember { mutableStateOf<String?>(null) }
     var airingStatus by remember { mutableStateOf<String?>(null) }
     var season by remember { mutableStateOf<String?>(null) }
     var genre by remember { mutableStateOf<String?>(null) }
+    var tag by remember { mutableStateOf<String?>(null) }
+    var seasonYear by remember { mutableStateOf<Int?>(null) }
+    var country by remember { mutableStateOf<String?>(null) }
+    var sort by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
@@ -852,7 +890,8 @@ private fun SearchFeed(
     }
 
     fun filtersOn(): Boolean =
-        format != null || airingStatus != null || season != null || genre != null
+        format != null || airingStatus != null || season != null || genre != null ||
+            tag != null || seasonYear != null || country != null || sort != null
 
     fun runSearch(raw: String) {
         val q = raw.trim()
@@ -874,7 +913,10 @@ private fun SearchFeed(
                     status = airingStatus,
                     season = season,
                     genre = genre,
-                    sort = if (q.length >= 2) "SEARCH_MATCH" else "POPULARITY_DESC",
+                    tag = tag,
+                    seasonYear = seasonYear,
+                    country = country,
+                    sort = sort ?: if (q.length >= 2) "SEARCH_MATCH" else "POPULARITY_DESC",
                 )
             }.onSuccess {
                 items = it
@@ -887,6 +929,13 @@ private fun SearchFeed(
     LaunchedEffect(Unit) {
         runCatching { aniList.trending(perPage = 12) }
             .onSuccess { discover = it }
+    }
+
+    LaunchedEffect(requestedGenre) {
+        val next = requestedGenre ?: return@LaunchedEffect
+        genre = next
+        runSearch(query)
+        onRequestedGenreConsumed()
     }
 
     Column(
@@ -964,8 +1013,46 @@ private fun SearchFeed(
                 val label = value.lowercase().replaceFirstChar { it.titlecase() }
                 Chip(label, selected = season == value) { toggle(season, value) { season = it } }
             }
-            listOf("Action", "Comedy", "Drama", "Fantasy", "Romance", "Slice of Life").forEach { value ->
+            listOf(
+                "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Slice of Life",
+            ).forEach { value ->
                 Chip(value, selected = genre == value) { toggle(genre, value) { genre = it } }
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            fun toggle(current: String?, value: String, assign: (String?) -> Unit) {
+                assign(if (current == value) null else value)
+                runSearch(query)
+            }
+            listOf(
+                null to "Match",
+                "POPULARITY_DESC" to "Popular",
+                "TRENDING_DESC" to "Trending",
+                "SCORE_DESC" to "Score",
+                "START_DATE_DESC" to "Newest",
+                "FAVOURITES_DESC" to "Favourites",
+            ).forEach { (value, label) ->
+                Chip(label, selected = sort == value) {
+                    sort = value
+                    runSearch(query)
+                }
+            }
+            val thisYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+            (thisYear downTo thisYear - 4).forEach { year ->
+                Chip(year.toString(), selected = seasonYear == year) {
+                    seasonYear = if (seasonYear == year) null else year
+                    runSearch(query)
+                }
+            }
+            listOf("JP" to "Japan", "KR" to "Korea", "CN" to "China").forEach { (value, label) ->
+                Chip(label, selected = country == value) { toggle(country, value) { country = it } }
+            }
+            listOf("Isekai", "School", "Mecha", "Supernatural", "Psychological").forEach { value ->
+                Chip(value, selected = tag == value) { toggle(tag, value) { tag = it } }
             }
         }
         if (recent.isNotEmpty() && query.isBlank()) {
@@ -1070,20 +1157,31 @@ private fun HistoryFeed(
     historyDao: WatchHistoryDao,
     aniList: AniListClient,
     aniListLinked: Boolean,
+    accessToken: String?,
     syncLabel: String?,
     onSync: () -> Unit,
     onOpen: (AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    var favourites by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    LaunchedEffect(accessToken) {
+        val token = accessToken
+        if (token.isNullOrBlank()) {
+            favourites = emptyList()
+            return@LaunchedEffect
+        }
+        favourites = runCatching { aniList.favourites(token) }.getOrDefault(emptyList())
+    }
     val watching = history.filter {
         val s = it.listStatus?.uppercase()
         s == null || s == "CURRENT" || s == "REPEATING"
     }
     val completed = history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }
-    val other = history.filter { entry ->
-        watching.none { it.anilistId == entry.anilistId } &&
-            completed.none { it.anilistId == entry.anilistId }
-    }
+    val planning = history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }
+    val paused = history.filter { it.listStatus.equals("PAUSED", ignoreCase = true) }
+    val dropped = history.filter { it.listStatus.equals("DROPPED", ignoreCase = true) }
+    val grouped = watching + completed + planning + paused + dropped
+    val other = history.filter { entry -> grouped.none { it.anilistId == entry.anilistId } }
 
     LazyColumn(
         modifier = Modifier
@@ -1096,7 +1194,7 @@ private fun HistoryFeed(
         item {
             KittyPageHeader(
                 title = "Library",
-                subtitle = "Watching and completed, from AniList.",
+                subtitle = "Favourites, watching, and the rest of your AniList.",
                 trailing = if (aniListLinked) {
                     {
                         Button(
@@ -1116,14 +1214,55 @@ private fun HistoryFeed(
                 },
             )
         }
-        if (history.isEmpty()) {
+        if (favourites.isNotEmpty()) {
+            item {
+                KittySectionHeading(
+                    title = "Favourites",
+                    subtitle = "Saved on AniList",
+                    padded = false,
+                )
+            }
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    lazyItems(favourites, key = { "fav-${it.id}" }) { anime ->
+                        Column(
+                            modifier = Modifier
+                                .width(112.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable { onOpen(anime) },
+                        ) {
+                            AsyncImage(
+                                model = anime.coverImageUrl,
+                                contentDescription = anime.title,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(2f / 3f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                anime.title,
+                                color = KittyText,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        if (history.isEmpty() && favourites.isEmpty()) {
             item {
                 KittyEmptyState(
                     title = "No list entries yet",
-                    body = "Your AniList watching and completed shows land here after sign-in.",
+                    body = "Favourite a show, or set it to Watching, and it lands here.",
                 )
             }
-        } else {
+        } else if (history.isNotEmpty()) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1147,42 +1286,25 @@ private fun HistoryFeed(
                     }
                 }
             }
-            if (watching.isNotEmpty()) {
+            fun LazyListScope.section(title: String, rows: List<WatchHistoryEntity>, prefix: String) {
+                if (rows.isEmpty()) return
                 item {
                     KittySectionHeading(
-                        title = "Watching",
-                        subtitle = "${watching.size} title${if (watching.size == 1) "" else "s"}",
+                        title = title,
+                        subtitle = "${rows.size} title${if (rows.size == 1) "" else "s"}",
                         padded = false,
                     )
                 }
-                lazyItems(watching, key = { "w-${it.anilistId}" }) { entry ->
+                lazyItems(rows, key = { "$prefix-${it.anilistId}" }) { entry ->
                     HistoryRow(entry, aniList, onOpen)
                 }
             }
-            if (completed.isNotEmpty()) {
-                item {
-                    KittySectionHeading(
-                        title = "Completed",
-                        subtitle = "${completed.size} title${if (completed.size == 1) "" else "s"}",
-                        padded = false,
-                    )
-                }
-                lazyItems(completed, key = { "c-${it.anilistId}" }) { entry ->
-                    HistoryRow(entry, aniList, onOpen)
-                }
-            }
-            if (other.isNotEmpty()) {
-                item {
-                    KittySectionHeading(
-                        title = "More",
-                        subtitle = "${other.size} title${if (other.size == 1) "" else "s"}",
-                        padded = false,
-                    )
-                }
-                lazyItems(other, key = { "o-${it.anilistId}" }) { entry ->
-                    HistoryRow(entry, aniList, onOpen)
-                }
-            }
+            section("Watching", watching, "w")
+            section("Plan to watch", planning, "p")
+            section("Paused", paused, "z")
+            section("Completed", completed, "c")
+            section("Dropped", dropped, "d")
+            section("More", other, "o")
         }
     }
 }
@@ -1597,6 +1719,8 @@ private fun TitleDetailScreen(
     onBack: () -> Unit,
     onChangeSource: () -> Unit,
     onOpenRelated: (AnimeSummary) -> Unit,
+    onOpenGenre: (String) -> Unit,
+    aniListAuth: AniListAuthStore,
     onPlay: (episode: Int, sources: List<PlayableSource>, anime: AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -1615,6 +1739,10 @@ private fun TitleDetailScreen(
     var resolving by remember(anime.id) { mutableStateOf(false) }
     var status by remember(anime.id) { mutableStateOf<String?>(null) }
     var listBadge by remember(anime.id) { mutableStateOf<String?>(null) }
+    var listStatus by remember(anime.id) { mutableStateOf<String?>(null) }
+    var listScore by remember(anime.id) { mutableIntStateOf(0) }
+    var favourite by remember(anime.id) { mutableStateOf(anime.isFavourite) }
+    var listBusy by remember(anime.id) { mutableStateOf(false) }
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
@@ -1645,12 +1773,20 @@ private fun TitleDetailScreen(
             else -> 1
         }
         audio = "sub"
+        listStatus = history?.listStatus
         listBadge = listStatusBadge(history?.listStatus)
-        if (!anime.detailLoaded) {
-            runCatching { aniList.media(anime.id) }
+        favourite = anime.isFavourite
+        if (!anime.detailLoaded || aniListAuth.isLinked) {
+            runCatching { aniList.media(anime.id, aniListAuth.accessToken) }
                 .onSuccess { full ->
                     if (full != null) {
                         detail = full
+                        favourite = full.isFavourite
+                        full.listState?.let { entry ->
+                            listStatus = entry.status
+                            listScore = entry.score
+                            listBadge = listStatusBadge(entry.status)
+                        }
                         val freshMax = full.episodeItems().size.coerceAtLeast(1)
                         episode = episode.coerceIn(1, freshMax)
                     }
@@ -1658,6 +1794,89 @@ private fun TitleDetailScreen(
             detailLoading = false
         } else {
             detailLoading = false
+        }
+    }
+
+    fun rememberListLocally(status: String, progress: Int) {
+        scope.launch {
+            val existing = historyDao.get(detail.id)
+            val now = System.currentTimeMillis()
+            if (existing != null) {
+                historyDao.upsert(
+                    existing.copy(
+                        listStatus = status,
+                        title = detail.title,
+                        coverImageUrl = detail.coverImageUrl ?: existing.coverImageUrl,
+                        updatedAtEpochMs = now,
+                    ),
+                )
+            } else {
+                historyDao.upsert(
+                    WatchHistoryEntity(
+                        anilistId = detail.id,
+                        title = detail.title,
+                        coverImageUrl = detail.coverImageUrl,
+                        episode = progress.coerceAtLeast(1),
+                        positionMs = 0L,
+                        durationMs = 0L,
+                        updatedAtEpochMs = now,
+                        listStatus = status,
+                        malId = detail.malId,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun applyListStatus(next: String) {
+        val token = aniListAuth.accessToken ?: return
+        if (listBusy) return
+        val previous = listStatus
+        listBusy = true
+        listStatus = next
+        listBadge = listStatusBadge(next)
+        scope.launch {
+            val total = detail.episodes
+            val ok = if (next == "COMPLETED" && total != null && total > 0) {
+                aniList.saveProgress(token, detail.id, total, "COMPLETED")
+            } else {
+                aniList.saveList(token, detail.id, status = next)
+            }
+            listBusy = false
+            if (ok) {
+                rememberListLocally(next, if (next == "COMPLETED") total ?: lastWatchedEp else lastWatchedEp)
+            } else {
+                listStatus = previous
+                listBadge = listStatusBadge(previous)
+                status = "Could not update your list"
+            }
+        }
+    }
+
+    fun applyScore(point: Int) {
+        val token = aniListAuth.accessToken ?: return
+        if (listBusy) return
+        val nextScore = if (listScore / 10 == point) 0 else point * 10
+        val previous = listScore
+        listBusy = true
+        listScore = nextScore
+        scope.launch {
+            val ok = aniList.saveList(token, detail.id, score = nextScore)
+            listBusy = false
+            if (!ok) {
+                listScore = previous
+                status = "Could not save your score"
+            }
+        }
+    }
+
+    fun toggleFavourite() {
+        val token = aniListAuth.accessToken ?: return
+        val next = !favourite
+        favourite = next
+        scope.launch {
+            val ok = runCatching { aniList.toggleFavourite(token, detail.id) }.isSuccess
+            if (!ok) favourite = !next
         }
     }
 
@@ -1839,6 +2058,15 @@ private fun TitleDetailScreen(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
+                            detail.nextAiring?.let { next ->
+                                Text(
+                                    "Ep ${next.episode} · ${formatAiring(next.airingAtEpochSec)}",
+                                    color = Color.White.copy(alpha = 0.72f),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                )
+                            }
                         }
                     }
                     Spacer(modifier = Modifier.height(24.dp))
@@ -1851,7 +2079,7 @@ private fun TitleDetailScreen(
                             onClick = { playSelected() },
                             enabled = !resolving,
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .weight(1f)
                                 .height(50.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
@@ -1868,6 +2096,59 @@ private fun TitleDetailScreen(
                                 },
                                 fontWeight = FontWeight.Black,
                             )
+                        }
+                        if (aniListAuth.isLinked) {
+                            IconButton(
+                                onClick = { toggleFavourite() },
+                                modifier = Modifier
+                                    .size(50.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(KittySurface)
+                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp)),
+                            ) {
+                                Icon(
+                                    if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                    contentDescription = if (favourite) "Remove favourite" else "Favourite",
+                                    tint = KittyText,
+                                )
+                            }
+                        }
+                    }
+                    if (aniListAuth.isLinked) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            listOf(
+                                "CURRENT" to "Watching",
+                                "PLANNING" to "Plan",
+                                "PAUSED" to "Paused",
+                                "COMPLETED" to "Done",
+                                "DROPPED" to "Dropped",
+                            ).forEach { (value, label) ->
+                                Chip(label, selected = listStatus.equals(value, ignoreCase = true)) {
+                                    applyListStatus(value)
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Score",
+                                color = Color.White.copy(alpha = 0.55f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            (1..10).forEach { point ->
+                                Chip(point.toString(), selected = listScore / 10 == point) {
+                                    applyScore(point)
+                                }
+                            }
                         }
                     }
                 }
@@ -1936,7 +2217,10 @@ private fun TitleDetailScreen(
                             )
                             if (detail.genres.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(12.dp))
-                                KittyMetaChips(items = detail.genres.take(8))
+                                KittyMetaChips(
+                                    items = detail.genres.take(8),
+                                    onItemClick = onOpenGenre,
+                                )
                             }
                             val facts = listOfNotNull(
                                 detail.seasonLabel(),
@@ -2151,6 +2435,56 @@ private fun TitleDetailScreen(
                                             maxLines = 1,
                                         )
                                     }
+                                }
+                            }
+                        }
+                    }
+
+                    if (detail.characters.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        PersonRow(title = "Characters", people = detail.characters)
+                    }
+                    if (detail.staff.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        PersonRow(title = "Staff", people = detail.staff)
+                    }
+                    if (detail.recommendations.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(20.dp))
+                        KittySectionHeading(
+                            title = "Recommendations",
+                            subtitle = "From AniList",
+                            padded = false,
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            lazyItems(detail.recommendations, key = { "rec-${it.id}" }) { rec ->
+                                Column(
+                                    modifier = Modifier
+                                        .width(112.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(KittySurface)
+                                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp))
+                                        .clickable { onOpenRelated(rec) }
+                                        .padding(6.dp),
+                                ) {
+                                    AsyncImage(
+                                        model = rec.coverImageUrl,
+                                        contentDescription = rec.title,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(2f / 3f)
+                                            .clip(RoundedCornerShape(10.dp)),
+                                        contentScale = ContentScale.Crop,
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        rec.title,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = KittyText,
+                                        fontWeight = FontWeight.SemiBold,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
                                 }
                             }
                         }
@@ -2856,6 +3190,58 @@ private fun EpisodeLegendDot(color: Color, label: String) {
         Spacer(modifier = Modifier.width(6.dp))
         Text(label, color = KittyFaint, fontSize = 11.sp)
     }
+}
+
+@Composable
+private fun PersonRow(title: String, people: List<site.anikitty.app.data.anilist.AnimePerson>) {
+    Column {
+        Text(
+            title,
+            color = KittyText,
+            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            lazyItems(people, key = { "$title-${it.id}-${it.role}" }) { person ->
+                Column(modifier = Modifier.width(84.dp)) {
+                    AsyncImage(
+                        model = person.imageUrl,
+                        contentDescription = person.name,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(KittySurface)
+                            .border(1.dp, KittyOutlineSoft, CircleShape),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        person.name,
+                        color = KittyText,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    person.role?.let { role ->
+                        Text(
+                            role,
+                            color = KittyFaint,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun formatAiring(epochSec: Long): String {
+    val fmt = java.text.SimpleDateFormat("EEE, MMM d · h:mm a", java.util.Locale.getDefault())
+    return fmt.format(java.util.Date(epochSec * 1000L))
 }
 
 @Composable

@@ -54,6 +54,25 @@ data class AnimeRelation(
     }
 }
 
+data class AnimePerson(
+    val id: Int,
+    val name: String,
+    val imageUrl: String?,
+    val role: String?,
+)
+
+data class NextAiring(
+    val episode: Int,
+    val airingAtEpochSec: Long,
+)
+
+/** The signed-in viewer's AniList list row for one show. Score is 0–100. */
+data class AnimeListState(
+    val status: String,
+    val progress: Int,
+    val score: Int,
+)
+
 data class AiringSlot(
     val anime: AnimeSummary,
     val episode: Int,
@@ -85,6 +104,12 @@ data class AnimeSummary(
     val externalLinks: List<AnimeExternalLink> = emptyList(),
     val relations: List<AnimeRelation> = emptyList(),
     val streamingEpisodes: List<AnimeStreamingEpisode> = emptyList(),
+    val characters: List<AnimePerson> = emptyList(),
+    val staff: List<AnimePerson> = emptyList(),
+    val recommendations: List<AnimeSummary> = emptyList(),
+    val nextAiring: NextAiring? = null,
+    val listState: AnimeListState? = null,
+    val isFavourite: Boolean = false,
     /** True when this payload came from the richer Media(id) query. */
     val detailLoaded: Boolean = false,
 ) {
