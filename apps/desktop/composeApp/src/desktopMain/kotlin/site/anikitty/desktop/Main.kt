@@ -11,16 +11,16 @@ import java.awt.Dimension
 
 /**
  * AniKitty Windows / desktop entry (Compose Multiplatform JVM).
- * First runnable surface for AP-54 — glass shell + AniList Home.
+ * Full glass catalog app (AP-65) — featured home, overview, FFmpeg player.
  */
 fun main() = application {
-    val state = rememberWindowState(size = DpSize(1280.dp, 800.dp))
+    val state = rememberWindowState(size = DpSize(1360.dp, 860.dp))
     Window(
         onCloseRequest = ::exitApplication,
         title = "AniKitty",
         state = state,
     ) {
-        window.minimumSize = Dimension(960, 640)
+        window.minimumSize = Dimension(1024, 700)
         AniKittyTheme {
             AniKittyDesktopApp()
         }
