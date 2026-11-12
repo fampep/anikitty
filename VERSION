@@ -1,4 +1,4 @@
 # Local/dev APK cuts while working toward a big update. No GitHub Releases unless asked.
 # Android versionName / versionCode read these.
-name=1.2.0-dev.9
-code=44
+name=1.2.0-dev.10
+code=45

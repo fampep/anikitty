@@ -38,13 +38,13 @@ Until that mirror is refreshed, the APK prefers the monorepo
 
 ```bash
 gh repo edit fampep/anikitty --add-topic android,anime,compose,kotlin,educational
-gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions,educational,polyform-noncommercial
+gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions,educational,mit
 ```
 
 ## 4. Framing
 
-Keep [extensions/DISCLAIMER.md](../extensions/DISCLAIMER.md) and PolyForm Noncommercial [LICENSE](../extensions/LICENSE) at the repo root after the split:
+Keep [extensions/DISCLAIMER.md](../extensions/DISCLAIMER.md) and the MIT [LICENSE](../extensions/LICENSE) at the repo root after the split:
 
-- **fampep owns** AniKitty / protocol code  
-- educational / noncommercial use  
-- community extensions gladly accepted; **owner does not control third-party backends**
+- **fampep holds copyright** in AniKitty / protocol code  
+- MIT: fork, modify, and contribute  
+- community extensions gladly accepted; **fampep does not control third-party backends**

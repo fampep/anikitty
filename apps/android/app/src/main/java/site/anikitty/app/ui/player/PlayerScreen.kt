@@ -1768,7 +1768,7 @@ private fun PlayerMetaPill(label: String, emphasized: Boolean = false) {
     ) {
         Text(
             label,
-            color = if (emphasized) Color.White else PlayerChrome.Graphite,
+            color = if (emphasized) Color.Black else PlayerChrome.Graphite,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
@@ -1784,28 +1784,29 @@ private fun ChromeDisc(
     accent: Boolean = false,
     content: @Composable () -> Unit,
 ) {
+    val shape = RoundedCornerShape(if (large) 22.dp else 14.dp)
     Box(
         modifier = Modifier
             .size(size)
             .shadow(
                 elevation = if (large) 16.dp else 10.dp,
-                shape = CircleShape,
+                shape = shape,
                 clip = false,
                 ambientColor = Color.Black.copy(alpha = 0.45f),
                 spotColor = Color.Black.copy(alpha = 0.35f),
             )
-            .clip(CircleShape)
+            .clip(shape)
             .background(
                 when {
                     accent -> PlayerChrome.Accent
-                    large -> PlayerChrome.DiscLarge
-                    else -> PlayerChrome.Disc
+                    large -> Color.White.copy(alpha = 0.12f)
+                    else -> Color.White.copy(alpha = 0.08f)
                 },
             )
             .border(
                 1.dp,
-                if (accent) PlayerChrome.Accent else PlayerChrome.Accent.copy(alpha = 0.28f),
-                CircleShape,
+                if (accent) Color.White else Color.White.copy(alpha = 0.16f),
+                shape,
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

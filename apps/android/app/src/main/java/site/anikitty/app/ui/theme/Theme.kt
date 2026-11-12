@@ -12,12 +12,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * AniKitty black UI — solid near-black canvas, hot pink accent, no haze.
+ * AniKitty canvas — black, white type, glass-gray surfaces.
+ * Accent is paper white so CTAs and the player rail read like a monochrome cinema app.
+ * Layout language is AniKitty's own Compose, matching a glass cinema reference the owner approved (MIT).
  */
 val KittyInk = Color(0xFF000000)
 val KittyPage = Color(0xFF000000)
 val KittySurface = Color(0xFF141414)
-val KittySurfaceElevated = Color(0xFF1C1C1C)
+val KittySurfaceElevated = Color(0xFF2F2F2F)
 val KittyGlass = Color(0xFF1A1A1A)
 val KittyGlassStrong = Color(0xFF222222)
 val KittyText = Color(0xFFFFFFFF)
@@ -26,16 +28,16 @@ val KittyFaint = Color(0xFF8A8A8A)
 val KittyOutline = Color.White.copy(alpha = 0.12f)
 val KittyOutlineSoft = Color.White.copy(alpha = 0.08f)
 
-/** Hot pink accent — CTAs, badges, active nav. */
-val KittyAccent = Color(0xFFFF2D6A)
-val KittyAccentGlow = Color(0xFFFF4D82)
-val KittyOnAccent = Color(0xFFFFFFFF)
+/** Paper-white accent — buttons, progress, selected chrome. */
+val KittyAccent = Color(0xFFFFFFFF)
+val KittyAccentGlow = Color(0xFFCCCCCC)
+val KittyOnAccent = Color(0xFF000000)
 
-val KittyNavPillSurface = Color(0xF00A0A0A)
-val KittyNavPillBorder = KittyAccent.copy(alpha = 0.28f)
-val KittyNavPillSelected = KittyAccent
-val KittyNavPillSelectedContent = Color(0xFFFFFFFF)
-val KittyNavPillContent = Color.White.copy(alpha = 0.58f)
+val KittyNavPillSurface = Color(0xFF08080C)
+val KittyNavPillBorder = Color.White.copy(alpha = 0.08f)
+val KittyNavPillSelected = Color.White
+val KittyNavPillSelectedContent = Color.White
+val KittyNavPillContent = Color.White.copy(alpha = 0.45f)
 
 val KittyAmbientWash = Color.Transparent
 

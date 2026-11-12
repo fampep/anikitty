@@ -19,9 +19,8 @@ Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup
 
 ## License & ownership
 
-- **Owned by fampep** — copyright retained; not MIT
-- **PolyForm Noncommercial 1.0.0** — [LICENSE](./LICENSE) ([human-readable](https://polyformproject.org/licenses/noncommercial/1.0.0))
-- Educational / personal / noncommercial use; see [DISCLAIMER.md](./DISCLAIMER.md) · [NOTICE](./NOTICE)
+- **Copyright fampep** — [MIT License](./LICENSE)
+- Fork, modify, and contribute. See [DISCLAIMER.md](./DISCLAIMER.md) · [NOTICE](./NOTICE)
 - Community extension *backends* stay owned by their authors — gladly linked, not controlled by fampep
 
 ## Quick links

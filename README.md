@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.21"><img src="https://img.shields.io/badge/Pre--release-1.1.21-orange?style=for-the-badge" alt="Pre-release 1.1.21" /></a>
   <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
-  <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20NC-0284c7?style=for-the-badge" alt="PolyForm Noncommercial" /></a>
+  <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-0284c7?style=for-the-badge" alt="MIT License" /></a>
 </p>
 
 <p align="center">
@@ -50,7 +50,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 | **1.1.20** | Ground-up black home UI with pink accent, pill nav, continue cards |
 | **1.1.3** | Store/Search/Detail polish; floating player; Home refresh guard; live public [`anikitty-extensions`](https://github.com/fampep/anikitty-extensions) store |
 | **1.1.2** | Dedicated **Store** tab (search / install / submit); **`iconUrl` required** |
-| **1.1.1** | PolyForm Noncommercial ownership license |
+| **1.1.1** | Ownership license (later relicensed to MIT) |
 | **1.1.0** | BYO HTTP extension architecture (`apiVersion` 1), GitHub install, store feed index |
 
 ---
@@ -137,13 +137,13 @@ Rolling alpha pre-releases: https://github.com/fampep/anikitty/releases
 |---|---|
 | [v1.1.3](https://github.com/fampep/anikitty/releases/tag/v1.1.3) | Store/Search/Detail polish + Home refresh guard |
 | [v1.1.2](https://github.com/fampep/anikitty/releases/tag/v1.1.2) | Extension Store + site icons |
-| [v1.1.1](https://github.com/fampep/anikitty/releases/tag/v1.1.1) | Glass UI + PolyForm NC |
+| [v1.1.1](https://github.com/fampep/anikitty/releases/tag/v1.1.1) | Glass UI |
 | [v1.1.0](https://github.com/fampep/anikitty/releases/tag/v1.1.0) | Extension architecture |
 
 ---
 
 ## License & ownership
 
-**Owned by fampep.** Licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE) — educational / personal / noncommercial use. Not MIT.
+**Copyright 2026 fampep.** Licensed under the [MIT License](LICENSE). Fork it, change it, and send contributions. Keep the copyright and permission notice with copies.
 
 Community stream extensions are gladly contributed by others; fampep does not own or control third-party extension backends. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
