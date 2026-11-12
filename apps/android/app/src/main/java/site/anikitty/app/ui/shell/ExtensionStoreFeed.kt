@@ -94,11 +94,12 @@ fun ExtensionStoreFeed(
             runCatching { catalog.fetchStore() }
                 .onSuccess {
                     listings = it.extensions
+                    // Match ExtensionStoreClient.DEFAULT_INDEX_URLS: monorepo first.
                     val from = when {
                         it.sourceUrl?.contains("anikitty-extensions") == true ->
-                            "main store"
+                            "extensions mirror"
                         it.sourceUrl?.contains("fampep/anikitty") == true ->
-                            "monorepo fallback"
+                            "main store"
                         else -> "store"
                     }
                     status = "Store · ${it.extensions.size} listed · $from" +
@@ -343,7 +344,7 @@ fun ExtensionStoreFeed(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         if (listings.isEmpty()) {
-                            "Pull Refresh, or paste a GitHub URL below. Main store: fampep/anikitty-extensions."
+                            "Pull Refresh, or paste a GitHub URL below. Main store: fampep/anikitty extensions/store."
                         } else {
                             "Clear search or try another keyword."
                         },
