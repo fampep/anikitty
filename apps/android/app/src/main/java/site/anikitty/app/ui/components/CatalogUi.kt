@@ -98,7 +98,8 @@ fun KittyPageHeader(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = KittyMuted,
+                    color = KittyAccentGlow,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
@@ -120,7 +121,9 @@ fun KittyEmptyState(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .kittyGlass(KittyGlassShape)
+            .clip(KittyGlassShape)
+            .background(KittySurface)
+            .border(1.dp, KittyOutlineSoft, KittyGlassShape)
             .padding(horizontal = 18.dp, vertical = 26.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
