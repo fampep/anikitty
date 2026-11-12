@@ -33,6 +33,7 @@ class ServerCatalog(context: Context) {
     private val bundled: List<StreamResolver> = listOf(
         AnikotoServer(cache = resolveCache, crypto = megaPlayCrypto),
         GotakuServer(cache = resolveCache),
+        AniPmServer(cache = resolveCache),
     )
 
     private val _resolvers = MutableStateFlow(buildResolvers(extensions.installed.value))
