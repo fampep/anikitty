@@ -316,8 +316,6 @@ fun LocalFirstApp(
                 history = history,
                 historyDao = historyDao,
                 onOpen = { anime, ep -> screen = Screen.Detail(anime, ep) },
-                onSignOut = onSignOut,
-                accountLabel = accountLabel,
             )
             "search" -> SearchFeed(
                 aniList = aniList,
@@ -374,8 +372,6 @@ private fun HomeFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
-    onSignOut: () -> Unit,
-    accountLabel: String,
 ) {
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
@@ -416,105 +412,111 @@ private fun HomeFeed(
     Box(modifier = Modifier.fillMaxSize()) {
         when {
             loading && trending.isEmpty() -> {
-                LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
+                LazyColumn(contentPadding = PaddingValues(bottom = 108.dp)) {
                     item {
                         FloatingTopChrome(
-                            accountLabel = accountLabel,
-                            greeting = aniListAuth.username?.let { "Hey @$it" },
-                            onSignOut = onSignOut,
-                            compact = false,
+                            greeting = aniListAuth.username?.let { "@$it" },
+                            refreshing = false,
+                            onRefresh = { reload(fromPull = true) },
+                            overHero = false,
                         )
                     }
-                    item { KittyPosterSkeletonRow("Spotlight") }
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(280.dp)
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(KittySurface, KittyPage),
+                                    ),
+                                ),
+                        )
+                    }
+                    item { KittyPosterSkeletonRow("Continue watching") }
                     item { KittyPosterSkeletonRow("Trending now") }
                     item { KittyPosterSkeletonRow("Most popular") }
                 }
             }
             error != null && trending.isEmpty() -> {
                 Column(
-                    modifier = Modifier.align(Alignment.Center).padding(24.dp),
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("Couldn’t load the catalog", color = Color.White, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "AniKitty",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Black,
+                        color = KittyText,
+                        letterSpacing = (-0.6).sp,
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        "Couldn’t load the catalog",
+                        color = Color.White,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     Spacer(modifier = Modifier.height(6.dp))
-                    Text(error!!, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        error!!,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Spacer(modifier = Modifier.height(18.dp))
                     Button(
                         onClick = { reload() },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color.White,
                             contentColor = Color.Black,
                         ),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(4.dp),
                     ) { Text("Retry", fontWeight = FontWeight.Bold) }
                 }
             }
             else -> {
-                LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
+                LazyColumn(contentPadding = PaddingValues(bottom = 108.dp)) {
                     item {
                         trending.firstOrNull()?.let { hero ->
                             KittyHero(
                                 anime = hero,
-                                eyebrow = "Spotlight",
-                                cta = "Watch now",
+                                eyebrow = "Featured",
+                                cta = "Play",
                                 onOpen = {
+                                    scope.launch { historyDao.touchFromCatalog(hero) }
+                                    onOpen(hero, null)
+                                },
+                                onMoreInfo = {
                                     scope.launch { historyDao.touchFromCatalog(hero) }
                                     onOpen(hero, null)
                                 },
                                 topOverlay = {
                                     FloatingTopChrome(
-                                        accountLabel = accountLabel,
                                         greeting = aniListAuth.username?.let { "@$it" },
-                                        onSignOut = onSignOut,
-                                        compact = true,
+                                        refreshing = refreshing,
+                                        onRefresh = { if (!refreshing) reload(fromPull = true) },
+                                        overHero = true,
                                     )
                                 },
                             )
                         } ?: run {
                             FloatingTopChrome(
-                                accountLabel = accountLabel,
-                                greeting = aniListAuth.username?.let { "Hey @$it" },
-                                onSignOut = onSignOut,
-                                compact = false,
+                                greeting = aniListAuth.username?.let { "@$it" },
+                                refreshing = refreshing,
+                                onRefresh = { if (!refreshing) reload(fromPull = true) },
+                                overHero = false,
                             )
                         }
                     }
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            TextButton(
-                                onClick = { if (!refreshing) reload(fromPull = true) },
-                                enabled = !refreshing,
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (refreshing) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(12.dp),
-                                            strokeWidth = 1.5.dp,
-                                            color = KittyFaint,
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                    }
-                                    Text(
-                                        if (refreshing) "Refreshing…" else "Refresh catalog",
-                                        color = KittyFaint,
-                                        fontSize = 12.sp,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    item {
                         if (continueWatching.isNotEmpty()) {
-                            Column(modifier = Modifier.padding(top = 8.dp)) {
+                            Column(modifier = Modifier.padding(top = 18.dp)) {
                                 KittySectionHeading(
                                     title = "Continue watching",
                                     subtitle = if (aniListAuth.isLinked) {
-                                        "Your list · synced with AniList"
+                                        "Synced with AniList"
                                     } else {
                                         "Pick up where you left off"
                                     },
@@ -522,7 +524,7 @@ private fun HomeFeed(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     lazyItems(continueWatching, key = { it.anilistId }) { entry ->
                                         KittyContinueCard(
@@ -551,25 +553,13 @@ private fun HomeFeed(
                                     }
                                 }
                             }
-                        } else {
-                            Column(modifier = Modifier.padding(top = 20.dp, start = 16.dp, end = 16.dp)) {
-                                KittySectionHeading(
-                                    title = "Continue watching",
-                                    subtitle = if (aniListAuth.isLinked) {
-                                        "Nothing in progress — open a title to start"
-                                    } else {
-                                        "Start something — it’ll land here"
-                                    },
-                                    padded = false,
-                                )
-                            }
                         }
                     }
                     item {
                         KittyPosterRow(
                             title = "Trending now",
-                            subtitle = "What everyone is watching",
-                            items = trending,
+                            subtitle = "What everyone’s watching",
+                            items = trending.drop(1).ifEmpty { trending },
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
@@ -589,7 +579,7 @@ private fun HomeFeed(
                     }
                     item {
                         KittyPosterRow(
-                            title = "Airing this season",
+                            title = "This season",
                             subtitle = "New episodes weekly",
                             items = seasonal,
                             onOpen = {
@@ -598,6 +588,7 @@ private fun HomeFeed(
                             },
                         )
                     }
+                    item { Spacer(modifier = Modifier.height(12.dp)) }
                 }
             }
         }
@@ -606,10 +597,10 @@ private fun HomeFeed(
 
 @Composable
 private fun FloatingTopChrome(
-    accountLabel: String,
-    onSignOut: () -> Unit,
-    compact: Boolean = false,
     greeting: String? = null,
+    refreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
+    overHero: Boolean = false,
 ) {
     Row(
         modifier = Modifier
@@ -617,51 +608,46 @@ private fun FloatingTopChrome(
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(
                 horizontal = 16.dp,
-                vertical = if (compact) 6.dp else 10.dp,
+                vertical = if (overHero) 8.dp else 12.dp,
             ),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "AniKitty",
-                style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Black,
-                color = KittyText,
-                letterSpacing = (-0.6).sp,
-            )
-            if (!greeting.isNullOrBlank() && !compact) {
-                Text(
-                    greeting,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = KittyFaint,
-                )
-            }
-        }
-        if (!compact) {
-            Text(
-                accountLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = KittyFaint,
-                modifier = Modifier.padding(end = 6.dp),
-            )
-        } else if (!greeting.isNullOrBlank()) {
+        Text(
+            "AniKitty",
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            color = KittyText,
+            letterSpacing = (-0.7).sp,
+        )
+        if (!greeting.isNullOrBlank()) {
             Text(
                 greeting,
-                style = MaterialTheme.typography.labelSmall,
-                color = KittyFaint,
-                modifier = Modifier.padding(end = 6.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = if (overHero) Color.White.copy(alpha = 0.75f) else KittyFaint,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(end = 4.dp),
             )
         }
         TextButton(
-            onClick = onSignOut,
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+            onClick = onRefresh,
+            enabled = !refreshing,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
         ) {
-            Text(
-                "Sign out",
-                color = KittyFaint,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-            )
+            if (refreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    strokeWidth = 1.5.dp,
+                    color = KittyFaint,
+                )
+            } else {
+                Text(
+                    "Refresh",
+                    color = if (overHero) Color.White.copy(alpha = 0.7f) else KittyFaint,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }
@@ -1485,7 +1471,7 @@ private fun TitleDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(380.dp),
+                        .height(420.dp),
                 ) {
                     AsyncImage(
                         model = anime.bannerImageUrl ?: anime.coverImageUrl,
@@ -1498,9 +1484,9 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.5f),
-                                    0.35f to Color.Black.copy(alpha = 0.12f),
-                                    0.75f to Color.Black.copy(alpha = 0.75f),
+                                    0f to Color.Black.copy(alpha = 0.55f),
+                                    0.28f to Color.Black.copy(alpha = 0.08f),
+                                    0.7f to Color.Black.copy(alpha = 0.7f),
                                     1f to KittyPage,
                                 ),
                             ),
@@ -1510,7 +1496,7 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.horizontalGradient(
-                                    0f to Color.Black.copy(alpha = 0.5f),
+                                    0f to Color.Black.copy(alpha = 0.45f),
                                     0.55f to Color.Transparent,
                                 ),
                             ),
@@ -1530,24 +1516,27 @@ private fun TitleDetailScreen(
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(horizontal = 18.dp, vertical = 20.dp),
+                            .padding(horizontal = 18.dp, vertical = 22.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         AsyncImage(
                             model = anime.coverImageUrl,
                             contentDescription = null,
                             modifier = Modifier
-                                .width(118.dp)
+                                .width(112.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(6.dp))
-                                .border(1.dp, KittyOutline, RoundedCornerShape(6.dp)),
+                                .clip(RoundedCornerShape(4.dp))
+                                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(4.dp)),
                             contentScale = ContentScale.Crop,
                         )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 anime.title,
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    fontSize = 26.sp,
+                                    lineHeight = 30.sp,
+                                ),
                                 fontWeight = FontWeight.Black,
                                 color = Color.White,
                                 maxLines = 3,
@@ -1557,23 +1546,24 @@ private fun TitleDetailScreen(
                                 listBadge,
                                 anime.format,
                                 anime.episodes?.let { "$it eps" },
-                                anime.averageScore?.let { "★ $it" },
-                            ).joinToString(" · ")
+                                anime.averageScore?.let { String.format("%.1f", it / 10f) },
+                            ).joinToString("  ·  ")
                             if (meta.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
                                     meta,
-                                    style = MaterialTheme.typography.labelMedium,
+                                    style = MaterialTheme.typography.labelLarge,
                                     color = KittyMuted,
                                 )
                             }
                             if (lastWatchedEp > 0) {
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    "Continue · ep $lastWatchedEp",
+                                    "CONTINUE · EP $lastWatchedEp",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White.copy(alpha = 0.88f),
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp,
                                 )
                             }
                         }
@@ -1620,46 +1610,50 @@ private fun TitleDetailScreen(
                         Chip("SUB", audio == "sub") { audio = "sub" }
                         Chip("DUB", audio == "dub") { audio = "dub" }
                     }
-                    Spacer(modifier = Modifier.height(22.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                     KittySectionHeading(
                         title = "Episodes",
-                        subtitle = "Ep $episode selected · $pageStart–$pageEnd of $maxEp",
+                        subtitle = buildString {
+                            append("$maxEp total")
+                            if (lastWatchedEp > 0) append(" · last watched $lastWatchedEp")
+                            append(" · selected $episode")
+                        },
                         padded = false,
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     if (pageCount > 1) {
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             for (p in 0 until pageCount) {
                                 val start = p * pageSize + 1
                                 val end = minOf(maxEp, start + pageSize - 1)
-                                Chip("$start–$end", p == epPage) { epPage = p }
+                                EpisodeRangeChip(
+                                    label = "$start–$end",
+                                    selected = p == epPage,
+                                    onClick = { epPage = p },
+                                )
                             }
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                     }
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
                         val columns = when {
-                            maxWidth < 380.dp -> 4
-                            maxWidth < 560.dp -> 5
-                            maxWidth < 720.dp -> 6
+                            maxWidth < 360.dp -> 4
+                            maxWidth < 480.dp -> 5
+                            maxWidth < 640.dp -> 6
+                            maxWidth < 800.dp -> 7
                             else -> 8
                         }
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(KittySurface)
-                                .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
-                                .padding(10.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             for (rowStart in pageStart..pageEnd step columns) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 ) {
                                     val filled = minOf(columns, pageEnd + 1 - rowStart)
                                     for (n in rowStart until rowStart + filled) {
@@ -1682,14 +1676,14 @@ private fun TitleDetailScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         EpisodeLegendDot(Color.White, "Selected")
+                        EpisodeLegendDot(Color.White.copy(alpha = 0.22f), "Continue")
                         EpisodeLegendDot(KittySurfaceElevated, "Watched")
-                        EpisodeLegendDot(Color.White.copy(alpha = 0.18f), "Continue")
                     }
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
@@ -1784,8 +1778,8 @@ private fun TitleDetailScreen(
                 enabled = !resolving,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp),
-                shape = RoundedCornerShape(6.dp),
+                    .height(52.dp),
+                shape = RoundedCornerShape(4.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
                     contentColor = Color.Black,
@@ -1798,9 +1792,13 @@ private fun TitleDetailScreen(
                         color = Color.Black,
                     )
                 } else {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Play Episode $episode", fontWeight = FontWeight.Bold)
+                    Text(
+                        "Play Episode $episode",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                    )
                 }
             }
         }
@@ -1818,48 +1816,77 @@ private fun EpisodeCell(
 ) {
     val bg = when {
         selected -> Color.White
-        continueEp -> Color.White.copy(alpha = 0.18f)
+        continueEp -> Color.White.copy(alpha = 0.16f)
         watched -> KittySurfaceElevated
-        else -> Color(0xFF121212)
+        else -> KittySurface
     }
     val fg = when {
         selected -> Color.Black
-        else -> Color.White.copy(alpha = if (watched) 0.55f else 0.92f)
+        continueEp -> Color.White
+        watched -> Color.White.copy(alpha = 0.48f)
+        else -> Color.White.copy(alpha = 0.88f)
     }
     Box(
         modifier = modifier
-            .height(44.dp)
-            .clip(RoundedCornerShape(10.dp))
+            .height(42.dp)
+            .clip(RoundedCornerShape(4.dp))
             .background(bg)
             .border(
                 width = 1.dp,
                 color = when {
                     selected -> Color.White
-                    continueEp -> Color.White.copy(alpha = 0.35f)
-                    else -> Color.White.copy(alpha = 0.08f)
+                    continueEp -> Color.White.copy(alpha = 0.4f)
+                    else -> Color.White.copy(alpha = 0.07f)
                 },
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(4.dp),
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (watched && !selected) {
+            if (watched && !selected && !continueEp) {
                 Icon(
                     Icons.Rounded.Check,
                     contentDescription = null,
                     tint = fg,
-                    modifier = Modifier.size(12.dp),
+                    modifier = Modifier.size(11.dp),
                 )
                 Spacer(modifier = Modifier.width(2.dp))
             }
             Text(
                 "$number",
                 color = fg,
-                fontWeight = if (selected || continueEp) FontWeight.Bold else FontWeight.SemiBold,
+                fontWeight = if (selected || continueEp) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 13.sp,
             )
         }
+    }
+}
+
+@Composable
+private fun EpisodeRangeChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(if (selected) Color.White else Color.Transparent)
+            .border(
+                width = 1.dp,
+                color = if (selected) Color.White else Color.White.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(4.dp),
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+    ) {
+        Text(
+            label,
+            color = if (selected) Color.Black else Color.White.copy(alpha = 0.72f),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp,
+        )
     }
 }
 
@@ -1869,9 +1896,9 @@ private fun EpisodeLegendDot(color: Color, label: String) {
         Box(
             modifier = Modifier
                 .size(8.dp)
-                .clip(RoundedCornerShape(999.dp))
+                .clip(RoundedCornerShape(2.dp))
                 .background(color)
-                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(999.dp)),
+                .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(2.dp)),
         )
         Spacer(modifier = Modifier.width(6.dp))
         Text(label, color = KittyFaint, fontSize = 11.sp)
@@ -1882,12 +1909,12 @@ private fun EpisodeLegendDot(color: Color, label: String) {
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(if (selected) Color.White else KittySurface)
             .border(
                 width = 1.dp,
-                color = if (selected) Color.White else Color.White.copy(alpha = 0.10f),
-                shape = RoundedCornerShape(12.dp),
+                color = if (selected) Color.White else Color.White.copy(alpha = 0.12f),
+                shape = RoundedCornerShape(4.dp),
             )
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
