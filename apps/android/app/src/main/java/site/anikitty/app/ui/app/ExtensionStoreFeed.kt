@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -49,6 +51,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,14 +76,13 @@ import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
+import site.anikitty.app.ui.theme.KittyOutlineSoft
+import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
-import site.anikitty.app.ui.theme.kittyGlass
-import site.anikitty.app.ui.theme.kittyGlassField
-import site.anikitty.app.ui.theme.kittyGlassSoft
 
 /**
- * Extension Store — one browse list, light glass chrome.
+ * Extension Store — solid black panels, pink accent.
  * Active source lives in the header; GitHub install is a single expand panel.
  */
 @Composable
@@ -214,11 +216,18 @@ fun ExtensionStoreFeed(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(80) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .kittyGlassField(RoundedCornerShape(16.dp)),
+                modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Search extensions") },
+                placeholder = { Text("Search extensions", color = KittyFaint) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = KittyText,
+                    unfocusedTextColor = KittyText,
+                    cursorColor = KittyAccent,
+                    focusedBorderColor = KittyAccent,
+                    unfocusedBorderColor = KittyOutlineSoft,
+                    focusedContainerColor = KittySurface,
+                    unfocusedContainerColor = KittySurface,
+                ),
                 leadingIcon = {
                     AnimatedSearchIcon(
                         tint = if (query.isNotBlank()) KittyAccentGlow else KittyMuted,
@@ -262,13 +271,12 @@ fun ExtensionStoreFeed(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .kittyGlass(KittyGlassShape, elevated = selected)
-                    .then(
-                        if (selected) {
-                            Modifier.border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), KittyGlassShape)
-                        } else {
-                            Modifier
-                        },
+                    .clip(KittyGlassShape)
+                    .background(if (selected) KittySurfaceElevated else KittySurface)
+                    .border(
+                        1.dp,
+                        if (selected) KittyAccent else KittyOutlineSoft,
+                        KittyGlassShape,
                     )
                     .padding(14.dp),
             ) {
@@ -389,7 +397,9 @@ fun ExtensionStoreFeed(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .kittyGlassSoft(KittyGlassShape)
+                    .clip(KittyGlassShape)
+                    .background(KittySurface)
+                    .border(1.dp, KittyOutlineSoft, KittyGlassShape)
                     .clickable { showGithub = !showGithub }
                     .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
@@ -425,7 +435,16 @@ fun ExtensionStoreFeed(
                             onValueChange = { githubUrl = it.take(300) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("https://github.com/owner/repo") },
+                            placeholder = { Text("https://github.com/owner/repo", color = KittyFaint) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = KittyText,
+                                unfocusedTextColor = KittyText,
+                                cursorColor = KittyAccent,
+                                focusedBorderColor = KittyAccent,
+                                unfocusedBorderColor = KittyOutlineSoft,
+                                focusedContainerColor = KittySurfaceElevated,
+                                unfocusedContainerColor = KittySurfaceElevated,
+                            ),
                             shape = RoundedCornerShape(14.dp),
                         )
                         Spacer(modifier = Modifier.height(8.dp))
