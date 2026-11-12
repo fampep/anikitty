@@ -1150,8 +1150,6 @@ private fun SettingsFeed(
     var displayName by remember { mutableStateOf("") }
     var status by remember { mutableStateOf<String?>(null) }
     var favorites by remember { mutableStateOf<List<DedicatedApiClient.Favorite>>(emptyList()) }
-    var linkBusy by remember { mutableStateOf(false) }
-    var showAniListLogin by remember { mutableStateOf(false) }
     var extensionStatus by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
@@ -1300,14 +1298,13 @@ private fun SettingsFeed(
                     }
                 } else {
                     Text(
-                        "Sign in on AniList. Allow AniKitty, and you come straight back. No token to copy.",
+                        "Sign in on AniList. The server brings you back. No token to copy.",
                         style = MaterialTheme.typography.bodySmall,
                         color = KittyMuted,
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
-                        onClick = { showAniListLogin = true },
-                        enabled = !linkBusy,
+                        onClick = { AniListOAuth.openAuthorize(context) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -1315,38 +1312,6 @@ private fun SettingsFeed(
                             contentColor = KittyOnAccent,
                         ),
                     ) { Text("Sign in with AniList", fontWeight = FontWeight.Bold) }
-                    if (showAniListLogin) {
-                        AniListSignIn(
-                            onDismiss = { showAniListLogin = false },
-                            onError = { message ->
-                                showAniListLogin = false
-                                onLinkStatus(message)
-                            },
-                            onToken = { token ->
-                                showAniListLogin = false
-                                scope.launch {
-                                    linkBusy = true
-                                    onLinkStatus("Signing in…")
-                                    onLinkStatus(
-                                        runCatching {
-                                            val viewer = aniList.viewer(token)
-                                                ?: error("AniList did not accept that sign-in")
-                                            aniListAuth.saveViewer(token, viewer)
-                                            val synced = runCatching { aniListSync.pull() }.getOrNull()
-                                            onLinkTick()
-                                            if (synced != null) {
-                                                onSyncLabel("Synced ${synced.imported} from AniList")
-                                                "Signed in as @${viewer.name}"
-                                            } else {
-                                                "Signed in as @${viewer.name}"
-                                            }
-                                        }.getOrElse { e -> e.message ?: "AniList sign-in failed" },
-                                    )
-                                    linkBusy = false
-                                }
-                            },
-                        )
-                    }
                 }
                 if (!linkStatus.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
