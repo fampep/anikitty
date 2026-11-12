@@ -101,6 +101,13 @@ private val KittyTypography = Typography(
         fontSize = 22.sp,
         letterSpacing = (-0.4).sp,
     ),
+    titleLarge = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Black,
+        fontSize = 20.sp,
+        letterSpacing = (-0.5).sp,
+        lineHeight = 24.sp,
+    ),
     titleMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Bold,

@@ -126,6 +126,12 @@ import java.util.concurrent.atomic.AtomicInteger
 
 private enum class Panel { None, Quality, Subs, Style, Display, Speed }
 
+/** Soft “next episode?” offer when this much remains. */
+private const val NEAR_END_THRESHOLD_MS = 90_000L
+/** Ignore tiny clips / trailers for the near-end offer. */
+private const val NEAR_END_MIN_DURATION_MS = 120_000L
+private const val AUTOPLAY_COUNTDOWN_SEC = 10
+
 /** Caption backdrop: none, soft tint, solid box, or frosted/blurred glass look. */
 private enum class SubBgMode { None, Soft, Solid, Blur }
 
@@ -214,6 +220,12 @@ fun PlayerScreen(
     var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
     var isCasting by remember { mutableStateOf(false) }
     var castHint by remember { mutableStateOf<String?>(null) }
+    // Next-episode UX: soft offer near the end, then 10s autoplay once ended.
+    var nearEndDismissed by remember(episode) { mutableStateOf(false) }
+    var playbackEnded by remember(episode) { mutableStateOf(false) }
+    var autoplayCancelled by remember(episode) { mutableStateOf(false) }
+    var autoplaySecLeft by remember(episode) { mutableIntStateOf(AUTOPLAY_COUNTDOWN_SEC) }
+    var nextTriggered by remember(episode) { mutableStateOf(false) }
 
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
@@ -327,6 +339,26 @@ fun PlayerScreen(
     val latestTitle by rememberUpdatedState(title)
     val latestEpisode by rememberUpdatedState(episode)
     val latestPosition by rememberUpdatedState(positionMs)
+    val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
+
+    fun goNextEpisode() {
+        if (nextTriggered) return
+        val next = latestOnNextEpisode ?: return
+        nextTriggered = true
+        next()
+    }
+
+    val remainingMs = (durationMs - positionMs).coerceAtLeast(0L)
+    val nearEndOffer = onNextEpisode != null &&
+        !playbackEnded &&
+        !nearEndDismissed &&
+        !nextTriggered &&
+        durationMs >= NEAR_END_MIN_DURATION_MS &&
+        remainingMs in 1L..NEAR_END_THRESHOLD_MS
+    val showEndAutoplay = onNextEpisode != null &&
+        playbackEnded &&
+        !autoplayCancelled &&
+        !nextTriggered
 
     DisposableEffect(castHelper) {
         val helper = castHelper
@@ -413,6 +445,11 @@ fun PlayerScreen(
                 if (playbackState == Player.STATE_READY) {
                     durationMs = activePlayer?.duration?.coerceAtLeast(0L) ?: 0L
                     error = null
+                    if (playbackEnded) {
+                        // User scrubbed/replayed after end — clear autoplay.
+                        playbackEnded = false
+                        autoplayCancelled = false
+                    }
                     val target = resumeAtMs
                     if (!didSeekStart && target > 1_500L && durationMs > target) {
                         activePlayer?.seekTo(target.coerceAtMost(durationMs - 1_000L))
@@ -421,6 +458,10 @@ fun PlayerScreen(
                         didSeekStart = true
                         allowHistoryFallback = false
                     }
+                }
+                if (playbackState == Player.STATE_ENDED) {
+                    playbackEnded = true
+                    controlsVisible = true
                 }
             }
 
@@ -569,7 +610,31 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting) {
+    LaunchedEffect(nearEndOffer, showEndAutoplay) {
+        if (nearEndOffer || showEndAutoplay) {
+            controlsVisible = true
+        }
+    }
+
+    LaunchedEffect(showEndAutoplay, episode, autoplayCancelled, nextTriggered) {
+        if (!showEndAutoplay || autoplayCancelled || nextTriggered) return@LaunchedEffect
+        for (sec in AUTOPLAY_COUNTDOWN_SEC downTo 1) {
+            autoplaySecLeft = sec
+            delay(1_000)
+            if (autoplayCancelled || !playbackEnded || nextTriggered) return@LaunchedEffect
+        }
+        goNextEpisode()
+    }
+
+    LaunchedEffect(nextTriggered) {
+        if (!nextTriggered) return@LaunchedEffect
+        // If resolve fails, parent keeps this episode — allow retry.
+        delay(15_000)
+        nextTriggered = false
+    }
+
+    LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting, nearEndOffer, showEndAutoplay) {
+        if (nearEndOffer || showEndAutoplay) return@LaunchedEffect
         if (controlsVisible && playing && !scrubbing && panel == Panel.None) {
             delay(if (isCasting) 5_500 else 3_600)
             controlsVisible = false
@@ -749,6 +814,34 @@ fun PlayerScreen(
             )
         }
 
+        if (nearEndOffer || showEndAutoplay) {
+            NextEpisodePrompt(
+                modifier = Modifier
+                    .align(if (showEndAutoplay) Alignment.Center else Alignment.BottomStart)
+                    .then(
+                        if (showEndAutoplay) {
+                            Modifier.padding(28.dp)
+                        } else {
+                            Modifier
+                                .windowInsetsPadding(WindowInsets.navigationBars)
+                                .padding(start = 18.dp, bottom = 108.dp, end = 18.dp)
+                        },
+                    ),
+                nextEpisode = episode + 1,
+                ended = showEndAutoplay,
+                secondsLeft = autoplaySecLeft,
+                busy = nextTriggered,
+                onPlayNow = { goNextEpisode() },
+                onDismiss = {
+                    if (showEndAutoplay) {
+                        autoplayCancelled = true
+                    } else {
+                        nearEndDismissed = true
+                    }
+                },
+            )
+        }
+
         if (error != null) {
             Column(
                 modifier = Modifier
@@ -869,7 +962,7 @@ fun PlayerScreen(
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                     if (onNextEpisode != null) {
-                        ChromeDisc(onClick = onNextEpisode, size = 40.dp) {
+                        ChromeDisc(onClick = { goNextEpisode() }, size = 40.dp) {
                             Icon(
                                 Icons.Rounded.SkipNext,
                                 contentDescription = "Next episode",
@@ -1146,6 +1239,90 @@ fun PlayerScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NextEpisodePrompt(
+    modifier: Modifier = Modifier,
+    nextEpisode: Int,
+    ended: Boolean,
+    secondsLeft: Int,
+    busy: Boolean,
+    onPlayNow: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Column(
+        modifier = modifier
+            .widthIn(max = 360.dp)
+            .shadow(16.dp, shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.45f))
+            .clip(shape)
+            .background(PlayerChrome.Sheet)
+            .background(
+                Brush.verticalGradient(
+                    listOf(Color.White.copy(alpha = 0.10f), Color.Transparent, Color.Black.copy(alpha = 0.18f)),
+                ),
+            )
+            .border(1.dp, PlayerChrome.SheetStroke, shape)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+    ) {
+        Text(
+            if (ended) "Up next" else "Almost done",
+            color = PlayerChrome.Faint,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 1.sp,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            "Episode $nextEpisode",
+            color = PlayerChrome.Paper,
+            fontWeight = FontWeight.Bold,
+            fontSize = 18.sp,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            when {
+                busy -> "Loading next episode…"
+                ended -> "Starting automatically in ${secondsLeft}s"
+                else -> "Want to continue to the next episode?"
+            },
+            color = PlayerChrome.Graphite,
+            fontSize = 13.sp,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PlayerChrome.Paper)
+                    .clickable(enabled = !busy, onClick = onPlayNow)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    if (ended) "Play now" else "Next episode",
+                    color = PlayerChrome.Ink,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(12.dp))
+                    .clickable(enabled = !busy, onClick = onDismiss)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    if (ended) "Cancel" else "Not now",
+                    color = PlayerChrome.Paper,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                )
             }
         }
     }

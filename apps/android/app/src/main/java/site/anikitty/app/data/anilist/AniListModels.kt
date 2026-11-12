@@ -1,5 +1,47 @@
 package site.anikitty.app.data.anilist
 
+data class AnimeTrailer(
+    val id: String,
+    val site: String,
+    val thumbnailUrl: String? = null,
+) {
+    fun watchUrl(): String? = when (site.lowercase()) {
+        "youtube" -> "https://www.youtube.com/watch?v=$id"
+        "dailymotion" -> "https://www.dailymotion.com/video/$id"
+        else -> null
+    }
+}
+
+data class AnimeExternalLink(
+    val site: String,
+    val url: String,
+)
+
+data class AnimeStreamingEpisode(
+    val title: String,
+    val thumbnailUrl: String? = null,
+    val url: String? = null,
+    val site: String? = null,
+)
+
+/** Resolved episode row for the Plex-style selector. */
+data class AnimeEpisodeItem(
+    val number: Int,
+    val title: String,
+    val thumbnailUrl: String? = null,
+    val site: String? = null,
+)
+
+data class AnimeRelation(
+    val id: Int,
+    val title: String,
+    val coverImageUrl: String?,
+    val relationType: String,
+    val format: String? = null,
+    val episodes: Int? = null,
+    val seasonYear: Int? = null,
+)
+
 data class AnimeSummary(
     val id: Int,
     val title: String,
@@ -11,15 +53,116 @@ data class AnimeSummary(
     val description: String? = null,
     /** AniList romaji — often matches Anikoto page titles better than English. */
     val romajiTitle: String? = null,
+    val nativeTitle: String? = null,
     /** MyAnimeList id — used for AniSkip intro/credits timestamps. */
     val malId: Int? = null,
+    val status: String? = null,
+    val season: String? = null,
+    val seasonYear: Int? = null,
+    val durationMinutes: Int? = null,
+    val popularity: Int? = null,
+    val genres: List<String> = emptyList(),
+    val studios: List<String> = emptyList(),
+    val trailer: AnimeTrailer? = null,
+    val externalLinks: List<AnimeExternalLink> = emptyList(),
+    val relations: List<AnimeRelation> = emptyList(),
+    val streamingEpisodes: List<AnimeStreamingEpisode> = emptyList(),
+    /** True when this payload came from the richer Media(id) query. */
+    val detailLoaded: Boolean = false,
 ) {
     /** Titles to try when mapping a watch page / search (romaji first — matches Anikoto). */
     fun searchTitles(): List<String> =
-        listOfNotNull(romajiTitle, title)
+        listOfNotNull(romajiTitle, title, nativeTitle)
             .map { it.trim() }
             .filter { it.isNotEmpty() }
             .distinct()
+
+    fun seasonLabel(): String? {
+        val s = season?.lowercase()?.replaceFirstChar { it.titlecase() }
+        return when {
+            s != null && seasonYear != null -> "$s $seasonYear"
+            seasonYear != null -> seasonYear.toString()
+            s != null -> s
+            else -> null
+        }
+    }
+
+    fun statusLabel(): String? = when (status?.uppercase()) {
+        "FINISHED" -> "Finished"
+        "RELEASING" -> "Airing"
+        "NOT_YET_RELEASED" -> "Upcoming"
+        "CANCELLED" -> "Cancelled"
+        "HIATUS" -> "Hiatus"
+        else -> status?.replace('_', ' ')?.lowercase()?.replaceFirstChar { it.titlecase() }
+    }
+
+    fun scoreLabel(): String? = averageScore?.let { String.format("%.1f", it / 10f) }
+
+    /** Season chips: this title + TV/ONA prequels/sequels (AniList seasons are separate media). */
+    fun seasonEntries(): List<AnimeRelation> {
+        val self = AnimeRelation(
+            id = id,
+            title = title,
+            coverImageUrl = coverImageUrl,
+            relationType = "Current",
+            format = format,
+            episodes = episodes,
+            seasonYear = seasonYear,
+        )
+        val seasonFormats = setOf("TV", "TV_SHORT", "ONA", "OVA")
+        val related = relations.filter { rel ->
+            val fmt = rel.format?.uppercase()
+            val kind = rel.relationType.uppercase()
+            (fmt == null || fmt in seasonFormats) &&
+                kind in setOf("PREQUEL", "SEQUEL", "PARENT", "ALTERNATIVE", "SIDE STORY", "SIDE_STORY")
+        }
+        return (listOf(self) + related).distinctBy { it.id }
+    }
+
+    /** Plex-style episode list for the current media (all episodes, with thumbs/titles when known). */
+    fun episodeItems(fallbackCover: String? = coverImageUrl): List<AnimeEpisodeItem> {
+        val byNumber = LinkedHashMap<Int, AnimeStreamingEpisode>()
+        streamingEpisodes.forEachIndexed { index, ep ->
+            val n = parseStreamingEpisodeNumber(ep.title) ?: (index + 1)
+            byNumber.putIfAbsent(n, ep)
+        }
+        val maxFromStream = byNumber.keys.maxOrNull() ?: 0
+        val max = (episodes ?: maxFromStream).coerceAtLeast(maxFromStream).coerceAtLeast(1)
+            .coerceAtMost(2000)
+        return (1..max).map { n ->
+            val stream = byNumber[n]
+            AnimeEpisodeItem(
+                number = n,
+                title = cleanStreamingEpisodeTitle(stream?.title) ?: "Episode $n",
+                thumbnailUrl = stream?.thumbnailUrl ?: fallbackCover,
+                site = stream?.site,
+            )
+        }
+    }
+}
+
+internal fun parseStreamingEpisodeNumber(raw: String): Int? {
+    val patterns = listOf(
+        Regex("""(?i)episode\s*(\d+)"""),
+        Regex("""(?i)\bep\.?\s*(\d+)"""),
+        Regex("""(?i)^e(\d+)\b"""),
+        Regex("""#\s*(\d+)"""),
+    )
+    for (p in patterns) {
+        val m = p.find(raw) ?: continue
+        return m.groupValues[1].toIntOrNull()?.takeIf { it > 0 }
+    }
+    return null
+}
+
+internal fun cleanStreamingEpisodeTitle(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+    return raw
+        .replace(Regex("""(?i)^episode\s*\d+\s*[-–:|]\s*"""), "")
+        .replace(Regex("""(?i)^ep\.?\s*\d+\s*[-–:|]\s*"""), "")
+        .trim()
+        .takeIf { it.isNotBlank() && !it.equals(raw, ignoreCase = true) }
+        ?: raw.trim().takeIf { it.isNotBlank() }
 }
 
 data class AniListViewer(

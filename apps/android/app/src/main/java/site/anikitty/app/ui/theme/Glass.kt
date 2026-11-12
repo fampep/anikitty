@@ -62,6 +62,13 @@ fun Modifier.kittyGlassSoft(shape: Shape = KittyGlassShape): Modifier = this
     .background(KittyMirrorSheen)
     .border(1.dp, KittyOutlineSoft, shape)
 
+/** Input field frost — slightly clearer than soft panels so text stays readable. */
+fun Modifier.kittyGlassField(shape: Shape = KittyGlassShapeTight): Modifier = this
+    .clip(shape)
+    .background(KittySurface)
+    .background(KittyMirrorSheen)
+    .border(1.dp, KittyOutlineSoft, shape)
+
 /** Stronger frosted overlay — player discs, floating chrome. */
 fun Modifier.kittyGlassMirror(
     shape: Shape = KittyGlassShape,

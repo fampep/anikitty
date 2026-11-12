@@ -34,14 +34,43 @@ class AniListClient(
     private val mediaFields = """
         id
         idMal
-        title { romaji english }
+        title { romaji english native }
         synonyms
         coverImage { large }
         bannerImage
         episodes
         format
+        status
+        season
+        seasonYear
+        duration
+        popularity
         averageScore
+        genres
         description(asHtml: false)
+        studios(isMain: true) { nodes { name } }
+        trailer { id site thumbnail }
+        externalLinks { site url }
+    """.trimIndent()
+
+    /** Richer payload for the title detail screen (episodes + relations). */
+    private val mediaDetailFields = """
+        $mediaFields
+        streamingEpisodes { title thumbnail url site }
+        relations {
+          edges {
+            relationType
+            node {
+              id
+              title { romaji english }
+              coverImage { large }
+              format
+              type
+              episodes
+              seasonYear
+            }
+          }
+        }
     """.trimIndent()
 
     suspend fun viewer(accessToken: String): AniListViewer? = withContext(Dispatchers.IO) {
@@ -225,14 +254,14 @@ class AniListClient(
         )
 
     suspend fun media(id: Int): AnimeSummary? = withContext(Dispatchers.IO) {
-        val cacheKey = "media:$id"
+        val cacheKey = "mediaDetail:v3:$id"
         cache?.get(cacheKey, AniListCache.TTL_MEDIA_MS)?.let { body ->
             val media = JSONObject(body).optJSONObject("data")?.optJSONObject("Media")
-            if (media != null) return@withContext parseMedia(media)
+            if (media != null) return@withContext parseMedia(media, detail = true)
         }
         val graphql = """
             query (${'$'}id: Int) {
-              Media(id: ${'$'}id, type: ANIME) { $mediaFields }
+              Media(id: ${'$'}id, type: ANIME) { $mediaDetailFields }
             }
         """.trimIndent()
         val payload = JSONObject()
@@ -243,7 +272,7 @@ class AniListClient(
         cache?.put(cacheKey, body)
         val media = JSONObject(body).optJSONObject("data")?.optJSONObject("Media")
             ?: return@withContext null
-        parseMedia(media)
+        parseMedia(media, detail = true)
     }
 
     private suspend fun queryMedia(
@@ -347,11 +376,82 @@ class AniListClient(
         }
     }
 
-    private fun parseMedia(item: JSONObject): AnimeSummary {
+    private fun parseMedia(item: JSONObject, detail: Boolean = false): AnimeSummary {
         val titles = item.getJSONObject("title")
         val romaji = titles.nullableString("romaji")
         val english = titles.nullableString("english")
+        val native = titles.nullableString("native")
         val title = english ?: romaji ?: "Anime #${item.getInt("id")}"
+        val genres = item.optJSONArray("genres")?.toStringList().orEmpty()
+        val studios = item.optJSONObject("studios")
+            ?.optJSONArray("nodes")
+            ?.toObjectList()
+            ?.mapNotNull { it.nullableString("name") }
+            .orEmpty()
+        val trailerObj = item.optJSONObject("trailer")
+        val trailer = trailerObj?.nullableString("id")?.let { tid ->
+            AnimeTrailer(
+                id = tid,
+                site = trailerObj.optString("site", "youtube"),
+                thumbnailUrl = trailerObj.nullableString("thumbnail"),
+            )
+        }
+        val links = item.optJSONArray("externalLinks")
+            ?.toObjectList()
+            ?.mapNotNull { link ->
+                val site = link.nullableString("site") ?: return@mapNotNull null
+                val url = link.nullableString("url") ?: return@mapNotNull null
+                AnimeExternalLink(site = site, url = url)
+            }
+            .orEmpty()
+            .distinctBy { it.site.lowercase() }
+            .take(8)
+        val relations = if (detail) {
+            item.optJSONObject("relations")
+                ?.optJSONArray("edges")
+                ?.toObjectList()
+                ?.mapNotNull { edge ->
+                    val node = edge.optJSONObject("node") ?: return@mapNotNull null
+                    if (node.optString("type") != "ANIME") return@mapNotNull null
+                    val nodeTitles = node.optJSONObject("title")
+                    val relTitle = nodeTitles?.nullableString("english")
+                        ?: nodeTitles?.nullableString("romaji")
+                        ?: return@mapNotNull null
+                    AnimeRelation(
+                        id = node.getInt("id"),
+                        title = relTitle,
+                        coverImageUrl = node.optJSONObject("coverImage")?.nullableString("large"),
+                        relationType = edge.optString("relationType", "RELATED")
+                            .replace('_', ' ')
+                            .lowercase()
+                            .replaceFirstChar { it.titlecase() },
+                        format = node.nullableString("format"),
+                        episodes = node.nullableInt("episodes"),
+                        seasonYear = node.nullableInt("seasonYear"),
+                    )
+                }
+                .orEmpty()
+                .distinctBy { it.id }
+                .take(24)
+        } else {
+            emptyList()
+        }
+        val streaming = if (detail) {
+            item.optJSONArray("streamingEpisodes")
+                ?.toObjectList()
+                ?.mapNotNull { row ->
+                    val epTitle = row.nullableString("title") ?: return@mapNotNull null
+                    AnimeStreamingEpisode(
+                        title = epTitle,
+                        thumbnailUrl = row.nullableString("thumbnail"),
+                        url = row.nullableString("url"),
+                        site = row.nullableString("site"),
+                    )
+                }
+                .orEmpty()
+        } else {
+            emptyList()
+        }
         return AnimeSummary(
             id = item.getInt("id"),
             title = title,
@@ -364,7 +464,20 @@ class AniListClient(
                 ?.replace(Regex("\\s+"), " ")
                 ?.trim(),
             romajiTitle = romaji?.takeIf { it != title },
+            nativeTitle = native?.takeIf { it != title && it != romaji },
             malId = item.nullableInt("idMal"),
+            status = item.nullableString("status"),
+            season = item.nullableString("season"),
+            seasonYear = item.nullableInt("seasonYear"),
+            durationMinutes = item.nullableInt("duration"),
+            popularity = item.nullableInt("popularity"),
+            genres = genres,
+            studios = studios,
+            trailer = trailer,
+            externalLinks = links,
+            relations = relations,
+            streamingEpisodes = streaming,
+            detailLoaded = detail,
         )
     }
 
@@ -380,6 +493,18 @@ class AniListClient(
         fun JSONObject.nullableInt(key: String): Int? {
             if (!has(key) || isNull(key)) return null
             return getInt(key)
+        }
+
+        fun JSONArray.toStringList(): List<String> = buildList {
+            for (i in 0 until length()) {
+                optString(i)?.takeIf { it.isNotBlank() }?.let { add(it) }
+            }
+        }
+
+        fun JSONArray.toObjectList(): List<JSONObject> = buildList {
+            for (i in 0 until length()) {
+                optJSONObject(i)?.let { add(it) }
+            }
         }
     }
 }
