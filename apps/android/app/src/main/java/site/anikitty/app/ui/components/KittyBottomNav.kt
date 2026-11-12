@@ -65,14 +65,14 @@ fun KittyBottomNav(
     ) {
         Row(
             modifier = Modifier
-                .widthIn(max = 380.dp)
+                .widthIn(max = 420.dp)
                 .fillMaxWidth()
-                .height(58.dp)
-                .shadow(12.dp, RoundedCornerShape(29.dp), clip = false, ambientColor = KittyNavPillBorder)
-                .clip(RoundedCornerShape(29.dp))
+                .height(56.dp)
+                .shadow(16.dp, RoundedCornerShape(16.dp), clip = false, ambientColor = KittyNavPillBorder)
+                .clip(RoundedCornerShape(16.dp))
                 .background(KittyNavPillSurface)
-                .border(1.dp, KittyNavPillBorder, RoundedCornerShape(29.dp))
-                .padding(horizontal = 4.dp),
+                .border(1.dp, KittyNavPillBorder, RoundedCornerShape(16.dp))
+                .padding(horizontal = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
@@ -91,8 +91,8 @@ fun KittyBottomNav(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .height(50.dp)
-                        .clip(RoundedCornerShape(25.dp))
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(bg)
                         .selectable(
                             selected = selected,
@@ -114,7 +114,7 @@ fun KittyBottomNav(
                         tab.label,
                         color = fg,
                         fontSize = 10.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         maxLines = 1,
                     )
                 }
