@@ -15,20 +15,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import site.anikitty.app.ui.theme.KittyAccentGlow
-import site.anikitty.app.ui.theme.KittyGlass
+import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutlineSoft
+import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
 
-/**
- * Glass meta pills — replaces plain `|` / `·` divider strings in chrome.
- */
+/** Solid meta pills for detail chrome. */
 @Composable
 fun KittyMetaChips(
     items: List<String>,
@@ -60,27 +57,15 @@ fun KittyMetaChip(
     Box(
         modifier = modifier
             .clip(shape)
-            .background(if (emphasized) KittyAccentGlow.copy(alpha = 0.18f) else KittyGlass)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.10f),
-                        Color.Transparent,
-                    ),
-                ),
-            )
-            .border(
-                1.dp,
-                if (emphasized) KittyAccentGlow.copy(alpha = 0.35f) else KittyOutlineSoft,
-                shape,
-            )
+            .background(if (emphasized) KittyAccent else KittySurface)
+            .border(1.dp, if (emphasized) KittyAccent else KittyOutlineSoft, shape)
             .padding(horizontal = 10.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (emphasized) KittyText else KittyMuted,
+            color = if (emphasized) KittyOnAccent else KittyMuted,
             fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
             maxLines = 1,

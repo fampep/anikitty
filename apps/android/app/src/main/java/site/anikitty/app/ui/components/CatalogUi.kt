@@ -71,8 +71,6 @@ import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
 import site.anikitty.app.ui.theme.PlayerChrome
-import site.anikitty.app.ui.theme.kittyGlass
-import site.anikitty.app.ui.theme.kittyGlassSoft
 
 @Composable
 fun KittyPageHeader(
@@ -521,7 +519,9 @@ fun KittyHero(
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyText),
                         modifier = Modifier
                             .size(48.dp)
-                            .kittyGlassSoft(CircleShape),
+                            .clip(CircleShape)
+                            .background(KittySurface)
+                            .border(1.dp, KittyOutlineSoft, CircleShape),
                         contentPadding = PaddingValues(0.dp),
                     ) {
                         Icon(Icons.Outlined.Info, contentDescription = "Info", modifier = Modifier.size(20.dp))
@@ -651,7 +651,9 @@ fun KittyContinueCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .kittyGlassSoft(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(14.dp))
+                .background(KittySurface)
+                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp))
                 .clickable(onClick = onClick)
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically,
