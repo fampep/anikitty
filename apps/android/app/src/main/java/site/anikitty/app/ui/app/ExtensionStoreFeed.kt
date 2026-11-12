@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +38,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -206,8 +208,14 @@ fun ExtensionStoreFeed(
                 Text(
                     status!!,
                     style = MaterialTheme.typography.labelSmall,
-                    color = KittyFaint,
-                    modifier = Modifier.padding(top = 4.dp),
+                    color = KittyMuted,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittySurface)
+                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(999.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
                 )
             }
         }
@@ -288,11 +296,27 @@ fun ExtensionStoreFeed(
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            listing.name,
-                            color = KittyText,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                listing.name,
+                                color = KittyText,
+                                fontWeight = FontWeight.SemiBold,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (selected) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "ACTIVE",
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(999.dp))
+                                        .background(KittyAccent)
+                                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                                    color = KittyOnAccent,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp,
+                                )
+                            }
+                        }
                         if (listing.description.isNotBlank()) {
                             Text(
                                 listing.description,
@@ -305,10 +329,6 @@ fun ExtensionStoreFeed(
                             buildString {
                                 if (listing.author.isNotBlank()) append(listing.author)
                                 when {
-                                    selected -> {
-                                        if (isNotEmpty()) append(" · ")
-                                        append("active")
-                                    }
                                     isBundled -> {
                                         if (isNotEmpty()) append(" · ")
                                         append("bundled")
@@ -320,7 +340,7 @@ fun ExtensionStoreFeed(
                                 }
                             },
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (selected) KittyAccentGlow else KittyFaint,
+                            color = KittyFaint,
                         )
                     }
                 }
@@ -329,43 +349,52 @@ fun ExtensionStoreFeed(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Button(
-                        onClick = {
-                            when {
-                                onDevice || isBundled -> {
-                                    catalog.select(listing.id)
-                                    status = "Selected ${listing.name}"
+                    if (selected) {
+                        OutlinedButton(
+                            onClick = { status = "Already using ${listing.name}" },
+                            enabled = !busy,
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, KittyAccent),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyAccent),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text("Selected", fontWeight = FontWeight.Bold)
+                        }
+                    } else {
+                        Button(
+                            onClick = {
+                                when {
+                                    onDevice || isBundled -> {
+                                        catalog.select(listing.id)
+                                        status = "Selected ${listing.name}"
+                                    }
+                                    else -> scope.launch {
+                                        busy = true
+                                        status = runCatching {
+                                            val m = catalog.installStoreListing(
+                                                listing.github,
+                                                listing.manifestPath,
+                                            )
+                                            catalog.select(m.id)
+                                            "Installed ${m.name}"
+                                        }.getOrElse { e -> e.message }
+                                        busy = false
+                                    }
                                 }
-                                else -> scope.launch {
-                                    busy = true
-                                    status = runCatching {
-                                        val m = catalog.installStoreListing(
-                                            listing.github,
-                                            listing.manifestPath,
-                                        )
-                                        catalog.select(m.id)
-                                        "Installed ${m.name}"
-                                    }.getOrElse { e -> e.message }
-                                    busy = false
-                                }
-                            }
-                        },
-                        enabled = !busy,
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selected) KittySurfaceElevated else KittyAccent,
-                            contentColor = if (selected) KittyText else KittyOnAccent,
-                        ),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
-                    ) {
-                        Text(
-                            when {
-                                selected -> "Selected"
-                                onDevice || isBundled -> "Use"
-                                else -> "Install"
                             },
-                            fontWeight = FontWeight.Bold,
-                        )
+                            enabled = !busy,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = KittyAccent,
+                                contentColor = KittyOnAccent,
+                            ),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text(
+                                if (onDevice || isBundled) "Use" else "Install",
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
                     if (listing.siteUrl != null) {
                         TextButton(
@@ -398,8 +427,12 @@ fun ExtensionStoreFeed(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(KittyGlassShape)
-                    .background(KittySurface)
-                    .border(1.dp, KittyOutlineSoft, KittyGlassShape)
+                    .background(if (showGithub) KittySurfaceElevated else KittySurface)
+                    .border(
+                        1.dp,
+                        if (showGithub) KittyAccent.copy(alpha = 0.55f) else KittyOutlineSoft,
+                        KittyGlassShape,
+                    )
                     .clickable { showGithub = !showGithub }
                     .padding(horizontal = 14.dp, vertical = 12.dp),
             ) {
@@ -419,7 +452,7 @@ fun ExtensionStoreFeed(
                     Icon(
                         if (showGithub) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                         contentDescription = null,
-                        tint = KittyMuted,
+                        tint = if (showGithub) KittyAccentGlow else KittyMuted,
                         modifier = Modifier.size(22.dp),
                     )
                 }
