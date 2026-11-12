@@ -17,34 +17,34 @@ import androidx.compose.ui.unit.sp
  */
 val KittyInk = Color(0xFF05060A)
 val KittyPage = Color(0xFF07080F)
-val KittySurface = Color(0xCC12141C) // frosted panel (~80% opaque)
-val KittySurfaceElevated = Color(0xE61A1D28)
-val KittyGlass = Color(0x66141822) // lighter frost for overlays
-val KittyGlassStrong = Color(0xB31A1E2A)
+val KittySurface = Color(0xB8141822) // frosted panel (~72% — more mirror)
+val KittySurfaceElevated = Color(0xD91A1F2C)
+val KittyGlass = Color(0x59101820) // lighter frost for overlays
+val KittyGlassStrong = Color(0xA31A2030)
 val KittyText = Color(0xFFF4F6FA)
 val KittyMuted = Color(0xFFB8C0D0)
 val KittyFaint = Color(0xFF7A8498)
-val KittyOutline = Color.White.copy(alpha = 0.14f)
-val KittyOutlineSoft = Color.White.copy(alpha = 0.08f)
+val KittyOutline = Color.White.copy(alpha = 0.18f)
+val KittyOutlineSoft = Color.White.copy(alpha = 0.10f)
 
 /** Cool ice highlight — CTAs stay paper-on-ink for contrast. */
 val KittyAccent = Color(0xFFE8EEF7)
 val KittyAccentGlow = Color(0xFF7EB6C9)
 val KittyOnAccent = Color(0xFF0A0C12)
 
-val KittyNavPillSurface = Color(0xD90C0E16)
-val KittyNavPillBorder = Color.White.copy(alpha = 0.14f)
+val KittyNavPillSurface = Color(0xC20A0E16)
+val KittyNavPillBorder = Color.White.copy(alpha = 0.18f)
 val KittyNavPillSelected = Color(0xFFF0F3F8)
 val KittyNavPillSelectedContent = Color(0xFF0A0C12)
 val KittyNavPillContent = Color.White.copy(alpha = 0.48f)
 
-val KittyAmbientWash = Color(0xFF7EB6C9).copy(alpha = 0.12f)
+val KittyAmbientWash = Color(0xFF7EB6C9).copy(alpha = 0.14f)
 
 /** Page atmosphere — dual radial wash for glass depth. */
 val KittyPageBrush: Brush
     get() = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF0C121C),
+            Color(0xFF0E1622),
             KittyPage,
             Color(0xFF05060A),
         ),
@@ -56,16 +56,18 @@ object PlayerChrome {
     val Graphite = Paper.copy(alpha = 0.72f)
     val Faint = Paper.copy(alpha = 0.42f)
     val Smoke = Color(0xCC05060A)
-    val Sheet = Color(0xE6141822)
-    val SheetStroke = Color.White.copy(alpha = 0.16f)
+    val Sheet = Color(0xCC141A24)
+    val SheetStroke = Color.White.copy(alpha = 0.20f)
     val RowSelected = Color.White.copy(alpha = 0.12f)
     /** Frosted disc — Plex-style floating control. */
-    val Disc = Color(0x66101820)
-    val DiscStroke = Color.White.copy(alpha = 0.22f)
-    val DiscLarge = Color(0x7A101820)
+    val Disc = Color(0x59101820)
+    val DiscStroke = Color.White.copy(alpha = 0.28f)
+    val DiscLarge = Color(0x6E101820)
     val Accent = Color(0xFFE8EEF7)
     /** Active scrub track — warm Plex-like progress. */
     val Progress = Color(0xFFE8C547)
+    val ProgressGlow = Color(0xFFE8C547).copy(alpha = 0.35f)
+    val TrackGlass = Color.White.copy(alpha = 0.14f)
     val MarkerIntro = KittyAccentGlow.copy(alpha = 0.55f)
     val MarkerCredits = Paper.copy(alpha = 0.35f)
     val MarkerRecap = Paper.copy(alpha = 0.45f)
