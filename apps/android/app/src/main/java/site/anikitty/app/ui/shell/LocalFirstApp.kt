@@ -1851,31 +1851,43 @@ private fun TitleDetailScreen(
             }
             item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    if (detail.genres.isNotEmpty() || detail.studios.isNotEmpty() || detail.popularity != null) {
+                    if (
+                        detail.genres.isNotEmpty() ||
+                        detail.studios.isNotEmpty() ||
+                        detail.popularity != null ||
+                        detailLoading ||
+                        !detail.seasonLabel().isNullOrBlank()
+                    ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .kittyGlassSoft(RoundedCornerShape(16.dp))
-                                .padding(14.dp),
+                                .kittyGlassSoft(RoundedCornerShape(18.dp))
+                                .padding(16.dp),
                         ) {
                             Text(
-                                "Details",
+                                "Overview",
+                                color = KittyText,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                "AniList catalog",
                                 color = KittyFaint,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 0.6.sp,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(top = 2.dp),
                             )
                             if (detail.genres.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(10.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 KittyMetaChips(items = detail.genres.take(8))
                             }
                             val facts = listOfNotNull(
+                                detail.seasonLabel(),
+                                detail.statusLabel(),
                                 detail.studios.takeIf { it.isNotEmpty() }?.joinToString(" · "),
-                                detail.popularity?.let { "${"%,d".format(it)} popularity" },
-                                detail.malId?.let { "MAL ${it}" },
+                                detail.popularity?.let { "${"%,d".format(it)} on AniList" },
                             )
                             if (facts.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(10.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     facts.joinToString("  ·  "),
                                     style = MaterialTheme.typography.bodySmall,
@@ -1885,7 +1897,7 @@ private fun TitleDetailScreen(
                             if (detailLoading) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    "Loading AniList details…",
+                                    "Loading AniList…",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = KittyFaint,
                                 )
@@ -2022,33 +2034,39 @@ private fun TitleDetailScreen(
                             }
                     }
 
-                    if (detail.relations.isNotEmpty()) {
+                    val relatedExtras = remember(detail) { detail.relatedOutsideSeasons() }
+                    if (relatedExtras.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(20.dp))
                         KittySectionHeading(
                             title = "Related",
-                            subtitle = "Sequels, prequels, and spin-offs",
+                            subtitle = "Spin-offs and more from AniList · seasons switch below",
                             padded = false,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         LazyRow(
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
                         ) {
-                            lazyItems(detail.relations, key = { it.id }) { rel ->
+                            lazyItems(relatedExtras, key = { it.id }) { rel ->
                                 Column(
                                     modifier = Modifier
-                                        .width(108.dp)
+                                        .width(112.dp)
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .kittyGlassSoft(RoundedCornerShape(14.dp))
                                         .clickable {
                                             onOpenRelated(
                                                 AnimeSummary(
                                                     id = rel.id,
                                                     title = rel.title,
                                                     coverImageUrl = rel.coverImageUrl,
-                                                    episodes = null,
+                                                    episodes = rel.episodes,
                                                     format = rel.format,
                                                     averageScore = null,
+                                                    season = rel.season,
+                                                    seasonYear = rel.seasonYear,
                                                 ),
                                             )
-                                        },
+                                        }
+                                        .padding(6.dp),
                                 ) {
                                     AsyncImage(
                                         model = rel.coverImageUrl,
@@ -2056,8 +2074,8 @@ private fun TitleDetailScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(2f / 3f)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(12.dp)),
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(10.dp)),
                                         contentScale = ContentScale.Crop,
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -2077,6 +2095,14 @@ private fun TitleDetailScreen(
                                         overflow = TextOverflow.Ellipsis,
                                         lineHeight = 15.sp,
                                     )
+                                    rel.seasonLabel()?.let { label ->
+                                        Text(
+                                            label,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = KittyFaint,
+                                            maxLines = 1,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -2133,9 +2159,9 @@ private fun TitleDetailScreen(
                         KittySectionHeading(
                             title = "Episodes",
                             subtitle = if (seasonTabs.size > 1) {
-                                "All episodes · switch seasons above the rail"
+                                "AniList seasons · each has its own episode list"
                             } else {
-                                "Swipe the rail · tap to select"
+                                "From AniList · swipe the rail"
                             },
                             padded = false,
                             modifier = Modifier.weight(1f),
@@ -2147,6 +2173,14 @@ private fun TitleDetailScreen(
                     }
                     if (seasonTabs.size > 1) {
                         Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            "Seasons",
+                            color = KittyFaint,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.5.sp,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -2155,13 +2189,12 @@ private fun TitleDetailScreen(
                                 val selectedSeason = season.id == detail.id
                                 val label = buildString {
                                     append(
-                                        when {
-                                            selectedSeason && !detail.seasonLabel().isNullOrBlank() ->
-                                                detail.seasonLabel()!!
-                                            season.seasonYear != null -> season.seasonYear.toString()
-                                            season.relationType.equals("Current", true) -> "This season"
-                                            else -> season.relationType
-                                        },
+                                        season.seasonLabel()
+                                            ?: if (season.relationType.equals("Current", true)) {
+                                                "This season"
+                                            } else {
+                                                season.relationType
+                                            },
                                     )
                                     season.episodes?.let { append(" · $it ep") }
                                 }
@@ -2178,6 +2211,7 @@ private fun TitleDetailScreen(
                                                     episodes = season.episodes,
                                                     format = season.format,
                                                     averageScore = null,
+                                                    season = season.season,
                                                     seasonYear = season.seasonYear,
                                                 ),
                                             )
