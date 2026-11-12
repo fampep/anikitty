@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.3"><img src="https://img.shields.io/badge/Pre--release-1.1.3-orange?style=for-the-badge" alt="Pre-release 1.1.3" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.21"><img src="https://img.shields.io/badge/Pre--release-1.1.21-orange?style=for-the-badge" alt="Pre-release 1.1.21" /></a>
   <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
   <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-PolyForm%20NC-0284c7?style=for-the-badge" alt="PolyForm Noncommercial" /></a>
 </p>
@@ -17,15 +17,15 @@
 <p align="center">
   <a href="https://t.me/Anikittymoe"><img src="https://img.shields.io/badge/Telegram-Anikittymoe-28A8E9?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram" /></a>
   <a href="https://github.com/fampep/anikitty/issues"><img src="https://img.shields.io/badge/Issues-welcome-0369a1?style=for-the-badge&logo=github&logoColor=white" alt="Issues" /></a>
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.3"><img src="https://img.shields.io/badge/APK-download-0ea5e9?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.1.21"><img src="https://img.shields.io/badge/APK-download-0ea5e9?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
 </p>
 
 > [!WARNING]
-> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases** — each drop is for early testing, not a finished product. Latest: [**v1.1.3 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.1.3).
+> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. I’m actively working toward a more stable version over time. Builds ship as **rolling pre-releases** — each drop is for early testing, not a finished product. Latest: [**v1.1.21 pre-release**](https://github.com/fampep/anikitty/releases/tag/v1.1.21).
 
 <br />
 
-AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP stream extensions**, with a glass dark on-phone UI.
+AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP stream extensions**, with a black on-phone UI.
 
 1. Sign in with a **password account** on the dedicated auth server (AniList link optional for list sync)  
 2. Browse AniList on-device (Home / Search / Library)  
@@ -34,7 +34,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 
 | | |
 |---|---|
-| Latest APK | [v1.1.3](https://github.com/fampep/anikitty/releases/tag/v1.1.3) |
+| Latest APK | [v1.1.21](https://github.com/fampep/anikitty/releases/tag/v1.1.21) |
 | Author guide | [`extensions/GUIDE.md`](extensions/GUIDE.md) |
 | Protocol | [`extensions/spec/PROTOCOL.md`](extensions/spec/PROTOCOL.md) |
 | Submit to store | [`extensions/store/SUBMIT.md`](extensions/store/SUBMIT.md) |
@@ -46,9 +46,11 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 
 | Version | Highlights |
 |---|---|
-| **1.1.3** | Store/Search/Detail polish; Plex-like floating player; Home refresh guard; live public [`anikitty-extensions`](https://github.com/fampep/anikitty-extensions) store |
-| **1.1.2** | Dedicated **Store** tab (search / install / submit); **`iconUrl` required** — scraped-site brand icon; icons in Store + Account for listings and bundled Anikoto |
-| **1.1.1** | Glass dark on-phone UI; PolyForm Noncommercial ownership license |
+| **1.1.21** | Black home polish; APK-only (desktop removed); denser rails + welcome chrome |
+| **1.1.20** | Ground-up black home UI with pink accent, pill nav, continue cards |
+| **1.1.3** | Store/Search/Detail polish; floating player; Home refresh guard; live public [`anikitty-extensions`](https://github.com/fampep/anikitty-extensions) store |
+| **1.1.2** | Dedicated **Store** tab (search / install / submit); **`iconUrl` required** |
+| **1.1.1** | PolyForm Noncommercial ownership license |
 | **1.1.0** | BYO HTTP extension architecture (`apiVersion` 1), GitHub install, store feed index |
 
 ---
@@ -84,7 +86,7 @@ Extensions are HTTP resolve services, not dex plugins. Auth stays on the dedicat
 
 | Path | What |
 |---|---|
-| `apps/android/` | Kotlin / Jetpack Compose APK (glass UI, Media3, Store) |
+| `apps/android/` | Kotlin / Jetpack Compose APK (black UI, Media3, Store) |
 | `apps/dedicated-server/` | Go auth + favorites / comments / history API |
 | `extensions/` | Manifest spec, author guide, store index, examples |
 | `docs/public-github-setup.md` | How to publish the public `anikitty-extensions` repo |
@@ -99,7 +101,7 @@ cd apps/android
 # app/build/outputs/apk/release/app-release.apk
 ```
 
-Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName`/`versionCode` and desktop `packageVersion` both read it. Current: **1.1.17** / code **31**.
+Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName` / `versionCode`. Current: **1.1.21** / code **35**.
 
 Optional AniList OAuth client id (public, not a secret):
 

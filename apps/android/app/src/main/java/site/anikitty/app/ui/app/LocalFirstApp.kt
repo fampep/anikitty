@@ -402,6 +402,7 @@ fun LocalFirstApp(
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
                     onOpenSearch = { tab = "search" },
+                    onOpenAccount = { tab = "settings" },
                     accountLabel = accountLabel,
                 )
                 "search" -> SearchFeed(
@@ -463,6 +464,7 @@ private fun HomeFeed(
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenAccount: () -> Unit,
     accountLabel: String,
 ) {
     val homeDisplayName = aniListAuth.username?.takeIf { it.isNotBlank() }
@@ -517,6 +519,7 @@ private fun HomeFeed(
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
                             onOpenSearch = onOpenSearch,
+                            onOpenAccount = onOpenAccount,
                         )
                     }
                     item { KittyPosterSkeletonRow("Trending Anime") }
@@ -535,6 +538,7 @@ private fun HomeFeed(
                         onRefresh = { reload(fromPull = true) },
                         refreshBusy = catalogBusy,
                         onOpenSearch = onOpenSearch,
+                        onOpenAccount = onOpenAccount,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                     KittyEmptyState(
@@ -553,6 +557,7 @@ private fun HomeFeed(
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
                             onOpenSearch = onOpenSearch,
+                            onOpenAccount = onOpenAccount,
                         )
                     }
                     item {
@@ -638,6 +643,7 @@ private fun HomeWelcomeHeader(
     onRefresh: () -> Unit,
     refreshBusy: Boolean = false,
     onOpenSearch: (() -> Unit)? = null,
+    onOpenAccount: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
@@ -648,7 +654,7 @@ private fun HomeWelcomeHeader(
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(46.dp)
                 .clip(CircleShape)
                 .background(KittyAccent),
             contentAlignment = Alignment.Center,
@@ -657,7 +663,7 @@ private fun HomeWelcomeHeader(
                 Icons.Filled.Person,
                 contentDescription = null,
                 tint = KittyOnAccent,
-                modifier = Modifier.size(26.dp),
+                modifier = Modifier.size(24.dp),
             )
         }
         Column(
@@ -681,16 +687,6 @@ private fun HomeWelcomeHeader(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (onOpenSearch != null) {
-                KittyRoundIconButton(onClick = onOpenSearch) {
-                    Icon(
-                        Icons.Rounded.Search,
-                        contentDescription = "Search",
-                        tint = KittyText,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
             KittyRoundIconButton(onClick = onRefresh) {
                 if (refreshBusy) {
                     CircularProgressIndicator(
@@ -702,6 +698,25 @@ private fun HomeWelcomeHeader(
                     Icon(
                         Icons.Rounded.Refresh,
                         contentDescription = "Refresh",
+                        tint = KittyText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            if (onOpenAccount != null) {
+                KittyRoundIconButton(onClick = onOpenAccount) {
+                    Icon(
+                        Icons.Outlined.Person,
+                        contentDescription = "Account",
+                        tint = KittyText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            } else if (onOpenSearch != null) {
+                KittyRoundIconButton(onClick = onOpenSearch) {
+                    Icon(
+                        Icons.Rounded.Search,
+                        contentDescription = "Search",
                         tint = KittyText,
                         modifier = Modifier.size(20.dp),
                     )

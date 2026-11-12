@@ -217,18 +217,22 @@ fun KittySectionHeading(
                 )
             }
         }
-        if (onMore != null) {
-            Text(
-                "›",
-                color = KittyFaint,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Light,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onMore)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        }
+        Text(
+            "›",
+            color = KittyFaint,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Light,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .then(
+                    if (onMore != null) {
+                        Modifier.clickable(onClick = onMore)
+                    } else {
+                        Modifier
+                    },
+                )
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        )
     }
 }
 
@@ -263,8 +267,7 @@ fun KittyPosterCard(
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(shape)
-                .background(KittySurface)
-                .border(1.dp, KittyOutlineSoft, shape),
+                .background(KittySurface),
         ) {
             AsyncImage(
                 model = anime.coverImageUrl,
@@ -272,45 +275,19 @@ fun KittyPosterCard(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.65f to Color.Transparent,
-                            1f to Color.Black.copy(alpha = 0.7f),
-                        ),
-                    ),
-            )
             anime.format?.takeIf { it.isNotBlank() }?.let { format ->
                 Text(
                     format.uppercase(),
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(7.dp)
+                        .padding(8.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(KittyAccentGlow)
+                        .background(KittyAccent)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelSmall,
                     color = KittyOnAccent,
                     fontWeight = FontWeight.Bold,
                     fontSize = 10.sp,
-                )
-            }
-            anime.averageScore?.let { score ->
-                Text(
-                    String.format("%.1f", score / 10f),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(KittyGlass)
-                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 6.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KittyText,
-                    fontWeight = FontWeight.Bold,
                 )
             }
         }
