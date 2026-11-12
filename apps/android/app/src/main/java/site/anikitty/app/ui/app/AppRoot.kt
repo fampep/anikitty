@@ -1,6 +1,8 @@
 package site.anikitty.app.ui.app
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,11 +56,14 @@ import site.anikitty.app.data.auth.SessionStore
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.servers.ServerCatalog
+import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.ui.theme.KittyOnAccent
+import site.anikitty.app.ui.theme.KittyOutlineSoft
+import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
-import site.anikitty.app.ui.theme.kittyGlass
 
 /**
  * Password-account gate → anime browse + on-device streams.
@@ -183,7 +188,7 @@ private fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "On your phone · glassy dark · by fampep",
+                "On your phone · black UI · by fampep",
                 style = MaterialTheme.typography.bodyMedium,
                 color = KittyMuted,
                 textAlign = TextAlign.Center,
@@ -194,7 +199,9 @@ private fun LoginScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .kittyGlass(KittyGlassShape)
+                    .clip(KittyGlassShape)
+                    .background(KittySurface)
+                    .border(1.dp, KittyOutlineSoft, KittyGlassShape)
                     .padding(18.dp),
             ) {
                 Text(

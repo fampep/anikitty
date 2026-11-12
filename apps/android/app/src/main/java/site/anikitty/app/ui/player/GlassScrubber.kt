@@ -211,20 +211,17 @@ fun GlassScrubber(
                 center = Offset(thumbX, cy),
             )
             drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White,
-                        Color.White.copy(alpha = 0.88f),
-                        PlayerChrome.Paper.copy(alpha = 0.92f),
-                    ),
-                    center = Offset(thumbX - thumbR * 0.2f, cy - thumbR * 0.25f),
-                    radius = thumbR * 1.2f,
-                ),
+                color = PlayerChrome.Progress,
                 radius = thumbR,
                 center = Offset(thumbX, cy),
             )
             drawCircle(
                 color = Color.White.copy(alpha = 0.55f),
+                radius = thumbR * 0.35f,
+                center = Offset(thumbX - thumbR * 0.18f, cy - thumbR * 0.18f),
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.35f),
                 radius = thumbR,
                 center = Offset(thumbX, cy),
                 style = Stroke(width = 1.2.dp.toPx()),

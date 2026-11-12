@@ -1261,11 +1261,6 @@ private fun NextEpisodePrompt(
             .shadow(16.dp, shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.45f))
             .clip(shape)
             .background(PlayerChrome.Sheet)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.10f), Color.Transparent, Color.Black.copy(alpha = 0.18f)),
-                ),
-            )
             .border(1.dp, PlayerChrome.SheetStroke, shape)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
@@ -1298,7 +1293,7 @@ private fun NextEpisodePrompt(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(PlayerChrome.Paper)
+                    .background(PlayerChrome.Accent)
                     .clickable(enabled = !busy, onClick = onPlayNow)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
@@ -1340,11 +1335,6 @@ private fun PlayerSheet(
             .shadow(18.dp, shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.5f))
             .clip(shape)
             .background(PlayerChrome.Sheet)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.10f), Color.Transparent, Color.Black.copy(alpha = 0.18f)),
-                ),
-            )
             .border(1.dp, PlayerChrome.SheetStroke, shape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1533,8 +1523,8 @@ private fun StyleSheet(
         onValueChange = { onChange(style.copy(sizeSp = it)) },
         valueRange = SUB_SIZE_SP_MIN..SUB_SIZE_SP_MAX,
         colors = SliderDefaults.colors(
-            thumbColor = PlayerChrome.Paper,
-            activeTrackColor = PlayerChrome.Paper,
+            thumbColor = PlayerChrome.Accent,
+            activeTrackColor = PlayerChrome.Accent,
             inactiveTrackColor = PlayerChrome.Faint,
         ),
         modifier = Modifier.fillMaxWidth(),
@@ -1559,8 +1549,8 @@ private fun StyleSheet(
         onValueChange = { onChange(style.copy(bottomPad = it)) },
         valueRange = SUB_BOTTOM_MIN..SUB_BOTTOM_MAX,
         colors = SliderDefaults.colors(
-            thumbColor = PlayerChrome.Paper,
-            activeTrackColor = PlayerChrome.Paper,
+            thumbColor = PlayerChrome.Accent,
+            activeTrackColor = PlayerChrome.Accent,
             inactiveTrackColor = PlayerChrome.Faint,
         ),
         modifier = Modifier.fillMaxWidth(),
@@ -1736,10 +1726,10 @@ private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(if (selected) PlayerChrome.Paper else Color.White.copy(alpha = 0.08f))
+            .background(if (selected) PlayerChrome.Accent else PlayerChrome.Disc)
             .border(
                 1.dp,
-                if (selected) PlayerChrome.Paper else Color.White.copy(alpha = 0.12f),
+                if (selected) PlayerChrome.Accent else PlayerChrome.DiscStroke,
                 RoundedCornerShape(6.dp),
             )
             .clickable(onClick = onClick)
@@ -1760,15 +1750,12 @@ private fun PlayerMetaPill(label: String, emphasized: Boolean = false) {
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(
-                if (emphasized) Color.Black.copy(alpha = 0.55f) else Color.Black.copy(alpha = 0.38f),
+            .background(if (emphasized) PlayerChrome.Accent.copy(alpha = 0.22f) else PlayerChrome.Disc)
+            .border(
+                1.dp,
+                if (emphasized) PlayerChrome.Accent.copy(alpha = 0.55f) else PlayerChrome.DiscStroke,
+                shape,
             )
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.12f), Color.Transparent),
-                ),
-            )
-            .border(1.dp, PlayerChrome.DiscStroke, shape)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(
@@ -1800,11 +1787,6 @@ private fun ChromeDisc(
             )
             .clip(CircleShape)
             .background(if (large) PlayerChrome.DiscLarge else PlayerChrome.Disc)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.16f), Color.Transparent, Color.Black.copy(alpha = 0.22f)),
-                ),
-            )
             .border(1.dp, PlayerChrome.DiscStroke, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },

@@ -54,13 +54,13 @@ object PlayerChrome {
     val Sheet = Color(0xEE141414)
     val SheetStroke = Color.White.copy(alpha = 0.14f)
     val RowSelected = Color.White.copy(alpha = 0.10f)
-    val Disc = Color(0xCC1A1A1A)
-    val DiscStroke = Color.White.copy(alpha = 0.20f)
-    val DiscLarge = Color(0xDD1A1A1A)
+    val Disc = Color(0xFF1A1A1A)
+    val DiscStroke = Color.White.copy(alpha = 0.18f)
+    val DiscLarge = Color(0xFF222222)
     val Accent = KittyAccent
     val Progress = KittyAccent
-    val ProgressGlow = KittyAccent.copy(alpha = 0.35f)
-    val TrackGlass = Color.White.copy(alpha = 0.14f)
+    val ProgressGlow = KittyAccent.copy(alpha = 0.40f)
+    val TrackGlass = Color.White.copy(alpha = 0.16f)
     val MarkerIntro = KittyAccentGlow.copy(alpha = 0.55f)
     val MarkerCredits = Paper.copy(alpha = 0.35f)
     val MarkerRecap = Paper.copy(alpha = 0.45f)

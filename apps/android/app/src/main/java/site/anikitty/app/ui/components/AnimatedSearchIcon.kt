@@ -95,7 +95,7 @@ fun AnimatedSearchIcon(
         if (active) {
             rotate(orbit, pivot = center) {
                 drawArc(
-                    color = Color.White.copy(alpha = 0.55f * sheen),
+                    color = tint.copy(alpha = 0.55f * sheen),
                     startAngle = -28f,
                     sweepAngle = 48f,
                     useCenter = false,
@@ -123,7 +123,7 @@ fun AnimatedSearchIcon(
         )
         // Soft tip sparkle.
         drawCircle(
-            color = Color.White.copy(alpha = if (active) 0.35f + sheen * 0.35f else 0.2f),
+            color = tint.copy(alpha = if (active) 0.45f + sheen * 0.35f else 0.25f),
             radius = stroke * 0.55f,
             center = handleEnd,
         )
