@@ -64,12 +64,23 @@ jobs:
           if-no-files-found: error
 
       - name: Attach to GitHub release
-        if: ${{ inputs.release_tag != '' }}
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.release_tag }}
+          INPUT_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
-          cd "$GITHUB_WORKSPACE/desktop-out"
-          gh release upload "$TAG" ./* --repo "${{ github.repository }}" --clobber
+          TAG="${INPUT_TAG:-}"
+          if [[ -z "$TAG" ]]; then
+            # Default: packageVersion from Gradle → vMAJOR.MINOR.PATCH
+            VER=$(grep -oE 'packageVersion[[:space:]]*=[[:space:]]*"[^"]+"' composeApp/build.gradle.kts | head -n1 | sed -E 's/.*"([^"]+)".*/\1/')
+            TAG="v${VER}"
+          fi
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            cd "$GITHUB_WORKSPACE/desktop-out"
+            gh release upload "$TAG" ./* --repo "${{ github.repository }}" --clobber
+            echo "Uploaded desktop Windows assets to $TAG"
+          else
+            echo "::warning::Release $TAG not found; skipping upload (artifacts still available on the run)"
+          fi
