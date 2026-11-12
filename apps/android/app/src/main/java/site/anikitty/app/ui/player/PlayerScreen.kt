@@ -1074,8 +1074,12 @@ fun PlayerScreen(
                     val scrubMs = if (scrubbing) (scrubValue * durationMs).toLong() else positionMs
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White.copy(alpha = 0.06f))
+                            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
+                            .padding(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         ChromeDisc(

@@ -843,11 +843,11 @@ private fun SearchFeed(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = KittyText,
                 unfocusedTextColor = KittyText,
-                cursorColor = KittyAccent,
-                focusedBorderColor = KittyAccent,
-                unfocusedBorderColor = KittyOutlineSoft,
-                focusedContainerColor = KittySurface,
-                unfocusedContainerColor = KittySurface,
+                cursorColor = KittyText,
+                focusedBorderColor = Color.White.copy(alpha = 0.28f),
+                unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+                focusedContainerColor = Color(0xFF0C0C10),
+                unfocusedContainerColor = Color(0xFF0C0C10),
             ),
             leadingIcon = {
                 AnimatedSearchIcon(
@@ -867,7 +867,7 @@ private fun SearchFeed(
                     }
                 }
             },
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
         )
         if (recent.isNotEmpty() && query.isBlank()) {
             Spacer(modifier = Modifier.height(10.dp))
@@ -2021,16 +2021,11 @@ private fun TitleDetailScreen(
                                 .padding(16.dp),
                         ) {
                             Text(
-                                "Overview",
-                                color = KittyText,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                "AniList is the catalog · extensions only stream",
-                                color = KittyFaint,
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(top = 2.dp),
+                                "Details",
+                                color = Color.White.copy(alpha = 0.45f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 1.2.sp,
                             )
                             if (detail.genres.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(12.dp))

@@ -826,13 +826,12 @@ fun KittyContinueCard(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(7.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(KittyAccent)
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = KittyOnAccent,
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.65f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    color = Color.White,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                 )
             }
             Column(
@@ -875,7 +874,7 @@ fun KittyContinueCard(
                     Text(
                         "${(progress * 100f).toInt()}% watched",
                         style = MaterialTheme.typography.labelSmall,
-                        color = KittyAccent,
+                        color = KittyMuted,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -901,18 +900,18 @@ fun KittyContinueCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .background(KittySurface)
-                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF0C0C10))
+                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                 .clickable(onClick = onClick)
-                .padding(10.dp),
+                .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .width(96.dp)
-                    .aspectRatio(16f / 9f)
-                    .clip(RoundedCornerShape(10.dp)),
+                    .width(56.dp)
+                    .aspectRatio(2f / 3f)
+                    .clip(RoundedCornerShape(8.dp)),
             ) {
                 AsyncImage(
                     model = coverUrl,
@@ -920,52 +919,39 @@ fun KittyContinueCard(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                 )
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .background(PlayerChrome.TrackGlass),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(progress)
-                            .fillMaxHeight()
-                            .background(KittyAccent),
-                    )
-                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = KittyText,
-                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
                 )
-                KittyMetaChips(
-                    items = listOfNotNull(
-                        badge?.takeIf { it.isNotBlank() },
-                        "Ep $episode",
-                        if (durationMs > 0L) "${(progress * 100f).toInt()}%" else null,
-                    ),
+                Text(
+                    listOfNotNull(badge?.takeIf { it.isNotBlank() }, "Episode $episode").joinToString(" · "),
+                    maxLines = 1,
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(top = 3.dp),
                 )
-            }
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(KittyAccent),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    tint = KittyOnAccent,
-                    modifier = Modifier.size(20.dp),
-                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White.copy(alpha = 0.12f)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progress)
+                            .fillMaxHeight()
+                            .background(Color.White),
+                    )
+                }
             }
         }
     }
