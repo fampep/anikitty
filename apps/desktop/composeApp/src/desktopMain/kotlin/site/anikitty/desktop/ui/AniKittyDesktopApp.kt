@@ -57,6 +57,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import kotlinx.coroutines.launch
+import site.anikitty.desktop.data.stream.AniPmDesktop
+import site.anikitty.desktop.data.stream.PlayableSource
+import site.anikitty.desktop.ui.player.DesktopPlayerScreen
 import site.anikitty.desktop.data.anilist.AniListDesktopClient
 import site.anikitty.desktop.data.anilist.AniListMedia
 import site.anikitty.desktop.data.server.ServerConfig
@@ -81,9 +84,35 @@ private enum class DesktopTab(val label: String) {
 @Composable
 fun AniKittyDesktopApp() {
     val anilist = remember { AniListDesktopClient() }
+    val anipm = remember { AniPmDesktop() }
+    val scope = rememberCoroutineScope()
     var tab by remember { mutableStateOf(DesktopTab.Home) }
     var selectedId by remember { mutableStateOf<Int?>(null) }
+    var playerTitle by remember { mutableStateOf<String?>(null) }
+    var playerEpisode by remember { mutableStateOf(1) }
+    var playerSources by remember { mutableStateOf<List<PlayableSource>>(emptyList()) }
+    var playStatus by remember { mutableStateOf<String?>(null) }
+    var playBusy by remember { mutableStateOf(false) }
 
+    fun playEpisode(mediaId: Int, title: String, episode: Int, titleHint: String?) {
+        scope.launch {
+            playBusy = true
+            playStatus = "Resolving Ani.pm…"
+            runCatching {
+                anipm.resolve(mediaId, episode, audio = "sub", titleHint = titleHint)
+            }.onSuccess { sources ->
+                playerTitle = title
+                playerEpisode = episode
+                playerSources = sources
+                playStatus = null
+            }.onFailure {
+                playStatus = it.message ?: "Resolve failed"
+            }
+            playBusy = false
+        }
+    }
+
+    Box(modifier = Mod.fillMaxSize()) {
     Row(
         modifier = Mod
             .fillMaxSize()
@@ -117,12 +146,36 @@ fun AniKittyDesktopApp() {
                     mediaId = selectedId!!,
                     onBack = { selectedId = null },
                     onOpenRelated = { selectedId = it },
+                    playStatus = playStatus,
+                    playBusy = playBusy,
+                    onPlayEpisode = { id, title, ep, hint -> playEpisode(id, title, ep, hint) },
                 )
                 tab == DesktopTab.Home -> HomeSurface(anilist, openDetail)
                 tab == DesktopTab.Search -> SearchSurface(anilist, openDetail)
                 tab == DesktopTab.Store -> StoreSurface()
                 tab == DesktopTab.Account -> AccountSurface()
             }
+        }
+    }
+
+        if (playerSources.isNotEmpty() && playerTitle != null) {
+            DesktopPlayerScreen(
+                title = playerTitle!!,
+                episode = playerEpisode,
+                sources = playerSources,
+                onClose = {
+                    playerSources = emptyList()
+                    playerTitle = null
+                },
+                onNextEpisode = {
+                    val next = playerEpisode + 1
+                    val id = selectedId
+                    val title = playerTitle
+                    if (id != null && title != null) {
+                        playEpisode(id, title, next, title)
+                    }
+                },
+            )
         }
     }
 }
@@ -299,6 +352,9 @@ private fun TitleDetailSurface(
     mediaId: Int,
     onBack: () -> Unit,
     onOpenRelated: (Int) -> Unit,
+    playStatus: String?,
+    playBusy: Boolean,
+    onPlayEpisode: (anilistId: Int, title: String, episode: Int, titleHint: String?) -> Unit,
 ) {
     var detail by remember(mediaId) { mutableStateOf<AniListMedia?>(null) }
     var status by remember(mediaId) { mutableStateOf<String?>(null) }
@@ -519,11 +575,19 @@ private fun TitleDetailSurface(
                     style = MaterialTheme.typography.titleSmall,
                 )
                 Text(
-                    text = "${episodes.size} from AniList",
+                    text = "${episodes.size} from AniList · tap to play via Ani.pm",
                     color = KittyFaint,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Mod.padding(top = 2.dp, bottom = 10.dp),
                 )
+                if (playStatus != null) {
+                    Text(
+                        text = playStatus,
+                        color = KittyAccentGlow,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Mod.padding(bottom = 8.dp),
+                    )
+                }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(episodes.take(40), key = { it.number }) { ep ->
                         Column(
@@ -532,6 +596,9 @@ private fun TitleDetailSurface(
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(KittySurface)
                                 .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
+                                .clickable(enabled = !playBusy) {
+                                    onPlayEpisode(media.id, media.title, ep.number, media.title)
+                                }
                                 .padding(8.dp),
                         ) {
                             AsyncImage(
