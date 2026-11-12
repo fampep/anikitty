@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import site.anikitty.app.ui.theme.KittyAccent
@@ -55,7 +56,7 @@ data class KittyNavTab(
     val selectedIcon: ImageVector,
 )
 
-/** Floating capsule nav — selected tab expands to icon + label pill. */
+/** Floating capsule nav — selected tab expands to icon + label; items share width. */
 @Composable
 fun KittyBottomNav(
     tabs: List<KittyNavTab>,
@@ -68,16 +69,16 @@ fun KittyBottomNav(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(start = 18.dp, end = 18.dp, top = 4.dp, bottom = 12.dp),
+            .padding(start = 12.dp, end = 12.dp, top = 4.dp, bottom = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             modifier = Modifier
-                .widthIn(max = 400.dp)
+                .widthIn(max = 420.dp)
                 .fillMaxWidth()
-                .height(64.dp)
+                .height(60.dp)
                 .shadow(
-                    elevation = 28.dp,
+                    elevation = 24.dp,
                     shape = bar,
                     clip = false,
                     ambientColor = Color.Black.copy(alpha = 0.55f),
@@ -86,9 +87,9 @@ fun KittyBottomNav(
                 .clip(bar)
                 .background(KittyNavPillSurface)
                 .border(1.dp, KittyNavPillBorder, bar)
-                .padding(horizontal = 8.dp, vertical = 8.dp),
+                .padding(horizontal = 4.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceEvenly,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             tabs.forEach { tab ->
                 val selected = tab.id == selectedId
@@ -99,6 +100,7 @@ fun KittyBottomNav(
                 )
                 Row(
                     modifier = Modifier
+                        .weight(1f)
                         .height(48.dp)
                         .clip(RoundedCornerShape(999.dp))
                         .background(if (selected) KittyAccent else Color.Transparent)
@@ -109,7 +111,7 @@ fun KittyBottomNav(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = ripple(bounded = true),
                         )
-                        .padding(horizontal = if (selected) 16.dp else 12.dp),
+                        .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                 ) {
@@ -117,20 +119,22 @@ fun KittyBottomNav(
                         imageVector = if (selected) tab.selectedIcon else tab.icon,
                         contentDescription = tab.label,
                         tint = fg,
-                        modifier = Modifier.size(22.dp),
+                        modifier = Modifier.size(20.dp),
                     )
                     AnimatedVisibility(
                         visible = selected,
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally(),
+                        enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
+                        exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start),
                     ) {
                         Text(
                             tab.label,
                             color = fg,
-                            fontSize = 14.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             maxLines = 1,
-                            modifier = Modifier.padding(start = 8.dp),
+                            softWrap = false,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(start = 4.dp),
                         )
                     }
                 }

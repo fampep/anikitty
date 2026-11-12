@@ -402,6 +402,7 @@ fun LocalFirstApp(
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
                     onOpenSearch = { tab = "search" },
+                    accountLabel = accountLabel,
                 )
                 "search" -> SearchFeed(
                     aniList = aniList,
@@ -462,7 +463,11 @@ private fun HomeFeed(
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onOpenSearch: () -> Unit,
+    accountLabel: String,
 ) {
+    val homeDisplayName = aniListAuth.username?.takeIf { it.isNotBlank() }
+        ?: accountLabel.takeIf { it.isNotBlank() }
+        ?: "Guest"
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -508,7 +513,7 @@ private fun HomeFeed(
                 LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
                     item {
                         HomeWelcomeHeader(
-                            displayName = aniListAuth.username ?: "Guest",
+                            displayName = homeDisplayName,
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
                             onOpenSearch = onOpenSearch,
@@ -526,7 +531,7 @@ private fun HomeFeed(
                         .fillMaxWidth(),
                 ) {
                     HomeWelcomeHeader(
-                        displayName = aniListAuth.username ?: "Guest",
+                        displayName = homeDisplayName,
                         onRefresh = { reload(fromPull = true) },
                         refreshBusy = catalogBusy,
                         onOpenSearch = onOpenSearch,
@@ -544,7 +549,7 @@ private fun HomeFeed(
                 LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
                     item {
                         HomeWelcomeHeader(
-                            displayName = aniListAuth.username ?: "Guest",
+                            displayName = homeDisplayName,
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
                             onOpenSearch = onOpenSearch,
