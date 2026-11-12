@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -219,10 +220,10 @@ fun KittyPosterCard(
     anime: AnimeSummary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    width: Dp = 118.dp,
+    width: Dp = 128.dp,
     subtitle: String? = null,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(16.dp)
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -352,12 +353,12 @@ fun KittyPosterRow(
     subtitleFor: ((AnimeSummary) -> String?)? = null,
 ) {
     if (items.isEmpty()) return
-    Column(modifier = Modifier.padding(top = 28.dp)) {
+    Column(modifier = Modifier.padding(top = 22.dp)) {
         KittySectionHeading(title = title, subtitle = subtitle)
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            contentPadding = PaddingValues(horizontal = 14.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(items, key = { it.id }) { anime ->
                 KittyPosterCard(
@@ -379,10 +380,11 @@ fun KittyHero(
     onMoreInfo: (() -> Unit)? = null,
     topOverlay: (@Composable () -> Unit)? = null,
 ) {
+    // Cinematic first viewport — denser art plane, soft edge dissolve into the page.
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(470.dp),
+            .height(540.dp),
     ) {
         AsyncImage(
             model = anime.bannerImageUrl ?: anime.coverImageUrl,
@@ -397,10 +399,10 @@ fun KittyHero(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0f to KittyInk.copy(alpha = 0.55f),
-                        0.2f to KittyInk.copy(alpha = 0.05f),
-                        0.55f to KittyInk.copy(alpha = 0.4f),
-                        0.82f to KittyInk.copy(alpha = 0.92f),
+                        0f to KittyInk.copy(alpha = 0.42f),
+                        0.18f to Color.Transparent,
+                        0.48f to KittyInk.copy(alpha = 0.28f),
+                        0.78f to KittyInk.copy(alpha = 0.88f),
                         1f to KittyInk,
                     ),
                 ),
@@ -410,9 +412,9 @@ fun KittyHero(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        0f to KittyInk.copy(alpha = 0.45f),
-                        0.55f to Color.Transparent,
-                        1f to Color.Transparent,
+                        0f to KittyInk.copy(alpha = 0.62f),
+                        0.42f to KittyInk.copy(alpha = 0.18f),
+                        0.78f to Color.Transparent,
                     ),
                 ),
         )
@@ -421,12 +423,12 @@ fun KittyHero(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(160.dp)
+                .height(180.dp)
                 .background(
                     Brush.verticalGradient(
                         listOf(
                             Color.Transparent,
-                            KittyAccentGlow.copy(alpha = 0.10f),
+                            KittyAccentGlow.copy(alpha = 0.12f),
                         ),
                     ),
                 ),
@@ -439,8 +441,8 @@ fun KittyHero(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .fillMaxWidth(0.94f)
-                .padding(horizontal = 20.dp, vertical = 28.dp),
+                .fillMaxWidth(0.96f)
+                .padding(horizontal = 18.dp, vertical = 26.dp),
         ) {
             Text(
                 eyebrow.uppercase(),
@@ -449,34 +451,49 @@ fun KittyHero(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.8.sp,
             )
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 anime.title,
-                style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp, lineHeight = 36.sp),
+                style = MaterialTheme.typography.displaySmall.copy(fontSize = 34.sp, lineHeight = 38.sp),
                 fontWeight = FontWeight.Black,
                 color = KittyText,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             val meta = listOfNotNull(
+                anime.averageScore?.let { "★ ${String.format("%.1f", it / 10f)}" },
                 anime.format,
                 anime.episodes?.let { "$it eps" },
-                anime.averageScore?.let { String.format("%.1f", it / 10f) },
             )
             if (meta.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
                 KittyMetaChips(items = meta)
             }
-            Spacer(modifier = Modifier.height(18.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            val blurb = anime.description?.trim()?.takeIf { it.isNotEmpty() }
+            if (!blurb.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    blurb,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = KittyMuted,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    lineHeight = 19.sp,
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Button(
                     onClick = onOpen,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = KittyAccent,
                         contentColor = KittyOnAccent,
                     ),
-                    shape = RoundedCornerShape(14.dp),
-                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                    shape = RoundedCornerShape(999.dp),
+                    contentPadding = PaddingValues(horizontal = 26.dp, vertical = 14.dp),
                 ) {
                     Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -485,15 +502,15 @@ fun KittyHero(
                 if (onMoreInfo != null) {
                     OutlinedButton(
                         onClick = onMoreInfo,
-                        shape = RoundedCornerShape(14.dp),
+                        shape = CircleShape,
                         border = BorderStroke(1.dp, KittyOutline),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyText),
-                        modifier = Modifier.kittyGlassSoft(RoundedCornerShape(14.dp)),
-                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+                        modifier = Modifier
+                            .size(48.dp)
+                            .kittyGlassSoft(CircleShape),
+                        contentPadding = PaddingValues(0.dp),
                     ) {
-                        Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Info", fontWeight = FontWeight.SemiBold)
+                        Icon(Icons.Outlined.Info, contentDescription = "Info", modifier = Modifier.size(20.dp))
                     }
                 }
             }

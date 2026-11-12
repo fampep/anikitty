@@ -321,8 +321,8 @@ private fun HomeScreen(
             val rest = if (items.size > 1) items.drop(1) else items
             LazyColumn(
                 modifier = Mod.fillMaxSize(),
-                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                contentPadding = PaddingValues(bottom = 32.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (featured != null) {
                     item(key = "hero-${featured.id}") {
@@ -335,7 +335,9 @@ private fun HomeScreen(
                 }
                 item(key = "trending-header") {
                     Row(
-                        modifier = Mod.fillMaxWidth().padding(top = 4.dp),
+                        modifier = Mod
+                            .fillMaxWidth()
+                            .padding(horizontal = 22.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         Column(modifier = Mod.weight(1f)) {
@@ -345,14 +347,14 @@ private fun HomeScreen(
                                 color = KittyText,
                             )
                             Text(
-                                text = "Live from AniList · tap a poster for overview",
+                                text = "AniList catalog · stream via extensions",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = KittyFaint,
                                 modifier = Mod.padding(top = 2.dp),
                             )
                         }
                         Text(
-                            text = "Search",
+                            text = "Browse search",
                             color = KittyAccentGlow,
                             fontWeight = FontWeight.SemiBold,
                             style = MaterialTheme.typography.labelMedium,
@@ -364,8 +366,24 @@ private fun HomeScreen(
                         )
                     }
                 }
-                item(key = "trending-grid") {
-                    PosterGrid(items = rest.ifEmpty { items }, onOpen = onOpen)
+                item(key = "trending-rail") {
+                    PosterRail(items = rest.ifEmpty { items }, onOpen = onOpen)
+                }
+                if (items.size > 8) {
+                    item(key = "popular-header") {
+                        Text(
+                            text = "More from AniList",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = KittyText,
+                            modifier = Mod.padding(horizontal = 22.dp, vertical = 8.dp),
+                        )
+                    }
+                    item(key = "popular-rail") {
+                        PosterRail(
+                            items = items.drop(1).reversed().take(18),
+                            onOpen = onOpen,
+                        )
+                    }
                 }
             }
         }
@@ -378,13 +396,11 @@ private fun FeaturedHero(
     onOpen: () -> Unit,
     onPlay: () -> Unit,
 ) {
+    // Edge-bleed cinematic hero — dissolves into the page like a streaming home.
     Box(
         modifier = Mod
             .fillMaxWidth()
-            .heightIn(min = 320.dp)
-            .height(380.dp)
-            .clip(KittyGlassShape)
-            .border(1.dp, KittyOutline, KittyGlassShape)
+            .height(460.dp)
             .clickable(onClick = onOpen),
     ) {
         AsyncImage(
@@ -398,11 +414,10 @@ private fun FeaturedHero(
                 .fillMaxSize()
                 .background(
                     Brush.horizontalGradient(
-                        listOf(
-                            Color.Black.copy(alpha = 0.82f),
-                            Color.Black.copy(alpha = 0.45f),
-                            Color.Black.copy(alpha = 0.15f),
-                        ),
+                        0f to Color.Black.copy(alpha = 0.88f),
+                        0.38f to Color.Black.copy(alpha = 0.45f),
+                        0.72f to Color.Black.copy(alpha = 0.12f),
+                        1f to Color.Transparent,
                     ),
                 ),
         )
@@ -411,88 +426,80 @@ private fun FeaturedHero(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.55f),
-                        ),
+                        0f to Color.Black.copy(alpha = 0.35f),
+                        0.35f to Color.Transparent,
+                        0.75f to Color.Black.copy(alpha = 0.55f),
+                        1f to Color.Black.copy(alpha = 0.92f),
                     ),
                 ),
         )
-        Row(
+        Column(
             modifier = Mod
                 .align(Alignment.BottomStart)
-                .fillMaxWidth()
-                .padding(28.dp),
-            verticalAlignment = Alignment.Bottom,
+                .fillMaxWidth(0.58f)
+                .padding(start = 28.dp, end = 20.dp, bottom = 36.dp),
         ) {
-            AsyncImage(
-                model = media.coverUrl,
-                contentDescription = media.title,
-                contentScale = ContentScale.Crop,
-                modifier = Mod
-                    .width(132.dp)
-                    .aspectRatio(2f / 3f)
-                    .clip(RoundedCornerShape(14.dp))
-                    .border(1.dp, KittyOutline, RoundedCornerShape(14.dp)),
+            Text(
+                text = "FEATURED",
+                color = KittyAccentGlow,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.6.sp,
             )
-            Spacer(Mod.width(22.dp))
-            Column(modifier = Mod.weight(1f)) {
+            Text(
+                text = media.title,
+                style = MaterialTheme.typography.displaySmall,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Mod.padding(top = 8.dp),
+            )
+            val meta = listOfNotNull(
+                media.averageScore?.let { "★ $it%" },
+                media.seasonLabel(),
+                media.format,
+                media.episodes?.let { "$it eps" },
+            )
+            if (meta.isNotEmpty()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Mod.padding(top = 12.dp),
+                ) {
+                    meta.forEach { MetaPill(it) }
+                }
+            }
+            media.description?.takeIf { it.isNotBlank() }?.let { blurb ->
                 Text(
-                    text = "Featured",
-                    color = KittyWarm,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = media.title,
-                    style = MaterialTheme.typography.displaySmall,
-                    color = Color.White,
+                    text = blurb,
+                    color = Color.White.copy(alpha = 0.72f),
+                    style = MaterialTheme.typography.bodyMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Mod.padding(top = 6.dp),
+                    modifier = Mod.padding(top = 12.dp),
                 )
-                val meta = listOfNotNull(
-                    media.seasonLabel(),
-                    media.format,
-                    media.episodes?.let { "$it eps" },
-                    media.averageScore?.let { "★ $it%" },
-                ).joinToString("  ·  ")
-                if (meta.isNotBlank()) {
-                    Text(
-                        text = meta,
-                        color = Color.White.copy(alpha = 0.75f),
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Mod.padding(top = 8.dp),
-                    )
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Mod.padding(top = 18.dp),
-                ) {
-                    PrimaryAction(
-                        label = "Play episode 1",
-                        icon = Icons.Rounded.PlayArrow,
-                        onClick = onPlay,
-                    )
-                    SecondaryAction(label = "Overview", onClick = onOpen)
-                }
+            }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Mod.padding(top = 20.dp),
+            ) {
+                PrimaryAction(
+                    label = "Play",
+                    icon = Icons.Rounded.PlayArrow,
+                    onClick = onPlay,
+                )
+                SecondaryAction(label = "Overview", onClick = onOpen)
             }
         }
     }
 }
 
 @Composable
-private fun PosterGrid(items: List<AniListMedia>, onOpen: (Int) -> Unit) {
-    // Nested grid height for LazyColumn: approximate rows.
-    val cols = 6
-    val rows = ((items.size + cols - 1) / cols).coerceAtLeast(1)
-    val gridHeight = (rows * 268).dp
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(148.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        userScrollEnabled = false,
-        modifier = Mod.fillMaxWidth().height(gridHeight),
+private fun PosterRail(items: List<AniListMedia>, onOpen: (Int) -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Mod.fillMaxWidth(),
     ) {
         items(items, key = { it.id }) { media ->
             PosterCard(media = media, onOpen = { onOpen(media.id) })
@@ -506,10 +513,12 @@ private fun PosterCard(media: AniListMedia, onOpen: () -> Unit) {
     val hovered by interaction.collectIsHoveredAsState()
     Column(
         modifier = Mod
+            .width(132.dp)
             .hoverable(interaction)
-            .kittyGlass(elevated = hovered)
+            .clip(RoundedCornerShape(16.dp))
+            .then(if (hovered) Mod.kittyGlass(elevated = true) else Mod)
             .clickable(onClick = onOpen)
-            .padding(8.dp),
+            .padding(6.dp),
     ) {
         Box {
             AsyncImage(
@@ -518,22 +527,23 @@ private fun PosterCard(media: AniListMedia, onOpen: () -> Unit) {
                 contentScale = ContentScale.Crop,
                 modifier = Mod
                     .fillMaxWidth()
-                    .height(196.dp)
-                    .clip(RoundedCornerShape(12.dp))
+                    .aspectRatio(2f / 3f)
+                    .clip(RoundedCornerShape(14.dp))
                     .background(KittySurfaceElevated),
             )
             media.averageScore?.let { score ->
                 Text(
-                    text = "$score%",
-                    color = KittyOnAccent,
+                    text = "★ $score%",
+                    color = KittyText,
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Mod
                         .align(Alignment.TopEnd)
-                        .padding(8.dp)
+                        .padding(7.dp)
                         .clip(KittyGlassShapePill)
-                        .background(KittyAccent)
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .border(1.dp, KittyOutline, KittyGlassShapePill)
+                        .padding(horizontal = 7.dp, vertical = 3.dp),
                 )
             }
         }
@@ -543,10 +553,13 @@ private fun PosterCard(media: AniListMedia, onOpen: () -> Unit) {
             fontWeight = FontWeight.SemiBold,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelMedium,
             modifier = Mod.padding(top = 8.dp),
         )
-        val meta = media.seasonLabel() ?: media.seasonYear?.toString().orEmpty()
+        val meta = listOfNotNull(
+            media.format,
+            media.episodes?.let { "$it eps" },
+        ).joinToString(" · ")
         if (meta.isNotBlank()) {
             Text(text = meta, color = KittyFaint, style = MaterialTheme.typography.labelSmall)
         }
