@@ -1891,7 +1891,7 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
         SubBgMode.Solid.name -> SubBgMode.Solid
         else -> if (prefs.getBoolean("sub_bg", true)) SubBgMode.Soft else SubBgMode.None
     }
-    // v3 resets prior oversized defaults to a compact streaming size the user can raise.
+    // v3 resets prior oversized size defaults once; position keeps the full slider range.
     val sizeSp = when {
         version >= SUB_STYLE_VERSION && prefs.contains("sub_size_sp") ->
             prefs.getFloat("sub_size_sp", DEFAULT_SUB_SIZE_SP)
@@ -1899,16 +1899,20 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
             prefs.getFloat("sub_size_sp", DEFAULT_SUB_SIZE_SP).coerceAtMost(14f)
         else -> DEFAULT_SUB_SIZE_SP
     }
-    val bottom = when {
-        version >= SUB_STYLE_VERSION && prefs.contains("sub_bottom") ->
-            prefs.getFloat("sub_bottom", DEFAULT_SUB_BOTTOM_PAD)
-        prefs.contains("sub_bottom") ->
-            prefs.getFloat("sub_bottom", DEFAULT_SUB_BOTTOM_PAD).coerceAtLeast(0.10f)
-        else -> DEFAULT_SUB_BOTTOM_PAD
+    // Persist Low→Top as saved. Only clamp to valid slider bounds — never rewrite Low up.
+    val rawBottom = if (prefs.contains("sub_bottom")) {
+        prefs.getFloat("sub_bottom", DEFAULT_SUB_BOTTOM_PAD)
+    } else {
+        DEFAULT_SUB_BOTTOM_PAD
+    }
+    val bottom = if (rawBottom.isFinite()) {
+        rawBottom.coerceIn(SUB_BOTTOM_MIN, SUB_BOTTOM_MAX)
+    } else {
+        DEFAULT_SUB_BOTTOM_PAD
     }
     return SubStyle(
         sizeSp = sizeSp.coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX),
-        bottomPad = bottom.coerceIn(SUB_BOTTOM_MIN, SUB_BOTTOM_MAX),
+        bottomPad = bottom,
         color = prefs.getInt("sub_color", AndroidColor.WHITE),
         bgMode = bgMode,
         edgeType = prefs.getInt("sub_edge", CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW),
