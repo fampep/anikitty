@@ -1568,38 +1568,6 @@ private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SkipMarkers(skipTimes: SkipTimes, durationMs: Long) {
-    val dur = durationMs.coerceAtLeast(1L).toFloat()
-    BoxWithConstraints(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(18.dp)
-            .padding(top = 10.dp),
-    ) {
-        val track = maxWidth
-        skipTimes.segments.forEach { (kind, iv) ->
-            val start = (iv.startMs / dur).coerceIn(0f, 1f)
-            val end = (iv.endMs / dur).coerceIn(0f, 1f)
-            val color = when (kind) {
-                "intro" -> PlayerChrome.MarkerIntro
-                "credits" -> PlayerChrome.MarkerCredits
-                "recap" -> PlayerChrome.MarkerRecap
-                else -> PlayerChrome.Faint
-            }
-            Box(
-                modifier = Modifier
-                    .offset(x = track * start)
-                    .width(track * (end - start).coerceAtLeast(0.012f))
-                    .height(3.dp)
-                    .align(Alignment.CenterStart)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(color.copy(alpha = 0.9f)),
-            )
-        }
-    }
-}
-
-@Composable
 private fun PlayerMetaPill(label: String, emphasized: Boolean = false) {
     val shape = RoundedCornerShape(999.dp)
     Box(
