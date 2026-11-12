@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -34,7 +33,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import site.anikitty.app.R
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
@@ -43,7 +41,6 @@ import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.auth.SavedPassphraseStore
 import site.anikitty.app.data.auth.SessionStore
 import site.anikitty.app.data.local.WatchHistoryDao
-import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAtmosphere
@@ -59,7 +56,6 @@ import site.anikitty.app.ui.theme.KittyText
  */
 @Composable
 fun AppRoot(
-    api: DedicatedApiClient,
     session: SessionStore,
     @Suppress("UNUSED_PARAMETER") savedPassphrase: SavedPassphraseStore,
     aniList: AniListClient,
@@ -73,7 +69,6 @@ fun AppRoot(
 ) {
     var signedIn by remember { mutableStateOf(aniListAuth.isLinked) }
     val showApp = signedIn || !pendingAniListToken.isNullOrBlank()
-    val scope = rememberCoroutineScope()
 
     if (!showApp) {
         LoginScreen(
@@ -87,20 +82,15 @@ fun AppRoot(
             aniListSync = aniListSync,
             historyDao = historyDao,
             streamServers = streamServers,
-            api = api,
             accountLabel = "@${aniListAuth.username ?: "anilist"}",
             pendingAniListToken = pendingAniListToken,
             pendingAniListError = pendingAniListError,
             onConsumedAniListToken = onConsumedAniListToken,
             onAniListReady = { signedIn = true },
             onSignOut = {
-                val token = session.token
                 session.clear()
                 aniListAuth.clear()
                 signedIn = false
-                if (!token.isNullOrBlank()) {
-                    scope.launch { runCatching { api.logout(token) } }
-                }
             },
         )
     }
@@ -162,7 +152,7 @@ private fun LoginScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Your watching list, completed shows, and profile come from AniList. No password.",
+                    "Your watching list, completed shows, and profile come from AniList. In the AniList app settings, set the redirect to anikitty://anilist.",
                     style = MaterialTheme.typography.bodySmall,
                     color = KittyMuted,
                 )
