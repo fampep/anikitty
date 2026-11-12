@@ -190,9 +190,6 @@ fun AniKittyDesktopApp() {
                         loading = catalogLoading,
                         error = catalogStatus,
                         onOpen = { selectedId = it },
-                        onPlayFeatured = { media ->
-                            playEpisode(media.id, media.title, 1, media.title)
-                        },
                         onBrowseSearch = { dest = AppDest.Search },
                     )
                     currentDest == AppDest.Search -> SearchScreen(
@@ -240,16 +237,20 @@ private fun AppTopBar(
     ) {
         Box(
             modifier = Mod
-                .size(44.dp)
+                .size(48.dp)
                 .clip(CircleShape)
-                .background(KittyAccentGlow.copy(alpha = 0.3f))
-                .border(1.dp, KittyOutline, CircleShape),
+                .background(KittyAccent),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.AccountCircle, null, tint = KittyAccent, modifier = Mod.size(26.dp))
+            Icon(Icons.Rounded.AccountCircle, null, tint = KittyOnAccent, modifier = Mod.size(28.dp))
         }
-        Column(modifier = Mod.padding(start = 12.dp, end = 20.dp)) {
-            Text("Welcome back", color = KittyAccentGlow, style = MaterialTheme.typography.labelMedium)
+        Column(modifier = Mod.padding(start = 12.dp, end = 22.dp)) {
+            Text(
+                "Welcome back",
+                color = KittyAccentGlow,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+            )
             Text(
                 "AniKitty",
                 style = MaterialTheme.typography.titleLarge,
@@ -302,7 +303,6 @@ private fun HomeScreen(
     loading: Boolean,
     error: String?,
     onOpen: (Int) -> Unit,
-    onPlayFeatured: (AniListMedia) -> Unit,
     onBrowseSearch: () -> Unit,
 ) {
     when {
@@ -342,7 +342,6 @@ private fun HomeScreen(
                         )
                     }
                 }
-                // Keep play-featured available via first card open → overview Play.
                 item(key = "hint") {
                     Text(
                         "Tip: open a title, then Play ep 1",
@@ -387,110 +386,6 @@ private fun SectionTitleRow(
             )
         } else {
             Text("›", color = KittyFaint, fontSize = 20.sp)
-        }
-    }
-}
-
-@Composable
-private fun FeaturedHero(
-    media: AniListMedia,
-    onOpen: () -> Unit,
-    onPlay: () -> Unit,
-) {
-    // Edge-bleed cinematic hero — dissolves into the page like a streaming home.
-    Box(
-        modifier = Mod
-            .fillMaxWidth()
-            .height(460.dp)
-            .clickable(onClick = onOpen),
-    ) {
-        AsyncImage(
-            model = media.bannerUrl ?: media.coverUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Mod.fillMaxSize(),
-        )
-        Box(
-            modifier = Mod
-                .fillMaxSize()
-                .background(
-                    Brush.horizontalGradient(
-                        0f to Color.Black.copy(alpha = 0.88f),
-                        0.38f to Color.Black.copy(alpha = 0.45f),
-                        0.72f to Color.Black.copy(alpha = 0.12f),
-                        1f to Color.Transparent,
-                    ),
-                ),
-        )
-        Box(
-            modifier = Mod
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Black.copy(alpha = 0.35f),
-                        0.35f to Color.Transparent,
-                        0.75f to Color.Black.copy(alpha = 0.55f),
-                        1f to Color.Black.copy(alpha = 0.92f),
-                    ),
-                ),
-        )
-        Column(
-            modifier = Mod
-                .align(Alignment.BottomStart)
-                .fillMaxWidth(0.58f)
-                .padding(start = 28.dp, end = 20.dp, bottom = 36.dp),
-        ) {
-            Text(
-                text = "FEATURED",
-                color = KittyAccentGlow,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.6.sp,
-            )
-            Text(
-                text = media.title,
-                style = MaterialTheme.typography.displaySmall,
-                color = Color.White,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Mod.padding(top = 8.dp),
-            )
-            val meta = listOfNotNull(
-                media.averageScore?.let { "★ $it%" },
-                media.seasonLabel(),
-                media.format,
-                media.episodes?.let { "$it eps" },
-            )
-            if (meta.isNotEmpty()) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Mod.padding(top = 12.dp),
-                ) {
-                    meta.forEach { MetaPill(it) }
-                }
-            }
-            media.description?.takeIf { it.isNotBlank() }?.let { blurb ->
-                Text(
-                    text = blurb,
-                    color = Color.White.copy(alpha = 0.72f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Mod.padding(top = 12.dp),
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Mod.padding(top = 20.dp),
-            ) {
-                PrimaryAction(
-                    label = "Play",
-                    icon = Icons.Rounded.PlayArrow,
-                    onClick = onPlay,
-                )
-                SecondaryAction(label = "Overview", onClick = onOpen)
-            }
         }
     }
 }

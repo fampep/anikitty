@@ -401,7 +401,7 @@ fun LocalFirstApp(
                     history = history,
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
-                    accountLabel = accountLabel,
+                    onOpenSearch = { tab = "search" },
                 )
                 "search" -> SearchFeed(
                     aniList = aniList,
@@ -461,7 +461,7 @@ private fun HomeFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
-    accountLabel: String,
+    onOpenSearch: () -> Unit,
 ) {
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
@@ -511,6 +511,7 @@ private fun HomeFeed(
                             displayName = aniListAuth.username ?: "Guest",
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
+                            onOpenSearch = onOpenSearch,
                         )
                     }
                     item { KittyPosterSkeletonRow("Trending Anime") }
@@ -528,6 +529,7 @@ private fun HomeFeed(
                         displayName = aniListAuth.username ?: "Guest",
                         onRefresh = { reload(fromPull = true) },
                         refreshBusy = catalogBusy,
+                        onOpenSearch = onOpenSearch,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                     KittyEmptyState(
@@ -545,12 +547,14 @@ private fun HomeFeed(
                             displayName = aniListAuth.username ?: "Guest",
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
+                            onOpenSearch = onOpenSearch,
                         )
                     }
                     item {
                         KittyPosterRow(
                             title = "Trending Anime",
                             items = trending,
+                            onMore = onOpenSearch,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
@@ -561,20 +565,21 @@ private fun HomeFeed(
                         KittyPosterRow(
                             title = "Most popular",
                             items = popular,
+                            onMore = onOpenSearch,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
                             },
                         )
                     }
-                    item {
-                        if (continueWatching.isNotEmpty()) {
-                            Column(modifier = Modifier.padding(top = 8.dp)) {
+                    if (continueWatching.isNotEmpty()) {
+                        item {
+                            Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
                                 KittySectionHeading(title = "Continue watching")
                                 Spacer(modifier = Modifier.height(12.dp))
                                 LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 16.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     lazyItems(continueWatching, key = { it.anilistId }) { entry ->
                                         KittyContinueCard(
@@ -609,6 +614,7 @@ private fun HomeFeed(
                         KittyPosterRow(
                             title = "Airing this season",
                             items = seasonal,
+                            onMore = onOpenSearch,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
@@ -626,26 +632,26 @@ private fun HomeWelcomeHeader(
     displayName: String,
     onRefresh: () -> Unit,
     refreshBusy: Boolean = false,
+    onOpenSearch: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(KittyAccentGlow.copy(alpha = 0.35f))
-                .border(1.dp, KittyOutline, CircleShape),
+                .background(KittyAccent),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Filled.Person,
                 contentDescription = null,
-                tint = KittyAccent,
+                tint = KittyOnAccent,
                 modifier = Modifier.size(26.dp),
             )
         }
@@ -658,7 +664,7 @@ private fun HomeWelcomeHeader(
                 "Welcome back",
                 color = KittyAccentGlow,
                 style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
             )
             Text(
                 displayName,
@@ -669,39 +675,35 @@ private fun HomeWelcomeHeader(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        KittyRoundIconButton(onClick = onRefresh) {
-            if (refreshBusy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = KittyAccentGlow,
-                )
-            } else {
-                Icon(
-                    Icons.Rounded.Refresh,
-                    contentDescription = "Refresh",
-                    tint = KittyText,
-                    modifier = Modifier.size(20.dp),
-                )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (onOpenSearch != null) {
+                KittyRoundIconButton(onClick = onOpenSearch) {
+                    Icon(
+                        Icons.Rounded.Search,
+                        contentDescription = "Search",
+                        tint = KittyText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+            KittyRoundIconButton(onClick = onRefresh) {
+                if (refreshBusy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = KittyAccentGlow,
+                    )
+                } else {
+                    Icon(
+                        Icons.Rounded.Refresh,
+                        contentDescription = "Refresh",
+                        tint = KittyText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
     }
-}
-
-@Composable
-private fun FloatingTopChrome(
-    accountLabel: String,
-    onRefresh: () -> Unit,
-    refreshBusy: Boolean = false,
-    compact: Boolean = false,
-    greeting: String? = null,
-) {
-    HomeWelcomeHeader(
-        displayName = greeting?.removePrefix("Hey ")?.removePrefix("@")
-            ?: accountLabel.ifBlank { "Guest" },
-        onRefresh = onRefresh,
-        refreshBusy = refreshBusy,
-    )
 }
 
 private fun listStatusBadge(status: String?): String? = when (status?.uppercase()) {

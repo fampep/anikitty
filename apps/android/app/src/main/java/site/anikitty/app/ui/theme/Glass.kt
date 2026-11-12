@@ -10,127 +10,64 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-val KittyGlassShape = RoundedCornerShape(18.dp)
+val KittyGlassShape = RoundedCornerShape(16.dp)
 val KittyGlassShapeTight = RoundedCornerShape(12.dp)
 val KittyGlassShapePill = RoundedCornerShape(999.dp)
 
-/** Mirror sheen — cool top edge highlight over frosted fill. */
-private val KittyMirrorSheen: Brush
-    get() = Brush.verticalGradient(
-        0f to Color.White.copy(alpha = 0.14f),
-        0.18f to Color.White.copy(alpha = 0.05f),
-        0.55f to Color.Transparent,
-        1f to Color.Black.copy(alpha = 0.18f),
-    )
-
-private val KittyMirrorEdge: Brush
-    get() = Brush.linearGradient(
-        colors = listOf(
-            Color.White.copy(alpha = 0.28f),
-            Color.White.copy(alpha = 0.08f),
-            KittyAccentGlow.copy(alpha = 0.12f),
-            Color.White.copy(alpha = 0.10f),
-        ),
-    )
-
-/** Frosted panel: translucent fill + hairline mirror border + soft depth. */
+/** Solid dark panel — no frosted sheen. */
 fun Modifier.kittyGlass(
     shape: Shape = KittyGlassShape,
     elevated: Boolean = false,
 ): Modifier = this
     .shadow(
-        elevation = if (elevated) 18.dp else 10.dp,
+        elevation = if (elevated) 12.dp else 6.dp,
         shape = shape,
         clip = false,
-        ambientColor = Color.Black.copy(alpha = 0.45f),
-        spotColor = KittyAccentGlow.copy(alpha = 0.12f),
+        ambientColor = Color.Black.copy(alpha = 0.55f),
+        spotColor = Color.Black.copy(alpha = 0.4f),
     )
     .clip(shape)
     .background(if (elevated) KittySurfaceElevated else KittySurface)
-    .background(KittyMirrorSheen)
-    .border(1.dp, KittyMirrorEdge, shape)
+    .border(1.dp, KittyOutlineSoft, shape)
 
 fun Modifier.kittyGlassSoft(shape: Shape = KittyGlassShape): Modifier = this
     .clip(shape)
     .background(KittyGlass)
-    .background(KittyMirrorSheen)
     .border(1.dp, KittyOutlineSoft, shape)
 
-/** Input field frost — slightly clearer than soft panels so text stays readable. */
 fun Modifier.kittyGlassField(shape: Shape = KittyGlassShapeTight): Modifier = this
     .clip(shape)
     .background(KittySurface)
-    .background(KittyMirrorSheen)
     .border(1.dp, KittyOutlineSoft, shape)
 
-/** Stronger frosted overlay — player discs, floating chrome. */
 fun Modifier.kittyGlassMirror(
     shape: Shape = KittyGlassShape,
-    elevation: Dp = 14.dp,
+    elevation: Dp = 10.dp,
 ): Modifier = this
     .shadow(
         elevation = elevation,
         shape = shape,
         clip = false,
         ambientColor = Color.Black.copy(alpha = 0.5f),
-        spotColor = KittyAccentGlow.copy(alpha = 0.18f),
+        spotColor = Color.Black.copy(alpha = 0.35f),
     )
     .clip(shape)
     .background(KittyGlassStrong)
-    .background(KittyMirrorSheen)
-    .border(1.dp, KittyMirrorEdge, shape)
+    .border(1.dp, KittyOutline, shape)
 
+/** Flat black page — no radial washes. */
 @Composable
 fun KittyAtmosphere(modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(KittyPageBrush),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            KittyAccentGlow.copy(alpha = 0.18f),
-                            Color.Transparent,
-                        ),
-                        radius = 1200f,
-                    ),
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.04f),
-                            Color.Transparent,
-                        ),
-                        radius = 900f,
-                    ),
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0f to Color.Transparent,
-                        0.55f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.42f),
-                    ),
-                ),
-        )
-    }
+            .background(KittyPage),
+    )
 }
 
 @Composable

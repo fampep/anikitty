@@ -12,61 +12,54 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * AniKitty glass dark — deep ink canvas, frosted panels, cool ice accent.
- * On-phone cinema: monochrome glass with a single cool highlight (not purple).
+ * AniKitty black UI — solid near-black canvas, hot pink accent, no haze.
  */
-val KittyInk = Color(0xFF05060A)
-val KittyPage = Color(0xFF07080F)
-val KittySurface = Color(0xB8141822) // frosted panel (~72% — more mirror)
-val KittySurfaceElevated = Color(0xD91A1F2C)
-val KittyGlass = Color(0x59101820) // lighter frost for overlays
-val KittyGlassStrong = Color(0xA31A2030)
-val KittyText = Color(0xFFF4F6FA)
-val KittyMuted = Color(0xFFB8C0D0)
-val KittyFaint = Color(0xFF7A8498)
-val KittyOutline = Color.White.copy(alpha = 0.18f)
-val KittyOutlineSoft = Color.White.copy(alpha = 0.10f)
+val KittyInk = Color(0xFF000000)
+val KittyPage = Color(0xFF000000)
+val KittySurface = Color(0xFF141414)
+val KittySurfaceElevated = Color(0xFF1C1C1C)
+val KittyGlass = Color(0xFF1A1A1A)
+val KittyGlassStrong = Color(0xFF222222)
+val KittyText = Color(0xFFFFFFFF)
+val KittyMuted = Color(0xFFB3B3B3)
+val KittyFaint = Color(0xFF8A8A8A)
+val KittyOutline = Color.White.copy(alpha = 0.12f)
+val KittyOutlineSoft = Color.White.copy(alpha = 0.08f)
 
-/** Cool ice highlight — CTAs stay paper-on-ink for contrast. */
-val KittyAccent = Color(0xFFE8EEF7)
-val KittyAccentGlow = Color(0xFF7EB6C9)
-val KittyOnAccent = Color(0xFF0A0C12)
+/** Hot pink accent — CTAs, badges, active nav. */
+val KittyAccent = Color(0xFFFF2D6A)
+val KittyAccentGlow = Color(0xFFFF4D82)
+val KittyOnAccent = Color(0xFFFFFFFF)
 
-val KittyNavPillSurface = Color(0xC20A0E16)
-val KittyNavPillBorder = Color.White.copy(alpha = 0.18f)
-val KittyNavPillSelected = Color(0xFFF0F3F8)
-val KittyNavPillSelectedContent = Color(0xFF0A0C12)
-val KittyNavPillContent = Color.White.copy(alpha = 0.48f)
+val KittyNavPillSurface = Color(0xEE0A0A0A)
+val KittyNavPillBorder = Color.White.copy(alpha = 0.14f)
+val KittyNavPillSelected = KittyAccent
+val KittyNavPillSelectedContent = Color(0xFFFFFFFF)
+val KittyNavPillContent = Color.White.copy(alpha = 0.55f)
 
-val KittyAmbientWash = Color(0xFF7EB6C9).copy(alpha = 0.14f)
+val KittyAmbientWash = Color.Transparent
 
-/** Page atmosphere — deeper cinema ink (ani.pm-class density, AniKitty ice wash). */
+/** Flat black page — no gradient atmosphere. */
 val KittyPageBrush: Brush
     get() = Brush.verticalGradient(
-        colors = listOf(
-            Color(0xFF0A101A),
-            KittyPage,
-            Color(0xFF03040A),
-        ),
+        colors = listOf(KittyPage, KittyPage),
     )
 
 object PlayerChrome {
     val Paper = Color(0xFFF5F7FA)
-    val Ink = Color(0xFF07080F)
+    val Ink = Color(0xFF000000)
     val Graphite = Paper.copy(alpha = 0.72f)
     val Faint = Paper.copy(alpha = 0.42f)
-    val Smoke = Color(0xCC05060A)
-    val Sheet = Color(0xCC141A24)
-    val SheetStroke = Color.White.copy(alpha = 0.20f)
-    val RowSelected = Color.White.copy(alpha = 0.12f)
-    /** Frosted disc — Plex-style floating control. */
-    val Disc = Color(0x59101820)
-    val DiscStroke = Color.White.copy(alpha = 0.28f)
-    val DiscLarge = Color(0x6E101820)
-    val Accent = Color(0xFFE8EEF7)
-    /** Active scrub track — warm Plex-like progress. */
-    val Progress = Color(0xFFE8C547)
-    val ProgressGlow = Color(0xFFE8C547).copy(alpha = 0.35f)
+    val Smoke = Color(0xCC000000)
+    val Sheet = Color(0xEE141414)
+    val SheetStroke = Color.White.copy(alpha = 0.14f)
+    val RowSelected = Color.White.copy(alpha = 0.10f)
+    val Disc = Color(0xCC1A1A1A)
+    val DiscStroke = Color.White.copy(alpha = 0.20f)
+    val DiscLarge = Color(0xDD1A1A1A)
+    val Accent = KittyAccent
+    val Progress = KittyAccent
+    val ProgressGlow = KittyAccent.copy(alpha = 0.35f)
     val TrackGlass = Color.White.copy(alpha = 0.14f)
     val MarkerIntro = KittyAccentGlow.copy(alpha = 0.55f)
     val MarkerCredits = Paper.copy(alpha = 0.35f)

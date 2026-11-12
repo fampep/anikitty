@@ -34,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -42,11 +41,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import site.anikitty.app.ui.theme.KittyAccent
-import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyNavPillBorder
 import site.anikitty.app.ui.theme.KittyNavPillContent
 import site.anikitty.app.ui.theme.KittyNavPillSurface
 import site.anikitty.app.ui.theme.KittyOnAccent
+import site.anikitty.app.ui.theme.KittyOutlineSoft
+import site.anikitty.app.ui.theme.KittySurfaceElevated
 
 data class KittyNavTab(
     val id: String,
@@ -80,20 +80,11 @@ fun KittyBottomNav(
                     elevation = 28.dp,
                     shape = bar,
                     clip = false,
-                    ambientColor = KittyAccentGlow.copy(alpha = 0.22f),
-                    spotColor = Color.Black.copy(alpha = 0.6f),
+                    ambientColor = Color.Black.copy(alpha = 0.55f),
+                    spotColor = Color.Black.copy(alpha = 0.7f),
                 )
                 .clip(bar)
                 .background(KittyNavPillSurface)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.12f),
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.28f),
-                        ),
-                    ),
-                )
                 .border(1.dp, KittyNavPillBorder, bar)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -158,13 +149,8 @@ fun KittyRoundIconButton(
         modifier = modifier
             .size(40.dp)
             .clip(CircleShape)
-            .background(KittyNavPillSurface)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.10f), Color.Transparent),
-                ),
-            )
-            .border(1.dp, KittyNavPillBorder, CircleShape)
+            .background(KittySurfaceElevated)
+            .border(1.dp, KittyOutlineSoft, CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
         content = { content() },
