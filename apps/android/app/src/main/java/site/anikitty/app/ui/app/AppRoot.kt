@@ -195,10 +195,10 @@ private fun LoginScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "On your phone · black + pink · by fampep",
+                "On your phone · by fampep",
                 style = MaterialTheme.typography.bodyMedium,
-                color = KittyAccentGlow,
-                fontWeight = FontWeight.SemiBold,
+                color = KittyMuted,
+                fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
             )
 

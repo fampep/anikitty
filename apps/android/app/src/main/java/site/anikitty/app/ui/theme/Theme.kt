@@ -13,8 +13,8 @@ import androidx.compose.ui.unit.sp
 
 /**
  * AniKitty canvas — black, white type, glass-gray surfaces.
- * Accent is paper white so CTAs and the player rail read like a monochrome cinema app.
- * Layout language is AniKitty's own Compose, matching a glass cinema reference the owner approved (MIT).
+ * Accent is paper white so CTAs and the player rail read as a monochrome cinema app.
+ * Original Compose. A public glass-cinema app was only a look reference; its repo has no license file, so none of that source is copied.
  */
 val KittyInk = Color(0xFF000000)
 val KittyPage = Color(0xFF000000)

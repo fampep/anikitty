@@ -102,8 +102,8 @@ fun KittyPageHeader(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = KittyAccentGlow,
-                    fontWeight = FontWeight.SemiBold,
+                    color = KittyMuted,
+                    fontWeight = FontWeight.Medium,
                 )
             }
         }
@@ -207,14 +207,6 @@ fun KittySectionHeading(
             .then(if (padded) Modifier.padding(horizontal = 16.dp) else Modifier),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .padding(end = 10.dp)
-                .width(3.dp)
-                .height(if (subtitle.isNullOrBlank()) 18.dp else 28.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(KittyAccent),
-        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 title,
