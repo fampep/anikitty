@@ -57,7 +57,10 @@ jobs:
             $Zip = Join-Path $Out "AniKitty-$Ver-windows-x64.zip"
             Compress-Archive -Path $AppDir.FullName -DestinationPath $Zip -Force
           }
+          # Only ship installer packages — not the ~500KB app-folder launcher stub
+          # (that stub needs the whole AniKitty/ directory; use the zip for portable runs).
           Get-ChildItem -Path "composeApp/build/compose/binaries" -Recurse -Include *.exe,*.msi -File |
+            Where-Object { $_.FullName -match '\\(exe|msi)\\' -or $_.Length -gt 5MB } |
             ForEach-Object { Copy-Item $_.FullName -Destination $Out -Force }
           Get-ChildItem $Out | Format-Table Name, Length
 
