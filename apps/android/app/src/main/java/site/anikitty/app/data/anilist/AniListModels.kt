@@ -54,6 +54,12 @@ data class AnimeRelation(
     }
 }
 
+data class AiringSlot(
+    val anime: AnimeSummary,
+    val episode: Int,
+    val airingAtEpochSec: Long,
+)
+
 data class AnimeSummary(
     val id: Int,
     val title: String,

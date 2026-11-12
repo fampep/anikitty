@@ -275,18 +275,121 @@ class AniListClient(
         )
 
     suspend fun search(query: String, page: Int = 1, perPage: Int = 24): List<AnimeSummary> =
-        queryMedia(
-            cacheKey = "search:${query.trim().lowercase()}:$page:$perPage",
+        browse(query = query, page = page, perPage = perPage, sort = "SEARCH_MATCH")
+
+    /**
+     * Catalog browse. Empty filters with a blank query is not useful; callers
+     * should pass a title or at least one filter.
+     */
+    suspend fun browse(
+        query: String = "",
+        format: String? = null,
+        status: String? = null,
+        season: String? = null,
+        genre: String? = null,
+        sort: String = "POPULARITY_DESC",
+        page: Int = 1,
+        perPage: Int = 24,
+    ): List<AnimeSummary> {
+        val args = mutableListOf("type: ANIME", "isAdult: false")
+        val decls = mutableListOf("\$page: Int", "\$perPage: Int", "\$sort: [MediaSort]")
+        val variables = mutableMapOf<String, Any>(
+            "page" to page,
+            "perPage" to perPage,
+            "sort" to listOf(sort),
+        )
+        val trimmed = query.trim()
+        if (trimmed.length >= 2) {
+            decls += "\$search: String"
+            args += "search: \$search"
+            variables["search"] = trimmed
+        }
+        format?.let {
+            decls += "\$format: MediaFormat"
+            args += "format: \$format"
+            variables["format"] = it
+        }
+        status?.let {
+            decls += "\$status: MediaStatus"
+            args += "status: \$status"
+            variables["status"] = it
+        }
+        season?.let {
+            decls += "\$season: MediaSeason"
+            args += "season: \$season"
+            variables["season"] = it
+        }
+        genre?.let {
+            decls += "\$genre: String"
+            args += "genre: \$genre"
+            variables["genre"] = it
+        }
+        val key = listOf(trimmed.lowercase(), format, status, season, genre, sort, page, perPage)
+            .joinToString("|")
+        return queryMedia(
+            cacheKey = "browse:$key",
             ttlMs = AniListCache.TTL_SEARCH_MS,
             graphql = """
-            query (${'$'}page: Int, ${'$'}perPage: Int, ${'$'}search: String) {
+            query (${decls.joinToString(", ")}) {
               Page(page: ${'$'}page, perPage: ${'$'}perPage) {
-                media(type: ANIME, search: ${'$'}search, sort: SEARCH_MATCH) { $mediaFields }
+                media(${args.joinToString(", ")}, sort: ${'$'}sort) { $mediaFields }
               }
             }
             """.trimIndent(),
-            variables = mapOf("page" to page, "perPage" to perPage, "search" to query),
+            variables = variables,
         )
+    }
+
+    /** Episodes airing between [fromSec] and [toSec] (unix seconds), soonest first. */
+    suspend fun airingSchedule(fromSec: Long, toSec: Long): List<AiringSlot> = withContext(Dispatchers.IO) {
+        val graphql = """
+            query (${'$'}page: Int, ${'$'}perPage: Int, ${'$'}from: Int, ${'$'}to: Int) {
+              Page(page: ${'$'}page, perPage: ${'$'}perPage) {
+                airingSchedules(airingAt_greater: ${'$'}from, airingAt_lesser: ${'$'}to, sort: TIME) {
+                  episode
+                  airingAt
+                  media { $mediaFields isAdult }
+                }
+              }
+            }
+        """.trimIndent()
+        val slots = mutableListOf<AiringSlot>()
+        for (page in 1..2) {
+            val payload = JSONObject()
+                .put("query", graphql)
+                .put(
+                    "variables",
+                    JSONObject()
+                        .put("page", page)
+                        .put("perPage", 50)
+                        .put("from", fromSec)
+                        .put("to", toSec),
+                )
+                .toString()
+            val body = execute(payload, accessToken = null)
+            val rows = JSONObject(body)
+                .optJSONObject("data")
+                ?.optJSONObject("Page")
+                ?.optJSONArray("airingSchedules")
+                ?: break
+            if (rows.length() == 0) break
+            for (i in 0 until rows.length()) {
+                val row = rows.optJSONObject(i) ?: continue
+                val media = row.optJSONObject("media") ?: continue
+                if (media.optBoolean("isAdult", false)) continue
+                val episode = row.optInt("episode", 0)
+                val airingAt = row.optLong("airingAt", 0L)
+                if (episode <= 0 || airingAt <= 0L) continue
+                slots += AiringSlot(
+                    anime = parseMedia(media),
+                    episode = episode,
+                    airingAtEpochSec = airingAt,
+                )
+            }
+            if (rows.length() < 50) break
+        }
+        slots.sortedBy { it.airingAtEpochSec }
+    }
 
     suspend fun media(id: Int): AnimeSummary? = withContext(Dispatchers.IO) {
         val cacheKey = "mediaDetail:v3:$id"

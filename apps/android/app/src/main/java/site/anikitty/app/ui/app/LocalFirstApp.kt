@@ -156,6 +156,7 @@ private sealed class Screen {
         val episode: Int,
         val sources: List<PlayableSource>,
     ) : Screen()
+    data object Schedule : Screen()
 }
 
 @Composable
@@ -363,6 +364,14 @@ fun LocalFirstApp(
             )
             return
         }
+        Screen.Schedule -> {
+            ScheduleFeed(
+                aniList = aniList,
+                onBack = { screen = Screen.Tabs },
+                onOpen = { openDetail(it) },
+            )
+            return
+        }
         is Screen.Detail -> {
             TitleDetailScreen(
                 anime = current.anime,
@@ -407,6 +416,7 @@ fun LocalFirstApp(
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
                     onOpenSearch = { tab = "search" },
+                    onOpenSchedule = { screen = Screen.Schedule },
                     onOpenAccount = { tab = "settings" },
                     accountLabel = accountLabel,
                 )
@@ -468,6 +478,7 @@ private fun HomeFeed(
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onOpenSearch: () -> Unit,
+    onOpenSchedule: () -> Unit,
     onOpenAccount: () -> Unit,
     accountLabel: String,
 ) {
@@ -716,7 +727,7 @@ private fun HomeFeed(
                         KittyPosterRow(
                             title = "Airing this season",
                             items = seasonal.forGenre(),
-                            onMore = onOpenSearch,
+                            onMore = onOpenSchedule,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
@@ -817,6 +828,10 @@ private fun SearchFeed(
     onOpen: (AnimeSummary) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
+    var format by remember { mutableStateOf<String?>(null) }
+    var airingStatus by remember { mutableStateOf<String?>(null) }
+    var season by remember { mutableStateOf<String?>(null) }
+    var genre by remember { mutableStateOf<String?>(null) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
@@ -836,10 +851,13 @@ private fun SearchFeed(
         recentRaw = next.joinToString("\u001f")
     }
 
+    fun filtersOn(): Boolean =
+        format != null || airingStatus != null || season != null || genre != null
+
     fun runSearch(raw: String) {
         val q = raw.trim()
         searchJob?.cancel()
-        if (q.length < 2) {
+        if (q.length < 2 && !filtersOn()) {
             items = emptyList()
             error = null
             loading = false
@@ -849,12 +867,19 @@ private fun SearchFeed(
             delay(350)
             loading = true
             error = null
-            runCatching { aniList.search(q) }
-                .onSuccess {
-                    items = it
-                    if (it.isNotEmpty()) rememberQuery(q)
-                }
-                .onFailure { error = it.message }
+            runCatching {
+                aniList.browse(
+                    query = q,
+                    format = format,
+                    status = airingStatus,
+                    season = season,
+                    genre = genre,
+                    sort = if (q.length >= 2) "SEARCH_MATCH" else "POPULARITY_DESC",
+                )
+            }.onSuccess {
+                items = it
+                if (q.length >= 2 && it.isNotEmpty()) rememberQuery(q)
+            }.onFailure { error = it.message }
             loading = false
         }
     }
@@ -914,6 +939,35 @@ private fun SearchFeed(
             },
             shape = RoundedCornerShape(12.dp),
         )
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            fun toggle(current: String?, value: String, assign: (String?) -> Unit) {
+                assign(if (current == value) null else value)
+                runSearch(query)
+            }
+            listOf("TV" to "TV", "MOVIE" to "Movie", "OVA" to "OVA").forEach { (value, label) ->
+                Chip(label, selected = format == value) { toggle(format, value) { format = it } }
+            }
+            listOf(
+                "RELEASING" to "Airing",
+                "FINISHED" to "Finished",
+                "NOT_YET_RELEASED" to "Upcoming",
+            ).forEach { (value, label) ->
+                Chip(label, selected = airingStatus == value) {
+                    toggle(airingStatus, value) { airingStatus = it }
+                }
+            }
+            listOf("WINTER", "SPRING", "SUMMER", "FALL").forEach { value ->
+                val label = value.lowercase().replaceFirstChar { it.titlecase() }
+                Chip(label, selected = season == value) { toggle(season, value) { season = it } }
+            }
+            listOf("Action", "Comedy", "Drama", "Fantasy", "Romance", "Slice of Life").forEach { value ->
+                Chip(value, selected = genre == value) { toggle(genre, value) { genre = it } }
+            }
+        }
         if (recent.isNotEmpty() && query.isBlank()) {
             Spacer(modifier = Modifier.height(10.dp))
             Text(
@@ -961,7 +1015,7 @@ private fun SearchFeed(
                     }
                 }
             }
-            query.trim().length >= 2 && items.isEmpty() && !loading -> {
+            (query.trim().length >= 2 || filtersOn()) && items.isEmpty() && !loading -> {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
