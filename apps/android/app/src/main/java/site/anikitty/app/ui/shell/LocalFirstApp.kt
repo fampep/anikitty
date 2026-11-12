@@ -748,7 +748,7 @@ private fun SearchFeed(
             "Search",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Black,
-            color = Color.White,
+            color = KittyText,
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
@@ -763,10 +763,12 @@ private fun SearchFeed(
                 query = it
                 runSearch(it)
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .kittyGlassSoft(RoundedCornerShape(16.dp)),
             singleLine = true,
             placeholder = { Text("Title, studio, or character") },
-            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+            leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = KittyMuted) },
             trailingIcon = {
                 if (query.isNotEmpty()) {
                     IconButton(
@@ -775,7 +777,7 @@ private fun SearchFeed(
                             runSearch("")
                         },
                     ) {
-                        Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+                        Icon(Icons.Rounded.Clear, contentDescription = "Clear search", tint = KittyMuted)
                     }
                 }
             },

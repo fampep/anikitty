@@ -63,6 +63,7 @@ import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
 import site.anikitty.app.ui.theme.kittyGlass
+import site.anikitty.app.ui.theme.kittyGlassSoft
 
 /**
  * Dedicated Extension Store page — browse/search curated listings, install from
@@ -189,14 +190,16 @@ fun ExtensionStoreFeed(
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(80) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .kittyGlassSoft(RoundedCornerShape(16.dp)),
                 singleLine = true,
                 placeholder = { Text("Search extensions") },
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = KittyMuted) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { query = "" }) {
-                            Icon(Icons.Rounded.Clear, contentDescription = "Clear search")
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear search", tint = KittyMuted)
                         }
                     }
                 },

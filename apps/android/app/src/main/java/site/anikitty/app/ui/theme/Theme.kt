@@ -51,17 +51,21 @@ val KittyPageBrush: Brush
     )
 
 object PlayerChrome {
-    val Paper = Color(0xFFF0F3F8)
+    val Paper = Color(0xFFF5F7FA)
     val Ink = Color(0xFF07080F)
-    val Graphite = Paper.copy(alpha = 0.62f)
-    val Faint = Paper.copy(alpha = 0.40f)
+    val Graphite = Paper.copy(alpha = 0.72f)
+    val Faint = Paper.copy(alpha = 0.42f)
     val Smoke = Color(0xCC05060A)
     val Sheet = Color(0xE6141822)
     val SheetStroke = Color.White.copy(alpha = 0.16f)
     val RowSelected = Color.White.copy(alpha = 0.12f)
-    val Disc = Color(0x99121822)
-    val DiscStroke = Color.White.copy(alpha = 0.18f)
+    /** Frosted disc — Plex-style floating control. */
+    val Disc = Color(0x66101820)
+    val DiscStroke = Color.White.copy(alpha = 0.22f)
+    val DiscLarge = Color(0x7A101820)
     val Accent = Color(0xFFE8EEF7)
+    /** Active scrub track — warm Plex-like progress. */
+    val Progress = Color(0xFFE8C547)
     val MarkerIntro = KittyAccentGlow.copy(alpha = 0.55f)
     val MarkerCredits = Paper.copy(alpha = 0.35f)
     val MarkerRecap = Paper.copy(alpha = 0.45f)
