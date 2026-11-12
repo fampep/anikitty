@@ -29,8 +29,8 @@ Rules:
 - `apiVersion` — must be `1` for current AniKitty builds.
 - `baseUrl` — HTTPS origin of your resolver (no trailing slash).
 - `resolvePath` — path joined to `baseUrl` (default `/v1/resolve`).
-- **`iconUrl` — required.** Must be the **brand/favicon of the site you scrape or front** (HTTPS). The Store shows this icon next to Anikoto and every listing.
-- `siteUrl` — recommended public origin of that site (attribution / “Site” button).
+- **`iconUrl` — required.** Must be the **brand/favicon of the site you scrape or front** (HTTPS). The Store shows this icon next to Anikoto and every listing. Install fails without it.
+- `siteUrl` — recommended public origin of that site (Store “Site” button + attribution).
 
 Validate against [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json).
 

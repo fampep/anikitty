@@ -42,13 +42,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ClosedCaption
-import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.FullscreenExit
-import androidx.compose.material.icons.rounded.Forward10
+import androidx.compose.material.icons.rounded.Forward30
 import androidx.compose.material.icons.rounded.Hd
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
@@ -630,7 +628,8 @@ fun PlayerScreen(
                     },
                     onDoubleTap = { offset ->
                         if (controlsLocked) return@detectTapGestures
-                        if (offset.x < size.width / 2f) seekBy(-10_000) else seekBy(10_000)
+                        // Plex-style: left −10s, right +30s
+                        if (offset.x < size.width / 2f) seekBy(-10_000) else seekBy(30_000)
                     },
                 )
             },
@@ -645,17 +644,17 @@ fun PlayerScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(72.dp)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.45f))
+                    .background(PlayerChrome.DiscLarge)
                     .border(1.dp, PlayerChrome.DiscStroke, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    if (seekFlashDir < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward10,
+                    if (seekFlashDir < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward30,
                     contentDescription = null,
                     tint = PlayerChrome.Paper,
-                    modifier = Modifier.size(28.dp),
+                    modifier = Modifier.size(30.dp),
                 )
             }
         }
@@ -784,25 +783,26 @@ fun PlayerScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
+                // Soft Plex-like vignettes — airy, not heavy bars.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(108.dp)
+                        .height(140.dp)
                         .align(Alignment.TopCenter)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Black.copy(alpha = 0.72f), Color.Transparent),
+                                listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent),
                             ),
                         ),
                 )
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(156.dp)
+                        .height(180.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.86f)),
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.62f)),
                             ),
                         ),
                 )
@@ -811,40 +811,57 @@ fun PlayerScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    ChromeDisc(onClick = onClose, size = 40.dp) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = PlayerChrome.Paper,
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            "EP $episode",
-                            color = PlayerChrome.Graphite,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                        )
                         Text(
                             title,
                             color = PlayerChrome.Paper,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "E$episode",
+                                color = PlayerChrome.Graphite,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                            if (durationMs > 0L) {
+                                Text(
+                                    "  ·  ${formatDurationMinutes(durationMs)}",
+                                    color = PlayerChrome.Graphite,
+                                    fontSize = 13.sp,
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(Color.Black.copy(alpha = 0.55f))
+                                    .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                            ) {
+                                Text(
+                                    shortQuality(qualityLabel),
+                                    color = PlayerChrome.Paper,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+                        }
                     }
+                    Spacer(modifier = Modifier.width(10.dp))
                     if (castHelper != null) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
                                 .clip(CircleShape)
-                                .background(Color.Black.copy(alpha = 0.45f))
+                                .background(PlayerChrome.Disc)
                                 .border(1.dp, PlayerChrome.DiscStroke, CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -860,18 +877,7 @@ fun PlayerScreen(
                         Icon(Icons.Rounded.Lock, contentDescription = "Lock controls", tint = PlayerChrome.Paper)
                     }
                     Spacer(modifier = Modifier.width(6.dp))
-                    ChromeDisc(onClick = {
-                        immersive = !immersive
-                        controlsVisible = true
-                    }, size = 40.dp) {
-                        Icon(
-                            if (immersive) Icons.Rounded.FullscreenExit else Icons.Rounded.Fullscreen,
-                            contentDescription = if (immersive) "Exit immersive" else "Fullscreen",
-                            tint = PlayerChrome.Paper,
-                        )
-                    }
                     if (onNextEpisode != null) {
-                        Spacer(modifier = Modifier.width(6.dp))
                         ChromeDisc(onClick = onNextEpisode, size = 40.dp) {
                             Icon(
                                 Icons.Rounded.SkipNext,
@@ -879,6 +885,14 @@ fun PlayerScreen(
                                 tint = PlayerChrome.Paper,
                             )
                         }
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    ChromeDisc(onClick = onClose, size = 40.dp) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = "Close",
+                            tint = PlayerChrome.Paper,
+                        )
                     }
                 }
 
@@ -886,33 +900,40 @@ fun PlayerScreen(
                     Row(
                         modifier = Modifier.align(Alignment.Center),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(22.dp),
+                        horizontalArrangement = Arrangement.spacedBy(28.dp),
                     ) {
-                        ChromeDisc(onClick = { seekBy(-10_000) }, size = 44.dp) {
-                            Icon(Icons.Rounded.Replay10, null, tint = PlayerChrome.Paper)
+                        ChromeDisc(onClick = { seekBy(-10_000) }, size = 64.dp, large = true) {
+                            Icon(
+                                Icons.Rounded.Replay10,
+                                contentDescription = "Back 10 seconds",
+                                tint = PlayerChrome.Paper,
+                                modifier = Modifier.size(30.dp),
+                            )
                         }
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(PlayerChrome.Paper)
-                                .clickable {
-                                    activePlayer?.let {
-                                        if (it.isPlaying) it.pause() else it.play()
-                                    }
-                                    controlsVisible = true
-                                },
-                            contentAlignment = Alignment.Center,
+                        ChromeDisc(
+                            onClick = {
+                                activePlayer?.let {
+                                    if (it.isPlaying) it.pause() else it.play()
+                                }
+                                controlsVisible = true
+                            },
+                            size = 76.dp,
+                            large = true,
                         ) {
                             Icon(
                                 if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                                 contentDescription = if (playing) "Pause" else "Play",
-                                tint = PlayerChrome.Ink,
-                                modifier = Modifier.size(34.dp),
+                                tint = PlayerChrome.Paper,
+                                modifier = Modifier.size(38.dp),
                             )
                         }
-                        ChromeDisc(onClick = { seekBy(10_000) }, size = 44.dp) {
-                            Icon(Icons.Rounded.Forward10, null, tint = PlayerChrome.Paper)
+                        ChromeDisc(onClick = { seekBy(30_000) }, size = 64.dp, large = true) {
+                            Icon(
+                                Icons.Rounded.Forward30,
+                                contentDescription = "Forward 30 seconds",
+                                tint = PlayerChrome.Paper,
+                                modifier = Modifier.size(30.dp),
+                            )
                         }
                     }
                 }
@@ -931,12 +952,12 @@ fun PlayerScreen(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .windowInsetsPadding(WindowInsets.navigationBars)
-                            .padding(end = 16.dp, bottom = 118.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.Black.copy(alpha = 0.78f))
-                            .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(12.dp))
+                            .padding(end = 18.dp, bottom = 108.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(PlayerChrome.DiscLarge)
+                            .border(1.dp, PlayerChrome.DiscStroke, RoundedCornerShape(14.dp))
                             .clickable { skipTo(iv.endMs) }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                     ) {
                         Column {
                             Text(
@@ -961,23 +982,105 @@ fun PlayerScreen(
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 18.dp, vertical = 14.dp),
                 ) {
                     val dur = durationMs.coerceAtLeast(1L).toFloat()
                     val progress = if (scrubbing) scrubValue else (positionMs / dur).coerceIn(0f, 1f)
+                    val scrubMs = if (scrubbing) (scrubValue * durationMs).toLong() else positionMs
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(formatClock(positionMs), color = PlayerChrome.Graphite, fontSize = 11.sp)
-                        Text(
-                            "−${formatClock((durationMs - positionMs).coerceAtLeast(0L))}",
-                            color = PlayerChrome.Graphite,
-                            fontSize = 11.sp,
-                        )
+                        ChromeDisc(
+                            onClick = {
+                                panel = if (panel == Panel.Quality) Panel.None else Panel.Quality
+                                controlsVisible = true
+                            },
+                            size = 40.dp,
+                        ) {
+                            Icon(
+                                Icons.Rounded.Hd,
+                                contentDescription = "Quality",
+                                tint = if (panel == Panel.Quality) PlayerChrome.Progress else PlayerChrome.Paper,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ChromeDisc(
+                            onClick = {
+                                panel = if (panel == Panel.Subs || panel == Panel.Style) {
+                                    Panel.None
+                                } else {
+                                    Panel.Subs
+                                }
+                                controlsVisible = true
+                            },
+                            size = 40.dp,
+                        ) {
+                            Icon(
+                                Icons.Rounded.ClosedCaption,
+                                contentDescription = "Subtitles",
+                                tint = if (panel == Panel.Subs || panel == Panel.Style) {
+                                    PlayerChrome.Progress
+                                } else {
+                                    PlayerChrome.Paper
+                                },
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ChromeDisc(
+                            onClick = {
+                                panel = if (panel == Panel.Speed) Panel.None else Panel.Speed
+                                controlsVisible = true
+                            },
+                            size = 40.dp,
+                        ) {
+                            Icon(
+                                Icons.Rounded.Speed,
+                                contentDescription = "Speed",
+                                tint = if (panel == Panel.Speed) PlayerChrome.Progress else PlayerChrome.Paper,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ChromeDisc(
+                            onClick = {
+                                panel = if (panel == Panel.Display) Panel.None else Panel.Display
+                                controlsVisible = true
+                            },
+                            size = 40.dp,
+                        ) {
+                            Icon(
+                                Icons.Rounded.Settings,
+                                contentDescription = "Display",
+                                tint = if (panel == Panel.Display) PlayerChrome.Progress else PlayerChrome.Paper,
+                            )
+                        }
                     }
-                    Box(modifier = Modifier.fillMaxWidth()) {
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                        if (scrubbing) {
+                            val bubbleX = (maxWidth * progress) - 28.dp
+                            Box(
+                                modifier = Modifier
+                                    .offset(
+                                        x = bubbleX.coerceIn(0.dp, (maxWidth - 56.dp).coerceAtLeast(0.dp)),
+                                        y = (-30).dp,
+                                    )
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(alpha = 0.82f))
+                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                            ) {
+                                Text(
+                                    formatClock(scrubMs),
+                                    color = PlayerChrome.Paper,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
                         if (durationMs > 0 && !skipTimes.isEmpty) {
                             SkipMarkers(skipTimes = skipTimes, durationMs = durationMs)
                         }
@@ -995,60 +1098,28 @@ fun PlayerScreen(
                             },
                             colors = SliderDefaults.colors(
                                 thumbColor = PlayerChrome.Paper,
-                                activeTrackColor = PlayerChrome.Paper,
-                                inactiveTrackColor = PlayerChrome.Faint,
+                                activeTrackColor = PlayerChrome.Progress,
+                                inactiveTrackColor = Color.White.copy(alpha = 0.28f),
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(28.dp),
+                                .height(26.dp),
                         )
                     }
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        ToolChip(
-                            icon = Icons.Rounded.Hd,
-                            label = shortQuality(qualityLabel),
-                            active = panel == Panel.Quality,
-                            onClick = {
-                                panel = if (panel == Panel.Quality) Panel.None else Panel.Quality
-                                controlsVisible = true
-                            },
+                        Text(
+                            formatClock(if (scrubbing) scrubMs else positionMs),
+                            color = PlayerChrome.Graphite,
+                            fontSize = 12.sp,
                         )
-                        ToolChip(
-                            icon = Icons.Rounded.ClosedCaption,
-                            label = if (!subsEnabled || selectedTextId == "off") "CC off" else subLabel.take(8),
-                            active = panel == Panel.Subs || panel == Panel.Style,
-                            onClick = {
-                                panel = if (panel == Panel.Subs || panel == Panel.Style) {
-                                    Panel.None
-                                } else {
-                                    Panel.Subs
-                                }
-                                controlsVisible = true
-                            },
-                        )
-                        ToolChip(
-                            icon = Icons.Rounded.Speed,
-                            label = speedLabel(playbackSpeed),
-                            active = panel == Panel.Speed,
-                            onClick = {
-                                panel = if (panel == Panel.Speed) Panel.None else Panel.Speed
-                                controlsVisible = true
-                            },
-                        )
-                        ToolChip(
-                            icon = Icons.Rounded.Settings,
-                            label = resizeLabel(resizeMode),
-                            active = panel == Panel.Display,
-                            onClick = {
-                                panel = if (panel == Panel.Display) Panel.None else Panel.Display
-                                controlsVisible = true
-                            },
+                        Text(
+                            "−${formatClock((durationMs - (if (scrubbing) scrubMs else positionMs)).coerceAtLeast(0L))}",
+                            color = PlayerChrome.Paper,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
                         )
                     }
                 }
@@ -1537,44 +1608,6 @@ private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ToolChip(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    active: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(if (active) PlayerChrome.Paper else Color.White.copy(alpha = 0.10f))
-            .border(
-                1.dp,
-                if (active) PlayerChrome.Paper else PlayerChrome.DiscStroke,
-                RoundedCornerShape(6.dp),
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = if (active) PlayerChrome.Ink else PlayerChrome.Paper,
-            modifier = Modifier.size(15.dp),
-        )
-        Text(
-            label,
-            color = if (active) PlayerChrome.Ink else PlayerChrome.Paper,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
 private fun SkipMarkers(skipTimes: SkipTimes, durationMs: Long) {
     val dur = durationMs.coerceAtLeast(1L).toFloat()
     BoxWithConstraints(
@@ -1610,13 +1643,14 @@ private fun SkipMarkers(skipTimes: SkipTimes, durationMs: Long) {
 private fun ChromeDisc(
     onClick: () -> Unit,
     size: androidx.compose.ui.unit.Dp = 40.dp,
+    large: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     Box(
         modifier = Modifier
             .size(size)
             .clip(CircleShape)
-            .background(PlayerChrome.Disc)
+            .background(if (large) PlayerChrome.DiscLarge else PlayerChrome.Disc)
             .border(1.dp, PlayerChrome.DiscStroke, CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -1958,6 +1992,11 @@ private fun formatClock(ms: Long): String {
     } else {
         String.format(Locale.US, "%d:%02d", m, s)
     }
+}
+
+private fun formatDurationMinutes(ms: Long): String {
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(ms.coerceAtLeast(0L)).coerceAtLeast(1L)
+    return if (minutes == 1L) "1 minute" else "$minutes minutes"
 }
 
 private const val DEFAULT_UA =

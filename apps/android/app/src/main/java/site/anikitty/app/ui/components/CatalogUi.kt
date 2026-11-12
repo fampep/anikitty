@@ -336,20 +336,21 @@ fun KittyHero(
                         containerColor = KittyAccent,
                         contentColor = KittyOnAccent,
                     ),
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
                 ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(22.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(cta, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(cta, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
                 if (onMoreInfo != null) {
                     OutlinedButton(
                         onClick = onMoreInfo,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         border = BorderStroke(1.dp, KittyOutline),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyText),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        modifier = Modifier.kittyGlassSoft(RoundedCornerShape(14.dp)),
+                        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
                     ) {
                         Icon(Icons.Outlined.Info, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))

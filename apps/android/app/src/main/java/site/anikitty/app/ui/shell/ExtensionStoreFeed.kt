@@ -2,7 +2,6 @@ package site.anikitty.app.ui.shell
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -22,10 +21,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -41,7 +42,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,6 +63,7 @@ import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
 import site.anikitty.app.ui.theme.kittyGlass
+import site.anikitty.app.ui.theme.kittyGlassSoft
 
 /**
  * Dedicated Extension Store page — browse/search curated listings, install from
@@ -91,7 +92,14 @@ fun ExtensionStoreFeed(
             runCatching { catalog.fetchStore() }
                 .onSuccess {
                     listings = it.extensions
-                    status = "Store · ${it.extensions.size} listed" +
+                    val from = when {
+                        it.sourceUrl?.contains("anikitty-extensions") == true ->
+                            "main store"
+                        it.sourceUrl?.contains("fampep/anikitty") == true ->
+                            "monorepo fallback"
+                        else -> "store"
+                    }
+                    status = "Store · ${it.extensions.size} listed · $from" +
                         (it.updatedAt?.let { d -> " · $d" } ?: "")
                 }
                 .onFailure { status = it.message }
@@ -101,15 +109,28 @@ fun ExtensionStoreFeed(
 
     LaunchedEffect(Unit) { refreshStore() }
 
-    val filtered = remember(listings, query) {
+    val activeServer = remember(selectedId, resolvers) {
+        resolvers.firstOrNull { it.server.id == selectedId }?.server
+            ?: resolvers.firstOrNull()?.server
+    }
+
+    val filtered = remember(listings, query, selectedId) {
         val q = query.trim()
-        if (q.isEmpty()) listings
-        else listings.filter { listing ->
-            listing.name.contains(q, ignoreCase = true) ||
-                listing.description.contains(q, ignoreCase = true) ||
-                listing.author.contains(q, ignoreCase = true) ||
-                listing.id.contains(q, ignoreCase = true)
+        val base = if (q.isEmpty()) {
+            listings
+        } else {
+            listings.filter { listing ->
+                listing.name.contains(q, ignoreCase = true) ||
+                    listing.description.contains(q, ignoreCase = true) ||
+                    listing.author.contains(q, ignoreCase = true) ||
+                    listing.id.contains(q, ignoreCase = true)
+            }
         }
+        base.sortedWith(
+            compareByDescending<StoreListing> { it.id == selectedId }
+                .thenByDescending { it.featured }
+                .thenBy { it.name.lowercase() },
+        )
     }
 
     LazyColumn(
@@ -135,14 +156,60 @@ fun ExtensionStoreFeed(
             )
         }
 
+        if (activeServer != null) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .kittyGlass(KittyGlassShape)
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ExtensionIcon(
+                        iconUrl = activeServer.iconUrl,
+                        contentDescription = activeServer.name,
+                        size = 40.dp,
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Active source",
+                            color = KittyFaint,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                        Text(
+                            activeServer.name,
+                            color = KittyText,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Text(
+                        "Selected",
+                        color = KittyAccentGlow,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
+
         item {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(80) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .kittyGlassSoft(RoundedCornerShape(16.dp)),
                 singleLine = true,
                 placeholder = { Text("Search extensions") },
-                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null) },
+                leadingIcon = { Icon(Icons.Rounded.Search, contentDescription = null, tint = KittyMuted) },
+                trailingIcon = {
+                    if (query.isNotEmpty()) {
+                        IconButton(onClick = { query = "" }) {
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear search", tint = KittyMuted)
+                        }
+                    }
+                },
                 shape = RoundedCornerShape(16.dp),
             )
         }
@@ -182,7 +249,7 @@ fun ExtensionStoreFeed(
                 }
             }
             Text(
-                "Submit opens the main fampep store submission form. You keep ownership of your extension.",
+                "Submit opens the fampep/anikitty-extensions issue form. You keep ownership of your extension.",
                 style = MaterialTheme.typography.labelSmall,
                 color = KittyFaint,
                 modifier = Modifier.padding(top = 6.dp),
@@ -223,12 +290,13 @@ fun ExtensionStoreFeed(
                         status = runCatching {
                             val m = catalog.installFromGithub(url)
                             catalog.select(m.id)
-                            "Installed ${m.name} (${m.version})"
+                            githubUrl = ""
+                            "Installed ${m.name} (${m.version}) · now active"
                         }.getOrElse { e -> e.message }
                         busy = false
                     }
                 },
-                enabled = !busy,
+                enabled = !busy && githubUrl.trim().length >= 3,
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = KittyAccent,
@@ -240,6 +308,12 @@ fun ExtensionStoreFeed(
                     fontWeight = FontWeight.Bold,
                 )
             }
+            Text(
+                "Manifest must include iconUrl (scraped-site favicon). See extensions/GUIDE.md.",
+                style = MaterialTheme.typography.labelSmall,
+                color = KittyFaint,
+                modifier = Modifier.padding(top = 6.dp),
+            )
         }
 
         item {
@@ -259,25 +333,46 @@ fun ExtensionStoreFeed(
                         .padding(16.dp),
                 ) {
                     Text(
-                        if (listings.isEmpty()) "Store empty or offline — try Refresh."
-                        else "No extensions match “$query”.",
+                        if (listings.isEmpty()) {
+                            "Store empty or offline"
+                        } else {
+                            "No extensions match “$query”"
+                        },
+                        color = KittyText,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        if (listings.isEmpty()) {
+                            "Pull Refresh, or paste a GitHub URL below. Main store: fampep/anikitty-extensions."
+                        } else {
+                            "Clear search or try another keyword."
+                        },
                         color = KittyMuted,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
         }
 
         lazyItems(filtered, key = { "store-${it.id}" }) { listing ->
-            val bundled = listing.id == AnikotoServer.ID ||
-                resolvers.any { it.server.id == listing.id && installedExt.none { e -> e.id == listing.id } }
-            val already = installedExt.any { it.id == listing.id } ||
-                (listing.id == AnikotoServer.ID)
+            val isAnikoto = listing.id == AnikotoServer.ID
+            val installed = isAnikoto || installedExt.any { it.id == listing.id }
+            val onDevice = resolvers.any { it.server.id == listing.id }
+            val selected = selectedId == listing.id
             val icon = listing.iconUrl
                 ?: resolvers.firstOrNull { it.server.id == listing.id }?.server?.iconUrl
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .kittyGlass(KittyGlassShape)
+                    .then(
+                        if (selected) {
+                            Modifier.border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), KittyGlassShape)
+                        } else {
+                            Modifier
+                        },
+                    )
                     .padding(16.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -319,6 +414,10 @@ fun ExtensionStoreFeed(
                                     if (isNotEmpty()) append(" · ")
                                     append(it.removePrefix("https://").removePrefix("http://"))
                                 }
+                                if (icon.isNullOrBlank()) {
+                                    if (isNotEmpty()) append(" · ")
+                                    append("missing site icon")
+                                }
                             },
                             style = MaterialTheme.typography.labelSmall,
                             color = KittyFaint,
@@ -326,61 +425,96 @@ fun ExtensionStoreFeed(
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Button(
                         onClick = {
-                            if (bundled || listing.id == AnikotoServer.ID) {
-                                catalog.select(listing.id)
-                                status = "Selected ${listing.name}"
-                                return@Button
-                            }
-                            scope.launch {
-                                busy = true
-                                status = runCatching {
-                                    val m = catalog.installStoreListing(
-                                        listing.github,
-                                        listing.manifestPath,
-                                    )
-                                    catalog.select(m.id)
-                                    "Installed ${m.name}"
-                                }.getOrElse { e -> e.message }
-                                busy = false
+                            when {
+                                onDevice || isAnikoto -> {
+                                    catalog.select(listing.id)
+                                    status = "Selected ${listing.name}"
+                                }
+                                else -> scope.launch {
+                                    busy = true
+                                    status = runCatching {
+                                        val m = catalog.installStoreListing(
+                                            listing.github,
+                                            listing.manifestPath,
+                                        )
+                                        catalog.select(m.id)
+                                        "Installed ${m.name}"
+                                    }.getOrElse { e -> e.message }
+                                    busy = false
+                                }
                             }
                         },
-                        enabled = !busy && !(already && !bundled),
+                        enabled = !busy,
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = when {
-                                already && !bundled -> KittySurfaceElevated
-                                else -> KittyAccent
-                            },
-                            contentColor = when {
-                                already && !bundled -> KittyText
-                                else -> KittyOnAccent
-                            },
+                            containerColor = if (selected) KittySurfaceElevated else KittyAccent,
+                            contentColor = if (selected) KittyText else KittyOnAccent,
                         ),
                     ) {
                         Text(
                             when {
-                                listing.id == AnikotoServer.ID -> if (selectedId == listing.id) "Selected" else "Use"
-                                already && !bundled -> "Installed"
-                                bundled -> if (selectedId == listing.id) "Selected" else "Use"
+                                selected -> "Selected"
+                                onDevice || isAnikoto -> "Use"
                                 else -> "Install"
                             },
                             fontWeight = FontWeight.Bold,
                         )
                     }
+                    if (listing.siteUrl != null) {
+                        TextButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(listing.siteUrl)),
+                                )
+                            },
+                        ) {
+                            Text("Site", color = KittyMuted, fontSize = 12.sp)
+                        }
+                    }
                     TextButton(
                         onClick = {
-                            val url = listing.siteUrl ?: listing.github
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse(listing.github)),
+                            )
                         },
                     ) {
-                        Text(
-                            if (listing.siteUrl != null) "Site" else "GitHub",
-                            color = KittyMuted,
-                            fontSize = 12.sp,
-                        )
+                        Text("GitHub", color = KittyMuted, fontSize = 12.sp)
+                    }
+                    if (installed && !isAnikoto) {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    busy = true
+                                    status = runCatching {
+                                        val m = catalog.installStoreListing(
+                                            listing.github,
+                                            listing.manifestPath,
+                                        )
+                                        catalog.select(m.id)
+                                        "Updated ${m.name} (${m.version})"
+                                    }.getOrElse { e -> e.message }
+                                    busy = false
+                                }
+                            },
+                            enabled = !busy,
+                        ) {
+                            Text("Update", color = KittyMuted, fontSize = 12.sp)
+                        }
+                        TextButton(
+                            onClick = {
+                                catalog.uninstallExtension(listing.id)
+                                status = "Removed ${listing.name}"
+                            },
+                            enabled = !busy,
+                        ) {
+                            Text("Uninstall", color = KittyFaint, fontSize = 12.sp)
+                        }
                     }
                 }
             }
@@ -396,16 +530,16 @@ fun ExtensionStoreFeed(
         lazyItems(resolvers.map { it.server }, key = { "inst-${it.id}" }) { server ->
             val selected = server.id == selectedId
             val isExtension = installedExt.any { it.id == server.id }
-            val shape = RoundedCornerShape(14.dp)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(shape)
-                    .background(KittySurfaceElevated.copy(alpha = 0.55f))
-                    .border(
-                        width = if (selected) 1.dp else 0.dp,
-                        color = if (selected) KittyOutline else androidx.compose.ui.graphics.Color.Transparent,
-                        shape = shape,
+                    .kittyGlass(KittyGlassShape)
+                    .then(
+                        if (selected) {
+                            Modifier.border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), KittyGlassShape)
+                        } else {
+                            Modifier
+                        },
                     )
                     .clickable { catalog.select(server.id) }
                     .padding(14.dp),
@@ -424,9 +558,20 @@ fun ExtensionStoreFeed(
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            if (isExtension) "Extension" else "Bundled",
-                            color = KittyFaint,
+                            buildString {
+                                append(if (isExtension) "Extension" else "Bundled")
+                                if (selected) append(" · active")
+                            },
+                            color = if (selected) KittyAccentGlow else KittyFaint,
                             style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    if (selected) {
+                        Text(
+                            "Selected",
+                            color = KittyAccentGlow,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
                         )
                     }
                 }

@@ -41,7 +41,9 @@ fun ExtensionIcon(
             AsyncImage(
                 model = iconUrl,
                 contentDescription = contentDescription,
-                modifier = Modifier.size(size),
+                modifier = Modifier
+                    .size(size)
+                    .clip(shape),
                 contentScale = ContentScale.Crop,
             )
         } else {
@@ -49,7 +51,7 @@ fun ExtensionIcon(
                 Icons.Outlined.Extension,
                 contentDescription = contentDescription,
                 tint = KittyFaint,
-                modifier = Modifier.size(size * 0.55f),
+                modifier = Modifier.size(size * 0.48f),
             )
         }
     }

@@ -6,14 +6,16 @@
 > Third-party extensions are **community-run** — gladly contributed, not operated or controlled by the app owner.  
 > Read [DISCLAIMER.md](./DISCLAIMER.md) before installing or publishing anything.
 
-## Intended public GitHub
+## Public GitHub
 
 | Repo | Role |
 |---|---|
 | [`fampep/anikitty`](https://github.com/fampep/anikitty) | Android app + dedicated auth server |
-| **`fampep/anikitty-extensions`** (this tree) | Spec, guide, store index, examples |
+| [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) | Spec, guide, store index, examples (live) |
 
-Until the dedicated public repo exists, this folder in the monorepo is the source of truth. Maintainer publish steps: [`../docs/public-github-setup.md`](../docs/public-github-setup.md).
+This `extensions/` folder in the monorepo mirrors the public repo. In-app Store prefers  
+`https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`.  
+Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup.md).
 
 ## License & ownership
 

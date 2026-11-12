@@ -11,7 +11,7 @@ class ExtensionStoreClient(
         var last: String? = null
         for (url in indexUrls) {
             val result = runCatching {
-                parseIndex(ExtensionHttp.getString(url))
+                parseIndex(ExtensionHttp.getString(url), sourceUrl = url)
             }
             if (result.isSuccess) return@withContext result.getOrThrow()
             last = result.exceptionOrNull()?.message
@@ -19,7 +19,7 @@ class ExtensionStoreClient(
         error(last ?: "Could not load extension store")
     }
 
-    private fun parseIndex(raw: String): StoreIndex {
+    private fun parseIndex(raw: String, sourceUrl: String): StoreIndex {
         val o = JSONObject(raw)
         val arr = o.getJSONArray("extensions")
         val list = buildList {
@@ -45,6 +45,7 @@ class ExtensionStoreClient(
             apiVersion = o.optInt("apiVersion", 1),
             updatedAt = o.optString("updatedAt", null)?.takeIf { it.isNotBlank() },
             extensions = list,
+            sourceUrl = sourceUrl,
         )
     }
 
