@@ -21,8 +21,8 @@ android {
         applicationId = "site.anikitty.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22
-        versionName = "1.1.8"
+        versionCode = 23
+        versionName = "1.1.9"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Public AniList API client id (not a secret). Create at anilist.co/settings/developer
         // with redirect URI anikitty://anilist — or leave blank and paste a token in-app.
@@ -30,6 +30,13 @@ android {
             ?: System.getenv("ANILIST_CLIENT_ID")
             ?: ""
         buildConfigField("String", "ANILIST_CLIENT_ID", "\"${anilistClientId.replace("\"", "")}\"")
+        // Optional TMDB v3 API key for Fribb-mapped episode stills (Plex-style rail).
+        // Set gradle property tmdbApiKey, env TMDB_API_KEY, or leave blank to keep
+        // AniList streaming thumbs / cover fallbacks only.
+        val tmdbApiKey = (project.findProperty("tmdbApiKey") as String?)
+            ?: System.getenv("TMDB_API_KEY")
+            ?: ""
+        buildConfigField("String", "TMDB_API_KEY", "\"${tmdbApiKey.replace("\"", "").replace("\\", "")}\"")
     }
 
     signingConfigs {

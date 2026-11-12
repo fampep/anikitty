@@ -98,6 +98,7 @@ import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeEpisodeItem
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.data.fribb.EpisodeThumbResolver
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
 import site.anikitty.app.data.local.touchFromCatalog
@@ -1630,10 +1631,19 @@ private fun TitleDetailScreen(
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
-    val episodeList = remember(detail) { detail.episodeItems() }
+    var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
     val maxEp = episodeList.size.coerceAtLeast(1)
     val seasonTabs = remember(detail) { detail.seasonEntries() }
     val episodeListState = rememberLazyListState()
+    val thumbResolver = remember { EpisodeThumbResolver(context) }
+
+    LaunchedEffect(detail) {
+        val base = detail.episodeItems()
+        episodeList = base
+        // Fribb → TMDB/IMDb stills for placeholder cover thumbs (no-op without TMDB key).
+        runCatching { thumbResolver.enrich(detail.id, base) }
+            .onSuccess { enriched -> if (enriched != base) episodeList = enriched }
+    }
 
     LaunchedEffect(anime.id, initialEpisode) {
         detail = anime
