@@ -27,7 +27,7 @@ class AniListSync(
         for (entry in entries) {
             val media = entry.media
             val existing = historyDao.get(media.id)
-            val episode = entry.progress.coerceAtLeast(1)
+            val episode = entry.progress.coerceAtLeast(0)
             // Prefer local in-episode scrub position when same episode; otherwise take AniList episode.
             val keepLocalPosition =
                 existing != null &&

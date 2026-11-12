@@ -24,7 +24,7 @@ export DATABASE_URL='file:./data/anikitty.db?_fk=1&_journal_mode=WAL'
 # AniList code exchange. Copy anilist.env.example and set the secret only on the server.
 export ANILIST_CLIENT_ID=56768
 export ANILIST_CLIENT_SECRET='paste-the-secret-on-the-server'
-export ANILIST_REDIRECT_URI='http://198.50.123.153:8788/api/v1/anilist/callback'
+export ANILIST_REDIRECT_URI='http://143.246.203.212:8788/api/v1/anilist/callback'
 ```
 
 ## API
@@ -41,4 +41,4 @@ export ANILIST_REDIRECT_URI='http://198.50.123.153:8788/api/v1/anilist/callback'
 | PUT | `/api/v1/history` | Bearer |
 | DELETE | `/api/v1/history/{anilistId}` | Bearer |
 
-Production deploy currently serves the APK default at `http://198.50.123.153:8788` (`systemd --user` unit `anikitty.service`). Override in the app login field if needed. Prefer HTTPS behind a reverse proxy when you harden the host.
+Production deploy currently serves the APK default at `http://143.246.203.212:8788` (`systemd --user` unit `anikitty.service`). Override in the app login field if needed. Prefer HTTPS behind a reverse proxy when you harden the host.

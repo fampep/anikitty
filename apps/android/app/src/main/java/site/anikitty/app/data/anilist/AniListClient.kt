@@ -80,7 +80,18 @@ class AniListClient(
               Viewer {
                 id
                 name
+                about
                 avatar { large }
+                bannerImage
+                statistics {
+                  anime {
+                    count
+                    episodesWatched
+                    minutesWatched
+                    meanScore
+                    statuses { status count }
+                  }
+                }
               }
             }
         """.trimIndent()
@@ -88,10 +99,33 @@ class AniListClient(
         val body = execute(payload, accessToken)
         val viewer = JSONObject(body).optJSONObject("data")?.optJSONObject("Viewer")
             ?: return@withContext null
+        val animeStats = viewer.optJSONObject("statistics")?.optJSONObject("anime")
+        val statuses = animeStats?.optJSONArray("statuses")
+        fun statusCount(name: String): Int {
+            if (statuses == null) return 0
+            for (i in 0 until statuses.length()) {
+                val row = statuses.optJSONObject(i) ?: continue
+                if (row.optString("status").equals(name, ignoreCase = true)) {
+                    return row.optInt("count")
+                }
+            }
+            return 0
+        }
         AniListViewer(
             id = viewer.getInt("id"),
             name = viewer.optString("name").ifBlank { "AniList" },
             avatarUrl = viewer.optJSONObject("avatar")?.nullableString("large"),
+            bannerUrl = viewer.nullableString("bannerImage"),
+            about = viewer.nullableString("about"),
+            animeCount = animeStats?.optInt("count") ?: 0,
+            episodesWatched = animeStats?.optInt("episodesWatched") ?: 0,
+            minutesWatched = animeStats?.optInt("minutesWatched") ?: 0,
+            meanScore = animeStats?.optDouble("meanScore", 0.0)?.takeIf { it.isFinite() } ?: 0.0,
+            watching = statusCount("CURRENT"),
+            completed = statusCount("COMPLETED"),
+            planning = statusCount("PLANNING"),
+            paused = statusCount("PAUSED"),
+            dropped = statusCount("DROPPED"),
         )
     }
 

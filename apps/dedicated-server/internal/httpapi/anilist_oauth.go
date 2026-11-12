@@ -68,7 +68,7 @@ func exchangeAniListCode(ctx context.Context, code string) (string, error) {
 	}
 	redirectURI := strings.TrimSpace(os.Getenv("ANILIST_REDIRECT_URI"))
 	if redirectURI == "" {
-		redirectURI = "http://198.50.123.153:8788/api/v1/anilist/callback"
+		redirectURI = "http://143.246.203.212:8788/api/v1/anilist/callback"
 	}
 	payload, err := json.Marshal(map[string]string{
 		"grant_type":    "authorization_code",
