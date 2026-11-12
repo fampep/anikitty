@@ -1487,7 +1487,7 @@ private fun SettingsFeed(
         item {
             KittySectionHeading(
                 title = "Stream source",
-                subtitle = "Active resolver on this phone · browse more in Store",
+                subtitle = "Anikoto · Gotaku · Ani.pm ship in the APK · browse more in Store",
                 padded = false,
             )
             Spacer(modifier = Modifier.height(8.dp))
