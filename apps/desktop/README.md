@@ -73,16 +73,12 @@ apps/desktop/
 
 Shared KMP extraction with Android is planned next (theme, AniList models, scrapers) once the desktop shell stabilizes.
 
-## Status (AP-54)
+## Status (AP-65)
 
-Runnable surface (AP-54 / AP-55):
+Real desktop app surface (not a sparse shell):
 
-- Glass dark AniKitty chrome (rail + Home / Search / Store / Account)
-- Live AniList trending + search grids
-- Title **Overview** (tap a poster): synopsis, genres, AniList season chips (PREQUEL/SEQUEL only), episode rail, related
-- **Glass player** (AniKitty custom chrome + GlassScrubber): tap an episode → Ani.pm Settlar resolve → system **FFmpeg** decode (not VLC)
+- Atmospheric glass chrome with top nav + **Featured** hero home
+- Trending poster grid + hover cards; Search with debounce
+- Title overview: cinematic hero, Play CTA, seasons, episode rail, related
+- Glass player (FFmpeg + Ani.pm) · Store / Account as first-class screens
 - Requires `ffmpeg` / `ffprobe` on PATH
-- AniList is the sole catalog source; Store providers are stream links only
-- Account shows dedicated auth server URL (sign-in UI next)
-
-Merged to `main` via #45. Package with `./gradlew :composeApp:packageUberJarForCurrentOS` (portable) or `packageDistributionForCurrentOS` (native installer for this OS).

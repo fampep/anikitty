@@ -12,27 +12,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
 /**
- * AniKitty glass dark — mirrored from the Android app so desktop stays on-brand.
+ * AniKitty glass dark — desktop companion to the Android chrome.
  * Deep ink canvas, frosted panels, cool ice accent (not purple).
  */
 val KittyInk = Color(0xFF05060A)
 val KittyPage = Color(0xFF07080F)
 val KittySurface = Color(0xB8141822)
 val KittySurfaceElevated = Color(0xD91A1F2C)
+val KittyGlass = Color(0x59101820)
+val KittyGlassStrong = Color(0xA31A2030)
 val KittyText = Color(0xFFF4F6FA)
 val KittyMuted = Color(0xFFB8C0D0)
 val KittyFaint = Color(0xFF7A8498)
 val KittyOutline = Color.White.copy(alpha = 0.18f)
+val KittyOutlineSoft = Color.White.copy(alpha = 0.10f)
 val KittyAccent = Color(0xFFE8EEF7)
 val KittyAccentGlow = Color(0xFF7EB6C9)
 val KittyOnAccent = Color(0xFF0A0C12)
+val KittyWarm = Color(0xFFE8C9A0)
 
 val KittyPageBrush: Brush
     get() = Brush.verticalGradient(
         colors = listOf(
-            Color(0xFF0E1622),
+            Color(0xFF101A28),
             KittyPage,
-            Color(0xFF05060A),
+            Color(0xFF04050A),
         ),
     )
 
@@ -54,9 +58,16 @@ private val KittyTypography = Typography(
     displaySmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Black,
-        fontSize = 36.sp,
-        letterSpacing = (-0.8).sp,
-        lineHeight = 40.sp,
+        fontSize = 34.sp,
+        letterSpacing = (-1.0).sp,
+        lineHeight = 38.sp,
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Black,
+        fontSize = 28.sp,
+        letterSpacing = (-0.6).sp,
+        lineHeight = 32.sp,
     ),
     headlineSmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
@@ -75,17 +86,35 @@ private val KittyTypography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 17.sp,
     ),
+    titleSmall = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Bold,
+        fontSize = 15.sp,
+        letterSpacing = (-0.2).sp,
+    ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
-        lineHeight = 20.sp,
+        lineHeight = 21.sp,
+    ),
+    bodySmall = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 17.sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp,
+        letterSpacing = 0.2.sp,
     ),
     labelSmall = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
-        letterSpacing = 0.2.sp,
+        letterSpacing = 0.25.sp,
     ),
 )
 

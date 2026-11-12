@@ -1,9 +1,18 @@
 package site.anikitty.desktop.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,15 +24,18 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -31,6 +43,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -50,49 +63,79 @@ import androidx.compose.ui.Modifier as Mod
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import site.anikitty.desktop.data.stream.AniPmDesktop
-import site.anikitty.desktop.data.stream.PlayableSource
-import site.anikitty.desktop.ui.player.DesktopPlayerScreen
 import site.anikitty.desktop.data.anilist.AniListDesktopClient
 import site.anikitty.desktop.data.anilist.AniListMedia
 import site.anikitty.desktop.data.server.ServerConfig
+import site.anikitty.desktop.data.stream.AniPmDesktop
+import site.anikitty.desktop.data.stream.PlayableSource
+import site.anikitty.desktop.ui.player.DesktopPlayerScreen
 import site.anikitty.desktop.ui.theme.KittyAccent
 import site.anikitty.desktop.ui.theme.KittyAccentGlow
+import site.anikitty.desktop.ui.theme.KittyAtmosphere
 import site.anikitty.desktop.ui.theme.KittyFaint
+import site.anikitty.desktop.ui.theme.KittyGlassShape
+import site.anikitty.desktop.ui.theme.KittyGlassShapePill
+import site.anikitty.desktop.ui.theme.KittyGlassShapeTight
 import site.anikitty.desktop.ui.theme.KittyMuted
 import site.anikitty.desktop.ui.theme.KittyOnAccent
 import site.anikitty.desktop.ui.theme.KittyOutline
-import site.anikitty.desktop.ui.theme.KittyPageBrush
 import site.anikitty.desktop.ui.theme.KittySurface
 import site.anikitty.desktop.ui.theme.KittySurfaceElevated
 import site.anikitty.desktop.ui.theme.KittyText
+import site.anikitty.desktop.ui.theme.KittyWarm
+import site.anikitty.desktop.ui.theme.kittyGlass
+import site.anikitty.desktop.ui.theme.kittyGlassField
+import site.anikitty.desktop.ui.theme.kittyGlassSoft
 
-private enum class DesktopTab(val label: String) {
-    Home("Home"),
-    Search("Search"),
-    Store("Store"),
-    Account("Account"),
+private enum class AppDest(val label: String, val icon: ImageVector) {
+    Home("Home", Icons.Rounded.Home),
+    Search("Search", Icons.Rounded.Search),
+    Store("Store", Icons.Rounded.Extension),
+    Account("Account", Icons.Rounded.AccountCircle),
 }
 
+/**
+ * Full AniKitty desktop app — cinematic glass catalog, not a sparse shell.
+ */
 @Composable
 fun AniKittyDesktopApp() {
     val anilist = remember { AniListDesktopClient() }
     val anipm = remember { AniPmDesktop() }
     val scope = rememberCoroutineScope()
-    var tab by remember { mutableStateOf(DesktopTab.Home) }
+
+    var dest by remember { mutableStateOf(AppDest.Home) }
     var selectedId by remember { mutableStateOf<Int?>(null) }
     var playerTitle by remember { mutableStateOf<String?>(null) }
     var playerEpisode by remember { mutableStateOf(1) }
     var playerSources by remember { mutableStateOf<List<PlayableSource>>(emptyList()) }
     var playStatus by remember { mutableStateOf<String?>(null) }
     var playBusy by remember { mutableStateOf(false) }
+
+    // Shared catalog cache so Home → Detail → Home feels like one app.
+    var trending by remember { mutableStateOf<List<AniListMedia>>(emptyList()) }
+    var catalogStatus by remember { mutableStateOf<String?>(null) }
+    var catalogLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        catalogLoading = true
+        runCatching { anilist.trending(perPage = 30) }
+            .onSuccess {
+                trending = it
+                catalogStatus = null
+            }
+            .onFailure { catalogStatus = it.message ?: "Couldn’t load AniList" }
+        catalogLoading = false
+    }
 
     fun playEpisode(mediaId: Int, title: String, episode: Int, titleHint: String?) {
         scope.launch {
@@ -113,50 +156,54 @@ fun AniKittyDesktopApp() {
     }
 
     Box(modifier = Mod.fillMaxSize()) {
-    Row(
-        modifier = Mod
-            .fillMaxSize()
-            .background(KittyPageBrush),
-    ) {
-        if (selectedId == null) {
-            DesktopRail(
-                selected = tab,
-                onSelect = { tab = it },
-                railModifier = Mod
-                    .fillMaxHeight()
-                    .width(220.dp)
-                    .padding(16.dp),
-            )
-        }
-        Box(
-            modifier = Mod
-                .weight(1f)
-                .fillMaxHeight()
-                .padding(
-                    top = 20.dp,
-                    start = if (selectedId == null) 0.dp else 24.dp,
-                    end = 24.dp,
-                    bottom = 24.dp,
-                ),
-        ) {
-            val openDetail: (Int) -> Unit = { selectedId = it }
-            when {
-                selectedId != null -> TitleDetailSurface(
-                    anilist = anilist,
-                    mediaId = selectedId!!,
-                    onBack = { selectedId = null },
-                    onOpenRelated = { selectedId = it },
-                    playStatus = playStatus,
-                    playBusy = playBusy,
-                    onPlayEpisode = { id, title, ep, hint -> playEpisode(id, title, ep, hint) },
+        KittyAtmosphere()
+
+        Column(modifier = Mod.fillMaxSize()) {
+            if (selectedId == null) {
+                AppTopBar(
+                    dest = dest,
+                    onDest = { dest = it },
                 )
-                tab == DesktopTab.Home -> HomeSurface(anilist, openDetail)
-                tab == DesktopTab.Search -> SearchSurface(anilist, openDetail)
-                tab == DesktopTab.Store -> StoreSurface()
-                tab == DesktopTab.Account -> AccountSurface()
+            }
+
+            AnimatedContent(
+                targetState = selectedId to dest,
+                transitionSpec = {
+                    (fadeIn() + slideInHorizontally { it / 24 }) togetherWith
+                        (fadeOut() + slideOutHorizontally { -it / 24 })
+                },
+                modifier = Mod.weight(1f).fillMaxWidth(),
+                label = "app-route",
+            ) { (detailId, currentDest) ->
+                when {
+                    detailId != null -> TitleOverview(
+                        anilist = anilist,
+                        mediaId = detailId,
+                        playStatus = playStatus,
+                        playBusy = playBusy,
+                        onBack = { selectedId = null },
+                        onOpenRelated = { selectedId = it },
+                        onPlayEpisode = { id, title, ep, hint -> playEpisode(id, title, ep, hint) },
+                    )
+                    currentDest == AppDest.Home -> HomeScreen(
+                        items = trending,
+                        loading = catalogLoading,
+                        error = catalogStatus,
+                        onOpen = { selectedId = it },
+                        onPlayFeatured = { media ->
+                            playEpisode(media.id, media.title, 1, media.title)
+                        },
+                        onBrowseSearch = { dest = AppDest.Search },
+                    )
+                    currentDest == AppDest.Search -> SearchScreen(
+                        anilist = anilist,
+                        onOpen = { selectedId = it },
+                    )
+                    currentDest == AppDest.Store -> StoreScreen()
+                    currentDest == AppDest.Account -> AccountScreen()
+                }
             }
         }
-    }
 
         if (playerSources.isNotEmpty() && playerTitle != null) {
             DesktopPlayerScreen(
@@ -181,179 +228,429 @@ fun AniKittyDesktopApp() {
 }
 
 @Composable
-private fun DesktopRail(
-    selected: DesktopTab,
-    onSelect: (DesktopTab) -> Unit,
-    railModifier: Mod = Mod,
+private fun AppTopBar(
+    dest: AppDest,
+    onDest: (AppDest) -> Unit,
 ) {
+    Row(
+        modifier = Mod
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 14.dp)
+            .kittyGlass(elevated = true)
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Mod.padding(end = 20.dp)) {
+            Text(
+                text = "AniKitty",
+                style = MaterialTheme.typography.headlineMedium,
+                color = KittyText,
+            )
+            Text(
+                text = "Watch · AniList catalog",
+                style = MaterialTheme.typography.labelSmall,
+                color = KittyAccentGlow,
+            )
+        }
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Mod.weight(1f),
+        ) {
+            AppDest.entries.forEach { item ->
+                val active = item == dest
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Mod
+                        .clip(KittyGlassShapePill)
+                        .background(if (active) KittySurfaceElevated else Color.Transparent)
+                        .border(
+                            width = if (active) 1.dp else 0.dp,
+                            color = if (active) KittyAccentGlow.copy(alpha = 0.5f) else Color.Transparent,
+                            shape = KittyGlassShapePill,
+                        )
+                        .clickable { onDest(item) }
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                ) {
+                    Icon(
+                        item.icon,
+                        contentDescription = item.label,
+                        tint = if (active) KittyAccentGlow else KittyFaint,
+                        modifier = Mod.size(18.dp),
+                    )
+                    Spacer(Mod.width(8.dp))
+                    Text(
+                        text = item.label,
+                        color = if (active) KittyText else KittyMuted,
+                        fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = "FFmpeg · Ani.pm",
+            style = MaterialTheme.typography.labelSmall,
+            color = KittyFaint,
+        )
+    }
+}
+
+@Composable
+private fun HomeScreen(
+    items: List<AniListMedia>,
+    loading: Boolean,
+    error: String?,
+    onOpen: (Int) -> Unit,
+    onPlayFeatured: (AniListMedia) -> Unit,
+    onBrowseSearch: () -> Unit,
+) {
+    when {
+        loading && items.isEmpty() -> Box(Mod.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = KittyAccentGlow)
+        }
+        error != null && items.isEmpty() -> Box(Mod.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("Couldn’t load catalog", color = KittyText, fontWeight = FontWeight.Bold)
+                Text(error, color = KittyMuted, modifier = Mod.padding(top = 8.dp))
+            }
+        }
+        else -> {
+            val featured = items.firstOrNull()
+            val rest = if (items.size > 1) items.drop(1) else items
+            LazyColumn(
+                modifier = Mod.fillMaxSize(),
+                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 28.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                if (featured != null) {
+                    item(key = "hero-${featured.id}") {
+                        FeaturedHero(
+                            media = featured,
+                            onOpen = { onOpen(featured.id) },
+                            onPlay = { onPlayFeatured(featured) },
+                        )
+                    }
+                }
+                item(key = "trending-header") {
+                    Row(
+                        modifier = Mod.fillMaxWidth().padding(top = 4.dp),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Column(modifier = Mod.weight(1f)) {
+                            Text(
+                                text = "Trending now",
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = KittyText,
+                            )
+                            Text(
+                                text = "Live from AniList · tap a poster for overview",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = KittyFaint,
+                                modifier = Mod.padding(top = 2.dp),
+                            )
+                        }
+                        Text(
+                            text = "Search",
+                            color = KittyAccentGlow,
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Mod
+                                .clip(KittyGlassShapePill)
+                                .kittyGlassSoft(KittyGlassShapePill)
+                                .clickable(onClick = onBrowseSearch)
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                        )
+                    }
+                }
+                item(key = "trending-grid") {
+                    PosterGrid(items = rest.ifEmpty { items }, onOpen = onOpen)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FeaturedHero(
+    media: AniListMedia,
+    onOpen: () -> Unit,
+    onPlay: () -> Unit,
+) {
+    Box(
+        modifier = Mod
+            .fillMaxWidth()
+            .heightIn(min = 320.dp)
+            .height(380.dp)
+            .clip(KittyGlassShape)
+            .border(1.dp, KittyOutline, KittyGlassShape)
+            .clickable(onClick = onOpen),
+    ) {
+        AsyncImage(
+            model = media.bannerUrl ?: media.coverUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Mod.fillMaxSize(),
+        )
+        Box(
+            modifier = Mod
+                .fillMaxSize()
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.Black.copy(alpha = 0.82f),
+                            Color.Black.copy(alpha = 0.45f),
+                            Color.Black.copy(alpha = 0.15f),
+                        ),
+                    ),
+                ),
+        )
+        Box(
+            modifier = Mod
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.55f),
+                        ),
+                    ),
+                ),
+        )
+        Row(
+            modifier = Mod
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(28.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            AsyncImage(
+                model = media.coverUrl,
+                contentDescription = media.title,
+                contentScale = ContentScale.Crop,
+                modifier = Mod
+                    .width(132.dp)
+                    .aspectRatio(2f / 3f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, KittyOutline, RoundedCornerShape(14.dp)),
+            )
+            Spacer(Mod.width(22.dp))
+            Column(modifier = Mod.weight(1f)) {
+                Text(
+                    text = "Featured",
+                    color = KittyWarm,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = media.title,
+                    style = MaterialTheme.typography.displaySmall,
+                    color = Color.White,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Mod.padding(top = 6.dp),
+                )
+                val meta = listOfNotNull(
+                    media.seasonLabel(),
+                    media.format,
+                    media.episodes?.let { "$it eps" },
+                    media.averageScore?.let { "★ $it%" },
+                ).joinToString("  ·  ")
+                if (meta.isNotBlank()) {
+                    Text(
+                        text = meta,
+                        color = Color.White.copy(alpha = 0.75f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Mod.padding(top = 8.dp),
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Mod.padding(top = 18.dp),
+                ) {
+                    PrimaryAction(
+                        label = "Play episode 1",
+                        icon = Icons.Rounded.PlayArrow,
+                        onClick = onPlay,
+                    )
+                    SecondaryAction(label = "Overview", onClick = onOpen)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PosterGrid(items: List<AniListMedia>, onOpen: (Int) -> Unit) {
+    // Nested grid height for LazyColumn: approximate rows.
+    val cols = 6
+    val rows = ((items.size + cols - 1) / cols).coerceAtLeast(1)
+    val gridHeight = (rows * 268).dp
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(148.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        userScrollEnabled = false,
+        modifier = Mod.fillMaxWidth().height(gridHeight),
+    ) {
+        items(items, key = { it.id }) { media ->
+            PosterCard(media = media, onOpen = { onOpen(media.id) })
+        }
+    }
+}
+
+@Composable
+private fun PosterCard(media: AniListMedia, onOpen: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
     Column(
-        modifier = railModifier
-            .clip(RoundedCornerShape(22.dp))
-            .background(KittySurface)
-            .border(1.dp, KittyOutline, RoundedCornerShape(22.dp))
-            .padding(18.dp),
+        modifier = Mod
+            .hoverable(interaction)
+            .kittyGlass(elevated = hovered)
+            .clickable(onClick = onOpen)
+            .padding(8.dp),
+    ) {
+        Box {
+            AsyncImage(
+                model = media.coverUrl,
+                contentDescription = media.title,
+                contentScale = ContentScale.Crop,
+                modifier = Mod
+                    .fillMaxWidth()
+                    .height(196.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(KittySurfaceElevated),
+            )
+            media.averageScore?.let { score ->
+                Text(
+                    text = "$score%",
+                    color = KittyOnAccent,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Mod
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(KittyGlassShapePill)
+                        .background(KittyAccent)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+            }
+        }
+        Text(
+            text = media.title,
+            color = KittyText,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Mod.padding(top = 8.dp),
+        )
+        val meta = media.seasonLabel() ?: media.seasonYear?.toString().orEmpty()
+        if (meta.isNotBlank()) {
+            Text(text = meta, color = KittyFaint, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun SearchScreen(
+    anilist: AniListDesktopClient,
+    onOpen: (Int) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    var items by remember { mutableStateOf<List<AniListMedia>>(emptyList()) }
+    var status by remember { mutableStateOf("Search the AniList catalog") }
+    var loading by remember { mutableStateOf(false) }
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+    val scope = rememberCoroutineScope()
+
+    Column(
+        modifier = Mod
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
     ) {
         Text(
-            text = "AniKitty",
-            style = MaterialTheme.typography.displaySmall,
+            text = "Search",
+            style = MaterialTheme.typography.headlineSmall,
             color = KittyText,
         )
         Text(
-            text = "Windows · alpha",
-            style = MaterialTheme.typography.labelSmall,
-            color = KittyAccentGlow,
-            modifier = Mod.padding(top = 4.dp, bottom = 20.dp),
-        )
-        DesktopTab.entries.forEach { item ->
-            val active = item == selected
-            val icon = when (item) {
-                DesktopTab.Home -> Icons.Rounded.Home
-                DesktopTab.Search -> Icons.Rounded.Search
-                DesktopTab.Store -> Icons.Rounded.Extension
-                DesktopTab.Account -> Icons.Rounded.AccountCircle
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Mod
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(if (active) KittySurfaceElevated else Color.Transparent)
-                    .border(
-                        width = if (active) 1.dp else 0.dp,
-                        color = if (active) KittyAccentGlow.copy(alpha = 0.45f) else Color.Transparent,
-                        shape = RoundedCornerShape(14.dp),
-                    )
-                    .clickable { onSelect(item) }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (active) KittyAccentGlow else KittyFaint,
-                    modifier = Mod.size(20.dp),
-                )
-                Spacer(Mod.width(10.dp))
-                Text(
-                    text = item.label,
-                    color = if (active) KittyText else KittyMuted,
-                    fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                )
-            }
-            Spacer(Mod.height(6.dp))
-        }
-        Spacer(Mod.weight(1f))
-        Text(
-            text = "AniList catalog",
+            text = "Titles, studios, seasons — AniList only",
             style = MaterialTheme.typography.labelSmall,
             color = KittyFaint,
+            modifier = Mod.padding(top = 2.dp, bottom = 14.dp),
         )
-        Text(
-            text = "Glass dark · CMP",
-            style = MaterialTheme.typography.labelSmall,
-            color = KittyFaint,
-        )
-    }
-}
-
-@Composable
-private fun HomeSurface(anilist: AniListDesktopClient, onOpen: (Int) -> Unit) {
-    var items by remember { mutableStateOf<List<AniListMedia>>(emptyList()) }
-    var status by remember { mutableStateOf<String?>(null) }
-    var loading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        loading = true
-        runCatching { anilist.trending() }
-            .onSuccess {
-                items = it
-                status = "${it.size} trending · AniList"
-            }
-            .onFailure { status = it.message ?: "AniList failed" }
-        loading = false
-    }
-
-    Column(modifier = Mod.fillMaxSize()) {
-        Text(text = "Home", style = MaterialTheme.typography.headlineSmall, color = KittyText)
-        Text(
-            text = status ?: "Loading AniList…",
-            style = MaterialTheme.typography.labelSmall,
-            color = KittyFaint,
-            modifier = Mod.padding(top = 4.dp, bottom = 16.dp),
-        )
-        when {
-            loading -> Box(Mod.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = KittyAccentGlow)
-            }
-            items.isEmpty() -> Text(text = "No titles yet.", color = KittyMuted)
-            else -> MediaGrid(items, onOpen)
-        }
-    }
-}
-
-@Composable
-private fun SearchSurface(anilist: AniListDesktopClient, onOpen: (Int) -> Unit) {
-    var query by remember { mutableStateOf("") }
-    var items by remember { mutableStateOf<List<AniListMedia>>(emptyList()) }
-    var status by remember { mutableStateOf("Search AniList") }
-    var loading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-
-    Column(modifier = Mod.fillMaxSize()) {
-        Text(text = "Search", style = MaterialTheme.typography.headlineSmall, color = KittyText)
-        Spacer(Mod.height(12.dp))
         OutlinedTextField(
             value = query,
-            onValueChange = {
-                query = it.take(80)
-                scope.launch {
+            onValueChange = { raw ->
+                query = raw.take(80)
+                searchJob?.cancel()
+                searchJob = scope.launch {
                     val q = query.trim()
                     if (q.length < 2) {
                         items = emptyList()
                         status = "Type at least 2 characters"
                         return@launch
                     }
+                    delay(280)
                     loading = true
                     runCatching { anilist.search(q) }
                         .onSuccess {
                             items = it
-                            status = "${it.size} matches · AniList"
+                            status = "${it.size} matches"
                         }
                         .onFailure { status = it.message ?: "Search failed" }
                     loading = false
                 }
             },
-            modifier = Mod.fillMaxWidth(),
+            modifier = Mod.fillMaxWidth().kittyGlassField(),
             singleLine = true,
-            placeholder = { Text(text = "Title, studio, season…") },
-            shape = RoundedCornerShape(16.dp),
+            placeholder = { Text("Find a series…", color = KittyFaint) },
+            leadingIcon = {
+                Icon(Icons.Rounded.Search, contentDescription = null, tint = KittyAccentGlow)
+            },
+            shape = KittyGlassShapeTight,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = KittyText,
                 unfocusedTextColor = KittyText,
-                focusedBorderColor = KittyAccentGlow,
-                unfocusedBorderColor = KittyOutline,
+                focusedBorderColor = KittyAccentGlow.copy(alpha = 0.55f),
+                unfocusedBorderColor = Color.Transparent,
                 cursorColor = KittyAccentGlow,
-                focusedContainerColor = KittySurface,
-                unfocusedContainerColor = KittySurface,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
             ),
         )
         Text(
             text = if (loading) "Searching…" else status,
             style = MaterialTheme.typography.labelSmall,
             color = KittyFaint,
-            modifier = Mod.padding(top = 8.dp, bottom = 12.dp),
+            modifier = Mod.padding(top = 10.dp, bottom = 12.dp),
         )
-        if (items.isNotEmpty()) MediaGrid(items, onOpen)
+        if (items.isNotEmpty()) {
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(148.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 24.dp),
+                modifier = Mod.fillMaxSize(),
+            ) {
+                items(items, key = { it.id }) { media ->
+                    PosterCard(media = media, onOpen = { onOpen(media.id) })
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun TitleDetailSurface(
+private fun TitleOverview(
     anilist: AniListDesktopClient,
     mediaId: Int,
-    onBack: () -> Unit,
-    onOpenRelated: (Int) -> Unit,
     playStatus: String?,
     playBusy: Boolean,
+    onBack: () -> Unit,
+    onOpenRelated: (Int) -> Unit,
     onPlayEpisode: (anilistId: Int, title: String, episode: Int, titleHint: String?) -> Unit,
 ) {
     var detail by remember(mediaId) { mutableStateOf<AniListMedia?>(null) }
@@ -373,15 +670,14 @@ private fun TitleDetailSurface(
     Column(
         modifier = Mod
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Mod
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(KittySurface)
-                    .border(1.dp, KittyOutline, RoundedCornerShape(12.dp))
+                    .kittyGlassSoft(KittyGlassShapeTight)
                     .clickable(onClick = onBack)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             ) {
@@ -392,32 +688,28 @@ private fun TitleDetailSurface(
                     modifier = Mod.size(18.dp),
                 )
                 Spacer(Mod.width(8.dp))
-                Text(text = "Back", color = KittyText, fontWeight = FontWeight.SemiBold)
+                Text("Library", color = KittyText, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Mod.width(14.dp))
-            Text(
-                text = "Overview · AniList",
-                style = MaterialTheme.typography.labelSmall,
-                color = KittyFaint,
-            )
+            Text("Overview · AniList", style = MaterialTheme.typography.labelSmall, color = KittyFaint)
         }
+
         Spacer(Mod.height(16.dp))
         when {
             loading -> Box(
-                modifier = Mod.fillMaxWidth().height(240.dp),
+                modifier = Mod.fillMaxWidth().height(280.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(color = KittyAccentGlow)
             }
-            media == null -> Text(text = status ?: "Not found", color = KittyMuted)
+            media == null -> Text(status ?: "Not found", color = KittyMuted)
             else -> {
-                // Hero
                 Box(
                     modifier = Mod
                         .fillMaxWidth()
-                        .height(220.dp)
-                        .clip(RoundedCornerShape(22.dp))
-                        .border(1.dp, KittyOutline, RoundedCornerShape(22.dp)),
+                        .height(280.dp)
+                        .clip(KittyGlassShape)
+                        .border(1.dp, KittyOutline, KittyGlassShape),
                 ) {
                     AsyncImage(
                         model = media.bannerUrl ?: media.coverUrl,
@@ -426,21 +718,19 @@ private fun TitleDetailSurface(
                         modifier = Mod.fillMaxSize(),
                     )
                     Box(
-                        modifier = Mod
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color.Black.copy(alpha = 0.25f),
-                                        Color.Black.copy(alpha = 0.78f),
-                                    ),
+                        modifier = Mod.fillMaxSize().background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.Black.copy(alpha = 0.2f),
+                                    Color.Black.copy(alpha = 0.85f),
                                 ),
                             ),
+                        ),
                     )
                     Row(
                         modifier = Mod
                             .align(Alignment.BottomStart)
-                            .padding(18.dp),
+                            .padding(22.dp),
                         verticalAlignment = Alignment.Bottom,
                     ) {
                         AsyncImage(
@@ -448,18 +738,17 @@ private fun TitleDetailSurface(
                             contentDescription = media.title,
                             contentScale = ContentScale.Crop,
                             modifier = Mod
-                                .width(110.dp)
+                                .width(120.dp)
                                 .aspectRatio(2f / 3f)
                                 .clip(RoundedCornerShape(12.dp))
                                 .border(1.dp, KittyOutline, RoundedCornerShape(12.dp)),
                         )
-                        Spacer(Mod.width(16.dp))
+                        Spacer(Mod.width(18.dp))
                         Column {
                             Text(
                                 text = media.title,
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.headlineMedium,
                                 color = Color.White,
-                                fontWeight = FontWeight.Black,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -467,7 +756,7 @@ private fun TitleDetailSurface(
                                 media.seasonLabel(),
                                 media.format,
                                 media.episodes?.let { "$it eps" },
-                                media.averageScore?.let { "$it%" },
+                                media.averageScore?.let { "★ $it%" },
                             ).joinToString(" · ")
                             if (meta.isNotBlank()) {
                                 Text(
@@ -477,49 +766,60 @@ private fun TitleDetailSurface(
                                     modifier = Mod.padding(top = 6.dp),
                                 )
                             }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Mod.padding(top = 14.dp),
+                            ) {
+                                PrimaryAction(
+                                    label = "Play ep 1",
+                                    icon = Icons.Rounded.PlayArrow,
+                                    onClick = {
+                                        onPlayEpisode(media.id, media.title, 1, media.title)
+                                    },
+                                    enabled = !playBusy,
+                                )
+                            }
                         }
                     }
                 }
 
                 Spacer(Mod.height(16.dp))
-                GlassPanel {
+                Column(
+                    modifier = Mod
+                        .fillMaxWidth()
+                        .kittyGlass()
+                        .padding(18.dp),
+                ) {
+                    Text("Overview", color = KittyText, style = MaterialTheme.typography.titleSmall)
                     Text(
-                        text = "Overview",
-                        color = KittyText,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = "AniList is the catalog source · extensions only stream",
+                        "AniList is the catalog · extensions only stream",
                         color = KittyFaint,
                         style = MaterialTheme.typography.labelSmall,
-                        modifier = Mod.padding(top = 2.dp, bottom = 10.dp),
+                        modifier = Mod.padding(top = 2.dp, bottom = 12.dp),
                     )
                     if (media.genres.isNotEmpty()) {
                         Row(
                             modifier = Mod.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            media.genres.take(8).forEach { g ->
-                                MetaPill(g)
-                            }
+                            media.genres.take(8).forEach { MetaPill(it) }
                         }
-                        Spacer(Mod.height(10.dp))
+                        Spacer(Mod.height(12.dp))
                     }
                     val facts = listOfNotNull(
                         media.studios.takeIf { it.isNotEmpty() }?.joinToString(" · "),
                         media.status?.replace('_', ' '),
                     ).joinToString("  ·  ")
                     if (facts.isNotBlank()) {
-                        Text(text = facts, color = KittyMuted, style = MaterialTheme.typography.bodySmall)
+                        Text(facts, color = KittyMuted, style = MaterialTheme.typography.bodySmall)
                         Spacer(Mod.height(8.dp))
                     }
                     if (!media.description.isNullOrBlank()) {
                         Text(
-                            text = media.description,
+                            media.description,
                             color = KittyMuted,
                             style = MaterialTheme.typography.bodyMedium,
-                            maxLines = 8,
+                            maxLines = 10,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
@@ -527,19 +827,8 @@ private fun TitleDetailSurface(
 
                 val seasons = media.seasonEntries()
                 if (seasons.size > 1) {
-                    Spacer(Mod.height(16.dp))
-                    Text(
-                        text = "Seasons",
-                        color = KittyText,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = "AniList prequel / sequel chain",
-                        color = KittyFaint,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Mod.padding(top = 2.dp, bottom = 10.dp),
-                    )
+                    Spacer(Mod.height(18.dp))
+                    SectionLabel("Seasons", "AniList prequel / sequel chain")
                     Row(
                         modifier = Mod.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -567,59 +856,59 @@ private fun TitleDetailSurface(
                 }
 
                 val episodes = media.episodeItems()
-                Spacer(Mod.height(16.dp))
-                Text(
-                    text = "Episodes",
-                    color = KittyText,
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleSmall,
-                )
-                Text(
-                    text = "${episodes.size} from AniList · tap to play via Ani.pm",
-                    color = KittyFaint,
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Mod.padding(top = 2.dp, bottom = 10.dp),
-                )
+                Spacer(Mod.height(18.dp))
+                SectionLabel("Episodes", "${episodes.size} from AniList · Ani.pm stream")
                 if (playStatus != null) {
                     Text(
-                        text = playStatus,
+                        playStatus,
                         color = KittyAccentGlow,
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Mod.padding(bottom = 8.dp),
                     )
                 }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(episodes.take(40), key = { it.number }) { ep ->
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(episodes.take(48), key = { it.number }) { ep ->
                         Column(
                             modifier = Mod
-                                .width(160.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(KittySurface)
-                                .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
+                                .width(176.dp)
+                                .kittyGlassSoft(KittyGlassShapeTight)
                                 .clickable(enabled = !playBusy) {
                                     onPlayEpisode(media.id, media.title, ep.number, media.title)
                                 }
                                 .padding(8.dp),
                         ) {
-                            AsyncImage(
-                                model = ep.thumbnailUrl,
-                                contentDescription = ep.title,
-                                contentScale = ContentScale.Crop,
-                                modifier = Mod
-                                    .fillMaxWidth()
-                                    .height(90.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(KittySurfaceElevated),
-                            )
+                            Box {
+                                AsyncImage(
+                                    model = ep.thumbnailUrl,
+                                    contentDescription = ep.title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Mod
+                                        .fillMaxWidth()
+                                        .height(96.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(KittySurfaceElevated),
+                                )
+                                Icon(
+                                    Icons.Rounded.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Mod
+                                        .align(Alignment.Center)
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Black.copy(alpha = 0.45f))
+                                        .padding(6.dp),
+                                )
+                            }
                             Text(
-                                text = "Ep ${ep.number}",
+                                "Ep ${ep.number}",
                                 color = KittyAccentGlow,
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Mod.padding(top = 8.dp),
                             )
                             Text(
-                                text = ep.title,
+                                ep.title,
                                 color = KittyText,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
@@ -631,27 +920,14 @@ private fun TitleDetailSurface(
 
                 val related = media.relatedOutsideSeasons()
                 if (related.isNotEmpty()) {
-                    Spacer(Mod.height(18.dp))
-                    Text(
-                        text = "Related",
-                        color = KittyText,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = "AniList spin-offs and more",
-                        color = KittyFaint,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Mod.padding(top = 2.dp, bottom = 10.dp),
-                    )
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Spacer(Mod.height(20.dp))
+                    SectionLabel("Related", "AniList spin-offs and more")
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         items(related, key = { it.id }) { rel ->
                             Column(
                                 modifier = Mod
-                                    .width(112.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(KittySurface)
-                                    .border(1.dp, KittyOutline, RoundedCornerShape(14.dp))
+                                    .width(118.dp)
+                                    .kittyGlassSoft(KittyGlassShapeTight)
                                     .clickable { onOpenRelated(rel.id) }
                                     .padding(8.dp),
                             ) {
@@ -665,52 +941,82 @@ private fun TitleDetailSurface(
                                         .clip(RoundedCornerShape(10.dp)),
                                 )
                                 Text(
-                                    text = rel.relationType,
+                                    rel.relationType,
                                     color = KittyAccentGlow,
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Mod.padding(top = 6.dp),
                                 )
                                 Text(
-                                    text = rel.title,
+                                    rel.title,
                                     color = KittyText,
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis,
                                     style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold,
                                 )
                             }
                         }
                     }
                 }
-                Spacer(Mod.height(24.dp))
+                Spacer(Mod.height(28.dp))
             }
         }
     }
 }
 
 @Composable
-private fun StoreSurface() {
-    Column(modifier = Mod.fillMaxSize()) {
-        Text(text = "Store", style = MaterialTheme.typography.headlineSmall, color = KittyText)
+private fun StoreScreen() {
+    Column(
+        modifier = Mod
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+    ) {
+        Text("Store", style = MaterialTheme.typography.headlineSmall, color = KittyText)
         Text(
-            text = "Stream providers only · catalog stays on AniList",
+            "Stream providers only · AniList stays the catalog",
             style = MaterialTheme.typography.labelSmall,
             color = KittyFaint,
-            modifier = Mod.padding(top = 4.dp, bottom = 16.dp),
+            modifier = Mod.padding(top = 2.dp, bottom = 16.dp),
         )
         listOf(
-            "Anikoto" to "Bundled on-device scraper",
-            "Gotaku" to "Bundled on-device scraper",
-            "Ani.pm" to "Bundled Settlar HLS scraper (no WebView)",
-        ).forEach { (name, blurb) ->
-            GlassPanel(modifier = Mod.padding(bottom = 10.dp)) {
-                Text(text = name, color = KittyText, fontWeight = FontWeight.SemiBold)
-                Text(text = blurb, color = KittyMuted, style = MaterialTheme.typography.bodyMedium)
+            Triple("Ani.pm", "Settlar HLS · glass player", "Default for desktop play"),
+            Triple("Anikoto", "On-device MegaPlay path", "Bundled · Android parity"),
+            Triple("Gotaku", "gotakudl unwrap", "Bundled · Android parity"),
+        ).forEach { (name, blurb, note) ->
+            Row(
+                modifier = Mod
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+                    .kittyGlass()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Mod
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(KittySurfaceElevated)
+                        .border(1.dp, KittyOutline, RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Rounded.Extension, null, tint = KittyAccentGlow)
+                }
+                Spacer(Mod.width(14.dp))
+                Column(modifier = Mod.weight(1f)) {
+                    Text(name, color = KittyText, fontWeight = FontWeight.Bold)
+                    Text(blurb, color = KittyMuted, style = MaterialTheme.typography.bodyMedium)
+                    Text(note, color = KittyFaint, style = MaterialTheme.typography.labelSmall)
+                }
                 Text(
-                    text = "fampep · stream link · bundled",
-                    color = KittyFaint,
+                    "Bundled",
+                    color = KittyOnAccent,
+                    fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.labelSmall,
+                    modifier = Mod
+                        .clip(KittyGlassShapePill)
+                        .background(KittyAccent)
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
                 )
             }
         }
@@ -718,113 +1024,105 @@ private fun StoreSurface() {
 }
 
 @Composable
-private fun AccountSurface() {
-    Column(modifier = Mod.fillMaxSize()) {
-        Text(text = "Account", style = MaterialTheme.typography.headlineSmall, color = KittyText)
+private fun AccountScreen() {
+    Column(
+        modifier = Mod
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+    ) {
+        Text("Account", style = MaterialTheme.typography.headlineSmall, color = KittyText)
         Text(
-            text = "Password accounts on the dedicated Go VPS",
+            "Password accounts on the dedicated Go VPS",
             style = MaterialTheme.typography.labelSmall,
             color = KittyFaint,
-            modifier = Mod.padding(top = 4.dp, bottom = 16.dp),
+            modifier = Mod.padding(top = 2.dp, bottom = 16.dp),
         )
-        GlassPanel {
-            Text(text = "Dedicated auth server", color = KittyText, fontWeight = FontWeight.SemiBold)
+        Column(
+            modifier = Mod
+                .fillMaxWidth()
+                .kittyGlass(elevated = true)
+                .padding(20.dp),
+        ) {
+            Text("Dedicated auth server", color = KittyText, fontWeight = FontWeight.Bold)
             Text(
-                text = ServerConfig.DEFAULT,
+                ServerConfig.DEFAULT,
                 color = KittyAccentGlow,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Mod.padding(top = 6.dp),
+                modifier = Mod.padding(top = 8.dp),
             )
             Text(
-                text = "Same fixed URL as Android. Sign-in UI next.",
+                "Same fixed URL as the Android app. Sign-in UI is next.",
                 color = KittyMuted,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Mod.padding(top = 10.dp),
+                modifier = Mod.padding(top = 12.dp),
             )
         }
     }
 }
 
 @Composable
-private fun MediaGrid(items: List<AniListMedia>, onOpen: (Int) -> Unit) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(140.dp),
-        contentPadding = PaddingValues(bottom = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Mod.fillMaxSize(),
+private fun SectionLabel(title: String, subtitle: String) {
+    Text(title, color = KittyText, style = MaterialTheme.typography.titleSmall)
+    Text(
+        subtitle,
+        color = KittyFaint,
+        style = MaterialTheme.typography.labelSmall,
+        modifier = Mod.padding(top = 2.dp, bottom = 10.dp),
+    )
+}
+
+@Composable
+private fun PrimaryAction(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Mod
+            .clip(KittyGlassShapePill)
+            .background(if (enabled) KittyAccent else KittySurfaceElevated)
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
-        items(items, key = { it.id }) { media ->
-            Column(
-                modifier = Mod
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(KittySurface)
-                    .border(1.dp, KittyOutline, RoundedCornerShape(16.dp))
-                    .clickable { onOpen(media.id) }
-                    .padding(8.dp),
-            ) {
-                AsyncImage(
-                    model = media.coverUrl,
-                    contentDescription = media.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Mod
-                        .fillMaxWidth()
-                        .height(190.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(KittySurfaceElevated),
-                )
-                Text(
-                    text = media.title,
-                    color = KittyText,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Mod.padding(top = 8.dp),
-                )
-                val meta = buildString {
-                    media.seasonLabel()?.let { append(it) }
-                        ?: media.seasonYear?.let { append(it) }
-                    media.averageScore?.let {
-                        if (isNotEmpty()) append(" · ")
-                        append("$it%")
-                    }
-                }
-                if (meta.isNotBlank()) {
-                    Text(text = meta, color = KittyFaint, style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
+        Icon(icon, null, tint = if (enabled) KittyOnAccent else KittyFaint, modifier = Mod.size(18.dp))
+        Spacer(Mod.width(6.dp))
+        Text(
+            label,
+            color = if (enabled) KittyOnAccent else KittyFaint,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+        )
     }
 }
 
 @Composable
-private fun GlassPanel(
-    modifier: Mod = Mod,
-    content: @Composable () -> Unit,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(KittySurface)
-            .border(1.dp, KittyOutline, RoundedCornerShape(18.dp))
-            .padding(16.dp),
-        content = { content() },
+private fun SecondaryAction(label: String, onClick: () -> Unit) {
+    Text(
+        label,
+        color = KittyText,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 13.sp,
+        modifier = Mod
+            .clip(KittyGlassShapePill)
+            .kittyGlassSoft(KittyGlassShapePill)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
     )
 }
 
 @Composable
 private fun MetaPill(label: String) {
     Text(
-        text = label,
+        label,
         color = KittyText,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.SemiBold,
         modifier = Mod
-            .clip(RoundedCornerShape(999.dp))
+            .clip(KittyGlassShapePill)
             .background(KittySurfaceElevated)
-            .border(1.dp, KittyOutline, RoundedCornerShape(999.dp))
+            .border(1.dp, KittyOutline, KittyGlassShapePill)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
 }
@@ -832,7 +1130,7 @@ private fun MetaPill(label: String) {
 @Composable
 private fun SeasonChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
-        text = label,
+        label,
         color = if (selected) KittyOnAccent else KittyText,
         fontWeight = FontWeight.Bold,
         fontSize = 13.sp,
