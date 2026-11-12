@@ -985,12 +985,16 @@ private fun HistoryFeed(
                 },
                 trailing = if (aniListLinked) {
                     {
-                        TextButton(
+                        Button(
                             onClick = onSync,
-                            modifier = Modifier.kittyGlassSoft(RoundedCornerShape(12.dp)),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = KittyAccent,
+                                contentColor = KittyOnAccent,
+                            ),
+                            shape = RoundedCornerShape(999.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         ) {
-                            Text("Sync", color = KittyText, fontWeight = FontWeight.SemiBold)
+                            Text("Sync", fontWeight = FontWeight.Bold)
                         }
                     }
                 } else {
