@@ -1852,8 +1852,8 @@ private fun TitleDetailScreen(
                                 .height(50.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = Color.Black,
+                                containerColor = KittyAccent,
+                                contentColor = KittyOnAccent,
                             ),
                         ) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -1871,11 +1871,11 @@ private fun TitleDetailScreen(
                                 .size(50.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(
-                                    if (favorited) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f),
+                                    if (favorited) KittyAccent.copy(alpha = 0.18f) else KittySurfaceElevated,
                                 )
                                 .border(
                                     1.dp,
-                                    if (favorited) Color.White.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.1f),
+                                    if (favorited) KittyAccent else KittyOutlineSoft,
                                     RoundedCornerShape(14.dp),
                                 )
                                 .clickable {
@@ -1896,7 +1896,7 @@ private fun TitleDetailScreen(
                             Icon(
                                 if (favorited) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                                 contentDescription = "Favorite",
-                                tint = if (favorited) Color(0xFFFF4081) else Color.White,
+                                tint = if (favorited) KittyAccent else KittyText,
                                 modifier = Modifier.size(24.dp),
                             )
                         }
@@ -2206,7 +2206,8 @@ private fun TitleDetailScreen(
                             .fillMaxWidth()
                             .height(32.dp)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(Color.White.copy(alpha = 0.05f))
+                            .background(KittySurface)
+                            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(8.dp))
                             .padding(2.dp),
                     ) {
                         listOf("sub" to "SUBTITLED", "dub" to "DUBBED").forEach { (key, label) ->
@@ -2216,7 +2217,7 @@ private fun TitleDetailScreen(
                                     .weight(1f)
                                     .fillMaxHeight()
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(if (selected) Color.White else Color.Transparent)
+                                    .background(if (selected) KittyAccent else Color.Transparent)
                                     .clickable { audio = key },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -2225,7 +2226,7 @@ private fun TitleDetailScreen(
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.5.sp,
-                                    color = if (selected) Color.Black else Color.White.copy(alpha = 0.5f),
+                                    color = if (selected) KittyOnAccent else KittyMuted,
                                 )
                             }
                         }
@@ -2410,6 +2411,7 @@ private fun TitleDetailScreen(
                             rowItems.forEach { number ->
                                 val selected = number == episode
                                 val watched = lastWatchedEp > 0 && number < lastWatchedEp
+                                val continueEp = number == lastWatchedEp && lastWatchedEp > 0
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -2417,14 +2419,19 @@ private fun TitleDetailScreen(
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(
                                             when {
-                                                selected -> Color.White.copy(alpha = 0.2f)
-                                                watched -> Color.White.copy(alpha = 0.02f)
-                                                else -> Color.White.copy(alpha = 0.03f)
+                                                selected -> KittyAccent
+                                                continueEp -> KittyAccent.copy(alpha = 0.22f)
+                                                watched -> KittySurfaceElevated
+                                                else -> KittySurface
                                             },
                                         )
                                         .border(
-                                            width = if (selected) 1.5.dp else 1.dp,
-                                            color = if (selected) Color.White else Color.Transparent,
+                                            width = 1.dp,
+                                            color = when {
+                                                selected -> KittyAccent
+                                                continueEp -> KittyAccentGlow.copy(alpha = 0.55f)
+                                                else -> KittyOutlineSoft
+                                            },
                                             shape = RoundedCornerShape(12.dp),
                                         )
                                         .clickable { episode = number },
@@ -2435,9 +2442,10 @@ private fun TitleDetailScreen(
                                         fontSize = 14.sp,
                                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                                         color = when {
-                                            selected -> Color.White
-                                            watched -> Color.White.copy(alpha = 0.3f)
-                                            else -> Color.White.copy(alpha = 0.8f)
+                                            selected -> KittyOnAccent
+                                            continueEp -> KittyText
+                                            watched -> KittyFaint
+                                            else -> KittyText.copy(alpha = 0.88f)
                                         },
                                     )
                                 }
