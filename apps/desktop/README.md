@@ -7,7 +7,8 @@ Compose Multiplatform **JVM desktop** app — the Windows companion to `apps/and
 | Stack | Kotlin 2.0.21 · Compose Multiplatform 1.7.3 · Material3 |
 | Auth | Same fixed Go VPS URL as Android (`ServerConfig.DEFAULT`) |
 | Catalog | AniList GraphQL (trending + search) |
-| Playback | Not yet — will use on-device scrapers (Anikoto / Gotaku / Ani.pm), **no WebView** |
+| Version | `packageVersion` **1.1.16** (aligned with Android) |
+| Playback | Glass player + system **FFmpeg** / Ani.pm Settlar HLS · **no WebView** · not VLC |
 | License | PolyForm Noncommercial 1.0.0 · Copyright 2026 fampep |
 
 ## Run (dev)
@@ -60,4 +61,4 @@ Runnable surface (AP-54 / AP-55):
 - AniList is the sole catalog source; Store providers are stream links only
 - Account shows dedicated auth server URL (sign-in UI next)
 
-**Do not open a PR until fampep asks** — keep polishing on `cursor/windows-desktop-cmp-91b9`.
+Merged to `main` via #45. Package with `./gradlew :composeApp:packageUberJarForCurrentOS` (portable) or `packageDistributionForCurrentOS` (native installer for this OS).
