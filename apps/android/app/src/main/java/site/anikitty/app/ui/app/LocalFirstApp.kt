@@ -653,7 +653,8 @@ private fun HomeWelcomeHeader(
             modifier = Modifier
                 .size(46.dp)
                 .clip(CircleShape)
-                .background(KittyAccent),
+                .background(KittyAccent)
+                .border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -2276,7 +2277,7 @@ private fun TitleDetailScreen(
                     ) {
                         EpisodeLegendDot(KittyAccent, "Selected")
                         EpisodeLegendDot(KittySurfaceElevated, "Watched")
-                        EpisodeLegendDot(KittyAccentGlow.copy(alpha = 0.45f), "Continue")
+                        EpisodeLegendDot(KittyAccent.copy(alpha = 0.45f), "Continue")
                     }
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
@@ -2524,7 +2525,7 @@ private fun KittyEpisodeCard(
     val shape = RoundedCornerShape(14.dp)
     val border = when {
         selected -> KittyAccent
-        continueEp -> KittyAccentGlow.copy(alpha = 0.55f)
+        continueEp -> KittyAccent
         else -> KittyOutlineSoft
     }
     Column(
@@ -2572,14 +2573,14 @@ private fun KittyEpisodeCard(
                     .background(
                         when {
                             selected -> KittyAccent
-                            continueEp -> KittyAccentGlow.copy(alpha = 0.85f)
+                            continueEp -> KittyAccent
                             watched -> KittySurfaceElevated
                             else -> KittySurface
                         },
                     )
                     .padding(horizontal = 7.dp, vertical = 3.dp),
                 style = MaterialTheme.typography.labelSmall,
-                color = if (selected) KittyOnAccent else KittyText,
+                color = if (selected || continueEp) KittyOnAccent else KittyText,
                 fontWeight = FontWeight.Bold,
             )
             if (continueEp && !selected) {
@@ -2639,8 +2640,8 @@ private fun EpisodeCell(
     val shape = RoundedCornerShape(12.dp)
     val bg = when {
         selected -> KittyAccent
-        continueEp -> KittyAccentGlow.copy(alpha = 0.22f)
-        watched -> KittySurfaceElevated.copy(alpha = 0.72f)
+        continueEp -> KittyAccent.copy(alpha = 0.22f)
+        watched -> KittySurfaceElevated
         else -> KittySurface
     }
     val fg = when {
@@ -2658,7 +2659,7 @@ private fun EpisodeCell(
                 width = 1.dp,
                 color = when {
                     selected -> KittyAccent
-                    continueEp -> KittyAccentGlow.copy(alpha = 0.45f)
+                    continueEp -> KittyAccent
                     else -> KittyOutlineSoft
                 },
                 shape = shape,
