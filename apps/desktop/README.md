@@ -31,13 +31,21 @@ If Skiko cannot create a GL context (some remote/CI Linux desktops), force softw
 SKIKO_RENDER_API=SOFTWARE ./gradlew :composeApp:run
 ```
 
-## Package
+## Package (Windows `.exe`)
 
-```bash
-./gradlew :composeApp:packageDistributionForCurrentOS
+On **Windows** (JDK 21 + WiX for MSI):
+
+```bat
+cd apps\desktop
+gradlew.bat :composeApp:createDistributable
+gradlew.bat :composeApp:packageExe
 ```
 
-Produces a native installer for the **current** OS (MSI on Windows, Deb on Linux, DMG on macOS) under `composeApp/build/compose/binaries/`.
+- `createDistributable` → runnable `AniKitty.exe` under `composeApp/build/compose/binaries/.../app/AniKitty/`
+- `packageExe` → Windows `.exe` installer
+- CI: `.github/workflows/desktop-windows.yml` builds these on `windows-latest` and can attach them to a GitHub release tag
+
+Linux/macOS local packaging still uses `packageDeb` / `packageDmg` for the current OS only — it cannot produce a Windows `.exe`.
 
 ## Layout
 
