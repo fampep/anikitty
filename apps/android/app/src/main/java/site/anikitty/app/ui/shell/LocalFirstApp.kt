@@ -380,6 +380,8 @@ private fun HomeFeed(
     var popular by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var seasonal by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     val scope = rememberCoroutineScope()
+    var catalogJob by remember { mutableStateOf<Job?>(null) }
+    val catalogBusy = loading || refreshing || (catalogJob?.isActive == true)
     val continueWatching = remember(history) {
         history.filter {
             val s = it.listStatus?.uppercase()
@@ -388,7 +390,8 @@ private fun HomeFeed(
     }
 
     fun reload(fromPull: Boolean = false) {
-        scope.launch {
+        if (catalogJob?.isActive == true) return
+        catalogJob = scope.launch {
             if (fromPull) refreshing = true else loading = true
             error = null
             runCatching {
@@ -416,7 +419,7 @@ private fun HomeFeed(
                     item {
                         FloatingTopChrome(
                             greeting = aniListAuth.username?.let { "@$it" },
-                            refreshing = false,
+                            refreshing = catalogBusy,
                             onRefresh = { reload(fromPull = true) },
                             overHero = false,
                         )
@@ -495,8 +498,8 @@ private fun HomeFeed(
                                 topOverlay = {
                                     FloatingTopChrome(
                                         greeting = aniListAuth.username?.let { "@$it" },
-                                        refreshing = refreshing,
-                                        onRefresh = { if (!refreshing) reload(fromPull = true) },
+                                        refreshing = catalogBusy,
+                                        onRefresh = { reload(fromPull = true) },
                                         overHero = true,
                                     )
                                 },
@@ -504,8 +507,8 @@ private fun HomeFeed(
                         } ?: run {
                             FloatingTopChrome(
                                 greeting = aniListAuth.username?.let { "@$it" },
-                                refreshing = refreshing,
-                                onRefresh = { if (!refreshing) reload(fromPull = true) },
+                                refreshing = catalogBusy,
+                                onRefresh = { reload(fromPull = true) },
                                 overHero = false,
                             )
                         }
