@@ -4,26 +4,41 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import site.anikitty.app.BuildConfig
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 /**
  * AniList sign-in.
  *
- * The registered redirect is https://anikitty.site. AniList returns the access token
- * in the URL fragment, which the sign-in page reads after the user logs in.
- * Implicit callbacks on anikitty://anilist are still accepted.
+ * The registered redirect is https://anikitty.site. AniList sends an authorization
+ * code there, and the app exchanges that code for an access token.
+ * Older implicit callbacks on anikitty://anilist are still accepted.
  */
 object AniListOAuth {
     const val REDIRECT_URI = "https://anikitty.site"
     private const val AUTHORIZE = "https://anilist.co/api/v2/oauth/authorize"
+    private const val TOKEN = "https://anilist.co/api/v2/oauth/token"
     private const val PREFS = "anikitty_anilist_oauth"
     private const val KEY_STARTED_AT = "link_started_at_ms"
     private const val KEY_NONCE = "link_nonce"
     /** How long a user-initiated sign-in remains valid for a callback. */
     private const val LINK_TTL_MS = 10 * 60_000L
 
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+    private val jsonMedia = "application/json".toMediaType()
+
     fun clientId(): String = BuildConfig.ANILIST_CLIENT_ID.trim().ifBlank { "44419" }
+
+    fun clientSecret(): String = BuildConfig.ANILIST_CLIENT_SECRET.trim()
 
     fun isConfigured(): Boolean = clientId().isNotEmpty()
 
@@ -33,7 +48,7 @@ object AniListOAuth {
         return Uri.parse(AUTHORIZE).buildUpon()
             .appendQueryParameter("client_id", clientId)
             .appendQueryParameter("redirect_uri", REDIRECT_URI)
-            .appendQueryParameter("response_type", "token")
+            .appendQueryParameter("response_type", "code")
             .appendQueryParameter("state", state)
             .build()
             .toString()
@@ -93,6 +108,44 @@ object AniListOAuth {
             error("AniList OAuth state mismatch")
         }
         return map["access_token"]?.takeIf { it.isNotBlank() }
+    }
+
+    /**
+     * Exchange an authorization code from the registered redirect for an access token.
+     * [expectedState] must match when AniList returns a state value.
+     */
+    fun exchangeCode(code: String, expectedState: String, returnedState: String?): String {
+        require(code.isNotBlank()) { "AniList did not finish sign-in" }
+        require(expectedState.isNotBlank()) { "OAuth state required" }
+        if (!returnedState.isNullOrBlank() && returnedState != expectedState) {
+            error("AniList sign-in did not match this attempt")
+        }
+        val secret = clientSecret()
+        if (secret.isEmpty()) error("AniList sign-in is not set up on this build")
+        val payload = JSONObject()
+            .put("grant_type", "authorization_code")
+            .put("client_id", clientId())
+            .put("client_secret", secret)
+            .put("redirect_uri", REDIRECT_URI)
+            .put("code", code)
+            .toString()
+        val request = Request.Builder()
+            .url(TOKEN)
+            .header("Accept", "application/json")
+            .post(payload.toRequestBody(jsonMedia))
+            .build()
+        http.newCall(request).execute().use { response ->
+            val text = response.body?.string().orEmpty()
+            val json = runCatching { JSONObject(text) }.getOrNull()
+            if (!response.isSuccessful) {
+                val message = json?.optString("message").orEmpty().ifBlank {
+                    json?.optString("hint").orEmpty()
+                }
+                error(message.ifBlank { "AniList sign-in failed" })
+            }
+            return json?.optString("access_token")?.takeIf { it.isNotBlank() }
+                ?: error("AniList did not return a token")
+        }
     }
 
     fun isAniListRedirect(uri: Uri?): Boolean {

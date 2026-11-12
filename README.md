@@ -103,7 +103,7 @@ cd apps/android
 
 Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName` / `versionCode`. Current: **1.1.21** / code **35**.
 
-Optional AniList sign-in is built in. From Account, tap **Sign in with AniList**, sign in on AniList, and allow AniKitty. The registered redirect is `https://anikitty.site`. The public client id ships with the app.
+Optional AniList sign-in is built in. From Account, tap **Sign in with AniList**, sign in on AniList, and allow AniKitty. AniList redirects to `https://anikitty.site` with an authorization code, and the app exchanges that code for a token. The public client id ships with the app. Put the client secret only in `apps/android/local.properties` as `anilistClientSecret` when you build a release (never commit it).
 
 Default dedicated server URL is locked in `ServerConfig.DEFAULT` (VPS). Release cleartext is permitted only for that host.
 

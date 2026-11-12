@@ -1,7 +1,9 @@
 package site.anikitty.app.ui.app
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -15,20 +17,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import org.json.JSONTokener
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.ui.theme.KittyText
 import java.util.UUID
 
 /**
  * AniList account login. The user signs in on AniList's page.
- * The access token comes back in the redirect fragment. No token to copy.
+ * AniList redirects with an authorization code, which is exchanged here.
  */
 @Composable
 fun AniListSignIn(
@@ -36,6 +41,7 @@ fun AniListSignIn(
     onError: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
     val state = remember { UUID.randomUUID().toString() }
     Dialog(
         onDismissRequest = onDismiss,
@@ -62,8 +68,23 @@ fun AniListSignIn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                onToken = onToken,
                 onError = onError,
+                onExchange = { code, returnedState ->
+                    scope.launch {
+                        val result = withContext(Dispatchers.IO) {
+                            runCatching {
+                                AniListOAuth.exchangeCode(
+                                    code = code,
+                                    expectedState = state,
+                                    returnedState = returnedState,
+                                )
+                            }
+                        }
+                        result.onSuccess(onToken).onFailure { error ->
+                            onError(error.message ?: "AniList sign-in failed")
+                        }
+                    }
+                },
             )
         }
     }
@@ -75,8 +96,8 @@ private fun AniListLoginWebView(
     url: String,
     expectedState: String,
     modifier: Modifier,
-    onToken: (String) -> Unit,
     onError: (String) -> Unit,
+    onExchange: (code: String, returnedState: String?) -> Unit,
 ) {
     AndroidView(
         modifier = modifier,
@@ -88,22 +109,12 @@ private fun AniListLoginWebView(
                 CookieManager.getInstance().setAcceptCookie(true)
                 CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
                 webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, finishedUrl: String?) {
-                        val page = view ?: return
-                        if (page.tag == "anikitty-oauth-done") return
-                        page.evaluateJavascript(
-                            "(function(){return location.hash || '';})()",
-                        ) { raw ->
-                            if (page.tag == "anikitty-oauth-done") return@evaluateJavascript
-                            val hash = decodeJsString(raw).orEmpty()
-                            if (!hash.contains("access_token=") && !hash.contains("error=")) {
-                                return@evaluateJavascript
-                            }
-                            page.tag = "anikitty-oauth-done"
-                            runCatching { tokenFromFragment(hash, expectedState) }
-                                .onSuccess(onToken)
-                                .onFailure { e -> onError(e.message ?: "AniList sign-in failed") }
-                        }
+                    override fun shouldOverrideUrlLoading(
+                        view: WebView?,
+                        request: WebResourceRequest?,
+                    ): Boolean {
+                        val uri = request?.url ?: return false
+                        return consumeRedirect(view, uri, expectedState, onError, onExchange)
                     }
                 }
                 loadUrl(url)
@@ -112,24 +123,33 @@ private fun AniListLoginWebView(
     )
 }
 
-private fun decodeJsString(raw: String?): String? {
-    if (raw.isNullOrBlank() || raw == "null") return null
-    return runCatching { JSONTokener(raw).nextValue() as? String }.getOrNull()
-}
-
-private fun tokenFromFragment(hash: String, expectedState: String): String {
-    val body = hash.removePrefix("#")
-    val map = body.split('&').mapNotNull { part ->
-        val i = part.indexOf('=')
-        if (i <= 0) null else {
-            part.substring(0, i) to android.net.Uri.decode(part.substring(i + 1))
-        }
-    }.toMap()
-    map["error"]?.let { err -> error(map["error_description"] ?: err) }
-    val returned = map["state"]
-    if (!returned.isNullOrBlank() && returned != expectedState) {
-        error("AniList sign-in did not match this attempt")
+private fun consumeRedirect(
+    view: WebView?,
+    uri: Uri,
+    expectedState: String,
+    onError: (String) -> Unit,
+    onExchange: (code: String, returnedState: String?) -> Unit,
+): Boolean {
+    if (!AniListOAuth.isAniListRedirect(uri)) return false
+    if (view?.tag == "anikitty-oauth-done") return true
+    val errorName = uri.getQueryParameter("error")
+    val code = uri.getQueryParameter("code")
+    if (errorName.isNullOrBlank() && code.isNullOrBlank()) return false
+    view?.tag = "anikitty-oauth-done"
+    view?.stopLoading()
+    if (!errorName.isNullOrBlank()) {
+        onError(uri.getQueryParameter("error_description") ?: errorName)
+        return true
     }
-    return map["access_token"]?.takeIf { it.isNotBlank() }
-        ?: error("AniList did not finish sign-in")
+    if (code.isNullOrBlank()) {
+        onError("AniList did not finish sign-in")
+        return true
+    }
+    val returned = uri.getQueryParameter("state")
+    if (!returned.isNullOrBlank() && returned != expectedState) {
+        onError("AniList sign-in did not match this attempt")
+        return true
+    }
+    onExchange(code, returned)
+    return true
 }

@@ -53,8 +53,11 @@ android {
         versionName = releaseName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Public AniList client id. Redirect registered on that client is https://anikitty.site.
+        // The client secret is only read from local.properties / ANILIST_CLIENT_SECRET at build time.
         val anilistClientId = configValue("anilistClientId", "ANILIST_CLIENT_ID", "44419")
+        val anilistClientSecret = configValue("anilistClientSecret", "ANILIST_CLIENT_SECRET")
         buildConfigField("String", "ANILIST_CLIENT_ID", "\"$anilistClientId\"")
+        buildConfigField("String", "ANILIST_CLIENT_SECRET", "\"$anilistClientSecret\"")
         // Optional TMDB v3 API key for Fribb-mapped episode stills (Plex-style rail).
         // Set gradle property tmdbApiKey, env TMDB_API_KEY, or leave blank to keep
         // AniList streaming thumbs / cover fallbacks only.
