@@ -174,12 +174,12 @@ fun KittyShimmerBox(
     Box(
         modifier = modifier
             .clip(shape)
-            .background(Color.White.copy(alpha = 0.06f))
+            .background(KittySurface)
             .background(
                 Brush.horizontalGradient(
                     0f to Color.Transparent,
                     (shift - 0.25f).coerceIn(0f, 1f) to Color.Transparent,
-                    shift to Color.White.copy(alpha = 0.12f),
+                    shift to KittyAccent.copy(alpha = 0.18f),
                     (shift + 0.25f).coerceIn(0f, 1f) to Color.Transparent,
                     1f to Color.Transparent,
                 ),
@@ -214,26 +214,24 @@ fun KittySectionHeading(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.labelMedium,
-                    color = KittyFaint,
+                    color = KittyMuted,
+                    fontWeight = FontWeight.Medium,
                 )
             }
         }
-        Text(
-            "›",
-            color = KittyFaint,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Light,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .then(
-                    if (onMore != null) {
-                        Modifier.clickable(onClick = onMore)
-                    } else {
-                        Modifier
-                    },
-                )
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        )
+        if (onMore != null) {
+            Text(
+                "See all",
+                color = KittyAccentGlow,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .clickable(onClick = onMore)
+                    .border(1.dp, KittyAccent.copy(alpha = 0.35f), RoundedCornerShape(999.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 
@@ -459,7 +457,7 @@ fun KittyHero(
             Text(
                 eyebrow.uppercase(),
                 style = MaterialTheme.typography.labelMedium,
-                color = KittyAccentGlow,
+                color = KittyAccent,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.8.sp,
             )

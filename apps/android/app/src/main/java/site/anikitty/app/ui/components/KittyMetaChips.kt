@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import site.anikitty.app.ui.theme.KittyAccent
-import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
@@ -58,14 +57,18 @@ fun KittyMetaChip(
         modifier = modifier
             .clip(shape)
             .background(if (emphasized) KittyAccent else KittySurface)
-            .border(1.dp, if (emphasized) KittyAccent else KittyOutlineSoft, shape)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .border(
+                1.dp,
+                if (emphasized) KittyAccent else KittyOutlineSoft,
+                shape,
+            )
+            .padding(horizontal = 10.dp, vertical = 5.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
             style = MaterialTheme.typography.labelMedium,
-            color = if (emphasized) KittyOnAccent else KittyMuted,
+            color = if (emphasized) KittyOnAccent else KittyText,
             fontWeight = FontWeight.SemiBold,
             fontSize = 11.sp,
             maxLines = 1,
