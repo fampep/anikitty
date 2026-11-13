@@ -16,7 +16,7 @@ import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.ui.app.AppRoot
 import site.anikitty.app.ui.theme.AniKittyTheme
 
-/** Living-room launcher. Same screens as the phone, sized for a remote. */
+/** Living-room launcher. Top menu, backdrop, and poster rows for a remote. */
 class TvActivity : AppCompatActivity() {
     private var oauthToken by mutableStateOf<String?>(null)
     private var oauthError by mutableStateOf<String?>(null)

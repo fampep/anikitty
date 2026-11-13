@@ -128,7 +128,6 @@ import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyBottomNav
-import site.anikitty.app.ui.components.KittySideNav
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
 import site.anikitty.app.ui.components.KittyGenreTiles
@@ -436,6 +435,7 @@ fun LocalFirstApp(
                     tab = "search"
                 },
                 aniListAuth = aniListAuth,
+                forTelevision = forTelevision,
                 onPlay = { episode, sources, resolvedAnime ->
                     screen = Screen.Player(resolvedAnime, episode, sources)
                 },
@@ -544,23 +544,57 @@ fun LocalFirstApp(
     }
 
     if (forTelevision) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(KittyPage)
-                .padding(horizontal = 28.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            KittySideNav(
-                tabs = tabs,
-                selectedId = tab,
-                onSelect = { tab = it },
-            )
-            Box(modifier = Modifier.weight(1f)) {
-                KittyAtmosphere()
-                PhoneTabs(Modifier.fillMaxSize())
-            }
-        }
+        TvLivingRoom(
+            tab = tab,
+            onTab = { tab = it },
+            aniList = aniList,
+            aniListAuth = aniListAuth,
+            history = history,
+            historyDao = historyDao,
+            onOpen = { anime, episode -> openDetail(anime, episode) },
+            requestedGenre = searchGenre,
+            onRequestedGenreConsumed = { searchGenre = null },
+            libraryFilter = libraryFilter,
+            account = {
+                SettingsFeed(
+                    catalog = streamServers,
+                    aniList = aniList,
+                    aniListAuth = aniListAuth,
+                    aniListSync = aniListSync,
+                    historyDao = historyDao,
+                    accountLabel = accountLabel,
+                    syncLabel = syncLabel,
+                    onSyncLabel = { syncLabel = it },
+                    linkStatus = aniLinkStatus,
+                    onLinkStatus = { aniLinkStatus = it },
+                    linkTick = aniLinkTick,
+                    onLinkTick = { aniLinkTick++ },
+                    onAccountReady = onAniListReady,
+                    onSignOut = onSignOut,
+                    onOpenStore = { tab = "store" },
+                    onOpenBuilds = { screen = Screen.Builds },
+                    onOpenLibrary = { filter ->
+                        libraryFilter = filter
+                        tab = "history"
+                    },
+                    forTelevision = true,
+                    history = history,
+                    pendingPairUri = pendingPairUri,
+                    onConsumedPairUri = onConsumedPairUri,
+                )
+            },
+            store = { ExtensionStoreFeed(catalog = streamServers) },
+            schedule = {
+                ScheduleFeed(
+                    aniList = aniList,
+                    onBack = { tab = "home" },
+                    onOpen = { openDetail(it) },
+                    showBack = false,
+                    bottomInset = 28.dp,
+                    followedEpisodes = followedEpisodes,
+                )
+            },
+        )
     } else {
         Box(modifier = Modifier.fillMaxSize()) {
             KittyAtmosphere()
@@ -2117,7 +2151,7 @@ private fun androidx.compose.foundation.layout.RowScope.ProfileStat(
 }
 
 @Composable
-private fun SettingsFeed(
+internal fun SettingsFeed(
     catalog: ServerCatalog,
     aniList: AniListClient,
     aniListAuth: AniListAuthStore,
@@ -2380,6 +2414,7 @@ private fun TitleDetailScreen(
     onOpenRelated: (AnimeSummary) -> Unit,
     onOpenGenre: (String) -> Unit,
     aniListAuth: AniListAuthStore,
+    forTelevision: Boolean = false,
     onPlay: (episode: Int, sources: List<PlayableSource>, anime: AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -2595,6 +2630,31 @@ private fun TitleDetailScreen(
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         }
+    }
+
+    if (forTelevision) {
+        TvDetailStage(
+            detail = detail,
+            episode = episode,
+            audio = audio,
+            resolving = resolving,
+            status = status,
+            listStatus = listStatus,
+            favourite = favourite,
+            signedIn = aniListAuth.isLinked,
+            episodes = episodeList,
+            onBack = onBack,
+            onPlay = { playSelected() },
+            onEpisode = { episode = it },
+            onAudio = { next ->
+                audio = next
+                watchPrefs.edit().putString("audio", next).apply()
+            },
+            onFavourite = { toggleFavourite() },
+            onListStatus = { applyListStatus(it) },
+            onOpenRelated = onOpenRelated,
+        )
+        return
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
