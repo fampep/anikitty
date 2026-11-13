@@ -67,6 +67,7 @@ fun ScheduleFeed(
     onOpen: (AnimeSummary) -> Unit,
     showBack: Boolean = true,
     bottomInset: Dp = 12.dp,
+    followedEpisodes: Map<Int, Int> = emptyMap(),
 ) {
     val days = remember { upcomingDays(5) }
     var selected by remember { mutableIntStateOf(0) }
@@ -74,6 +75,7 @@ fun ScheduleFeed(
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val clock = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+    var onlyMine by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         loading = true
@@ -95,7 +97,9 @@ fun ScheduleFeed(
     val dayEnd = dayStart + 24L * 60L * 60L * 1000L
     val visible = slots.filter { slot ->
         val ms = slot.airingAtEpochSec * 1000L
-        ms in dayStart until dayEnd
+        val onDay = ms in dayStart until dayEnd
+        val mine = !onlyMine || followedEpisodes.containsKey(slot.anime.id)
+        onDay && mine
     }
 
     Column(
@@ -128,6 +132,25 @@ fun ScheduleFeed(
                     "Next five days",
                     color = KittyMuted,
                     style = MaterialTheme.typography.bodySmall,
+                )
+            }
+        }
+        if (followedEpisodes.isNotEmpty()) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+            ) {
+                val shape = RoundedCornerShape(999.dp)
+                Text(
+                    if (onlyMine) "My list" else "All airing",
+                    color = if (onlyMine) KittyOnAccent else KittyText,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    modifier = Modifier
+                        .clip(shape)
+                        .background(if (onlyMine) KittyAccent else KittySurface)
+                        .border(1.dp, if (onlyMine) KittyAccent else KittyOutlineSoft, shape)
+                        .clickable { onlyMine = !onlyMine }
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                 )
             }
         }
@@ -178,7 +201,7 @@ fun ScheduleFeed(
                 modifier = Modifier.padding(16.dp),
             )
             visible.isEmpty() -> Text(
-                "Nothing airing this day.",
+                if (onlyMine) "Nothing from your list airs this day." else "Nothing airing this day.",
                 color = KittyMuted,
                 modifier = Modifier.padding(16.dp),
             )
@@ -187,10 +210,25 @@ fun ScheduleFeed(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(visible, key = { "${it.anime.id}-${it.episode}-${it.airingAtEpochSec}" }) { slot ->
-                    ScheduleRow(slot, clock.format(Date(slot.airingAtEpochSec * 1000L)), onOpen)
+                    ScheduleRow(
+                        slot,
+                        clock.format(Date(slot.airingAtEpochSec * 1000L)),
+                        catchUpLabel(slot.episode, followedEpisodes[slot.anime.id]),
+                        onOpen,
+                    )
                 }
             }
         }
+    }
+}
+
+private fun catchUpLabel(airingEpisode: Int, watchedEpisode: Int?): String? {
+    if (watchedEpisode == null) return null
+    val behind = airingEpisode - watchedEpisode
+    return when {
+        behind > 1 -> "$behind behind"
+        behind == 1 -> "New"
+        else -> "On list"
     }
 }
 
@@ -198,6 +236,7 @@ fun ScheduleFeed(
 private fun ScheduleRow(
     slot: AiringSlot,
     timeLabel: String,
+    listLabel: String?,
     onOpen: (AnimeSummary) -> Unit,
 ) {
     Row(
@@ -239,6 +278,19 @@ private fun ScheduleRow(
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
+            if (!listLabel.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    listLabel,
+                    color = KittyOnAccent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittyAccent)
+                        .padding(horizontal = 7.dp, vertical = 2.dp),
+                )
+            }
         }
         Column(horizontalAlignment = Alignment.End) {
             if (soon) {
