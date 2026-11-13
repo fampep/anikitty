@@ -78,7 +78,7 @@ fun KittyBottomNav(
                 )
             }
             .navigationBarsPadding()
-            .height(56.dp),
+            .height(50.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(
@@ -111,14 +111,15 @@ fun KittyBottomNav(
                         tint = if (selected) KittyAccent else KittyNavPillContent,
                         modifier = Modifier
                             .graphicsLayer(scaleX = scale, scaleY = scale)
-                            .size(18.dp),
+                            .size(17.dp),
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         tab.label,
                         color = if (selected) KittyAccent else KittyNavPillContent,
-                        fontSize = 9.sp,
+                        fontSize = 8.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        letterSpacing = 0.05.sp,
                         maxLines = 1,
                     )
                 }

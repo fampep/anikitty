@@ -12,8 +12,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,14 +68,29 @@ fun SplashScreen(onFinished: () -> Unit) {
     LaunchedEffect(Unit) {
         delay(100)
         startAnimation = true
-        delay(2500)
+        delay(2800)
         onFinished()
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(Color.Black)
+            .drawBehind {
+                val radius = size.minDimension * (0.22f + 0.28f * progress)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.14f * progress),
+                            Color.Transparent,
+                        ),
+                        center = center,
+                        radius = radius,
+                    ),
+                    radius = radius,
+                    center = center,
+                )
+            },
         contentAlignment = Alignment.Center,
     ) {
         val sweepWidth = 800f
@@ -141,6 +160,21 @@ fun SplashScreen(onFinished: () -> Unit) {
                     color = Color.White.copy(alpha = fillAlphaAnim),
                 )
             }
+            Spacer(modifier = Modifier.height(14.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.34f * fillAlphaAnim.coerceIn(0.001f, 1f))
+                    .height(1.dp)
+                    .background(Color.White.copy(alpha = 0.72f * fillAlphaAnim)),
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Your lists. Your next episode.",
+                color = Color.White.copy(alpha = 0.46f * fillAlphaAnim),
+                fontSize = 13.sp,
+                letterSpacing = 0.3.sp,
+                fontWeight = FontWeight.Medium,
+            )
         }
     }
 }

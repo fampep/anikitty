@@ -573,6 +573,8 @@ class AniListClient(
                       type
                       title { romaji english }
                       coverImage { large }
+                      bannerImage
+                      genres
                       format
                       episodes
                       averageScore
