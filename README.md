@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.2.3"><img src="https://img.shields.io/badge/Release-1.2.3-0284c7?style=for-the-badge" alt="Release 1.2.3" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/Release-1.2.4-0284c7?style=for-the-badge" alt="Release 1.2.4" /></a>
   <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
   <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0284c7?style=for-the-badge" alt="Apache License 2.0" /></a>
 </p>
@@ -17,11 +17,11 @@
 <p align="center">
   <a href="https://t.me/Anikittymoe"><img src="https://img.shields.io/badge/Telegram-Anikittymoe-28A8E9?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram" /></a>
   <a href="https://github.com/fampep/anikitty/issues"><img src="https://img.shields.io/badge/Issues-welcome-0369a1?style=for-the-badge&logo=github&logoColor=white" alt="Issues" /></a>
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.2.3"><img src="https://img.shields.io/badge/APK-download-0ea5e9?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
+  <a href="https://github.com/fampep/anikitty/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/APK-download-0ea5e9?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
 </p>
 
 > [!WARNING]
-> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. Stable release: [**v1.2.3**](https://github.com/fampep/anikitty/releases/tag/v1.2.3). Pushes to `main` still publish dev prereleases for testing.
+> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. Stable release: [**v1.2.4**](https://github.com/fampep/anikitty/releases/tag/v1.2.4). Pushes to `main` still publish dev prereleases for testing.
 
 <br />
 
@@ -34,7 +34,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 
 | | |
 |---|---|
-| Latest APK | [v1.2.3](https://github.com/fampep/anikitty/releases/tag/v1.2.3) |
+| Latest APK | [v1.2.4](https://github.com/fampep/anikitty/releases/tag/v1.2.4) |
 | Author guide | [`extensions/GUIDE.md`](extensions/GUIDE.md) |
 | Protocol | [`extensions/spec/PROTOCOL.md`](extensions/spec/PROTOCOL.md) |
 | Submit to store | [`extensions/store/SUBMIT.md`](extensions/store/SUBMIT.md) |
@@ -46,6 +46,7 @@ AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP strea
 
 | Version | Highlights |
 |---|---|
+| **1.2.4** | Chromecast answers the receiver's CORS check and tells it whether the stream is MPEG-TS or fMP4. |
 | **1.2.3** | Apache License 2.0. Copyright 2026 fampep. Chromecast relay keeps the whole playlist. |
 | **1.2.2** | Stable release. |
 | **1.1.21** | Black home polish; APK-only (desktop removed); denser rails + welcome chrome |
@@ -129,6 +130,7 @@ Releases: https://github.com/fampep/anikitty/releases
 
 | Tag | Notes |
 |---|---|
+| [v1.2.4](https://github.com/fampep/anikitty/releases/tag/v1.2.4) | Chromecast CORS and segment format. |
 | [v1.2.3](https://github.com/fampep/anikitty/releases/tag/v1.2.3) | Apache License 2.0. Copyright 2026 fampep. |
 | [v1.2.2](https://github.com/fampep/anikitty/releases/tag/v1.2.2) | Stable release. |
 | [v1.1.3](https://github.com/fampep/anikitty/releases/tag/v1.1.3) | Store/Search/Detail polish + Home refresh guard |
