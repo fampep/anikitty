@@ -38,17 +38,17 @@ Until that mirror is refreshed, the APK prefers the monorepo
 
 ```bash
 gh repo edit fampep/anikitty --add-topic android,anime,compose,kotlin,educational
-gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions,educational,mit
+gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions,educational
 ```
 
 ## 4. Framing
 
-Both GitHub repos use the MIT [LICENSE](../LICENSE) (copyright 2026 fampep).  
-[`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) must show that same MIT file at its root. A PolyForm license there is stale.
+Both GitHub repos use the PolyForm Noncommercial [LICENSE](../LICENSE). Copyright 2026 fampep. AniKitty is owned by fampep.  
+[`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) must show that same license file at its root.
 
 Keep [extensions/DISCLAIMER.md](../extensions/DISCLAIMER.md) after the split:
 
-- **fampep holds copyright** in AniKitty / protocol / provider source
-- MIT: fork, modify, and contribute
+- **fampep owns** AniKitty / protocol / provider source
+- PolyForm Noncommercial 1.0.0: noncommercial use, changes, and sharing
 - community extensions gladly accepted; **fampep does not control third-party backends**
 - provider Kotlin lives in [extensions/providers](../extensions/providers) and is compiled by the app

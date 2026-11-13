@@ -6,4 +6,4 @@ On-device resolver compiled into the AniKitty app from this folder.
 
 The extension version of Ani.pm is built here. The phone still plays the stream itself.
 
-Copyright 2026 fampep. [MIT License](../../LICENSE).
+Copyright 2026 fampep. AniKitty is owned by fampep. [PolyForm Noncommercial License 1.0.0](../../LICENSE).

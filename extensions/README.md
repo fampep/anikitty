@@ -11,7 +11,7 @@
 | Repo | Role |
 |---|---|
 | [`fampep/anikitty`](https://github.com/fampep/anikitty) | Android app. Compiles [providers](./providers) and plays streams on the phone. |
-| [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) | This tree: spec, store, examples, and provider source. MIT. |
+| [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) | This tree: spec, store, examples, and provider source. Owned by fampep. |
 
 The in-app store loads  
 `https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`  
@@ -20,7 +20,7 @@ Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup
 
 ## License & ownership
 
-- **Copyright fampep** — [MIT License](./LICENSE)
+- **Copyright 2026 fampep. AniKitty is owned by fampep.** [PolyForm Noncommercial License 1.0.0](./LICENSE)
 - Fork, modify, and contribute. See [DISCLAIMER.md](./DISCLAIMER.md) · [NOTICE](./NOTICE)
 - Community extension *backends* stay owned by their authors — gladly linked, not controlled by fampep
 

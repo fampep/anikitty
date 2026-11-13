@@ -1,3 +1,6 @@
+// Copyright 2026 fampep. AniKitty is owned by fampep.
+// PolyForm Noncommercial License 1.0.0. https://polyformproject.org/licenses/noncommercial/1.0.0
+
 package site.anikitty.app.ui.app
 
 import androidx.activity.compose.BackHandler
@@ -2258,6 +2261,13 @@ internal fun SettingsFeed(
                 }
                 else -> {
                     item { AppBuildsRow(onClick = onOpenBuilds) }
+                    item {
+                        Text(
+                            "Copyright 2026 fampep. AniKitty is owned by fampep.",
+                            color = KittyMuted,
+                            fontSize = 13.sp,
+                        )
+                    }
                 }
             }
         }
