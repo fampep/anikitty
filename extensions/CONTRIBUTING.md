@@ -2,7 +2,7 @@
 
 Community extensions and docs are **gladly welcome**.
 
-AniKitty protocol/docs in this repo are **owned by fampep** (PolyForm Noncommercial 1.0.0). Your own extension repo and resolve server stay **yours**.
+AniKitty protocol/docs in this repo are **copyright fampep** (Apache License 2.0). Your own extension repo and resolve server stay **yours**.
 
 ## Store link PRs
 
@@ -12,7 +12,7 @@ AniKitty protocol/docs in this repo are **owned by fampep** (PolyForm Noncommerc
 
 ## Spec / guide PRs
 
-Contributions to *this* repository are accepted under the PolyForm Noncommercial License 1.0.0 and do not transfer fampep’s copyright in AniKitty. Open an issue first for `apiVersion` bumps.
+Contributions to *this* repository are accepted under the Apache License 2.0 and do not transfer fampep’s copyright in AniKitty. Open an issue first for `apiVersion` bumps.
 
 ## Rules of the road
 

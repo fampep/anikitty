@@ -1,5 +1,5 @@
-// Copyright 2026 fampep. AniKitty is owned by fampep.
-// PolyForm Noncommercial License 1.0.0. https://polyformproject.org/licenses/noncommercial/1.0.0
+// Copyright 2026 fampep
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 package site.anikitty.app.ui.app
 
@@ -2263,7 +2263,7 @@ internal fun SettingsFeed(
                     item { AppBuildsRow(onClick = onOpenBuilds) }
                     item {
                         Text(
-                            "Copyright 2026 fampep. AniKitty is owned by fampep.",
+                            "Copyright 2026 fampep. Apache License 2.0.",
                             color = KittyMuted,
                             fontSize = 13.sp,
                         )

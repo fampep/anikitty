@@ -20,7 +20,7 @@ Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup
 
 ## License & ownership
 
-- **Copyright 2026 fampep. AniKitty is owned by fampep.** [PolyForm Noncommercial License 1.0.0](./LICENSE)
+- **Copyright 2026 fampep.** [Apache License 2.0](./LICENSE)
 - Fork, modify, and contribute. See [DISCLAIMER.md](./DISCLAIMER.md) · [NOTICE](./NOTICE)
 - Community extension *backends* stay owned by their authors — gladly linked, not controlled by fampep
 
