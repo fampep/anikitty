@@ -43,6 +43,7 @@ jobs:
         run: |
           SDK="$HOME/android-sdk"
           echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
           mkdir -p "$SDK/cmdline-tools" "$SDK/licenses"
           echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$SDK/licenses/android-sdk-license"
           tmp="$(mktemp -d)"
