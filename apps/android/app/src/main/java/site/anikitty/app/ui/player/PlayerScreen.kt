@@ -15,6 +15,8 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -80,6 +82,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -112,6 +115,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import site.anikitty.app.data.servers.GotakuObfDataSource
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
@@ -216,6 +220,7 @@ fun PlayerScreen(
     var videoOptions by remember { mutableStateOf<List<VideoOption>>(emptyList()) }
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
     var playbackSpeed by remember { mutableFloatStateOf(1f) }
+    var holdBoost by remember { mutableStateOf(false) }
     var controlsLocked by remember { mutableStateOf(false) }
     var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
     var isCasting by remember { mutableStateOf(false) }
@@ -422,8 +427,9 @@ fun PlayerScreen(
         castHint = null
     }
 
-    LaunchedEffect(player, playbackSpeed) {
-        player?.playbackParameters = PlaybackParameters(playbackSpeed)
+    LaunchedEffect(player, playbackSpeed, holdBoost) {
+        val speed = if (holdBoost) 2f else playbackSpeed
+        player?.playbackParameters = PlaybackParameters(speed)
     }
 
     LaunchedEffect(seekFlashDir) {
@@ -708,8 +714,47 @@ fun PlayerScreen(
                         if (offset.x < size.width / 2f) seekBy(-10_000) else seekBy(30_000)
                     },
                 )
+            }
+            .pointerInput(controlsLocked) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    if (controlsLocked) return@awaitEachGesture
+                    val releasedEarly = withTimeoutOrNull(280L) {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.changes.none { it.pressed }) return@withTimeoutOrNull true
+                        }
+                    }
+                    if (releasedEarly == null) {
+                        holdBoost = true
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            if (event.changes.none { it.pressed }) break
+                        }
+                        holdBoost = false
+                    }
+                }
             },
     ) {
+        AnimatedVisibility(
+            visible = holdBoost,
+            enter = fadeIn(),
+            exit = fadeOut(),
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 28.dp),
+        ) {
+            Text(
+                "2×",
+                color = PlayerChrome.Ink,
+                fontWeight = FontWeight.Black,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(PlayerChrome.Accent)
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+            )
+        }
         AnimatedVisibility(
             visible = seekFlashDir != 0,
             enter = fadeIn(),

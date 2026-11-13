@@ -107,6 +107,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AniListOAuth
@@ -525,6 +526,19 @@ private fun HomeFeed(
     var catalogJob by remember { mutableStateOf<Job?>(null) }
     val catalogBusy = loading || refreshing
     var homeGenre by remember { mutableStateOf<String?>(null) }
+    var airingToday by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        val start = java.util.Calendar.getInstance().apply {
+            set(java.util.Calendar.HOUR_OF_DAY, 0)
+            set(java.util.Calendar.MINUTE, 0)
+            set(java.util.Calendar.SECOND, 0)
+            set(java.util.Calendar.MILLISECOND, 0)
+        }
+        val from = start.timeInMillis / 1000L
+        airingToday = runCatching {
+            aniList.airingSchedule(from, from + 24 * 60 * 60)
+        }.getOrDefault(emptyList())
+    }
     fun List<AnimeSummary>.forGenre(): List<AnimeSummary> {
         val picked = homeGenre ?: return this
         return filter { picked in it.genres }
@@ -640,6 +654,18 @@ private fun HomeFeed(
                             },
                         )
                     }
+                    if (airingToday.isNotEmpty()) {
+                        item {
+                            TodayAiringRail(
+                                slots = airingToday,
+                                onMore = onOpenSchedule,
+                                onOpen = {
+                                    scope.launch { historyDao.touchFromCatalog(it) }
+                                    onOpen(it, null)
+                                },
+                            )
+                        }
+                    }
                     item {
                         KittyPosterRow(
                             title = "Trending Anime",
@@ -682,14 +708,15 @@ private fun HomeFeed(
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
                                     lazyItems(continueWatching, key = { it.anilistId }) { entry ->
-                                        val nextEpisode = (entry.episode + 1).coerceAtLeast(1)
+                                        val target = playbackTarget(entry)
+                                        val resume = target == entry.episode.coerceAtLeast(1)
                                         KittyContinueCard(
                                             title = entry.title,
                                             coverUrl = entry.coverImageUrl,
-                                            episode = nextEpisode,
-                                            positionMs = entry.positionMs,
-                                            durationMs = entry.durationMs,
-                                            badge = listStatusBadge(entry.listStatus),
+                                            episode = target,
+                                            positionMs = if (resume) entry.positionMs else 0L,
+                                            durationMs = if (resume) entry.durationMs else 0L,
+                                            badge = if (resume) "Resume" else listStatusBadge(entry.listStatus),
                                             onClick = {
                                                 scope.launch {
                                                     val detail = aniList.media(entry.anilistId)
@@ -704,9 +731,9 @@ private fun HomeFeed(
                                                         )
                                                     val total = detail.episodes
                                                     val play = if (total != null && total > 0) {
-                                                        nextEpisode.coerceAtMost(total)
+                                                        target.coerceAtMost(total)
                                                     } else {
-                                                        nextEpisode
+                                                        target
                                                     }
                                                     onOpen(detail, play)
                                                 }
@@ -766,6 +793,84 @@ private fun HomeFeed(
                             },
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TodayAiringRail(
+    slots: List<AiringSlot>,
+    onMore: () -> Unit,
+    onOpen: (AnimeSummary) -> Unit,
+) {
+    val now = System.currentTimeMillis() / 1000L
+    val upcoming = slots.filter { it.airingAtEpochSec >= now - 20 * 60 }
+    val shown = (if (upcoming.isNotEmpty()) upcoming else slots).take(12)
+    val clock = remember {
+        java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+    }
+    Column(modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) {
+        KittySectionHeading(
+            title = "Airing today",
+            subtitle = "${shown.size} episode${if (shown.size == 1) "" else "s"}",
+            onMore = onMore,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            lazyItems(shown, key = { "${it.anime.id}-${it.episode}-${it.airingAtEpochSec}" }) { slot ->
+                val soon = slot.airingAtEpochSec - now in 0..(45 * 60)
+                Column(
+                    modifier = Modifier
+                        .width(148.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(KittySurface)
+                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
+                        .clickable { onOpen(slot.anime) }
+                        .padding(8.dp),
+                ) {
+                    Box {
+                        AsyncImage(
+                            model = slot.anime.coverImageUrl,
+                            contentDescription = slot.anime.title,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(16f / 9f)
+                                .clip(RoundedCornerShape(10.dp)),
+                            contentScale = ContentScale.Crop,
+                        )
+                        Text(
+                            if (soon) "Soon" else clock.format(java.util.Date(slot.airingAtEpochSec * 1000L)),
+                            color = KittyOnAccent,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(6.dp)
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(KittyAccent)
+                                .padding(horizontal = 7.dp, vertical = 3.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        slot.anime.title,
+                        color = KittyText,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        "Episode ${slot.episode}",
+                        color = KittyFaint,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
                 }
             }
         }
@@ -842,6 +947,15 @@ private fun HomeWelcomeHeader(
             }
         }
     }
+}
+
+/** Resume the episode still in progress; otherwise play the one after the last finished. */
+private fun playbackTarget(entry: WatchHistoryEntity): Int {
+    val stored = entry.episode.coerceAtLeast(1)
+    val hasDuration = entry.durationMs > 30_000L
+    val ratio = if (hasDuration) entry.positionMs.toFloat() / entry.durationMs.toFloat() else 0f
+    val inProgress = hasDuration && entry.positionMs >= 15_000L && ratio < 0.9f
+    return if (inProgress) stored else stored + 1
 }
 
 private fun listStatusBadge(status: String?): String? = when (status?.uppercase()) {
@@ -1053,6 +1167,19 @@ private fun SearchFeed(
             }
             listOf("Isekai", "School", "Mecha", "Supernatural", "Psychological").forEach { value ->
                 Chip(value, selected = tag == value) { toggle(tag, value) { tag = it } }
+            }
+            if (filtersOn()) {
+                Chip("Clear", selected = true) {
+                    format = null
+                    airingStatus = null
+                    season = null
+                    genre = null
+                    tag = null
+                    seasonYear = null
+                    country = null
+                    sort = null
+                    runSearch(query)
+                }
             }
         }
         if (recent.isNotEmpty() && query.isBlank()) {
@@ -2690,6 +2817,17 @@ private fun TitleDetailScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
+                    val finishedThrough = maxOf(
+                        detail.listState?.progress ?: 0,
+                        (lastWatchedEp - 1).coerceAtLeast(0),
+                    )
+                    if (finishedThrough > 0) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            EpisodeLegendDot(KittySurfaceElevated, "Watched")
+                            EpisodeLegendDot(KittyAccent.copy(alpha = 0.22f), "Up next")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                     val columns = 6
                     episodeList.map { it.number }.chunked(columns).forEach { rowItems ->
                         Row(
@@ -2700,8 +2838,8 @@ private fun TitleDetailScreen(
                         ) {
                             rowItems.forEach { number ->
                                 val selected = number == episode
-                                val watched = lastWatchedEp > 0 && number < lastWatchedEp
-                                val continueEp = number == lastWatchedEp && lastWatchedEp > 0
+                                val watched = finishedThrough > 0 && number <= finishedThrough
+                                val continueEp = !watched && number == finishedThrough + 1
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -2727,6 +2865,17 @@ private fun TitleDetailScreen(
                                         .clickable { episode = number },
                                     contentAlignment = Alignment.Center,
                                 ) {
+                                    if (watched && !selected) {
+                                        Icon(
+                                            Icons.Rounded.Check,
+                                            contentDescription = null,
+                                            tint = KittyFaint,
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(3.dp)
+                                                .size(10.dp),
+                                        )
+                                    }
                                     Text(
                                         "$number",
                                         fontSize = 14.sp,
