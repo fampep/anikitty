@@ -161,6 +161,7 @@ private sealed class Screen {
         val sources: List<PlayableSource>,
     ) : Screen()
     data object Schedule : Screen()
+    data object Builds : Screen()
 }
 
 @Composable
@@ -388,6 +389,10 @@ fun LocalFirstApp(
             )
             return
         }
+        Screen.Builds -> {
+            BuildChannelPage(onBack = { screen = Screen.Tabs })
+            return
+        }
         is Screen.Detail -> {
             TitleDetailScreen(
                 anime = current.anime,
@@ -501,6 +506,7 @@ fun LocalFirstApp(
                     onLinkTick = { aniLinkTick++ },
                     onSignOut = onSignOut,
                     onOpenStore = { tab = "store" },
+                    onOpenBuilds = { screen = Screen.Builds },
                     onOpenLibrary = { filter ->
                         libraryFilter = filter
                         screen = Screen.Tabs
@@ -1936,6 +1942,7 @@ private fun SettingsFeed(
     onLinkTick: () -> Unit,
     onSignOut: () -> Unit,
     onOpenStore: () -> Unit,
+    onOpenBuilds: () -> Unit,
     onOpenLibrary: (String) -> Unit = {},
 ) {
     val selectedId by catalog.selectedId.collectAsState()
@@ -1956,6 +1963,9 @@ private fun SettingsFeed(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        item {
+            AppBuildsRow(onClick = onOpenBuilds)
+        }
         item {
             AniListProfileCard(
                 auth = aniListAuth,
