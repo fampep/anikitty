@@ -1093,6 +1093,43 @@ fun PlayerScreen(
                     val progress = if (scrubbing) scrubValue else (positionMs / dur).coerceIn(0f, 1f)
                     val scrubMs = if (scrubbing) (scrubValue * durationMs).toLong() else positionMs
 
+                    GlassScrubber(
+                        progress = progress,
+                        durationMs = durationMs,
+                        scrubbing = scrubbing,
+                        onScrub = {
+                            scrubbing = true
+                            scrubValue = it
+                            controlsVisible = true
+                        },
+                        onScrubFinished = {
+                            activePlayer?.seekTo((scrubValue * durationMs).toLong())
+                            positionMs = (scrubValue * durationMs).toLong()
+                            scrubbing = false
+                        },
+                        formatClock = ::formatClock,
+                        skipTimes = skipTimes,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            formatClock(if (scrubbing) scrubMs else positionMs),
+                            color = PlayerChrome.Graphite,
+                            fontSize = 12.sp,
+                        )
+                        Text(
+                            "−${formatClock((durationMs - (if (scrubbing) scrubMs else positionMs)).coerceAtLeast(0L))}",
+                            color = PlayerChrome.Paper,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Row(
                         modifier = Modifier
                             .align(Alignment.End)
@@ -1175,43 +1212,6 @@ fun PlayerScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    GlassScrubber(
-                        progress = progress,
-                        durationMs = durationMs,
-                        scrubbing = scrubbing,
-                        onScrub = {
-                            scrubbing = true
-                            scrubValue = it
-                            controlsVisible = true
-                        },
-                        onScrubFinished = {
-                            activePlayer?.seekTo((scrubValue * durationMs).toLong())
-                            positionMs = (scrubValue * durationMs).toLong()
-                            scrubbing = false
-                        },
-                        formatClock = ::formatClock,
-                        skipTimes = skipTimes,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            formatClock(if (scrubbing) scrubMs else positionMs),
-                            color = PlayerChrome.Graphite,
-                            fontSize = 12.sp,
-                        )
-                        Text(
-                            "−${formatClock((durationMs - (if (scrubbing) scrubMs else positionMs)).coerceAtLeast(0L))}",
-                            color = PlayerChrome.Paper,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
                 }
 
                 if (panel != Panel.None) {
@@ -1290,7 +1290,7 @@ fun PlayerScreen(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(end = 16.dp, bottom = 92.dp)
+                    .padding(end = 16.dp, bottom = 128.dp)
                     .shadow(8.dp, RoundedCornerShape(999.dp))
                     .clip(RoundedCornerShape(999.dp))
                     .background(PlayerChrome.Accent)
