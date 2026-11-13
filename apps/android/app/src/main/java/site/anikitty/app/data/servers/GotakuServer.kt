@@ -117,48 +117,68 @@ class GotakuServer(
     }
 
     private fun mapTitle(anilistId: Int, titleHint: String?): String {
-        cache?.getShow(ID, anilistId)?.let { return it.siteId }
+        cache?.getShow(CACHE_ID, anilistId)?.let { return it.siteId }
         val queries = buildTitleQueries(titleHint)
         var lastError: String? = null
+        val pools = ArrayList<List<TitleHit>>()
         for (q in queries) {
             val hits = runCatching { searchTitles(q) }.getOrElse {
                 lastError = it.message
                 emptyList()
             }
-            for (hit in hits) {
-                val detailId = hit.id
-                val matched = runCatching { titleMatchesAnilist(detailId, anilistId) }
-                    .getOrElse { false }
-                if (matched) {
-                    cache?.putShow(ID, anilistId, detailId, "$GOTAKU_ORIGIN/title/$detailId")
-                    return detailId
-                }
-                // Fast path: AniList CDN poster embeds bx{anilistId}-
-                if (hit.poster.contains("anilist") &&
-                    ANILIST_POSTER.matcher(hit.poster).find() &&
-                    hit.poster.contains("bx$anilistId")
-                ) {
-                    cache?.putShow(ID, anilistId, detailId, "$GOTAKU_ORIGIN/title/$detailId")
-                    return detailId
-                }
-            }
+            if (hits.isNotEmpty()) pools += hits
         }
-        // Last resort: page through popular titles looking for poster id.
-        val browse = runCatching { searchTitles("") }.getOrDefault(emptyList())
-        for (hit in browse) {
-            if (hit.poster.contains("bx$anilistId")) {
-                cache?.putShow(ID, anilistId, hit.id, "$GOTAKU_ORIGIN/title/${hit.id}")
-                return hit.id
+        if (pools.isEmpty()) {
+            val browse = runCatching { searchTitles("") }.getOrElse {
+                lastError = it.message ?: lastError
+                emptyList()
             }
+            if (browse.isNotEmpty()) pools += browse
+        }
+        for (hits in pools) {
+            val id = pickAnilistMatch(hits, anilistId) ?: continue
+            cache?.putShow(CACHE_ID, anilistId, id, "$GOTAKU_ORIGIN/title/$id")
+            return id
         }
         error(lastError ?: "Gotaku title not found for AniList #$anilistId")
     }
 
-    private fun titleMatchesAnilist(titleId: String, anilistId: Int): Boolean {
+    /**
+     * Same AniList id can exist more than once (full series vs a short cut).
+     * Keep the entry with the most episodes so One Piece and Monster resolve to the full show.
+     */
+    private fun pickAnilistMatch(hits: List<TitleHit>, anilistId: Int): String? {
+        val posterHits = hits.filter { posterMatchesAnilist(it.poster, anilistId) }
+        val pool = (if (posterHits.isNotEmpty()) posterHits else hits).take(8)
+        var bestId: String? = null
+        var bestCount = -1
+        for (hit in pool) {
+            val info = runCatching { fetchTitleInfo(hit.id) }.getOrNull() ?: continue
+            if (info.anilistId != anilistId) continue
+            val count = maxOf(info.latestSub, info.listedTotal)
+            if (count > bestCount) {
+                bestCount = count
+                bestId = hit.id
+            }
+        }
+        return bestId
+    }
+
+    private fun fetchTitleInfo(titleId: String): TitleInfo {
         val raw = apiBytes("/api/v1/titles/$titleId?k=10")
         val json = JSONObject(String(GotakuCrypto.maybeUnsealApi(raw), StandardCharsets.UTF_8))
         val title = json.getJSONObject("data").getJSONObject("title")
-        return title.optInt("anilist_id", -1) == anilistId
+        val episodes = title.optJSONObject("episodes")
+        return TitleInfo(
+            anilistId = title.optInt("anilist_id", -1),
+            latestSub = episodes?.optInt("latest_sub", 0) ?: 0,
+            listedTotal = episodes?.optInt("total", 0) ?: 0,
+        )
+    }
+
+    private fun posterMatchesAnilist(poster: String, anilistId: Int): Boolean {
+        if (anilistId <= 0 || poster.isBlank()) return false
+        return Regex("""bx$anilistId(?!\d)""").containsMatchIn(poster)
     }
 
     private fun searchTitles(query: String): List<TitleHit> {
@@ -185,7 +205,7 @@ class GotakuServer(
     }
 
     private fun findEpisode(titleId: String, episode: Int): EpisodeHit {
-        cache?.getEpisodes(ID, titleId)?.let { cached ->
+        cache?.getEpisodes(CACHE_ID, titleId)?.let { cached ->
             cached.firstOrNull { it.number == episode }?.let {
                 return EpisodeHit(it.ids, it.number, it.hasSub, it.hasDub)
             }
@@ -206,7 +226,7 @@ class GotakuServer(
                 )
             }
         }
-        cache?.putEpisodes(ID, titleId, all)
+        cache?.putEpisodes(CACHE_ID, titleId, all)
         val hit = all.firstOrNull { it.number == episode }
             ?: error("Episode $episode not found on Gotaku")
         return EpisodeHit(hit.ids, hit.number, hit.hasSub, hit.hasDub)
@@ -308,28 +328,39 @@ class GotakuServer(
     }
 
     private fun buildTitleQueries(titleHint: String?): List<String> {
+        val raw = titleHint?.trim().orEmpty()
+        if (raw.isEmpty()) return emptyList()
         val out = LinkedHashSet<String>()
-        titleHint?.trim()?.takeIf { it.isNotEmpty() }?.let { full ->
+        // Callers pass "Romaji || English || Native". Searching that whole string
+        // ranks spin-offs ahead of the series (One Piece films, other "Monster" shows).
+        val parts = raw.split("||").map { it.trim() }.filter { it.length >= 2 }
+        val seeds = if (parts.isEmpty()) listOf(raw) else parts
+        for (full in seeds) {
             out += full
-            out += full.replace(Regex("""\s*\(.*?\)\s*"""), " ").trim()
-            out += full.substringBefore(':').trim()
-            out += full.substringBefore('—').substringBefore('-').trim()
-            // Drop trailing "Season N" for broader search, keep original first.
-            val noSeason = full.replace(Regex("""\s+Season\s+\d+\s*$""", RegexOption.IGNORE_CASE), "").trim()
-            if (noSeason.isNotEmpty()) out += noSeason
         }
-        return out.filter { it.length >= 2 }.take(6)
+        for (full in seeds) {
+            val noParen = full.replace(Regex("""\s*\(.*?\)\s*"""), " ").replace(Regex("""\s+"""), " ").trim()
+            if (noParen.length >= 2) out += noParen
+            val head = full.substringBefore(':').substringBefore('—').substringBefore(" - ").trim()
+            if (head.length >= 2) out += head
+            val noSeason = full.replace(Regex("""\s+Season\s+\d+\s*$""", RegexOption.IGNORE_CASE), "").trim()
+            if (noSeason.length >= 2) out += noSeason
+        }
+        return out.filter { it.length >= 2 }.take(8)
     }
 
     private fun enc(s: String): String =
         URLEncoder.encode(s, StandardCharsets.UTF_8.name())
 
     private data class TitleHit(val id: String, val name: String, val poster: String)
+    private data class TitleInfo(val anilistId: Int, val latestSub: Int, val listedTotal: Int)
     private data class EpisodeHit(val id: String, val number: Int, val sub: Boolean, val dub: Boolean)
     private data class Variant(val bandwidth: Int, val url: String, val height: Int)
 
     companion object {
         const val ID = "gotaku"
+        /** Bumped so older short-series matches (uncropped One Piece, wrong Monster) are not reused. */
+        private const val CACHE_ID = "gotaku-v2"
         private const val GOTAKU_ORIGIN = "https://gotaku.to"
         private const val GOTAKU_DL = "https://gotakudl.top"
         private const val SITE_ICON_URL =
@@ -343,7 +374,5 @@ class GotakuServer(
             Pattern.compile("""data-manifest-base=\"([^\"]+)\"""", Pattern.CASE_INSENSITIVE)
         private val ORIGIN: Pattern =
             Pattern.compile("""^(https?://[^/]+)""", Pattern.CASE_INSENSITIVE)
-        private val ANILIST_POSTER: Pattern =
-            Pattern.compile("""anilist\.co/file/anilistcdn/media/anime/""", Pattern.CASE_INSENSITIVE)
     }
 }

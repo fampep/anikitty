@@ -42,7 +42,7 @@ data class AnimeRelation(
     val season: String? = null,
     val seasonYear: Int? = null,
 ) {
-    /** AniList airing season label (e.g. "Fall 2024") — never TMDB season numbers. */
+    /** AniList airing season label (e.g. "Fall 2024"). */
     fun seasonLabel(): String? {
         val s = season?.lowercase()?.replaceFirstChar { it.titlecase() }
         return when {
@@ -176,7 +176,18 @@ data class AnimeSummary(
         return relations.filterNot { it.id in seasonIds }
     }
 
-    /** Plex-style episode list for the current media (all episodes, with thumbs/titles when known). */
+    /**
+     * Episodes AniList knows about.
+     * Finished shows use [episodes]. Airing shows leave that null, so the count is
+     * one less than [nextAiring] (the next episode has not aired yet).
+     */
+    fun releasedEpisodeCount(): Int {
+        val listed = episodes?.takeIf { it > 0 } ?: 0
+        val aired = nextAiring?.episode?.minus(1)?.takeIf { it > 0 } ?: 0
+        return maxOf(listed, aired)
+    }
+
+    /** Episode list for this media. Titles and thumbs come from AniList streaming episodes when present. */
     fun episodeItems(fallbackCover: String? = coverImageUrl): List<AnimeEpisodeItem> {
         val byNumber = LinkedHashMap<Int, AnimeStreamingEpisode>()
         streamingEpisodes.forEachIndexed { index, ep ->
@@ -184,8 +195,9 @@ data class AnimeSummary(
             byNumber.putIfAbsent(n, ep)
         }
         val maxFromStream = byNumber.keys.maxOrNull() ?: 0
-        val max = (episodes ?: maxFromStream).coerceAtLeast(maxFromStream).coerceAtLeast(1)
-            .coerceAtMost(2000)
+        val max = maxOf(releasedEpisodeCount(), maxFromStream)
+            .coerceAtLeast(1)
+            .coerceAtMost(12_000)
         return (1..max).map { n ->
             val stream = byNumber[n]
             AnimeEpisodeItem(

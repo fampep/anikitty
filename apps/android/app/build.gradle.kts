@@ -55,11 +55,6 @@ android {
         // Public AniList client id. Sign-in is the implicit grant, so the APK has no secret.
         val anilistClientId = configValue("anilistClientId", "ANILIST_CLIENT_ID", "56768")
         buildConfigField("String", "ANILIST_CLIENT_ID", "\"$anilistClientId\"")
-        // Optional TMDB v3 API key for Fribb-mapped episode stills (Plex-style rail).
-        // Set gradle property tmdbApiKey, env TMDB_API_KEY, or leave blank to keep
-        // AniList streaming thumbs / cover fallbacks only.
-        val tmdbApiKey = configValue("tmdbApiKey", "TMDB_API_KEY")
-        buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
     }
 
     signingConfigs {

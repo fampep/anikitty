@@ -114,7 +114,6 @@ import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeEpisodeItem
 import site.anikitty.app.data.anilist.AnimeSummary
-import site.anikitty.app.data.fribb.EpisodeThumbResolver
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
 import site.anikitty.app.data.local.touchFromCatalog
@@ -334,8 +333,8 @@ fun LocalFirstApp(
                     }
                 },
                 onNextEpisode = run {
-                    val total = current.anime.episodes
-                    val hasNext = total == null || current.episode < total
+                    val released = current.anime.releasedEpisodeCount()
+                    val hasNext = released <= 0 || current.episode < released
                     if (!hasNext) {
                         null
                     } else {
@@ -677,8 +676,8 @@ private fun HomeFeed(
                                             averageScore = null,
                                             malId = spotlight.malId,
                                         )
-                                    val total = detail.episodes
-                                    val play = if (total != null && total > 0) {
+                                    val total = detail.releasedEpisodeCount().takeIf { it > 0 }
+                                    val play = if (total != null) {
                                         episode.coerceAtMost(total)
                                     } else {
                                         episode
@@ -790,8 +789,8 @@ private fun HomeFeed(
                                                             averageScore = null,
                                                             malId = entry.malId,
                                                         )
-                                                    val total = detail.episodes
-                                                    val play = if (total != null && total > 0) {
+                                                    val total = detail.releasedEpisodeCount().takeIf { it > 0 }
+                                                    val play = if (total != null) {
                                                         target.coerceAtMost(total)
                                                     } else {
                                                         target
@@ -2183,16 +2182,21 @@ private fun TitleDetailScreen(
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
     var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
-    val maxEp = episodeList.size.coerceAtLeast(1)
+    val maxEp = episodeList.maxOfOrNull { it.number }?.coerceAtLeast(1) ?: 1
+    val episodePageSize = 100
+    val rangeCount = ((maxEp + episodePageSize - 1) / episodePageSize).coerceAtLeast(1)
+    var browseRange by remember(anime.id) { mutableIntStateOf(0) }
     val seasonTabs = remember(detail) { detail.seasonEntries() }
-    val thumbResolver = remember { EpisodeThumbResolver(context) }
+    val shownEpisodeCount = detail.releasedEpisodeCount().takeIf { it > 0 }
+        ?: maxEp.takeIf {
+            detail.detailLoaded && (detail.streamingEpisodes.isNotEmpty() || maxEp > 1)
+        }
 
     LaunchedEffect(detail) {
-        val base = detail.episodeItems()
-        episodeList = base
-        // Fribb → TMDB/IMDb stills for placeholder cover thumbs (no-op without TMDB key).
-        runCatching { thumbResolver.enrich(detail.id, base) }
-            .onSuccess { enriched -> if (enriched != base) episodeList = enriched }
+        episodeList = detail.episodeItems()
+    }
+    LaunchedEffect(anime.id, episode, rangeCount) {
+        browseRange = ((episode - 1) / episodePageSize).coerceIn(0, (rangeCount - 1).coerceAtLeast(0))
     }
 
     LaunchedEffect(anime.id, initialEpisode) {
@@ -2612,7 +2616,11 @@ private fun TitleDetailScreen(
                     )
                     DetailStatDivider()
                     DetailStat(
-                        value = if (movie) "${detail.durationMinutes ?: "--"}m" else "${detail.episodes ?: "--"} EP",
+                        value = if (movie) {
+                            "${detail.durationMinutes ?: "--"}m"
+                        } else {
+                            shownEpisodeCount?.let { "$it EP" } ?: "--"
+                        },
                         label = if (movie) "Duration" else "Episodes",
                     )
                     DetailStatDivider()
@@ -2757,7 +2765,7 @@ private fun TitleDetailScreen(
                         detail.listState?.progress ?: 0,
                         (lastWatchedEp - 1).coerceAtLeast(0),
                     )
-                    val totalEps = detail.episodes
+                    val totalEps = shownEpisodeCount
                     if (totalEps != null && totalEps > 0 && watchedCount > 0) {
                         val fraction = (watchedCount.toFloat() / totalEps.toFloat()).coerceIn(0f, 1f)
                         Column(
@@ -3138,6 +3146,36 @@ private fun TitleDetailScreen(
                             )
                         }
                     }
+                    val selectedTitle = episodeList.firstOrNull { it.number == episode }?.title
+                        ?.takeIf { it.isNotBlank() && !it.equals("Episode $episode", ignoreCase = true) }
+                    if (selectedTitle != null) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Ep $episode · $selectedTitle",
+                            color = KittyMuted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (rangeCount > 1) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            for (index in 0 until rangeCount) {
+                                val start = index * episodePageSize + 1
+                                val end = minOf(maxEp, start + episodePageSize - 1)
+                                SeasonRangeChip(
+                                    label = "$start–$end",
+                                    selected = browseRange == index,
+                                    onClick = { browseRange = index },
+                                )
+                            }
+                        }
+                    }
                     if (seasonTabs.size > 1) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
@@ -3201,7 +3239,12 @@ private fun TitleDetailScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
                     val columns = 6
-                    episodeList.map { it.number }.chunked(columns).forEach { rowItems ->
+                    val rangeStart = browseRange * episodePageSize + 1
+                    val rangeEnd = minOf(maxEp, rangeStart + episodePageSize - 1)
+                    episodeList.map { it.number }
+                        .filter { it in rangeStart..rangeEnd }
+                        .chunked(columns)
+                        .forEach { rowItems ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
