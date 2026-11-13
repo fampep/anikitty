@@ -18,11 +18,11 @@ import site.anikitty.app.R
 fun CastRouteButton(modifier: Modifier = Modifier) {
     AndroidView(
         factory = { ctx ->
-            val themed = ContextThemeWrapper(ctx, R.style.Theme_AniKitty)
+            val themed = ContextThemeWrapper(ctx, R.style.Theme_AniKitty_CastButton)
             MediaRouteButton(themed).also { button ->
                 button.contentDescription = "Cast"
                 runCatching {
-                    CastButtonFactory.setUpMediaRouteButton(themed.applicationContext, button)
+                    CastButtonFactory.setUpMediaRouteButton(themed, button)
                 }
             }
         },

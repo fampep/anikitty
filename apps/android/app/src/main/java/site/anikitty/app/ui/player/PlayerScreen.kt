@@ -2,7 +2,6 @@ package site.anikitty.app.ui.player
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
-import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.graphics.Typeface
 import android.view.ViewGroup
@@ -132,7 +131,6 @@ import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import site.anikitty.app.data.friendlyFailure
-import site.anikitty.app.isTelevisionDevice
 import site.anikitty.app.data.servers.GotakuObfDataSource
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
@@ -213,13 +211,6 @@ fun PlayerScreen(
     var playing by remember { mutableStateOf(true) }
     var controlsVisible by remember { mutableStateOf(true) }
     var chromeFocused by remember { mutableStateOf(false) }
-    val television = remember {
-        isTelevisionDevice(
-            context.resources.configuration,
-            context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK),
-        )
-    }
-    val playFocus = remember { FocusRequester() }
     var positionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(0L) }
     var scrubbing by remember { mutableStateOf(false) }
@@ -416,15 +407,22 @@ fun PlayerScreen(
                     val local = latestPlayer
                     val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition
                     local?.pause()
-                    runCatching {
-                        helper.load(src, latestTitle, latestEpisode, pos)
-                        isCasting = true
-                        castHint = null
-                        controlsVisible = true
-                    }.onFailure {
-                        castHint = "Cast failed — this stream may need headers the TV can't send"
-                        isCasting = false
-                    }
+                    helper.load(
+                        source = src,
+                        title = latestTitle,
+                        episode = latestEpisode,
+                        positionMs = pos,
+                        onReady = {
+                            isCasting = true
+                            castHint = null
+                            controlsVisible = true
+                        },
+                        onError = { message ->
+                            castHint = message
+                            isCasting = false
+                            local?.play()
+                        },
+                    )
                 }
 
                 override fun onCastSessionUnavailable() {
@@ -457,8 +455,14 @@ fun PlayerScreen(
         val src = source ?: return@LaunchedEffect
         val pos = helper.castPlayer.currentPosition.coerceAtLeast(0L)
             .takeIf { it > 0L } ?: positionMs
-        runCatching { helper.load(src, title, episode, pos) }
-            .onFailure { castHint = "Couldn't load this quality on Cast" }
+        helper.load(
+            source = src,
+            title = title,
+            episode = episode,
+            positionMs = pos,
+            onReady = { castHint = null },
+            onError = { message -> castHint = message },
+        )
     }
 
     LaunchedEffect(castHint) {
@@ -719,16 +723,8 @@ fun PlayerScreen(
     LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting, nearEndOffer, showEndAutoplay, chromeFocused) {
         if (nearEndOffer || showEndAutoplay) return@LaunchedEffect
         if (controlsVisible && playing && !scrubbing && panel == Panel.None && !chromeFocused) {
-            delay(if (isCasting) 5_500 else if (television) 7_000 else 3_600)
+            delay(if (isCasting) 5_500 else 3_600)
             controlsVisible = false
-        }
-    }
-
-    LaunchedEffect(controlsVisible, panel, controlsLocked, television) {
-        if (!television || !controlsVisible || panel != Panel.None || controlsLocked) return@LaunchedEffect
-        repeat(5) {
-            delay(50)
-            if (runCatching { playFocus.requestFocus() }.isSuccess) return@LaunchedEffect
         }
     }
 
@@ -987,6 +983,13 @@ fun PlayerScreen(
                     fontSize = 13.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    "Keep this phone on the same Wi-Fi. It sends the stream to the Chromecast.",
+                    color = PlayerChrome.Graphite,
+                    fontSize = 12.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
             }
         }
@@ -1259,7 +1262,6 @@ fun PlayerScreen(
                             size = 76.dp,
                             large = true,
                             accent = !playing,
-                            focusRequester = playFocus,
                         ) {
                             Icon(
                                 if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,

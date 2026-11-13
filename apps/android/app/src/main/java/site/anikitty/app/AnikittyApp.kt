@@ -1,6 +1,7 @@
 package site.anikitty.app
 
 import android.app.Application
+import com.google.android.gms.cast.framework.CastContext
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AniListSync
@@ -33,6 +34,7 @@ class AnikittyApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        runCatching { CastContext.getSharedInstance(this) }
         database = AppDatabase.create(this)
         aniList = AniListClient(this)
         aniListAuth = AniListAuthStore(this)

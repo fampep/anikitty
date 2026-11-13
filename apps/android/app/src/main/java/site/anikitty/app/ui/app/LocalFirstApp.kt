@@ -140,7 +140,6 @@ import site.anikitty.app.ui.components.KittyTopTenRow
 import site.anikitty.app.ui.components.KittyPosterSkeletonRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.components.KittySectionHeading
-import site.anikitty.app.ui.link.DeviceLinkCard
 import site.anikitty.app.ui.player.PlayerScreen
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
@@ -184,16 +183,13 @@ fun LocalFirstApp(
     onConsumedAniListToken: () -> Unit = {},
     onAniListReady: () -> Unit = {},
     onSignOut: () -> Unit,
-    forTelevision: Boolean = false,
-    pendingPairUri: String? = null,
-    onConsumedPairUri: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val homeLayout = remember { HomeLayoutStore(context) }
     // Tab survives recreation; detail/player stack relies on configChanges in the manifest
     // so landscape lock in PlayerScreen does not wipe navigation.
     var tab by rememberSaveable {
-        mutableStateOf(if (forTelevision && !aniListAuth.isLinked) "settings" else "home")
+        mutableStateOf("home")
     }
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
     var searchGenre by remember { mutableStateOf<String?>(null) }
@@ -290,17 +286,14 @@ fun LocalFirstApp(
         }
     }
 
-    val tabs = remember(forTelevision) {
-        buildList {
-            add(KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home))
-            add(KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search))
-            add(KittyNavTab("schedule", "Schedule", Icons.Filled.DateRange, Icons.Filled.DateRange))
-            add(KittyNavTab("history", "Library", Icons.Outlined.History, Icons.Rounded.History))
-            if (forTelevision) {
-                add(KittyNavTab("store", "Store", Icons.Outlined.Extension, Icons.Filled.Extension))
-            }
-            add(KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person))
-        }
+    val tabs = remember {
+        listOf(
+            KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home),
+            KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search),
+            KittyNavTab("schedule", "Schedule", Icons.Filled.DateRange, Icons.Filled.DateRange),
+            KittyNavTab("history", "Library", Icons.Outlined.History, Icons.Rounded.History),
+            KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person),
+        )
     }
 
     when (val current = screen) {
@@ -436,7 +429,6 @@ fun LocalFirstApp(
                     tab = "search"
                 },
                 aniListAuth = aniListAuth,
-                forTelevision = forTelevision,
                 onPlay = { episode, sources, resolvedAnime ->
                     screen = Screen.Player(resolvedAnime, episode, sources)
                 },
@@ -519,7 +511,6 @@ fun LocalFirstApp(
                     aniList = aniList,
                     aniListAuth = aniListAuth,
                     aniListSync = aniListSync,
-                    historyDao = historyDao,
                     accountLabel = accountLabel,
                     syncLabel = syncLabel,
                     onSyncLabel = { syncLabel = it },
@@ -536,71 +527,21 @@ fun LocalFirstApp(
                         screen = Screen.Tabs
                         tab = "history"
                     },
-                    forTelevision = forTelevision,
-                    history = history,
-                    pendingPairUri = pendingPairUri,
-                    onConsumedPairUri = onConsumedPairUri,
                     homeLayout = homeLayout,
                 )
             }
         }
     }
 
-    if (forTelevision) {
-        TvLivingRoom(
-            tab = tab,
-            onTab = { tab = it },
-            aniList = aniList,
-            aniListAuth = aniListAuth,
-            history = history,
-            historyDao = historyDao,
-            onOpen = { anime, episode -> openDetail(anime, episode) },
-            requestedGenre = searchGenre,
-            onRequestedGenreConsumed = { searchGenre = null },
-            libraryFilter = libraryFilter,
-            account = {
-                SettingsFeed(
-                    catalog = streamServers,
-                    aniList = aniList,
-                    aniListAuth = aniListAuth,
-                    aniListSync = aniListSync,
-                    historyDao = historyDao,
-                    accountLabel = accountLabel,
-                    syncLabel = syncLabel,
-                    onSyncLabel = { syncLabel = it },
-                    linkStatus = aniLinkStatus,
-                    onLinkStatus = { aniLinkStatus = it },
-                    linkTick = aniLinkTick,
-                    onLinkTick = { aniLinkTick++ },
-                    onAccountReady = onAniListReady,
-                    onSignOut = onSignOut,
-                    onOpenStore = { tab = "store" },
-                    onOpenBuilds = { screen = Screen.Builds },
-            onOpenLibrary = { filter ->
-                libraryFilter = filter
-                tab = "history"
-            },
-            forTelevision = true,
-            history = history,
-            pendingPairUri = pendingPairUri,
-            onConsumedPairUri = onConsumedPairUri,
-            homeLayout = homeLayout,
+    Box(modifier = Modifier.fillMaxSize()) {
+        KittyAtmosphere()
+        PhoneTabs(Modifier.fillMaxSize())
+        KittyBottomNav(
+            tabs = tabs,
+            selectedId = tab,
+            onSelect = { tab = it },
+            modifier = Modifier.align(Alignment.BottomCenter),
         )
-    },
-    store = { ExtensionStoreFeed(catalog = streamServers) },
-    homeLayout = homeLayout,
-)
-    } else {
-        Box(modifier = Modifier.fillMaxSize()) {
-            KittyAtmosphere()
-            PhoneTabs(Modifier.fillMaxSize())
-            KittyBottomNav(
-                tabs = tabs,
-                selectedId = tab,
-                onSelect = { tab = it },
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
-        }
     }
 }
 
@@ -749,7 +690,7 @@ private fun HomeFeed(
                             onOpenAccount = onOpenAccount,
                         )
                     }
-                    val phoneSections = homeLayout.sections(HomeSurface.Phone)
+                    val phoneSections = homeLayout.sections()
                     phoneSections.forEach { section ->
                         if (!section.enabled) return@forEach
                         when (section.id) {
@@ -2192,7 +2133,6 @@ internal fun SettingsFeed(
     aniList: AniListClient,
     aniListAuth: AniListAuthStore,
     aniListSync: AniListSync,
-    historyDao: WatchHistoryDao,
     accountLabel: String,
     syncLabel: String?,
     onSyncLabel: (String?) -> Unit,
@@ -2205,10 +2145,6 @@ internal fun SettingsFeed(
     onOpenStore: () -> Unit,
     onOpenBuilds: () -> Unit,
     onOpenLibrary: (String) -> Unit = {},
-    forTelevision: Boolean = false,
-    history: List<WatchHistoryEntity> = emptyList(),
-    pendingPairUri: String? = null,
-    onConsumedPairUri: () -> Unit = {},
     homeLayout: HomeLayoutStore,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
@@ -2241,24 +2177,6 @@ internal fun SettingsFeed(
                 fallbackName = accountLabel.ifBlank { "AniList" },
                 syncLabel = syncLabel,
                 onOpenList = onOpenLibrary,
-            )
-        }
-        item {
-            DeviceLinkCard(
-                forTelevision = forTelevision,
-                isLinked = isLinked,
-                aniList = aniList,
-                aniListAuth = aniListAuth,
-                aniListSync = aniListSync,
-                historyDao = historyDao,
-                history = history,
-                pendingPairUri = pendingPairUri,
-                onConsumedPairUri = onConsumedPairUri,
-                onStatus = onLinkStatus,
-                onLinked = {
-                    onLinkTick()
-                    onAccountReady()
-                },
             )
         }
         item {
@@ -2454,7 +2372,6 @@ private fun TitleDetailScreen(
     onOpenRelated: (AnimeSummary) -> Unit,
     onOpenGenre: (String) -> Unit,
     aniListAuth: AniListAuthStore,
-    forTelevision: Boolean = false,
     onPlay: (episode: Int, sources: List<PlayableSource>, anime: AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -2670,38 +2587,6 @@ private fun TitleDetailScreen(
         runCatching {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         }
-    }
-
-    if (forTelevision) {
-        TvDetailStage(
-            detail = detail,
-            episode = episode,
-            audio = audio,
-            resolving = resolving,
-            status = status,
-            listStatus = listStatus,
-            listScore = listScore,
-            lastWatchedEp = lastWatchedEp,
-            detailLoading = detailLoading,
-            sourceName = activeServer?.name,
-            favourite = favourite,
-            signedIn = aniListAuth.isLinked,
-            episodes = episodeList,
-            onBack = onBack,
-            onPlay = { playSelected() },
-            onEpisode = { episode = it },
-            onAudio = { next ->
-                audio = next
-                watchPrefs.edit().putString("audio", next).apply()
-            },
-            onFavourite = { toggleFavourite() },
-            onListStatus = { applyListStatus(it) },
-            onScore = { applyScore(it) },
-            onOpenGenre = onOpenGenre,
-            onChangeSource = onChangeSource,
-            onOpenRelated = onOpenRelated,
-        )
-        return
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
