@@ -2640,6 +2640,10 @@ private fun TitleDetailScreen(
             resolving = resolving,
             status = status,
             listStatus = listStatus,
+            listScore = listScore,
+            lastWatchedEp = lastWatchedEp,
+            detailLoading = detailLoading,
+            sourceName = activeServer?.name,
             favourite = favourite,
             signedIn = aniListAuth.isLinked,
             episodes = episodeList,
@@ -2652,6 +2656,9 @@ private fun TitleDetailScreen(
             },
             onFavourite = { toggleFavourite() },
             onListStatus = { applyListStatus(it) },
+            onScore = { applyScore(it) },
+            onOpenGenre = onOpenGenre,
+            onChangeSource = onChangeSource,
             onOpenRelated = onOpenRelated,
         )
         return
