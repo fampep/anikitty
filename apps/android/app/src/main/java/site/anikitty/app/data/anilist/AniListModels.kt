@@ -100,6 +100,8 @@ data class AnimeSummary(
     val status: String? = null,
     val season: String? = null,
     val seasonYear: Int? = null,
+    /** AniList startDate.month, 1–12. */
+    val startMonth: Int? = null,
     val durationMinutes: Int? = null,
     val popularity: Int? = null,
     val genres: List<String> = emptyList(),
@@ -133,6 +135,21 @@ data class AnimeSummary(
         val titles = searchTitles().joinToString(" || ")
         val mal = malId?.takeIf { it > 0 }?.let { "mal:$it" } ?: return titles
         return if (titles.isBlank()) mal else "$titles || $mal"
+    }
+
+    /** "April 2013" when AniList sent a start month, otherwise the season year. */
+    fun airedLabel(): String? {
+        val months = listOf(
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+        )
+        val month = startMonth?.takeIf { it in 1..12 }?.let { months[it - 1] }
+        return when {
+            month != null && seasonYear != null -> "$month $seasonYear"
+            month != null -> month
+            seasonYear != null -> seasonYear.toString()
+            else -> null
+        }
     }
 
     fun seasonLabel(): String? {
