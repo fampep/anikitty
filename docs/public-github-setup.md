@@ -43,8 +43,12 @@ gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions,educatio
 
 ## 4. Framing
 
-Keep [extensions/DISCLAIMER.md](../extensions/DISCLAIMER.md) and the MIT [LICENSE](../extensions/LICENSE) at the repo root after the split:
+Both GitHub repos use the MIT [LICENSE](../LICENSE) (copyright 2026 fampep).  
+[`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) must show that same MIT file at its root. A PolyForm license there is stale.
 
-- **fampep holds copyright** in AniKitty / protocol code  
-- MIT: fork, modify, and contribute  
+Keep [extensions/DISCLAIMER.md](../extensions/DISCLAIMER.md) after the split:
+
+- **fampep holds copyright** in AniKitty / protocol / provider source
+- MIT: fork, modify, and contribute
 - community extensions gladly accepted; **fampep does not control third-party backends**
+- provider Kotlin lives in [extensions/providers](../extensions/providers) and is compiled by the app

@@ -10,11 +10,12 @@
 
 | Repo | Role |
 |---|---|
-| [`fampep/anikitty`](https://github.com/fampep/anikitty) | Android app + dedicated auth server |
-| [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) | Spec, guide, store index, examples (live) |
+| [`fampep/anikitty`](https://github.com/fampep/anikitty) | Android app. Compiles [providers](./providers) and plays streams on the phone. |
+| [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) | This tree: spec, store, examples, and provider source. MIT. |
 
-This `extensions/` folder in the monorepo mirrors the public repo. In-app Store prefers  
-`https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`.  
+The in-app store loads  
+`https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`  
+and fills any missing listing from the copy in this monorepo. The newer `updatedAt` wins.  
 Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup.md).
 
 ## License & ownership
@@ -32,6 +33,7 @@ Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup
 | [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json) | Manifest schema |
 | [store/index.json](./store/index.json) | Curated GitHub links for the in-app store |
 | [examples/hello-http](./examples/hello-http) | Minimal template |
+| [providers](./providers) | Anikoto, Gotaku, and Ani.pm source the app compiles |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute listings & docs |
 
 ## Design
