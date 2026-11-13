@@ -13,6 +13,8 @@ import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -55,7 +57,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.ClosedCaption
@@ -65,7 +66,6 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
@@ -152,6 +152,7 @@ import site.anikitty.app.data.servers.SegmentStripDataSource
 import site.anikitty.app.data.servers.SubtitleTrack
 import site.anikitty.app.data.skip.SkipTimes
 import site.anikitty.app.ui.theme.KittyInk
+import site.anikitty.app.ui.app.spacePress
 import site.anikitty.app.ui.theme.PlayerChrome
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -1621,7 +1622,7 @@ fun PlayerScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF060508)),
+            .background(Color.Black),
     ) {
         if (!theater) {
             PlayerPageBar(
@@ -1633,27 +1634,46 @@ fun PlayerScreen(
                 onExpand = { theater = true },
             )
         }
+        val watchFraction = if (durationMs > 0L) {
+            (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+        } else {
+            0f
+        }
         VideoStage(
             modifier = if (theater) {
                 Modifier.weight(1f)
             } else {
                 Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(16.dp))
                     .aspectRatio(16f / 9f)
-                    .border(1.dp, Color.White.copy(alpha = 0.06f))
             },
         )
-        if (!theater) {
-            val fraction = if (durationMs > 0L) {
-                (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-            } else {
-                0f
+        if (!theater && durationMs > 0L) {
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White.copy(alpha = 0.12f)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(watchFraction)
+                        .background(Color.White),
+                )
             }
+        }
+        if (!theater) {
             PlayerEpisodeShelf(
                 episode = episode,
                 totalEpisodes = totalEpisodes.coerceAtLeast(1),
                 watchedThrough = watchedThrough,
-                positionFraction = fraction,
+                positionFraction = watchFraction,
                 audio = audio,
                 isMovie = isMovie,
                 autoNext = autoNext,
@@ -1681,57 +1701,64 @@ private fun PlayerPageBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF0C0B0F))
+            .background(Color.Black)
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(36.dp)
+                .spacePress(onBack)
                 .clip(CircleShape)
-                .clickable(onClick = onBack),
+                .background(Color(0xFF141416)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = "Back",
                 tint = Color.White,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 12.dp),
+        ) {
             Text(
                 title,
                 color = Color.White,
-                fontWeight = FontWeight.Medium,
-                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 16.sp,
+                letterSpacing = (-0.3).sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 if (isMovie) {
-                    "Full Movie • ${audio.uppercase()}"
+                    "Film · ${audio.uppercase()}"
                 } else {
-                    "Episode $episode • ${audio.uppercase()}"
+                    "Episode $episode · ${audio.uppercase()}"
                 },
-                color = Color.White.copy(alpha = 0.5f),
-                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.45f),
+                fontSize = 12.sp,
                 maxLines = 1,
             )
         }
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(36.dp)
+                .spacePress(onExpand)
                 .clip(CircleShape)
-                .clickable(onClick = onExpand),
+                .background(Color(0xFF141416)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Rounded.Fullscreen,
                 contentDescription = "Full screen",
                 tint = Color.White,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -1763,8 +1790,8 @@ private fun PlayerEpisodeShelf(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (showGrid) {
             Row(
@@ -1775,10 +1802,11 @@ private fun PlayerEpisodeShelf(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color.White.copy(alpha = 0.05f))
-                        .padding(horizontal = 10.dp),
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color(0xFF0C0C10))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1810,72 +1838,80 @@ private fun PlayerEpisodeShelf(
                     }
                 }
                 ShelfAction(
-                    label = "NEXT",
+                    label = "Next",
                     enabled = episode < totalEpisodes,
                     icon = Icons.Rounded.PlayArrow,
                     onClick = { onPickEpisode(episode + 1) },
                 )
                 ShelfAction(
-                    label = "LATEST",
+                    label = "Latest",
                     enabled = episode != totalEpisodes,
                     selected = episode == totalEpisodes,
                     onClick = { onPickEpisode(totalEpisodes) },
                 )
-                val autoColor = if (autoNext) Color.White else Color.White.copy(alpha = 0.3f)
+                val autoBg by animateColorAsState(
+                    if (autoNext) Color.White else Color(0xFF0C0C10),
+                    tween(180),
+                    label = "autoBg",
+                )
+                val autoColor by animateColorAsState(
+                    if (autoNext) Color.Black else Color.White.copy(alpha = 0.7f),
+                    tween(180),
+                    label = "autoText",
+                )
                 Box(
                     modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (autoNext) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.05f))
+                        .height(36.dp)
+                        .spacePress(onToggleAutoNext)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(autoBg)
                         .border(
                             0.5.dp,
-                            if (autoNext) Color.White.copy(alpha = 0.5f) else Color.Transparent,
-                            RoundedCornerShape(8.dp),
+                            if (autoNext) Color.White else Color.White.copy(alpha = 0.08f),
+                            RoundedCornerShape(16.dp),
                         )
-                        .clickable(onClick = onToggleAutoNext)
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = 12.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Icon(
-                            if (autoNext) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
-                            contentDescription = "Auto next",
-                            tint = autoColor,
-                            modifier = Modifier.size(11.dp),
-                        )
-                        Text("AUTO", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = autoColor)
-                    }
+                    Text("Auto", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = autoColor)
                 }
             }
         }
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.05f))
-                .padding(2.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            listOf("sub" to "SUBTITLED", "dub" to "DUBBED").forEach { (key, label) ->
+            listOf("sub" to "Subtitled", "dub" to "Dubbed").forEach { (key, label) ->
                 val selected = audio == key
+                val background by animateColorAsState(
+                    if (selected) Color.White else Color(0xFF0C0C10),
+                    tween(180),
+                    label = "audioBg",
+                )
+                val text by animateColorAsState(
+                    if (selected) Color.Black else Color.White.copy(alpha = 0.7f),
+                    tween(180),
+                    label = "audioText",
+                )
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (selected) Color.White else Color.Transparent)
-                        .clickable { onPickAudio(key) },
+                        .height(36.dp)
+                        .spacePress { onPickAudio(key) }
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(background)
+                        .border(
+                            0.5.dp,
+                            if (selected) Color.White else Color.White.copy(alpha = 0.08f),
+                            RoundedCornerShape(16.dp),
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         label,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp,
-                        color = if (selected) Color.Black else Color.White.copy(alpha = 0.5f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = text,
                     )
                 }
             }
@@ -1887,24 +1923,17 @@ private fun PlayerEpisodeShelf(
             ) {
                 Text(
                     "EPISODES",
-                    color = Color.White,
+                    color = Color.White.copy(alpha = 0.6f),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 11.sp,
-                    letterSpacing = 0.5.sp,
+                    letterSpacing = 1.sp,
                 )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(Color.White.copy(alpha = 0.05f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                ) {
-                    Text(
-                        "$totalEpisodes",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 9.sp,
-                    )
-                }
+                Text(
+                    "$totalEpisodes",
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 11.sp,
+                )
             }
             if (rangeCount > 1) {
                 Row(
@@ -1915,16 +1944,26 @@ private fun PlayerEpisodeShelf(
                         val start = index * pageSize + 1
                         val end = minOf(totalEpisodes, start + pageSize - 1)
                         val selected = browseRange == index
+                        val rangeBg by animateColorAsState(
+                            if (selected) Color.White else Color.White.copy(alpha = 0.06f),
+                            tween(180),
+                            label = "rangeBg",
+                        )
+                        val rangeText by animateColorAsState(
+                            if (selected) Color.Black else Color.White.copy(alpha = 0.75f),
+                            tween(180),
+                            label = "rangeText",
+                        )
                         Text(
                             "$start–$end",
-                            color = if (selected) Color.Black else Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                            color = rangeText,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (selected) Color.White else Color.White.copy(alpha = 0.08f))
-                                .clickable { browseRange = index }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(rangeBg)
+                                .spacePress { browseRange = index }
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
                         )
                     }
                 }
@@ -1968,37 +2007,32 @@ private fun ShelfAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     onClick: () -> Unit,
 ) {
+    val filled = selected
     val tint = when {
-        selected -> Color.White
-        enabled -> Color.White
+        filled -> Color.Black
+        enabled -> Color.White.copy(alpha = 0.85f)
         else -> Color.White.copy(alpha = 0.3f)
     }
     Box(
         modifier = Modifier
-            .height(34.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(
-                when {
-                    selected -> Color.White.copy(alpha = 0.15f)
-                    enabled -> Color.White.copy(alpha = 0.08f)
-                    else -> Color.White.copy(alpha = 0.02f)
-                },
-            )
+            .height(36.dp)
+            .then(if (enabled) Modifier.spacePress(onClick) else Modifier)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (filled) Color.White else Color(0xFF0C0C10))
             .border(
                 0.5.dp,
-                if (selected) Color.White else Color.Transparent,
-                RoundedCornerShape(8.dp),
+                if (filled) Color.White else Color.White.copy(alpha = if (enabled) 0.08f else 0.04f),
+                RoundedCornerShape(16.dp),
             )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(12.dp), tint = tint)
-                Spacer(modifier = Modifier.width(2.dp))
+                Icon(icon, contentDescription = null, modifier = Modifier.size(14.dp), tint = tint)
+                Spacer(modifier = Modifier.width(4.dp))
             }
-            Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = tint)
+            Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = tint)
         }
     }
 }
@@ -2012,34 +2046,43 @@ private fun EpisodeShelfCell(
     modifier: Modifier = Modifier,
 ) {
     val complete = progress >= 0.85f
+    val shape = RoundedCornerShape(12.dp)
+    val background by animateColorAsState(
+        when {
+            selected -> Color.White
+            complete -> Color.White.copy(alpha = 0.04f)
+            else -> Color(0xFF0C0C10)
+        },
+        tween(180),
+        label = "epBg",
+    )
+    val numberColor by animateColorAsState(
+        when {
+            selected -> Color.Black
+            complete -> Color.White.copy(alpha = 0.35f)
+            else -> Color.White.copy(alpha = 0.9f)
+        },
+        tween(180),
+        label = "epText",
+    )
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                when {
-                    selected -> Color.White.copy(alpha = 0.2f)
-                    complete -> Color.White.copy(alpha = 0.02f)
-                    else -> Color.White.copy(alpha = 0.03f)
-                },
-            )
+            .spacePress(onClick)
+            .clip(shape)
+            .background(background)
             .border(
-                width = if (selected) 1.5.dp else 1.dp,
-                color = if (selected) Color.White else Color.Transparent,
-                shape = RoundedCornerShape(12.dp),
-            )
-            .clickable(onClick = onClick),
+                width = 0.5.dp,
+                color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
+                shape = shape,
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             "$number",
             fontSize = 14.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = when {
-                selected -> Color.White
-                complete -> Color.White.copy(alpha = 0.3f)
-                else -> Color.White.copy(alpha = 0.8f)
-            },
+            color = numberColor,
         )
         if (progress > 0f && !complete) {
             Box(
@@ -2125,7 +2168,7 @@ private fun NextEpisodePrompt(
             ) {
                 Text(
                     if (ended) "Play now" else "Next episode",
-                    color = if (playNowFocused) Color.Black else Color.White,
+                    color = Color.Black,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                 )
@@ -2164,10 +2207,9 @@ private fun PlayerSheet(
     val focusManager = LocalFocusManager.current
     Box(
         modifier = modifier
-            .shadow(18.dp, shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.5f))
             .clip(shape)
-            .background(PlayerChrome.Sheet)
-            .border(1.dp, PlayerChrome.SheetStroke, shape)
+            .background(Color(0xFF0C0C10))
+            .border(0.5.dp, Color.White.copy(alpha = 0.1f), shape)
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
@@ -2677,30 +2719,23 @@ private fun ChromeDisc(
     focusRequester: FocusRequester? = null,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(if (large) 22.dp else 14.dp)
+    val shape = CircleShape
     var focused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .size(size)
-            .scale(if (focused) 1.08f else 1f)
-            .shadow(
-                elevation = if (large) 16.dp else 10.dp,
-                shape = shape,
-                clip = false,
-                ambientColor = Color.Black.copy(alpha = 0.45f),
-                spotColor = Color.Black.copy(alpha = 0.35f),
-            )
+            .scale(if (focused) 1.06f else 1f)
             .clip(shape)
             .background(
                 when {
                     accent -> PlayerChrome.Accent
-                    large -> Color.White.copy(alpha = 0.12f)
+                    large -> Color.White.copy(alpha = 0.14f)
                     else -> Color.White.copy(alpha = 0.08f)
                 },
             )
             .border(
-                if (focused) 3.dp else 1.dp,
-                if (focused || accent) Color.White else Color.White.copy(alpha = 0.16f),
+                if (focused) 2.dp else 0.5.dp,
+                if (focused || accent) Color.White else Color.White.copy(alpha = 0.12f),
                 shape,
             )
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
