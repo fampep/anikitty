@@ -1,0 +1,108 @@
+name: Dev release
+
+# Every push to main publishes the next dev prerelease.
+# The version commit message contains [skip ci], and GitHub does not
+# start a new run from the workflow token, so this does not loop.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dev-release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Next dev version
+        id: ver
+        run: |
+          read -r name code < <(bash scripts/next-dev-version.sh)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses"
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Release signing
+        env:
+          KEYSTORE_B64: ${{ secrets.ANIKITTY_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANIKITTY_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANIKITTY_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANIKITTY_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            cat > apps/android/keystore.properties <<EOF
+          storeFile=${RUNNER_TEMP}/release.jks
+          storePassword=${STORE_PASSWORD}
+          keyAlias=${KEY_ALIAS}
+          keyPassword=${KEY_PASSWORD}
+          EOF
+          else
+            echo "No release keystore secret set; the APK will use the runner debug key."
+          fi
+
+      - name: Build release APK
+        working-directory: apps/android
+        run: chmod +x ./gradlew && ./gradlew :app:assembleRelease --stacktrace
+
+      - name: Commit version
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add VERSION
+          git commit -m "Cut ${{ steps.ver.outputs.name }} [skip ci]"
+          git push origin HEAD:main
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          prev="$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName')"
+          test -n "$prev"
+          gh api --method POST "repos/${{ github.repository }}/releases/generate-notes" \
+            -f tag_name="v${{ steps.ver.outputs.name }}" \
+            -f previous_tag_name="$prev" \
+            -f target_commitish="${{ steps.commit.outputs.sha }}" \
+            --jq .body > notes.md
+
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp apps/android/app/build/outputs/apk/release/app-release.apk \
+            "anikitty-${{ steps.ver.outputs.name }}.apk"
+          gh release create "v${{ steps.ver.outputs.name }}" \
+            --repo "${{ github.repository }}" \
+            --target "${{ steps.commit.outputs.sha }}" \
+            --title "${{ steps.ver.outputs.name }}" \
+            --prerelease \
+            --notes-file notes.md \
+            "anikitty-${{ steps.ver.outputs.name }}.apk"

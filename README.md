@@ -101,7 +101,7 @@ cd apps/android
 # app/build/outputs/apk/release/app-release.apk
 ```
 
-Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName` / `versionCode`. Current: **1.1.21** / code **35**.
+Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName` / `versionCode`.
 
 Sign in with AniList on the phone. The app uses AniList’s implicit grant (`response_type=token`), the same flow other mobile apps use. No dedicated server and no client secret. The public client id is 56768. On the AniList application, set Redirect URL to `anikitty://anilist`.
 
@@ -121,7 +121,9 @@ See `apps/dedicated-server/README.md`.
 
 ## Releases
 
-Rolling alpha pre-releases: https://github.com/fampep/anikitty/releases
+Pushes to `main` publish the next dev prerelease on their own. GitHub Actions bumps `VERSION`, builds the APK, and fills the notes with GitHub’s generated changelog. Stable releases stay manual.
+
+Releases: https://github.com/fampep/anikitty/releases
 
 | Tag | Notes |
 |---|---|
