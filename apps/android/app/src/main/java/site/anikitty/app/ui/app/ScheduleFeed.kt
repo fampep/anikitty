@@ -39,6 +39,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -127,16 +128,17 @@ fun ScheduleFeed(
             } else {
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Column {
+            Column(modifier = Modifier.padding(start = 8.dp)) {
                 Text(
-                    "Airing schedule",
-                    color = KittyText,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
+                    "Schedule",
+                    color = Color.White,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.4).sp,
                 )
                 Text(
-                    "Next five days",
-                    color = KittyMuted,
+                    "The next five days",
+                    color = Color.White.copy(alpha = 0.45f),
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -163,20 +165,22 @@ fun ScheduleFeed(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(KittySurface)
-                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
-                .padding(4.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             days.forEachIndexed { index, day ->
                 val on = index == selected
                 Column(
                     modifier = Modifier
                         .weight(1f)
+                        .spacePress { selected = index }
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (on) KittyAccent else KittySurface)
-                        .clickable { selected = index }
+                        .background(if (on) Color.White else Color(0xFF0C0C10))
+                        .border(
+                            0.5.dp,
+                            if (on) Color.White else Color.White.copy(alpha = 0.08f),
+                            RoundedCornerShape(12.dp),
+                        )
                         .padding(vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -290,10 +294,10 @@ private fun ScheduleRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(KittySurface)
-            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
-            .clickable { onOpen(slot.anime) }
+            .spacePress { onOpen(slot.anime) }
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF0C0C10))
+            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

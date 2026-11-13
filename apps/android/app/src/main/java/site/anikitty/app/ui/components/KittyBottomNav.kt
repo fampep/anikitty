@@ -41,6 +41,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import site.anikitty.app.ui.app.spacePress
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -229,10 +230,10 @@ fun KittyRoundIconButton(
 ) {
     Box(
         modifier = modifier
-            .size(40.dp)
+            .size(36.dp)
+            .spacePress(onClick)
             .clip(CircleShape)
-            .background(KittySurfaceElevated)
-            .clickable(onClick = onClick),
+            .background(Color(0xFF141416)),
         contentAlignment = Alignment.Center,
         content = { content() },
     )
