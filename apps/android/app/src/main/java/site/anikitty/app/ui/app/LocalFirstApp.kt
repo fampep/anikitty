@@ -183,9 +183,18 @@ fun LocalFirstApp(
     var tab by rememberSaveable { mutableStateOf("home") }
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
     var searchGenre by remember { mutableStateOf<String?>(null) }
+    var libraryFilter by rememberSaveable { mutableStateOf("all") }
     /** Prior detail frames when drilling into related / other seasons. */
     var detailBackStack by remember { mutableStateOf<List<Screen.Detail>>(emptyList()) }
     val history by historyDao.observeAll().collectAsState(initial = emptyList())
+    val listMarks = remember(history) {
+        history.associate { entry ->
+            entry.anilistId to (listStatusBadge(entry.listStatus) ?: "On list")
+        }
+    }
+    val followedEpisodes = remember(history) {
+        history.associate { it.anilistId to it.episode.coerceAtLeast(0) }
+    }
     val scope = rememberCoroutineScope()
     var syncLabel by remember { mutableStateOf<String?>(null) }
     var aniLinkStatus by remember { mutableStateOf<String?>(null) }
@@ -375,6 +384,7 @@ fun LocalFirstApp(
                 aniList = aniList,
                 onBack = { screen = Screen.Tabs },
                 onOpen = { openDetail(it) },
+                followedEpisodes = followedEpisodes,
             )
             return
         }
@@ -446,12 +456,14 @@ fun LocalFirstApp(
                     onOpen = { openDetail(it) },
                     showBack = false,
                     bottomInset = 100.dp,
+                    followedEpisodes = followedEpisodes,
                 )
                 "search" -> SearchFeed(
                     aniList = aniList,
                     historyDao = historyDao,
                     requestedGenre = searchGenre,
                     onRequestedGenreConsumed = { searchGenre = null },
+                    listMarks = listMarks,
                     onOpen = { openDetail(it) },
                 )
                 "store" -> ExtensionStoreFeed(catalog = streamServers)
@@ -472,6 +484,8 @@ fun LocalFirstApp(
                         }
                     },
                     onOpen = { openDetail(it) },
+                    libraryFilter = libraryFilter,
+                    onLibraryFilter = { libraryFilter = it },
                 )
                 "settings" -> SettingsFeed(
                     catalog = streamServers,
@@ -487,6 +501,11 @@ fun LocalFirstApp(
                     onLinkTick = { aniLinkTick++ },
                     onSignOut = onSignOut,
                     onOpenStore = { tab = "store" },
+                    onOpenLibrary = { filter ->
+                        libraryFilter = filter
+                        screen = Screen.Tabs
+                        tab = "history"
+                    },
                 )
             }
         }
@@ -1137,6 +1156,7 @@ private fun SearchFeed(
     onOpen: (AnimeSummary) -> Unit,
     requestedGenre: String? = null,
     onRequestedGenreConsumed: () -> Unit = {},
+    listMarks: Map<Int, String> = emptyMap(),
 ) {
     var query by remember { mutableStateOf("") }
     var format by remember { mutableStateOf<String?>(null) }
@@ -1385,7 +1405,7 @@ private fun SearchFeed(
                     modifier = Modifier.weight(1f),
                 ) {
                     lazyItems(items, key = { it.id }) { anime ->
-                        KittySearchRow(anime) {
+                        KittySearchRow(anime, badge = listMarks[anime.id]) {
                             scope.launch { historyDao.touchFromCatalog(anime) }
                             onOpen(anime)
                         }
@@ -1430,7 +1450,7 @@ private fun SearchFeed(
                     modifier = Modifier.weight(1f),
                 ) {
                     lazyItems(discover, key = { it.id }) { anime ->
-                        KittySearchRow(anime) {
+                        KittySearchRow(anime, badge = listMarks[anime.id]) {
                             scope.launch { historyDao.touchFromCatalog(anime) }
                             onOpen(anime)
                         }
@@ -1451,6 +1471,8 @@ private fun HistoryFeed(
     syncLabel: String?,
     onSync: () -> Unit,
     onOpen: (AnimeSummary) -> Unit,
+    libraryFilter: String,
+    onLibraryFilter: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var favourites by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
@@ -1462,7 +1484,6 @@ private fun HistoryFeed(
         }
         favourites = runCatching { aniList.favourites(token) }.getOrDefault(emptyList())
     }
-    var libraryFilter by rememberSaveable { mutableStateOf("all") }
     val watching = history.filter {
         val s = it.listStatus?.uppercase()
         s == null || s == "CURRENT" || s == "REPEATING"
@@ -1519,7 +1540,7 @@ private fun HistoryFeed(
                     "dropped" to "Dropped",
                     "favourites" to "Favourites",
                 ).forEach { (id, label) ->
-                    Chip(label, selected = libraryFilter == id) { libraryFilter = id }
+                    Chip(label, selected = libraryFilter == id) { onLibraryFilter(id) }
                 }
             }
         }
@@ -1670,6 +1691,7 @@ private fun AniListProfileCard(
     auth: AniListAuthStore,
     fallbackName: String,
     syncLabel: String?,
+    onOpenList: (String) -> Unit = {},
 ) {
     val name = auth.username?.takeIf { it.isNotBlank() } ?: fallbackName
     val days = auth.minutesWatched / 1440
@@ -1771,11 +1793,11 @@ private fun AniListProfileCard(
             }
             Spacer(modifier = Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileStat(auth.watchingCount.toString(), "Watching")
-                ProfileStat(auth.completedCount.toString(), "Completed")
-                ProfileStat(auth.planningCount.toString(), "Planning")
-                ProfileStat(auth.pausedCount.toString(), "Paused")
-                ProfileStat(auth.droppedCount.toString(), "Dropped")
+                ProfileStat(auth.watchingCount.toString(), "Watching") { onOpenList("watching") }
+                ProfileStat(auth.completedCount.toString(), "Completed") { onOpenList("done") }
+                ProfileStat(auth.planningCount.toString(), "Planning") { onOpenList("plan") }
+                ProfileStat(auth.pausedCount.toString(), "Paused") { onOpenList("paused") }
+                ProfileStat(auth.droppedCount.toString(), "Dropped") { onOpenList("dropped") }
             }
             if (!syncLabel.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1790,9 +1812,15 @@ private fun AniListProfileCard(
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.RowScope.ProfileStat(value: String, label: String) {
+private fun androidx.compose.foundation.layout.RowScope.ProfileStat(
+    value: String,
+    label: String,
+    onClick: (() -> Unit)? = null,
+) {
     Column(
-        modifier = Modifier.weight(1f),
+        modifier = Modifier
+            .weight(1f)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
@@ -1826,6 +1854,7 @@ private fun SettingsFeed(
     onLinkTick: () -> Unit,
     onSignOut: () -> Unit,
     onOpenStore: () -> Unit,
+    onOpenLibrary: (String) -> Unit = {},
 ) {
     val selectedId by catalog.selectedId.collectAsState()
     val resolvers by catalog.resolvers.collectAsState()
@@ -1850,6 +1879,7 @@ private fun SettingsFeed(
                 auth = aniListAuth,
                 fallbackName = accountLabel.ifBlank { "AniList" },
                 syncLabel = syncLabel,
+                onOpenList = onOpenLibrary,
             )
         }
         item {
@@ -3322,7 +3352,11 @@ private fun EpisodeTool(
 }
 
 @Composable
-private fun KittySearchRow(anime: AnimeSummary, onClick: () -> Unit) {
+private fun KittySearchRow(
+    anime: AnimeSummary,
+    badge: String? = null,
+    onClick: () -> Unit,
+) {
     val shape = RoundedCornerShape(12.dp)
     Row(
         modifier = Modifier
@@ -3363,6 +3397,19 @@ private fun KittySearchRow(anime: AnimeSummary, onClick: () -> Unit) {
             if (meta.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(meta, color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp, maxLines = 1)
+            }
+            if (!badge.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    badge,
+                    color = KittyOnAccent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittyAccent)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                )
             }
         }
     }
