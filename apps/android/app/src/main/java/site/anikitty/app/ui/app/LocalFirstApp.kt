@@ -552,6 +552,9 @@ private fun HomeFeed(
     val completedShows = remember(history) {
         history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }.take(12)
     }
+    val planToWatch = remember(history) {
+        history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(12)
+    }
 
     fun reload(fromPull: Boolean = false) {
         if (catalogJob?.isActive == true) return
@@ -626,6 +629,31 @@ private fun HomeFeed(
                             onOpenSearch = onOpenSearch,
                             onOpenAccount = onOpenAccount,
                         )
+                    }
+                    continueWatching.firstOrNull()?.let { spotlight ->
+                        item {
+                            ResumeSpotlight(entry = spotlight) { episode ->
+                                scope.launch {
+                                    val detail = aniList.media(spotlight.anilistId)
+                                        ?: AnimeSummary(
+                                            id = spotlight.anilistId,
+                                            title = spotlight.title,
+                                            coverImageUrl = spotlight.coverImageUrl,
+                                            episodes = null,
+                                            format = null,
+                                            averageScore = null,
+                                            malId = spotlight.malId,
+                                        )
+                                    val total = detail.episodes
+                                    val play = if (total != null && total > 0) {
+                                        episode.coerceAtMost(total)
+                                    } else {
+                                        episode
+                                    }
+                                    onOpen(detail, play)
+                                }
+                            }
+                        }
                     }
                     item {
                         KittyGlassHeroPager(
@@ -744,6 +772,47 @@ private fun HomeFeed(
                             }
                         }
                     }
+                    if (planToWatch.isNotEmpty()) {
+                        item {
+                            Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
+                                KittySectionHeading(
+                                    title = "Plan to watch",
+                                    subtitle = "From your AniList",
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    lazyItems(planToWatch, key = { "plan-${it.anilistId}" }) { entry ->
+                                        KittyContinueCard(
+                                            title = entry.title,
+                                            coverUrl = entry.coverImageUrl,
+                                            episode = entry.episode.coerceAtLeast(1),
+                                            positionMs = 0L,
+                                            durationMs = 0L,
+                                            badge = "Plan",
+                                            onClick = {
+                                                scope.launch {
+                                                    val detail = aniList.media(entry.anilistId)
+                                                        ?: AnimeSummary(
+                                                            id = entry.anilistId,
+                                                            title = entry.title,
+                                                            coverImageUrl = entry.coverImageUrl,
+                                                            episodes = null,
+                                                            format = null,
+                                                            averageScore = null,
+                                                            malId = entry.malId,
+                                                        )
+                                                    onOpen(detail, null)
+                                                }
+                                            },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                     if (completedShows.isNotEmpty()) {
                         item {
                             Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
@@ -795,6 +864,100 @@ private fun HomeFeed(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun ResumeSpotlight(
+    entry: WatchHistoryEntity,
+    onPlay: (Int) -> Unit,
+) {
+    val target = playbackTarget(entry)
+    val resume = target == entry.episode.coerceAtLeast(1)
+    val fraction = if (
+        resume && entry.durationMs > 0L
+    ) {
+        (entry.positionMs.toFloat() / entry.durationMs.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(KittySurface)
+            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(18.dp))
+            .clickable { onPlay(target) }
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AsyncImage(
+            model = entry.coverImageUrl,
+            contentDescription = entry.title,
+            modifier = Modifier
+                .width(64.dp)
+                .height(92.dp)
+                .clip(RoundedCornerShape(12.dp)),
+            contentScale = ContentScale.Crop,
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                if (resume) "Resume" else "Up next",
+                color = KittyFaint,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.4.sp,
+            )
+            Text(
+                entry.title,
+                color = KittyText,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Episode $target",
+                color = KittyMuted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            if (fraction > 0f) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittyOutlineSoft),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .height(3.dp)
+                            .background(KittyAccent),
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(KittyAccent),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Filled.PlayArrow,
+                contentDescription = "Play",
+                tint = KittyOnAccent,
+                modifier = Modifier.size(22.dp),
+            )
         }
     }
 }
@@ -1299,6 +1462,7 @@ private fun HistoryFeed(
         }
         favourites = runCatching { aniList.favourites(token) }.getOrDefault(emptyList())
     }
+    var libraryFilter by rememberSaveable { mutableStateOf("all") }
     val watching = history.filter {
         val s = it.listStatus?.uppercase()
         s == null || s == "CURRENT" || s == "REPEATING"
@@ -1341,7 +1505,26 @@ private fun HistoryFeed(
                 },
             )
         }
-        if (favourites.isNotEmpty()) {
+        item {
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf(
+                    "all" to "All",
+                    "watching" to "Watching",
+                    "plan" to "Plan",
+                    "paused" to "Paused",
+                    "done" to "Done",
+                    "dropped" to "Dropped",
+                    "favourites" to "Favourites",
+                ).forEach { (id, label) ->
+                    Chip(label, selected = libraryFilter == id) { libraryFilter = id }
+                }
+            }
+        }
+        val showFavourites = libraryFilter == "all" || libraryFilter == "favourites"
+        if (showFavourites && favourites.isNotEmpty()) {
             item {
                 KittySectionHeading(
                     title = "Favourites",
@@ -1382,14 +1565,31 @@ private fun HistoryFeed(
                 }
             }
         }
-        if (history.isEmpty() && favourites.isEmpty()) {
+        val historySections = when (libraryFilter) {
+            "watching" -> listOf(Triple("Watching", watching, "w"))
+            "plan" -> listOf(Triple("Plan to watch", planning, "p"))
+            "paused" -> listOf(Triple("Paused", paused, "z"))
+            "done" -> listOf(Triple("Completed", completed, "c"))
+            "dropped" -> listOf(Triple("Dropped", dropped, "d"))
+            "favourites" -> emptyList()
+            else -> listOf(
+                Triple("Watching", watching, "w"),
+                Triple("Plan to watch", planning, "p"),
+                Triple("Paused", paused, "z"),
+                Triple("Completed", completed, "c"),
+                Triple("Dropped", dropped, "d"),
+                Triple("More", other, "o"),
+            )
+        }
+        val historyVisible = historySections.any { it.second.isNotEmpty() }
+        if (!historyVisible && !(showFavourites && favourites.isNotEmpty())) {
             item {
                 KittyEmptyState(
-                    title = "No list entries yet",
+                    title = "Nothing in this list",
                     body = "Favourite a show, or set it to Watching, and it lands here.",
                 )
             }
-        } else if (history.isNotEmpty()) {
+        } else if (historyVisible) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1426,12 +1626,9 @@ private fun HistoryFeed(
                     HistoryRow(entry, aniList, onOpen)
                 }
             }
-            section("Watching", watching, "w")
-            section("Plan to watch", planning, "p")
-            section("Paused", paused, "z")
-            section("Completed", completed, "c")
-            section("Dropped", dropped, "d")
-            section("More", other, "o")
+            historySections.forEach { (title, rows, prefix) ->
+                section(title, rows, prefix)
+            }
         }
     }
 }
@@ -2430,6 +2627,57 @@ private fun TitleDetailScreen(
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                         }
+                    }
+
+                    val watchedCount = maxOf(
+                        detail.listState?.progress ?: 0,
+                        (lastWatchedEp - 1).coerceAtLeast(0),
+                    )
+                    val totalEps = detail.episodes
+                    if (totalEps != null && totalEps > 0 && watchedCount > 0) {
+                        val fraction = (watchedCount.toFloat() / totalEps.toFloat()).coerceIn(0f, 1f)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(KittySurface)
+                                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
+                                .padding(14.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    "Your progress",
+                                    color = KittyText,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp,
+                                )
+                                Text(
+                                    "$watchedCount of $totalEps",
+                                    color = KittyFaint,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(999.dp))
+                                    .background(KittyOutlineSoft),
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(fraction)
+                                        .height(4.dp)
+                                        .background(KittyAccent),
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
                     }
 
                     if (!detail.description.isNullOrBlank()) {
