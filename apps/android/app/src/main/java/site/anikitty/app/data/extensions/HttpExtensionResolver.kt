@@ -11,6 +11,7 @@ import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.StreamResolver
 import site.anikitty.app.data.servers.StreamServer
 import site.anikitty.app.data.servers.SubtitleTrack
+import java.io.IOException
 
 /**
  * Stream resolver that calls a user-hosted HTTP extension (apiVersion 1).
@@ -56,16 +57,32 @@ class HttpExtensionResolver(
             .header("User-Agent", "AniKitty-ExtensionClient/1")
             .post(payload.toRequestBody(JSON_MEDIA))
             .build()
-        ExtensionHttp.client.newCall(req).execute().use { resp ->
-            val body = resp.body?.string().orEmpty()
-            if (!resp.isSuccessful) {
-                val msg = runCatching { JSONObject(body).optString("error") }
-                    .getOrNull()
-                    ?.takeIf { it.isNotBlank() }
-                error(msg ?: "${manifest.name} HTTP ${resp.code}")
+        val (code, body) = postOnce(req)
+        if (code !in 200..299) {
+            val msg = runCatching { JSONObject(body).optString("error") }
+                .getOrNull()
+                ?.takeIf { it.isNotBlank() }
+            error(msg ?: "${manifest.name} HTTP $code")
+        }
+        parseSources(body).also {
+            if (it.isEmpty()) error("${manifest.name} returned no playable sources")
+        }
+    }
+
+    /** One retry when the connection drops. HTTP errors are returned as-is. */
+    private fun postOnce(req: Request): Pair<Int, String> {
+        fun call(): Pair<Int, String> {
+            ExtensionHttp.client.newCall(req).execute().use { resp ->
+                return resp.code to resp.body?.string().orEmpty()
             }
-            parseSources(body).also {
-                if (it.isEmpty()) error("${manifest.name} returned no playable sources")
+        }
+        return try {
+            call()
+        } catch (first: IOException) {
+            try {
+                call()
+            } catch (_: IOException) {
+                throw first
             }
         }
     }
@@ -87,7 +104,15 @@ class HttpExtensionResolver(
                         put(k, headersObj.optString(k, ""))
                     }
                 }
-            }.filterValues { it.isNotBlank() }
+            }.filterValues { it.isNotBlank() }.toMutableMap()
+            val referer = s.optString("referer").ifBlank { s.optString("Referer") }.trim()
+            if (referer.startsWith("http") && headers.keys.none { it.equals("Referer", true) }) {
+                headers["Referer"] = referer
+            }
+            val origin = s.optString("origin").ifBlank { s.optString("Origin") }.trim()
+            if (origin.startsWith("http") && headers.keys.none { it.equals("Origin", true) }) {
+                headers["Origin"] = origin
+            }
             val subsArr = s.optJSONArray("subtitles")
             val subs = buildList {
                 if (subsArr != null) {
@@ -110,12 +135,27 @@ class HttpExtensionResolver(
                 url = url,
                 headers = headers,
                 label = s.optString("label", "Stream").ifBlank { "Stream" },
-                stripBytes = s.optInt("stripBytes", 0),
+                stripBytes = s.optInt("stripBytes", 0).coerceAtLeast(0),
                 subtitles = subs,
             )
         }
-        require(out.isNotEmpty()) { "Extension returned no playable sources" }
         return out
+            .distinctBy { it.url }
+            .sortedByDescending { qualityHeight(it.label) }
+    }
+
+    /** 1080p / 720 / HD-style labels so the best listed quality plays first. */
+    private fun qualityHeight(label: String): Int {
+        Regex("""(\d{3,4})\s*p""", RegexOption.IGNORE_CASE).find(label)?.groupValues?.get(1)
+            ?.toIntOrNull()?.let { return it }
+        Regex("""\b(2160|1440|1080|720|480|360|240)\b""").find(label)?.groupValues?.get(1)
+            ?.toIntOrNull()?.let { return it }
+        return when {
+            label.contains("4k", true) || label.contains("ultra", true) -> 2160
+            label.contains("hd", true) || label.contains("high", true) -> 1080
+            label.contains("sd", true) || label.contains("low", true) -> 480
+            else -> 0
+        }
     }
 
     private companion object {

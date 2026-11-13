@@ -86,7 +86,7 @@ class ServerCatalog(context: Context) {
     /**
      * Resolve using the selected installed provider first, then automatically
      * try every other **installed** provider until one returns sources.
-     * On success via a fallback, selects that provider so the next Play prefers it.
+     * A fallback plays this episode only. The provider the user picked stays selected.
      */
     suspend fun resolveWithFailover(
         anilistId: Int,
@@ -114,9 +114,6 @@ class ServerCatalog(context: Context) {
             }
             if (sources != null && sources.isNotEmpty()) {
                 val usedFallback = resolver.server.id != preferredId
-                if (usedFallback) {
-                    select(resolver.server.id)
-                }
                 return ResolveFailoverResult(
                     sources = sources,
                     server = resolver.server,
@@ -167,6 +164,11 @@ class ServerCatalog(context: Context) {
     }
 
     suspend fun fetchStore(): StoreIndex = storeClient.fetchIndex()
+
+    /** Newer versions of installed community extensions, id → version. */
+    suspend fun extensionUpdates(): Map<String, String> = installer.availableUpdates()
+
+    suspend fun updateExtension(id: String): ExtensionManifest = installer.update(id)
 
     private fun buildResolvers(installed: List<ExtensionManifest>): List<StreamResolver> {
         val fromExt = installed.map { HttpExtensionResolver(it) }

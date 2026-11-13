@@ -883,7 +883,7 @@ fun PlayerScreen(
                         } else {
                             Modifier
                                 .windowInsetsPadding(WindowInsets.navigationBars)
-                                .padding(start = 18.dp, bottom = 108.dp, end = 18.dp)
+                                .padding(start = 18.dp, bottom = 128.dp, end = 160.dp)
                         },
                     ),
                 nextEpisode = episode + 1,
@@ -1822,7 +1822,7 @@ private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
     ) {
         Text(
             label,
-            color = if (selected) Color.White else PlayerChrome.Paper,
+            color = if (selected) PlayerChrome.Ink else PlayerChrome.Paper,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
         )

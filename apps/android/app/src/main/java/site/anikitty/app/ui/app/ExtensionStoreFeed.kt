@@ -103,6 +103,7 @@ fun ExtensionStoreFeed(
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var showGithub by remember { mutableStateOf(false) }
+    var updates by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
     fun refreshStore() {
         scope.launch {
@@ -111,6 +112,7 @@ fun ExtensionStoreFeed(
             runCatching { catalog.fetchStore() }
                 .onSuccess {
                     listings = it.extensions
+                    updates = runCatching { catalog.extensionUpdates() }.getOrDefault(emptyMap())
                     val from = when {
                         it.sourceUrl?.contains("anikitty-extensions") == true ->
                             "extensions mirror"
@@ -118,8 +120,14 @@ fun ExtensionStoreFeed(
                             "main store"
                         else -> "store"
                     }
+                    val updateNote = when (updates.size) {
+                        0 -> ""
+                        1 -> " · 1 update"
+                        else -> " · ${updates.size} updates"
+                    }
                     status = "${it.extensions.size} listed · $from" +
-                        (it.updatedAt?.let { d -> " · $d" } ?: "")
+                        (it.updatedAt?.let { d -> " · $d" } ?: "") +
+                        updateNote
                 }
                 .onFailure { status = it.message }
             busy = false
@@ -270,7 +278,9 @@ fun ExtensionStoreFeed(
 
         lazyItems(filtered, key = { "store-${it.id}" }) { listing ->
             val isBundled = listing.id in bundledIds
-            val installed = isBundled || installedExt.any { it.id == listing.id }
+            val installedManifest = installedExt.firstOrNull { it.id == listing.id }
+            val installed = isBundled || installedManifest != null
+            val newer = updates[listing.id]
             val onDevice = resolvers.any { it.server.id == listing.id }
             val selected = selectedId == listing.id
             val icon = listing.iconUrl
@@ -336,6 +346,15 @@ fun ExtensionStoreFeed(
                                     installed -> {
                                         if (isNotEmpty()) append(" · ")
                                         append("installed")
+                                        installedManifest?.version?.takeIf { it.isNotBlank() }?.let { v ->
+                                            append(" · v")
+                                            append(v)
+                                        }
+                                        if (newer != null) {
+                                            append(" · v")
+                                            append(newer)
+                                            append(" ready")
+                                        }
                                     }
                                 }
                             },
@@ -349,6 +368,30 @@ fun ExtensionStoreFeed(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    if (newer != null && !isBundled) {
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    busy = true
+                                    status = runCatching {
+                                        val m = catalog.updateExtension(listing.id)
+                                        updates = updates - m.id
+                                        "Updated ${m.name} to ${m.version}"
+                                    }.getOrElse { e -> e.message }
+                                    busy = false
+                                }
+                            },
+                            enabled = !busy,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = KittyAccent,
+                                contentColor = KittyOnAccent,
+                            ),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
+                        ) {
+                            Text("Update", fontWeight = FontWeight.Bold)
+                        }
+                    }
                     if (selected) {
                         OutlinedButton(
                             onClick = { status = "Already using ${listing.name}" },
