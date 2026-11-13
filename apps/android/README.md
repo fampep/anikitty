@@ -9,30 +9,12 @@ The phone app browses AniList, signs in with AniList, and plays on the device. I
 
 Debug APKs allow cleartext HTTP globally. Release builds block cleartext.
 
+Episode counts, titles, and stills come from AniList. Airing shows with no final
+count use the next airing episode, so long series list every episode that has aired.
+
 ## Build APK
 
 ```bash
 ./gradlew :app:assembleRelease
 # app/build/outputs/apk/release/app-release.apk
 ```
-
-### Optional: TMDB episode stills (Fribb)
-
-Episode rail thumbnails prefer AniList streaming images, then TMDB stills via
-[Fribb/anime-lists](https://github.com/Fribb/anime-lists) (AniList → TMDB / IMDb),
-then the series cover.
-
-TMDB needs a free v3 API key at build time. Do **not** paste keys into chat —
-set one of:
-
-```bash
-# gradle.properties / CLI
-./gradlew :app:assembleRelease -PtmdbApiKey=YOUR_KEY
-
-# or environment (CI / local shell)
-export TMDB_API_KEY=YOUR_KEY
-./gradlew :app:assembleRelease
-```
-
-With no key the app still runs; Fribb mapping loads, but stills stay on AniList /
-cover fallbacks.
