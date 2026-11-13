@@ -72,6 +72,8 @@ class CastRelay(context: Context) {
     private var pool = newPool()
     @Volatile private var source: PlayableSource? = null
     @Volatile private var cachedPlaylist: ByteArray? = null
+    @Volatile var segmentPack: String = "ts"
+        private set
     @Volatile private var running = false
     private var server: ServerSocket? = null
     private var acceptThread: Thread? = null
@@ -126,7 +128,7 @@ class CastRelay(context: Context) {
         } finally {
             collecting.remove()
         }
-        val file = if (mime == HLS_MIME) "index.m3u8" else "video.mp4"
+        val file = if (mime == HLS_MIME) "index.m3u8?pack=$segmentPack" else "video.mp4"
         return RelayPlayback(
             url = "http://$host:$port/$file",
             mimeType = mime,
@@ -220,6 +222,10 @@ class CastRelay(context: Context) {
             val request = header.lineSequence().firstOrNull().orEmpty()
             val parts = request.split(' ')
             val method = parts.getOrNull(0).orEmpty()
+            if (method.equals("OPTIONS", true)) {
+                writeStatus(client, 204, "text/plain", ByteArray(0), headOnly = true)
+                return
+            }
             if (parts.size < 2 || (!method.equals("GET", true) && !method.equals("HEAD", true))) {
                 writeStatus(client, 405, "text/plain", "No".toByteArray())
                 return
@@ -350,7 +356,9 @@ class CastRelay(context: Context) {
             System.arraycopy(rest, 0, body, n, rest.size)
             val text = body.toString(Charsets.UTF_8)
             if (!text.trimStart().startsWith("#EXTM3U")) return null
-            rewritePlaylist(text, upstream.uri?.toString() ?: url).toByteArray(Charsets.UTF_8)
+            val base = upstream.uri?.toString() ?: url
+            segmentPack = classifyPack(text, base)
+            rewritePlaylist(text, base).toByteArray(Charsets.UTF_8)
         } catch (_: Exception) {
             null
         } finally {
@@ -417,6 +425,39 @@ class CastRelay(context: Context) {
 
     private fun newPool() = Executors.newFixedThreadPool(6) { runnable ->
         Thread(runnable, "anikitty-cast").apply { isDaemon = true }
+    }
+
+    private fun classifyPack(text: String, baseUrl: String, depth: Int = 0): String {
+        val lower = text.lowercase()
+        if (lower.contains("#ext-x-map") || lower.contains(".m4s") || lower.contains(".cmf") ||
+            lower.contains(".m4a") || lower.contains(".m4v") || lower.contains(".mp4")
+        ) {
+            return "fmp4"
+        }
+        if (lower.contains(".ts")) return "ts"
+        if (depth == 0 && lower.contains("#ext-x-stream-inf")) {
+            val line = text.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
+            if (line != null) {
+                val abs = resolve(runCatching { URI(baseUrl) }.getOrNull(), line)
+                val nested = fetchText(abs)
+                if (nested != null && nested.trimStart().startsWith("#EXTM3U")) {
+                    return classifyPack(nested, abs, depth + 1)
+                }
+            }
+        }
+        return "ts"
+    }
+
+    private fun fetchText(url: String): String? {
+        val upstream = factory.createDataSource()
+        return try {
+            upstream.open(DataSpec(Uri.parse(url)))
+            readFully(upstream, C.LENGTH_UNSET.toLong()).toString(Charsets.UTF_8)
+        } catch (_: Exception) {
+            null
+        } finally {
+            runCatching { upstream.close() }
+        }
     }
 
     private fun looksLikePlaylist(url: String, headers: Map<String, List<String>>): Boolean {
@@ -555,11 +596,20 @@ class CastRelay(context: Context) {
         position: Long,
         total: Long?,
     ) {
-        val reason = if (status == 206) "Partial Content" else if (status == 200) "OK" else "Error"
+        val reason = when (status) {
+            206 -> "Partial Content"
+            204 -> "No Content"
+            200 -> "OK"
+            else -> "Error"
+        }
         val builder = StringBuilder()
         builder.append("HTTP/1.1 ").append(status).append(' ').append(reason).append("\r\n")
         builder.append("Content-Type: ").append(type).append("\r\n")
         builder.append("Access-Control-Allow-Origin: *\r\n")
+        builder.append("Access-Control-Allow-Methods: GET, HEAD, OPTIONS\r\n")
+        builder.append("Access-Control-Allow-Headers: Content-Type, Range, Accept, Origin\r\n")
+        builder.append("Access-Control-Expose-Headers: Content-Length, Content-Range, Content-Type, Accept-Ranges\r\n")
+        builder.append("Access-Control-Max-Age: 86400\r\n")
         builder.append("Accept-Ranges: bytes\r\n")
         builder.append("Connection: close\r\n")
         if (length != null && length >= 0) {
@@ -626,7 +676,7 @@ class CastRelay(context: Context) {
     }
 
     companion object {
-        private const val HLS_MIME = "application/x-mpegURL"
+        private const val HLS_MIME = "application/vnd.apple.mpegurl"
         private const val DEFAULT_UA =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
         private val URI_ATTR = Regex("""URI="([^"]*)"""")

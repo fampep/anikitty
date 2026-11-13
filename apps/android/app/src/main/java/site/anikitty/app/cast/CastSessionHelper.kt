@@ -9,12 +9,18 @@ import android.os.Handler
 import android.os.Looper
 import androidx.annotation.OptIn
 import androidx.media3.cast.CastPlayer
+import androidx.media3.cast.DefaultMediaItemConverter
+import androidx.media3.cast.MediaItemConverter
 import androidx.media3.cast.SessionAvailabilityListener
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import com.google.android.gms.cast.HlsSegmentFormat
+import com.google.android.gms.cast.HlsVideoSegmentFormat
+import com.google.android.gms.cast.MediaInfo
+import com.google.android.gms.cast.MediaQueueItem
 import com.google.android.gms.cast.framework.CastContext
 import site.anikitty.app.data.servers.PlayableSource
 import java.util.concurrent.atomic.AtomicBoolean
@@ -127,7 +133,7 @@ class CastSessionHelper private constructor(
         fun create(context: Context): CastSessionHelper? = runCatching {
             val app = context.applicationContext
             val castContext = CastContext.getSharedInstance(app)
-            val castPlayer = CastPlayer(castContext)
+            val castPlayer = CastPlayer(castContext, RelayMediaItemConverter())
             val wifi = app.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             val multicast = wifi?.createMulticastLock("anikitty-cast-discover")?.apply {
                 setReferenceCounted(false)
@@ -136,4 +142,43 @@ class CastSessionHelper private constructor(
             CastSessionHelper(castPlayer, CastRelay(app), multicast)
         }.getOrNull()
     }
+}
+
+@OptIn(UnstableApi::class)
+private class RelayMediaItemConverter : MediaItemConverter {
+    private val fallback = DefaultMediaItemConverter()
+
+    override fun toMediaQueueItem(mediaItem: MediaItem): MediaQueueItem {
+        val local = mediaItem.localConfiguration ?: return fallback.toMediaQueueItem(mediaItem)
+        val raw = local.uri.toString()
+        val hls = local.mimeType?.contains("mpegurl", ignoreCase = true) == true || raw.contains(".m3u8", ignoreCase = true)
+        if (!hls) return fallback.toMediaQueueItem(mediaItem)
+        val contentUrl = raw.substringBefore('?')
+        val fmp4 = raw.contains("pack=fmp4")
+        val metadata = com.google.android.gms.cast.MediaMetadata(
+            com.google.android.gms.cast.MediaMetadata.MEDIA_TYPE_MOVIE,
+        ).apply {
+            putString(
+                com.google.android.gms.cast.MediaMetadata.KEY_TITLE,
+                mediaItem.mediaMetadata.title?.toString().orEmpty(),
+            )
+            putString(
+                com.google.android.gms.cast.MediaMetadata.KEY_SUBTITLE,
+                mediaItem.mediaMetadata.artist?.toString().orEmpty(),
+            )
+        }
+        val info = MediaInfo.Builder(contentUrl)
+            .setContentUrl(contentUrl)
+            .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
+            .setContentType("application/x-mpegURL")
+            .setMetadata(metadata)
+            .setHlsSegmentFormat(if (fmp4) HlsSegmentFormat.FMP4 else HlsSegmentFormat.TS)
+            .setHlsVideoSegmentFormat(
+                if (fmp4) HlsVideoSegmentFormat.FMP4 else HlsVideoSegmentFormat.MPEG2_TS,
+            )
+            .build()
+        return MediaQueueItem.Builder(info).build()
+    }
+
+    override fun toMediaItem(mediaQueueItem: MediaQueueItem): MediaItem = fallback.toMediaItem(mediaQueueItem)
 }
