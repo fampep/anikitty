@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -126,10 +127,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
-import coil.imageLoader
-import coil.request.ImageRequest
-import coil.request.SuccessResult
-import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -511,6 +508,7 @@ fun LocalFirstApp(
                     history = history,
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
+                    onOpenSearch = { tab = "search" },
                     onOpenGenre = { genre ->
                         searchGenre = genre
                         tab = "search"
@@ -612,6 +610,7 @@ private fun HomeFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
+    onOpenSearch: () -> Unit,
     onOpenGenre: (String) -> Unit,
     onOpenSchedule: () -> Unit,
     onOpenAccount: () -> Unit,
@@ -699,6 +698,7 @@ private fun HomeFeed(
                     HomeBar(
                         onRefresh = { reload(fromPull = true) },
                         refreshBusy = catalogBusy,
+                        onOpenSearch = onOpenSearch,
                         onOpenAccount = onOpenAccount,
                         avatarUrl = aniListAuth.avatarUrl,
                     )
@@ -715,6 +715,7 @@ private fun HomeFeed(
                     HomeBar(
                         onRefresh = { reload(fromPull = true) },
                         refreshBusy = catalogBusy,
+                        onOpenSearch = onOpenSearch,
                         onOpenAccount = onOpenAccount,
                         avatarUrl = aniListAuth.avatarUrl,
                     )
@@ -733,6 +734,7 @@ private fun HomeFeed(
                         HomeBar(
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
+                            onOpenSearch = onOpenSearch,
                             onOpenAccount = onOpenAccount,
                             avatarUrl = aniListAuth.avatarUrl,
                         )
@@ -1838,7 +1840,6 @@ private fun TitleDetailScreen(
     var listBusy by remember(anime.id) { mutableStateOf(false) }
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
-    var heroColor by remember(anime.id) { mutableStateOf(Color.Black) }
     var trailerPlaying by remember(anime.id) { mutableStateOf(false) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
     var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
@@ -1854,20 +1855,6 @@ private fun TitleDetailScreen(
 
     LaunchedEffect(detail) {
         episodeList = detail.episodeItems()
-    }
-    LaunchedEffect(detail.bannerImageUrl, detail.coverImageUrl) {
-        val imageUrl = detail.bannerImageUrl ?: detail.coverImageUrl ?: return@LaunchedEffect
-        val result = runCatching {
-            context.imageLoader.execute(
-                ImageRequest.Builder(context)
-                    .data(imageUrl)
-                    .allowHardware(false)
-                    .size(48)
-                    .build(),
-            )
-        }.getOrNull()
-        val bitmap = (result as? SuccessResult)?.drawable?.toBitmap() ?: return@LaunchedEffect
-        heroColor = sampleBitmapColor(bitmap)
     }
     LaunchedEffect(anime.id, episode, rangeCount) {
         browseRange = ((episode - 1) / episodePageSize).coerceIn(0, (rangeCount - 1).coerceAtLeast(0))
@@ -2047,7 +2034,7 @@ private fun TitleDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(300.dp),
+                        .height(220.dp),
                 ) {
                     AsyncImage(
                         model = detail.bannerImageUrl ?: detail.coverImageUrl,
@@ -2060,13 +2047,9 @@ private fun TitleDetailScreen(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(
-                                        heroColor.copy(alpha = 0.6f),
-                                        heroColor.copy(alpha = 0.2f),
-                                        Color.Transparent,
-                                        Color.Black.copy(alpha = 0.5f),
-                                        Color.Black,
-                                    ),
+                                    0f to Color.Black.copy(alpha = 0.25f),
+                                    0.45f to Color.Transparent,
+                                    1f to Color.Black,
                                 ),
                             ),
                     )
@@ -2088,69 +2071,43 @@ private fun TitleDetailScreen(
                             contentDescription = detail.title,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .width(110.dp)
+                                .width(108.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                .background(Color(0xFF0C0C10)),
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color(0xFF141416)),
                         )
                         Column(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                detail.format?.takeIf { it.isNotBlank() }?.let { format ->
-                                    Text(
-                                        format,
-                                        color = Color.White.copy(alpha = 0.5f),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .size(2.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.2f)),
-                                    )
-                                }
-                                detail.statusLabel()?.let { statusLabel ->
-                                    val airing = detail.status.equals("RELEASING", true)
-                                    Text(
-                                        statusLabel,
-                                        color = if (airing) Color.White else Color.White.copy(alpha = 0.4f),
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 11.sp,
-                                    )
-                                }
+                            Text(
+                                detail.title,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp,
+                                lineHeight = 26.sp,
+                                letterSpacing = (-0.3).sp,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            val altTitle = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
+                                .distinct()
+                                .joinToString("  ·  ")
+                            if (altTitle.isNotBlank()) {
+                                Text(
+                                    altTitle,
+                                    color = Color.White.copy(alpha = 0.5f),
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
                             listBadge?.let { badge ->
                                 Text(
                                     badge,
                                     color = Color.White,
-                                    fontWeight = FontWeight.Bold,
+                                    fontWeight = FontWeight.Medium,
                                     fontSize = 11.sp,
-                                )
-                            }
-                            Text(
-                                detail.title,
-                                color = Color.White,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 22.sp,
-                                lineHeight = 26.sp,
-                                letterSpacing = (-0.4).sp,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            detail.studios.firstOrNull()?.let { studio ->
-                                Text(
-                                    studio,
-                                    color = Color.White.copy(alpha = 0.4f),
-                                    fontSize = 12.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
                                 )
                             }
                             detail.nextAiring?.let { next ->
@@ -2182,7 +2139,40 @@ private fun TitleDetailScreen(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(24.dp))
+                    val detailMeta = listOfNotNull(
+                        detail.format?.takeIf { it.isNotBlank() }?.let { format ->
+                            when (format.uppercase()) {
+                                "TV_SHORT" -> "TV Short"
+                                "MOVIE" -> "Movie"
+                                else -> format
+                            }
+                        },
+                        shownEpisodeCount?.let { "$it episodes" },
+                        detail.status?.takeIf { it.isNotBlank() }?.let { "(${it.uppercase()})" },
+                        detail.airedLabel(),
+                        detail.season?.uppercase(),
+                        detail.averageScore?.let { "$it / 100" },
+                        detail.popularity?.takeIf { it > 0 }?.let { "%,d".format(it) },
+                    )
+                    if (detailMeta.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            detailMeta.joinToString("   "),
+                            color = Color.White.copy(alpha = 0.62f),
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                        )
+                    }
+                    if (detail.genres.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            detail.genres.joinToString(", "),
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -2270,11 +2260,6 @@ private fun TitleDetailScreen(
             }
             item {
                 val score = detail.averageScore
-                val scoreColor = when {
-                    score != null && score > 75 -> Color(0xFF4CAF50)
-                    score != null && score > 50 -> Color(0xFFFFC107)
-                    else -> Color.White
-                }
                 val movie = detail.format.equals("MOVIE", true)
                 Row(
                     modifier = Modifier
@@ -2291,7 +2276,7 @@ private fun TitleDetailScreen(
                         value = score?.let { "$it%" } ?: "--",
                         label = "Score",
                         icon = Icons.Filled.Star,
-                        color = scoreColor,
+                        color = Color.White,
                     )
                     DetailStatDivider()
                     DetailStat(
@@ -2526,27 +2511,13 @@ private fun TitleDetailScreen(
                     }
 
                     if (!detail.description.isNullOrBlank()) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF0C0C10))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                .padding(14.dp),
-                        ) {
-                            Text(
-                                "SYNOPSIS",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.sp,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 detail.description!!,
-                                style = MaterialTheme.typography.bodyMedium,
                                 color = Color.White.copy(alpha = 0.72f),
-                                maxLines = if (synopsisExpanded) 40 else 4,
+                                fontSize = 14.sp,
+                                lineHeight = 20.sp,
+                                maxLines = if (synopsisExpanded) 40 else 6,
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
@@ -3000,6 +2971,60 @@ private fun TitleDetailScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
+                    val selectedEpisode = episodeList.firstOrNull { it.number == episode }
+                    if (selectedEpisode != null) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(78.dp)
+                                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(4.dp)),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            AsyncImage(
+                                model = selectedEpisode.thumbnailUrl ?: detail.coverImageUrl,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .width(128.dp)
+                                    .fillMaxHeight()
+                                    .background(Color(0xFF141416)),
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(horizontal = 12.dp),
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White),
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "${selectedEpisode.number}. ${selectedEpisode.title}",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                selectedEpisode.site?.takeIf { it.isNotBlank() }?.let { site ->
+                                    Text(
+                                        site,
+                                        color = Color.White.copy(alpha = 0.4f),
+                                        fontSize = 11.sp,
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(start = 15.dp, top = 4.dp),
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
                     val finishedThrough = maxOf(
                         detail.listState?.progress ?: 0,
                         (lastWatchedEp - 1).coerceAtLeast(0),
@@ -3632,37 +3657,6 @@ private fun PersonRow(title: String, people: List<site.anikitty.app.data.anilist
             }
         }
     }
-}
-
-private fun sampleBitmapColor(bitmap: android.graphics.Bitmap): Color {
-    val width = bitmap.width
-    val height = bitmap.height
-    if (width <= 0 || height <= 0) return Color.Black
-    var red = 0L
-    var green = 0L
-    var blue = 0L
-    var count = 0
-    val stepX = (width / 12).coerceAtLeast(1)
-    val stepY = (height / 12).coerceAtLeast(1)
-    var y = 0
-    while (y < height) {
-        var x = 0
-        while (x < width) {
-            val pixel = bitmap.getPixel(x, y)
-            red += android.graphics.Color.red(pixel)
-            green += android.graphics.Color.green(pixel)
-            blue += android.graphics.Color.blue(pixel)
-            count++
-            x += stepX
-        }
-        y += stepY
-    }
-    if (count == 0) return Color.Black
-    return Color(
-        red = (red / count) / 255f * 0.45f,
-        green = (green / count) / 255f * 0.45f,
-        blue = (blue / count) / 255f * 0.45f,
-    )
 }
 
 private fun formatAiring(epochSec: Long): String {

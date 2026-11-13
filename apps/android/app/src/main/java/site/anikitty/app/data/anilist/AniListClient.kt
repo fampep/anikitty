@@ -48,6 +48,7 @@ class AniListClient(
         status
         season
         seasonYear
+        startDate { month year }
         duration
         popularity
         averageScore
@@ -925,7 +926,9 @@ class AniListClient(
             malId = item.nullableInt("idMal"),
             status = item.nullableString("status"),
             season = item.nullableString("season"),
-            seasonYear = item.nullableInt("seasonYear"),
+            seasonYear = item.nullableInt("seasonYear")
+                ?: item.optJSONObject("startDate")?.nullableInt("year"),
+            startMonth = item.optJSONObject("startDate")?.nullableInt("month"),
             durationMinutes = item.nullableInt("duration"),
             popularity = item.nullableInt("popularity"),
             genres = genres,

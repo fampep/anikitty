@@ -140,7 +140,7 @@ fun SearchFeed(
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     var pick by remember { mutableStateOf(SearchPick()) }
-    var asGrid by rememberSaveable { mutableStateOf(false) }
+    var asGrid by rememberSaveable { mutableStateOf(true) }
     var filtersOpen by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -646,30 +646,56 @@ private fun HeaderDisc(onClick: () -> Unit, selected: Boolean = false, content: 
 @Composable
 private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Unit) {
     Column(Modifier.clickable(onClick = onClick)) {
-        Box {
-            AsyncImage(
-                model = anime.coverImageUrl,
-                contentDescription = anime.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(0.7f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1E1E1E)),
-            )
-            anime.averageScore?.let { score ->
-                ScoreBadge("$score%", score, Modifier.align(Alignment.TopEnd).padding(6.dp))
+        AsyncImage(
+            model = anime.coverImageUrl,
+            contentDescription = anime.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(2f / 3f)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Color(0xFF141416)),
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            anime.title,
+            color = Color.White,
+            fontWeight = FontWeight.Medium,
+            fontSize = 12.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            lineHeight = 15.sp,
+        )
+        Row(
+            modifier = Modifier.padding(top = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val aired = anime.airedLabel()
+            if (!aired.isNullOrBlank()) {
+                Text(
+                    aired,
+                    color = Color.White.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
+            anime.format?.takeIf { it.isNotBlank() }?.let { format ->
+                if (!aired.isNullOrBlank()) Spacer(Modifier.width(6.dp))
+                Text(formatLabel(format), color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 1)
+            }
+            if (anime.status.equals("RELEASING", true)) {
+                Spacer(Modifier.width(5.dp))
+                Box(
+                    Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(Color.White),
+                )
             }
         }
-        Spacer(Modifier.height(6.dp))
-        Text(anime.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        val meta = listOfNotNull(formatLabel(anime.format ?: ""), anime.seasonYear?.toString(), anime.episodes?.let { "$it eps" })
-            .filter { it.isNotBlank() }
-            .joinToString(" · ")
-        if (meta.isNotEmpty()) {
-            Text(meta, color = Color.White.copy(alpha = 0.45f), fontSize = 11.sp, maxLines = 1)
-        }
-        badge?.let { Text(it, color = KittyText, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+        badge?.let { Text(it, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Medium) }
     }
 }
 
@@ -718,11 +744,6 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
 
 @Composable
 private fun ScoreBadge(text: String, score: Int, modifier: Modifier = Modifier) {
-    val tint = when {
-        score > 75 -> Color(0xFF4CAF50)
-        score > 50 -> Color(0xFFFFC107)
-        else -> Color.White
-    }
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
@@ -730,7 +751,7 @@ private fun ScoreBadge(text: String, score: Int, modifier: Modifier = Modifier) 
             .padding(horizontal = 5.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(FluentuiSystemIconsStarFilled, contentDescription = null, tint = tint, modifier = Modifier.size(9.dp))
+        Icon(FluentuiSystemIconsStarFilled, contentDescription = null, tint = Color.White, modifier = Modifier.size(9.dp))
         Spacer(Modifier.width(2.dp))
         Text(text, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
     }
