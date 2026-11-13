@@ -49,13 +49,12 @@ data class HomeSectionState(
 object HomeCatalog {
     val sections = listOf(
         HomeSection("featured", "Featured"),
-        HomeSection("genres", "Genres"),
-        HomeSection("airing", "Airing today"),
         HomeSection("continue", "Continue watching"),
+        HomeSection("airing", "Airing today"),
+        HomeSection("season", "This season"),
         HomeSection("foryou", "For you"),
         HomeSection("plan", "Plan to watch"),
-        HomeSection("top10", "Top 10"),
-        HomeSection("season", "This season"),
+        HomeSection("genres", "Genres"),
     )
 }
 
@@ -72,7 +71,7 @@ class HomeLayoutStore(context: Context) {
         val catalog = HomeCatalog.sections
         val known = catalog.map { it.id }
         val hidden = hidden()
-        val saved = (prefs.getString(ORDER, null) ?: prefs.getString("order_phone", null))
+        val saved = prefs.getString(ORDER, null)
             ?.split(',')
             ?.map { it.trim() }
             ?.filter { it in known }
@@ -116,7 +115,7 @@ class HomeLayoutStore(context: Context) {
     }
 
     private fun hidden(): Set<String> {
-        val raw = prefs.getString(HIDDEN, null) ?: prefs.getString("hidden_phone", null)
+        val raw = prefs.getString(HIDDEN, null)
         return raw
             ?.split(',')
             ?.map { it.trim() }
@@ -126,8 +125,8 @@ class HomeLayoutStore(context: Context) {
     }
 
     private companion object {
-        const val ORDER = "order"
-        const val HIDDEN = "hidden"
+        const val ORDER = "order_v2"
+        const val HIDDEN = "hidden_v2"
     }
 }
 

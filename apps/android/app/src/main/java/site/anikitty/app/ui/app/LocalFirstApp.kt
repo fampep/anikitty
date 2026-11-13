@@ -165,14 +165,9 @@ import site.anikitty.app.ui.icons.FluentuiSystemIconsSearchSparkleOutline
 import site.anikitty.app.ui.components.KittyBottomNav
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
-import site.anikitty.app.ui.components.KittyGenreTiles
-import site.anikitty.app.ui.components.KittyGlassHeroPager
 import site.anikitty.app.ui.components.KittyMetaChips
 import site.anikitty.app.ui.components.KittyNavTab
 import site.anikitty.app.ui.components.KittyPageHeader
-import site.anikitty.app.ui.components.KittyPosterRow
-import site.anikitty.app.ui.components.KittyTopTenRow
-import site.anikitty.app.ui.components.KittyPosterSkeletonRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.player.PlayerScreen
@@ -516,7 +511,6 @@ fun LocalFirstApp(
                     history = history,
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
-                    onOpenSearch = { tab = "search" },
                     onOpenGenre = { genre ->
                         searchGenre = genre
                         tab = "search"
@@ -526,7 +520,6 @@ fun LocalFirstApp(
                         tab = "schedule"
                     },
                     onOpenAccount = { tab = "settings" },
-                    accountLabel = accountLabel,
                     homeLayout = homeLayout,
                 )
                 "schedule" -> ScheduleFeed(
@@ -619,27 +612,23 @@ private fun HomeFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
-    onOpenSearch: () -> Unit,
     onOpenGenre: (String) -> Unit,
     onOpenSchedule: () -> Unit,
     onOpenAccount: () -> Unit,
-    accountLabel: String,
     homeLayout: HomeLayoutStore,
 ) {
-    val homeDisplayName = aniListAuth.username?.takeIf { it.isNotBlank() }
-        ?: accountLabel.takeIf { it.isNotBlank() }
-        ?: "Guest"
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var trending by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
-    var popular by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var seasonal by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     val scope = rememberCoroutineScope()
     var catalogJob by remember { mutableStateOf<Job?>(null) }
     val catalogBusy = loading || refreshing
-    var homeGenre by remember { mutableStateOf<String?>(null) }
     var airingToday by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
+    val airingClock = remember {
+        java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+    }
     LaunchedEffect(Unit) {
         val start = java.util.Calendar.getInstance().apply {
             set(java.util.Calendar.HOUR_OF_DAY, 0)
@@ -652,14 +641,11 @@ private fun HomeFeed(
             aniList.airingSchedule(from, from + 24 * 60 * 60)
         }.getOrDefault(emptyList())
     }
-    fun List<AnimeSummary>.forGenre(): List<AnimeSummary> {
-        val picked = homeGenre ?: return this
-        return filter { picked in it.genres }
-    }
     val continueWatching = remember(history) {
-        history.filter {
-            val s = it.listStatus?.uppercase()
-            s == null || s == "CURRENT" || s == "REPEATING"
+        history.filter { entry ->
+            val status = entry.listStatus?.uppercase()
+            val watching = status == null || status == "CURRENT" || status == "REPEATING"
+            watching && (entry.episodesFinished() > 0 || entry.positionMs > 0L)
         }.take(12)
     }
     val planToWatch = remember(history) {
@@ -689,10 +675,8 @@ private fun HomeFeed(
                 if (fromPull) aniList.invalidateCache()
                 coroutineScope {
                     val t = async { aniList.trending(forceRefresh = fromPull) }
-                    val p = async { aniList.popular(forceRefresh = fromPull) }
                     val s = async { aniList.seasonal(forceRefresh = fromPull) }
                     trending = t.await()
-                    popular = p.await()
                     seasonal = s.await()
                 }
             }.onFailure { error = friendlyFailure(it.message) }
@@ -703,42 +687,40 @@ private fun HomeFeed(
 
     LaunchedEffect(Unit) { reload() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val openCatalog: (AnimeSummary) -> Unit = { anime ->
+        scope.launch { historyDao.touchFromCatalog(anime) }
+        onOpen(anime, null)
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         when {
             loading && trending.isEmpty() -> {
-                LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
-                    item {
-                        HomeWelcomeHeader(
-                            displayName = homeDisplayName,
-                            onRefresh = { reload(fromPull = true) },
-                            refreshBusy = catalogBusy,
-                            onOpenSearch = onOpenSearch,
-                            onOpenAccount = onOpenAccount,
-                            avatarUrl = aniListAuth.avatarUrl,
-                        )
-                    }
-                    item { KittyPosterSkeletonRow("Continue watching") }
-                    item { KittyPosterSkeletonRow("This season") }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    HomeBar(
+                        onRefresh = { reload(fromPull = true) },
+                        refreshBusy = catalogBusy,
+                        onOpenAccount = onOpenAccount,
+                        avatarUrl = aniListAuth.avatarUrl,
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp)
+                            .background(Color(0xFF0C0C10)),
+                    )
                 }
             }
             error != null && trending.isEmpty() -> {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(24.dp)
-                        .fillMaxWidth(),
-                ) {
-                    HomeWelcomeHeader(
-                        displayName = homeDisplayName,
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    HomeBar(
                         onRefresh = { reload(fromPull = true) },
                         refreshBusy = catalogBusy,
-                        onOpenSearch = onOpenSearch,
                         onOpenAccount = onOpenAccount,
                         avatarUrl = aniListAuth.avatarUrl,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                     KittyEmptyState(
-                        title = "Couldn’t load the catalog",
+                        title = "Couldn't load the catalog",
                         body = error ?: "Check your connection and try again.",
                         actionLabel = "Retry",
                         onAction = { reload() },
@@ -746,13 +728,11 @@ private fun HomeFeed(
                 }
             }
             else -> {
-                LazyColumn(contentPadding = PaddingValues(bottom = 100.dp)) {
+                LazyColumn(contentPadding = PaddingValues(bottom = 110.dp)) {
                     item {
-                        HomeWelcomeHeader(
-                            displayName = homeDisplayName,
+                        HomeBar(
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
-                            onOpenSearch = onOpenSearch,
                             onOpenAccount = onOpenAccount,
                             avatarUrl = aniListAuth.avatarUrl,
                         )
@@ -761,204 +741,152 @@ private fun HomeFeed(
                     phoneSections.forEach { section ->
                         if (!section.enabled) return@forEach
                         when (section.id) {
-                            "featured" -> {
-                    item {
-                        KittyGlassHeroPager(
-                            items = trending,
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
-                    }
+                            "featured" -> item {
+                                HomeFeatured(items = trending, onOpen = openCatalog)
                             }
-                            "genres" -> {
-                    item {
-                        val tiles = listOf(
-                            "Action", "Romance", "Fantasy", "Comedy", "Drama", "Adventure",
-                        ).map { name ->
-                            name to (trending + popular + seasonal)
-                                .firstOrNull { name in it.genres }
-                                ?.let { it.bannerImageUrl ?: it.coverImageUrl }
-                        }
-                        KittyGenreTiles(
-                            genres = tiles,
-                            selected = homeGenre,
-                            onSelect = { name ->
-                                val next = if (homeGenre == name) null else name
-                                homeGenre = next
-                                if (next != null) onOpenGenre(next)
-                            },
-                        )
-                    }
-                            }
-                            "airing" -> {
-                    if (airingToday.isNotEmpty()) {
-                        item {
-                            TodayAiringRail(
-                                slots = airingToday,
-                                onMore = onOpenSchedule,
-                                onOpen = {
-                                    scope.launch { historyDao.touchFromCatalog(it) }
-                                    onOpen(it, null)
-                                },
-                            )
-                        }
-                    }
-                            }
-                            "top10" -> {
-                    item {
-                        KittyTopTenRow(
-                            title = "Top 10",
-                            subtitle = "Most watched right now",
-                            items = popular.forGenre(),
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
-                    }
-                            }
-                            "continue" -> {
-                    if (continueWatching.isNotEmpty()) {
-                        item {
-                            Column(modifier = Modifier.padding(top = 26.dp, bottom = 4.dp)) {
-                                KittySectionHeading(
+                            "continue" -> if (continueWatching.isNotEmpty()) item {
+                                HomeBlock(
                                     title = "Continue watching",
                                     subtitle = "Pick up where you left off",
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
-                                    lazyItems(continueWatching, key = { it.anilistId }) { entry ->
-                                        val target = playbackTarget(entry)
-                                        val resume = target == entry.episode.coerceAtLeast(1)
-                                        KittyContinueCard(
-                                            title = entry.title,
-                                            coverUrl = entry.coverImageUrl,
-                                            episode = target,
-                                            positionMs = if (resume) entry.positionMs else 0L,
-                                            durationMs = if (resume) entry.durationMs else 0L,
-                                            badge = buildString {
-                                                val label = if (resume) {
-                                                    "Resume"
-                                                } else {
-                                                    listStatusBadge(entry.listStatus)
-                                                }
-                                                if (!label.isNullOrBlank()) append(label)
-                                                val left = if (resume) {
-                                                    minutesLeft(entry.positionMs, entry.durationMs)
-                                                } else {
-                                                    null
-                                                }
-                                                if (left != null) {
-                                                    if (isNotEmpty()) append(" · ")
-                                                    append(left)
-                                                    append(" min left")
-                                                }
-                                            }.ifBlank { null },
-                                            onClick = {
-                                                scope.launch {
-                                                    val detail = aniList.media(entry.anilistId)
-                                                        ?: AnimeSummary(
-                                                            id = entry.anilistId,
-                                                            title = entry.title,
-                                                            coverImageUrl = entry.coverImageUrl,
-                                                            episodes = null,
-                                                            format = null,
-                                                            averageScore = null,
-                                                            malId = entry.malId,
-                                                        )
-                                                    val total = detail.releasedEpisodeCount().takeIf { it > 0 }
-                                                    val play = if (total != null) {
-                                                        target.coerceAtMost(total)
-                                                    } else {
-                                                        target
+                                    HomeContinueRow(
+                                        continueWatching.map { entry ->
+                                            val target = playbackTarget(entry)
+                                            val resume = target == entry.episode.coerceAtLeast(1)
+                                            val fraction = if (resume && entry.durationMs > 0L) {
+                                                (entry.positionMs.toFloat() / entry.durationMs.toFloat()).coerceIn(0f, 1f)
+                                            } else {
+                                                0f
+                                            }
+                                            val left = if (resume) {
+                                                minutesLeft(entry.positionMs, entry.durationMs)
+                                            } else {
+                                                null
+                                            }
+                                            HomeContinueCard(
+                                                id = entry.anilistId,
+                                                title = entry.title,
+                                                imageUrl = entry.coverImageUrl,
+                                                label = buildString {
+                                                    append("Episode $target")
+                                                    if (left != null) append(" · $left min left")
+                                                },
+                                                progress = fraction,
+                                                onClick = {
+                                                    scope.launch {
+                                                        val detail = aniList.media(entry.anilistId)
+                                                            ?: AnimeSummary(
+                                                                id = entry.anilistId,
+                                                                title = entry.title,
+                                                                coverImageUrl = entry.coverImageUrl,
+                                                                episodes = null,
+                                                                format = null,
+                                                                averageScore = null,
+                                                                malId = entry.malId,
+                                                            )
+                                                        val total = detail.releasedEpisodeCount().takeIf { it > 0 }
+                                                        val play = if (total != null) {
+                                                            target.coerceAtMost(total)
+                                                        } else {
+                                                            target
+                                                        }
+                                                        onOpen(detail, play)
                                                     }
-                                                    onOpen(detail, play)
-                                                }
-                                            },
-                                        )
-                                    }
+                                                },
+                                            )
+                                        },
+                                    )
                                 }
                             }
-                        }
-                    }
-                            }
-                            "foryou" -> {
-                    if (forYou.isNotEmpty()) {
-                        item {
-                            KittyPosterRow(
-                                title = "For you",
-                                subtitle = forYouFrom?.let { "Because you watch $it" }
-                                    ?: "Picked from what you watch",
-                                items = forYou,
-                                onOpen = {
-                                    scope.launch { historyDao.touchFromCatalog(it) }
-                                    onOpen(it, null)
-                                },
-                            )
-                        }
-                    }
-                            }
-                            "plan" -> {
-                    if (planToWatch.isNotEmpty()) {
-                        item {
-                            Column(modifier = Modifier.padding(top = 26.dp, bottom = 4.dp)) {
-                                KittySectionHeading(
-                                    title = "Plan to watch",
-                                    subtitle = "Saved on your AniList",
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            "airing" -> if (airingToday.isNotEmpty()) item {
+                                val now = System.currentTimeMillis() / 1000L
+                                val upcoming = airingToday.filter { it.airingAtEpochSec >= now - 20 * 60 }
+                                val shown = (if (upcoming.isNotEmpty()) upcoming else airingToday).take(12)
+                                HomeBlock(
+                                    title = "Airing today",
+                                    subtitle = "What comes on next",
+                                    onMore = onOpenSchedule,
                                 ) {
-                                    lazyItems(planToWatch, key = { "plan-${it.anilistId}" }) { entry ->
-                                        KittyContinueCard(
-                                            title = entry.title,
-                                            coverUrl = entry.coverImageUrl,
-                                            episode = entry.episode.coerceAtLeast(1),
-                                            positionMs = 0L,
-                                            durationMs = 0L,
-                                            badge = "Plan",
-                                            onClick = {
-                                                scope.launch {
-                                                    val detail = aniList.media(entry.anilistId)
-                                                        ?: AnimeSummary(
-                                                            id = entry.anilistId,
-                                                            title = entry.title,
-                                                            coverImageUrl = entry.coverImageUrl,
-                                                            episodes = null,
-                                                            format = null,
-                                                            averageScore = null,
-                                                            malId = entry.malId,
-                                                        )
-                                                    onOpen(detail, null)
-                                                }
-                                            },
-                                        )
-                                    }
+                                    HomeAiringRow(
+                                        shown.map { slot ->
+                                            HomeAiringCard(
+                                                key = "${slot.anime.id}-${slot.episode}-${slot.airingAtEpochSec}",
+                                                title = slot.anime.title,
+                                                imageUrl = slot.anime.coverImageUrl,
+                                                whenLabel = airingLabel(
+                                                    slot.airingAtEpochSec,
+                                                    now,
+                                                    airingClock.format(java.util.Date(slot.airingAtEpochSec * 1000L)),
+                                                ),
+                                                episodeLabel = "Episode ${slot.episode}",
+                                                onClick = { openCatalog(slot.anime) },
+                                            )
+                                        },
+                                    )
                                 }
                             }
-                        }
-                    }
+                            "season" -> if (seasonal.isNotEmpty()) item {
+                                HomeBlock(
+                                    title = "This season",
+                                    subtitle = "Airing now",
+                                    onMore = onOpenSchedule,
+                                ) {
+                                    HomePosterRow(items = seasonal, onOpen = openCatalog)
+                                }
                             }
-                            "season" -> {
-                    item {
-                        KittyPosterRow(
-                            title = "This season",
-                            subtitle = "Airing now",
-                            items = seasonal.forGenre(),
-                            onMore = onOpenSchedule,
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
-                    }
+                            "foryou" -> if (forYou.isNotEmpty()) item {
+                                HomeBlock(
+                                    title = "For you",
+                                    subtitle = forYouFrom?.let { "Because you watch $it" }
+                                        ?: "From what you have been watching",
+                                ) {
+                                    HomePosterRow(items = forYou, onOpen = openCatalog)
+                                }
+                            }
+                            "plan" -> if (planToWatch.isNotEmpty()) item {
+                                HomeBlock(
+                                    title = "Plan to watch",
+                                    subtitle = "Saved for later",
+                                ) {
+                                    HomePosterRow(
+                                        items = planToWatch.map { entry ->
+                                            AnimeSummary(
+                                                id = entry.anilistId,
+                                                title = entry.title,
+                                                coverImageUrl = entry.coverImageUrl,
+                                                episodes = null,
+                                                format = null,
+                                                averageScore = null,
+                                                malId = entry.malId,
+                                            )
+                                        },
+                                        onOpen = { anime ->
+                                            scope.launch {
+                                                onOpen(aniList.media(anime.id) ?: anime, null)
+                                            }
+                                        },
+                                    )
+                                }
+                            }
+                            "genres" -> item {
+                                HomeBlock(
+                                    title = "Genres",
+                                    subtitle = "Open a shelf in search",
+                                ) {
+                                    HomeGenreRow(
+                                        names = listOf(
+                                            "Action",
+                                            "Romance",
+                                            "Fantasy",
+                                            "Comedy",
+                                            "Drama",
+                                            "Adventure",
+                                            "Mystery",
+                                            "Slice of Life",
+                                        ),
+                                        onOpen = onOpenGenre,
+                                    )
+                                }
                             }
                         }
                     }
@@ -968,173 +896,10 @@ private fun HomeFeed(
                                 "Every home row is turned off. Turn them back on in Settings.",
                                 color = KittyMuted,
                                 fontSize = 14.sp,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                             )
                         }
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TodayAiringRail(
-    slots: List<AiringSlot>,
-    onMore: () -> Unit,
-    onOpen: (AnimeSummary) -> Unit,
-) {
-    val now = System.currentTimeMillis() / 1000L
-    val upcoming = slots.filter { it.airingAtEpochSec >= now - 20 * 60 }
-    val shown = (if (upcoming.isNotEmpty()) upcoming else slots).take(12)
-    val clock = remember {
-        java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
-    }
-    Column(modifier = Modifier.padding(top = 26.dp, bottom = 4.dp)) {
-        KittySectionHeading(
-            title = "Airing today",
-            subtitle = "On the schedule today",
-            onMore = onMore,
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            lazyItems(shown, key = { "${it.anime.id}-${it.episode}-${it.airingAtEpochSec}" }) { slot ->
-                Column(
-                    modifier = Modifier
-                        .width(148.dp)
-                        .spacePress { onOpen(slot.anime) }
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF0C0C10))
-                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                        .padding(8.dp),
-                ) {
-                    Box {
-                        AsyncImage(
-                            model = slot.anime.coverImageUrl,
-                            contentDescription = slot.anime.title,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(16f / 9f)
-                                .clip(RoundedCornerShape(10.dp)),
-                            contentScale = ContentScale.Crop,
-                        )
-                        Text(
-                            airingLabel(
-                                slot.airingAtEpochSec,
-                                now,
-                                clock.format(java.util.Date(slot.airingAtEpochSec * 1000L)),
-                            ),
-                            color = KittyOnAccent,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .padding(6.dp)
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(KittyAccent)
-                                .padding(horizontal = 7.dp, vertical = 3.dp),
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        slot.anime.title,
-                        color = KittyText,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        "Episode ${slot.episode}",
-                        color = KittyFaint,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun HomeWelcomeHeader(
-    displayName: String,
-    onRefresh: () -> Unit,
-    refreshBusy: Boolean = false,
-    onOpenSearch: (() -> Unit)? = null,
-    onOpenAccount: (() -> Unit)? = null,
-    avatarUrl: String? = null,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "Home",
-                color = KittyText,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.5).sp,
-            )
-            Text(
-                "Welcome back, $displayName",
-                color = KittyMuted,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            KittyRoundIconButton(onClick = onRefresh) {
-                if (refreshBusy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                        color = KittyAccentGlow,
-                    )
-                } else {
-                    Icon(
-                        Icons.Rounded.Refresh,
-                        contentDescription = "Refresh",
-                        tint = KittyText,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            if (onOpenAccount != null) {
-                KittyRoundIconButton(onClick = onOpenAccount) {
-                    if (!avatarUrl.isNullOrBlank()) {
-                        AsyncImage(
-                            model = avatarUrl,
-                            contentDescription = "AniList profile",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                        )
-                    } else {
-                        Icon(
-                            Icons.Outlined.Person,
-                            contentDescription = "Account",
-                            tint = KittyText,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-            } else if (onOpenSearch != null) {
-                KittyRoundIconButton(onClick = onOpenSearch) {
-                    Icon(
-                        Icons.Rounded.Search,
-                        contentDescription = "Search",
-                        tint = KittyText,
-                        modifier = Modifier.size(20.dp),
-                    )
                 }
             }
         }
