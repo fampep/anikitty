@@ -103,6 +103,7 @@ data class AnimeSummary(
     val durationMinutes: Int? = null,
     val popularity: Int? = null,
     val genres: List<String> = emptyList(),
+    val tags: List<String> = emptyList(),
     val studios: List<String> = emptyList(),
     val trailer: AnimeTrailer? = null,
     val externalLinks: List<AnimeExternalLink> = emptyList(),

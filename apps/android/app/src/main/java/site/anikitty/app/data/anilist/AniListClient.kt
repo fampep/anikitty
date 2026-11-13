@@ -74,6 +74,7 @@ class AniListClient(
             node { id name { full } image { large } }
           }
         }
+        tags { name rank isMediaSpoiler }
         isFavourite
         nextAiringEpisode { episode airingAt }
         mediaListEntry { status progress score }
@@ -365,6 +366,14 @@ class AniListClient(
         tag: String? = null,
         seasonYear: Int? = null,
         country: String? = null,
+        genres: List<String> = emptyList(),
+        tags: List<String> = emptyList(),
+        yearFrom: Int? = null,
+        yearTo: Int? = null,
+        episodesFrom: Int? = null,
+        episodesTo: Int? = null,
+        durationFrom: Int? = null,
+        durationTo: Int? = null,
         sort: String = "POPULARITY_DESC",
         page: Int = 1,
         perPage: Int = 24,
@@ -397,16 +406,6 @@ class AniListClient(
             args += "season: \$season"
             variables["season"] = it
         }
-        genre?.let {
-            decls += "\$genre: String"
-            args += "genre: \$genre"
-            variables["genre"] = it
-        }
-        tag?.let {
-            decls += "\$tag: String"
-            args += "tag: \$tag"
-            variables["tag"] = it
-        }
         seasonYear?.let {
             decls += "\$seasonYear: Int"
             args += "seasonYear: \$seasonYear"
@@ -417,6 +416,20 @@ class AniListClient(
             args += "countryOfOrigin: \$country"
             variables["country"] = it
         }
+        val genreList = (genres + listOfNotNull(genre)).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (genreList.isNotEmpty()) {
+            args += "genre_in: [${genreList.joinToString(",") { "\"${it.replace("\"", "")}\"" }}]"
+        }
+        val tagList = (tags + listOfNotNull(tag)).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (tagList.isNotEmpty()) {
+            args += "tag_in: [${tagList.joinToString(",") { "\"${it.replace("\"", "")}\"" }}]"
+        }
+        yearFrom?.let { args += "startDate_greater: ${it * 10000}" }
+        yearTo?.let { args += "startDate_lesser: ${it * 10000 + 1231}" }
+        episodesFrom?.let { args += "episodes_greater: $it" }
+        episodesTo?.let { args += "episodes_lesser: $it" }
+        durationFrom?.let { args += "duration_greater: $it" }
+        durationTo?.let { args += "duration_lesser: $it" }
         val key = listOf(
             trimmed.lowercase(),
             format,
@@ -426,6 +439,14 @@ class AniListClient(
             tag,
             seasonYear,
             country,
+            genreList.joinToString(","),
+            tagList.joinToString(","),
+            yearFrom,
+            yearTo,
+            episodesFrom,
+            episodesTo,
+            durationFrom,
+            durationTo,
             sort,
             page,
             perPage,
@@ -698,6 +719,20 @@ class AniListClient(
         val native = titles.nullableString("native")
         val title = english ?: romaji ?: "Anime #${item.getInt("id")}"
         val genres = item.optJSONArray("genres")?.toStringList().orEmpty()
+        val tags = if (detail) {
+            item.optJSONArray("tags")
+                ?.toObjectList()
+                ?.mapNotNull { tag ->
+                    if (tag.optBoolean("isMediaSpoiler")) return@mapNotNull null
+                    if (tag.optInt("rank") < 60) return@mapNotNull null
+                    tag.nullableString("name")
+                }
+                ?.distinct()
+                ?.take(16)
+                .orEmpty()
+        } else {
+            emptyList()
+        }
         val studios = item.optJSONObject("studios")
             ?.optJSONArray("nodes")
             ?.toObjectList()
@@ -841,6 +876,7 @@ class AniListClient(
             durationMinutes = item.nullableInt("duration"),
             popularity = item.nullableInt("popularity"),
             genres = genres,
+            tags = tags,
             studios = studios,
             trailer = trailer,
             externalLinks = links,
