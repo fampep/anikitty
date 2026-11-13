@@ -219,7 +219,10 @@ fun PlayerScreen(
     var selectedVideoId by remember { mutableStateOf("auto") }
     var videoOptions by remember { mutableStateOf<List<VideoOption>>(emptyList()) }
     var playerViewRef by remember { mutableStateOf<PlayerView?>(null) }
-    var playbackSpeed by remember { mutableFloatStateOf(1f) }
+    val playerPrefs = remember { context.getSharedPreferences("anikitty_player", 0) }
+    var playbackSpeed by remember {
+        mutableFloatStateOf(playerPrefs.getFloat("playback_speed", 1f).coerceIn(0.5f, 2f))
+    }
     var holdBoost by remember { mutableStateOf(false) }
     var controlsLocked by remember { mutableStateOf(false) }
     var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
@@ -430,6 +433,9 @@ fun PlayerScreen(
     LaunchedEffect(player, playbackSpeed, holdBoost) {
         val speed = if (holdBoost) 2f else playbackSpeed
         player?.playbackParameters = PlaybackParameters(speed)
+    }
+    LaunchedEffect(playbackSpeed) {
+        playerPrefs.edit().putFloat("playback_speed", playbackSpeed).apply()
     }
 
     LaunchedEffect(seekFlashDir) {
