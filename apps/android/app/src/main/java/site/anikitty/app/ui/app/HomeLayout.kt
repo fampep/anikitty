@@ -107,7 +107,14 @@ class HomeLayoutStore(context: Context) {
     }
 
     fun reset() {
-        prefs.edit().remove(ORDER).remove(HIDDEN).apply()
+        prefs.edit()
+            .remove(ORDER)
+            .remove(HIDDEN)
+            .remove("order_phone")
+            .remove("hidden_phone")
+            .remove("order_tv")
+            .remove("hidden_tv")
+            .apply()
         tick++
     }
 

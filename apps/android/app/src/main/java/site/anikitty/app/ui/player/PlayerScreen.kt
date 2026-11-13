@@ -407,15 +407,18 @@ fun PlayerScreen(
                     val local = latestPlayer
                     val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition
                     local?.pause()
+                    isCasting = true
+                    castHint = null
+                    controlsVisible = true
                     helper.load(
                         source = src,
                         title = latestTitle,
                         episode = latestEpisode,
                         positionMs = pos,
                         onReady = {
+                            local?.pause()
                             isCasting = true
                             castHint = null
-                            controlsVisible = true
                         },
                         onError = { message ->
                             castHint = message
@@ -460,8 +463,17 @@ fun PlayerScreen(
             title = title,
             episode = episode,
             positionMs = pos,
-            onReady = { castHint = null },
-            onError = { message -> castHint = message },
+            onReady = {
+                latestPlayer?.pause()
+                castHint = null
+            },
+            onError = { message ->
+                castHint = message
+                if (castHelper?.casting != true) {
+                    isCasting = false
+                    latestPlayer?.play()
+                }
+            },
         )
     }
 
@@ -1666,7 +1678,6 @@ private fun PlayerSheet(
             .clip(shape)
             .background(PlayerChrome.Sheet)
             .border(1.dp, PlayerChrome.SheetStroke, shape)
-            .focusProperties { canFocus = false }
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (event.key) {
@@ -1686,8 +1697,8 @@ private fun PlayerSheet(
     ) {
         Column(
             modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .focusProperties { canFocus = false },
+                .focusProperties { canFocus = false }
+                .verticalScroll(rememberScrollState()),
         ) {
             content()
         }
