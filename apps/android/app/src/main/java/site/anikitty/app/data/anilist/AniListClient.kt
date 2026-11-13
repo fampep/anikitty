@@ -173,6 +173,7 @@ class AniListClient(
                 lists {
                   status
                   entries {
+                    id
                     status
                     progress
                     media { $mediaFields }
@@ -209,6 +210,7 @@ class AniListClient(
                             status = row.optString("status").ifBlank { listStatus },
                             progress = row.optInt("progress", 0).coerceAtLeast(0),
                             media = parseMedia(media),
+                            id = row.optInt("id", 0),
                         ),
                     )
                 }
@@ -286,6 +288,55 @@ class AniListClient(
             val root = JSONObject(body)
             val errors = root.optJSONArray("errors")
             errors == null && root.optJSONObject("data")?.optJSONObject("SaveMediaListEntry") != null
+        }.getOrDefault(false)
+    }
+
+    /** List-entry id for this show, when it is on the signed-in user's list. */
+    suspend fun listEntryId(accessToken: String, mediaId: Int): Int? = withContext(Dispatchers.IO) {
+        val graphql = """
+            query (${'$'}id: Int) {
+              Media(id: ${'$'}id, type: ANIME) {
+                mediaListEntry { id }
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject()
+            .put("query", graphql)
+            .put("variables", JSONObject().put("id", mediaId))
+            .toString()
+        runCatching {
+            val body = execute(payload, accessToken)
+            JSONObject(body)
+                .optJSONObject("data")
+                ?.optJSONObject("Media")
+                ?.optJSONObject("mediaListEntry")
+                ?.optInt("id", 0)
+                ?.takeIf { it > 0 }
+        }.getOrNull()
+    }
+
+    /** Take a show off the signed-in user's list. */
+    suspend fun deleteListEntry(accessToken: String, entryId: Int): Boolean = withContext(Dispatchers.IO) {
+        if (entryId <= 0) return@withContext false
+        val graphql = """
+            mutation (${'$'}id: Int) {
+              DeleteMediaListEntry(id: ${'$'}id) {
+                deleted
+              }
+            }
+        """.trimIndent()
+        val payload = JSONObject()
+            .put("query", graphql)
+            .put("variables", JSONObject().put("id", entryId))
+            .toString()
+        runCatching {
+            val body = execute(payload, accessToken)
+            val root = JSONObject(body)
+            val errors = root.optJSONArray("errors")
+            errors == null &&
+                root.optJSONObject("data")
+                    ?.optJSONObject("DeleteMediaListEntry")
+                    ?.optBoolean("deleted") == true
         }.getOrDefault(false)
     }
 

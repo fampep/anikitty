@@ -3,15 +3,21 @@
 
 package site.anikitty.app.ui.app
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +42,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.rounded.Check
 import site.anikitty.app.ui.icons.FluentuiSystemIconsBookmarkOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsMoviesAndTvFilled
 import site.anikitty.app.ui.icons.FluentuiSystemIconsStarFilled
@@ -52,6 +59,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -59,6 +67,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,7 +107,133 @@ fun MySpaceFeed(
         mutableStateOf(tabForLibraryFilter(libraryFilter))
     }
     var confirmClear by remember { mutableStateOf(false) }
+    var selecting by remember { mutableStateOf(false) }
+    var selectedIds by remember { mutableStateOf(setOf<Int>()) }
+    var bulkBusy by remember { mutableStateOf(false) }
+    var bulkNote by remember { mutableStateOf<String?>(null) }
     val syncing = syncLabel == "Syncing…"
+    val selection = ShowSelection(
+        active = selecting,
+        ids = selectedIds,
+        onToggle = { id ->
+            selectedIds = if (id in selectedIds) selectedIds - id else selectedIds + id
+        },
+        onStart = { id ->
+            selecting = true
+            selectedIds = selectedIds + id
+        },
+    )
+
+    fun leaveSelection() {
+        selecting = false
+        selectedIds = emptySet()
+        bulkNote = null
+    }
+
+    fun markSelected(watched: Boolean) {
+        val ids = selectedIds.toList()
+        if (ids.isEmpty() || bulkBusy) return
+        bulkBusy = true
+        bulkNote = null
+        scope.launch {
+            val token = accessToken?.takeIf { aniListLinked && it.isNotBlank() }
+            var failed = 0
+            val updated = cloudLists.toMutableList()
+            for (id in ids) {
+                val fromList = updated.firstOrNull { it.media.id == id }
+                val fromFav = favourites.firstOrNull { it.id == id }
+                val fromHistory = history.firstOrNull { it.anilistId == id }
+                val anime = fromList?.media ?: fromFav ?: fromHistory?.let { entry ->
+                    AnimeSummary(
+                        id = entry.anilistId,
+                        title = entry.title,
+                        coverImageUrl = entry.coverImageUrl,
+                        episodes = null,
+                        format = null,
+                        averageScore = null,
+                        malId = entry.malId,
+                    )
+                }
+                val title = anime?.title ?: fromHistory?.title ?: "Show"
+                val cover = anime?.coverImageUrl ?: fromHistory?.coverImageUrl
+                val knownEpisodes = anime?.episodes?.takeIf { it > 0 }
+                val movie = anime?.format.equals("MOVIE", ignoreCase = true)
+                val progress = when {
+                    movie -> 1
+                    knownEpisodes != null -> knownEpisodes
+                    else -> (fromList?.progress ?: fromHistory?.episode ?: 1).coerceAtLeast(1)
+                }
+                val remoteOk = if (token == null) {
+                    true
+                } else if (watched) {
+                    if (knownEpisodes != null || movie) {
+                        aniList.saveProgress(token, id, progress, "COMPLETED")
+                    } else {
+                        aniList.saveList(token, id, status = "COMPLETED")
+                    }
+                } else {
+                    val entryId = fromList?.id?.takeIf { it > 0 } ?: aniList.listEntryId(token, id)
+                    if (entryId == null) true else aniList.deleteListEntry(token, entryId)
+                }
+                if (!remoteOk) {
+                    failed++
+                    continue
+                }
+                val now = System.currentTimeMillis()
+                if (watched) {
+                    val existing = historyDao.get(id)
+                    historyDao.upsert(
+                        (existing ?: WatchHistoryEntity(
+                            anilistId = id,
+                            title = title,
+                            coverImageUrl = cover,
+                            episode = progress,
+                            positionMs = 0L,
+                            durationMs = 0L,
+                            updatedAtEpochMs = now,
+                            malId = anime?.malId,
+                        )).copy(
+                            title = title,
+                            coverImageUrl = cover ?: existing?.coverImageUrl,
+                            episode = progress,
+                            positionMs = 0L,
+                            durationMs = 0L,
+                            updatedAtEpochMs = now,
+                            listStatus = "COMPLETED",
+                            malId = anime?.malId ?: existing?.malId,
+                        ),
+                    )
+                    val completed = AniListMediaListEntry(
+                        status = "COMPLETED",
+                        progress = if (knownEpisodes != null || movie) progress else fromList?.progress ?: progress,
+                        media = anime ?: AnimeSummary(
+                            id = id,
+                            title = title,
+                            coverImageUrl = cover,
+                            episodes = knownEpisodes,
+                            format = if (movie) "MOVIE" else null,
+                            averageScore = null,
+                            malId = fromHistory?.malId,
+                        ),
+                        id = fromList?.id ?: 0,
+                    )
+                    val index = updated.indexOfFirst { it.media.id == id }
+                    if (index >= 0) updated[index] = completed else updated += completed
+                } else {
+                    historyDao.delete(id)
+                    updated.removeAll { it.media.id == id }
+                }
+            }
+            cloudLists = updated
+            bulkBusy = false
+            bulkNote = if (failed == 0) {
+                null
+            } else {
+                "Could not update $failed"
+            }
+            if (failed == 0) leaveSelection()
+        }
+    }
 
     LaunchedEffect(accessToken, syncLabel) {
         val token = accessToken
@@ -152,7 +287,7 @@ fun MySpaceFeed(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 88.dp),
+            contentPadding = PaddingValues(bottom = if (selecting) 176.dp else 88.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
@@ -180,11 +315,24 @@ fun MySpaceFeed(
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
-                    ProfileMark(
-                        imageUrl = viewer?.avatarUrl ?: avatarUrl,
-                        size = 36.dp,
-                        modifier = Modifier.spacePress(onOpenAccount),
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Text(
+                            text = if (selecting) "Cancel" else "Select",
+                            color = Color.White.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                            modifier = Modifier.spacePress {
+                                if (selecting) leaveSelection() else selecting = true
+                            },
+                        )
+                        ProfileMark(
+                            imageUrl = viewer?.avatarUrl ?: avatarUrl,
+                            size = 36.dp,
+                            modifier = Modifier.spacePress(onOpenAccount),
+                        )
+                    }
                 }
             }
 
@@ -205,6 +353,7 @@ fun MySpaceFeed(
                     onConnect = { AniListOAuth.openAuthorize(context) },
                     onSignOut = onSignOut,
                     onOpen = onOpen,
+                    selection = selection,
                 )
             }
 
@@ -212,6 +361,7 @@ fun MySpaceFeed(
                 ContinueBlock(
                     rows = continueWatching,
                     confirmClear = confirmClear,
+                    selection = selection,
                     onClear = {
                         if (confirmClear) {
                             confirmClear = false
@@ -242,8 +392,27 @@ fun MySpaceFeed(
                     favourites = favourites,
                     linked = aniListLinked,
                     onOpen = onOpen,
+                    selection = selection,
                 )
             }
+        }
+        if (selecting) {
+            WatchSelectBar(
+                count = selectedIds.size,
+                busy = bulkBusy,
+                note = bulkNote,
+                onWatched = { markSelected(watched = true) },
+                onNotWatched = { markSelected(watched = false) },
+                onAll = {
+                    val visible = postersForTab(selectedTab, favourites, cloudLists, history)
+                        .map { it.anime.id }
+                    val extra = continueWatching.map { it.anilistId } + favourites.map { it.id }
+                    selectedIds = (visible + extra).toSet()
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 16.dp, end = 16.dp, bottom = 88.dp),
+            )
         }
     }
 }
@@ -265,6 +434,7 @@ private fun CloudSyncBlock(
     onConnect: () -> Unit,
     onSignOut: () -> Unit,
     onOpen: (AnimeSummary) -> Unit,
+    selection: ShowSelection,
 ) {
     val spin = rememberInfiniteTransition(label = "sync")
     val rotation by spin.animateFloat(
@@ -419,7 +589,13 @@ private fun CloudSyncBlock(
                             imageUrl = card.imageUrl,
                             subtitle = card.subtitle,
                             progress = card.progress,
-                            onClick = { onOpen(card.anime) },
+                            selected = card.anime.id in selection.ids,
+                            selecting = selection.active,
+                            onClick = {
+                                if (selection.active) selection.onToggle(card.anime.id)
+                                else onOpen(card.anime)
+                            },
+                            onLongClick = { selection.onStart(card.anime.id) },
                         )
                     }
                 }
@@ -432,6 +608,7 @@ private fun CloudSyncBlock(
 private fun ContinueBlock(
     rows: List<WatchHistoryEntity>,
     confirmClear: Boolean,
+    selection: ShowSelection,
     onClear: () -> Unit,
     onOpen: (WatchHistoryEntity) -> Unit,
 ) {
@@ -483,7 +660,13 @@ private fun ContinueBlock(
                         subtitle = "EP ${watch.episode}",
                         progress = fraction,
                         wide = true,
-                        onClick = { onOpen(watch) },
+                        selected = watch.anilistId in selection.ids,
+                        selecting = selection.active,
+                        onClick = {
+                            if (selection.active) selection.onToggle(watch.anilistId)
+                            else onOpen(watch)
+                        },
+                        onLongClick = { selection.onStart(watch.anilistId) },
                     )
                 }
             }
@@ -496,6 +679,7 @@ private fun FavoritesBlock(
     favourites: List<AnimeSummary>,
     linked: Boolean,
     onOpen: (AnimeSummary) -> Unit,
+    selection: ShowSelection,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -530,7 +714,15 @@ private fun FavoritesBlock(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 favourites.forEach { anime ->
-                    FavoriteRow(anime = anime, onClick = { onOpen(anime) })
+                    FavoriteRow(
+                        anime = anime,
+                        selected = anime.id in selection.ids,
+                        selecting = selection.active,
+                        onClick = {
+                            if (selection.active) selection.onToggle(anime.id) else onOpen(anime)
+                        },
+                        onLongClick = { selection.onStart(anime.id) },
+                    )
                 }
             }
         }
@@ -580,13 +772,23 @@ private fun SpacePoster(
     progress: Float,
     onClick: () -> Unit,
     wide: Boolean = false,
+    selected: Boolean = false,
+    selecting: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val width = if (wide) 180.dp else 140.dp
     val height = if (wide) 102.dp else 80.dp
+    val frame by animateColorAsState(
+        if (selected) Color.White else Color.Transparent,
+        tween(160),
+        label = "posterFrame",
+    )
     Column(
         modifier = Modifier
             .width(width)
-            .spacePress(onClick),
+            .spaceHold(onClick = onClick, onLongClick = onLongClick)
+            .border(1.5.dp, frame, RoundedCornerShape(10.dp))
+            .padding(2.dp),
     ) {
         Box(
             modifier = Modifier
@@ -626,6 +828,14 @@ private fun SpacePoster(
                     )
                 }
             }
+            if (selecting) {
+                SelectMark(
+                    selected = selected,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp),
+                )
+            }
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
@@ -652,15 +862,26 @@ private fun SpacePoster(
 }
 
 @Composable
-private fun FavoriteRow(anime: AnimeSummary, onClick: () -> Unit) {
+private fun FavoriteRow(
+    anime: AnimeSummary,
+    onClick: () -> Unit,
+    selected: Boolean = false,
+    selecting: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+) {
     val score = anime.averageScore?.takeIf { it > 0 }
+    val stroke by animateColorAsState(
+        if (selected) Color.White else Color.White.copy(alpha = 0.08f),
+        tween(160),
+        label = "favStroke",
+    )
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .spaceHold(onClick = onClick, onLongClick = onLongClick)
             .clip(RoundedCornerShape(12.dp))
-            .spacePress(onClick)
             .background(Color(0xFF0C0C10))
-            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+            .border(if (selected) 1.5.dp else 0.5.dp, stroke, RoundedCornerShape(12.dp)),
     ) {
         if (!anime.bannerImageUrl.isNullOrBlank()) {
             AsyncImage(
@@ -700,6 +921,14 @@ private fun FavoriteRow(anime: AnimeSummary, onClick: () -> Unit) {
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+                if (selecting) {
+                    SelectMark(
+                        selected = selected,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(4.dp),
+                    )
+                }
                 if (score != null) {
                     val scoreColor = when {
                         score > 75 -> Color(0xFF4CAF50)
@@ -918,4 +1147,139 @@ private fun formatLine(format: String?, episodes: Int?): String {
     }
     val count = if (!format.equals("MOVIE", ignoreCase = true)) episodes?.takeIf { it > 0 } else null
     return listOfNotNull(label.takeIf { it.isNotEmpty() }, count?.let { "$it Eps" }).joinToString(" • ")
+}
+
+private class ShowSelection(
+    val active: Boolean,
+    val ids: Set<Int>,
+    val onToggle: (Int) -> Unit,
+    val onStart: (Int) -> Unit,
+)
+
+@Composable
+private fun WatchSelectBar(
+    count: Int,
+    busy: Boolean,
+    note: String?,
+    onWatched: () -> Unit,
+    onNotWatched: () -> Unit,
+    onAll: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val ready = count > 0 && !busy
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF0C0C10))
+            .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = when {
+                    busy -> "Updating…"
+                    count == 1 -> "1 selected"
+                    else -> "$count selected"
+                },
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+            )
+            Text(
+                text = "All",
+                color = Color.White.copy(alpha = if (busy) 0.3f else 0.7f),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                modifier = if (busy) Modifier else Modifier.spacePress(onAll),
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "Not watched",
+                color = if (ready) Color.White else Color.White.copy(alpha = 0.3f),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = if (ready) 0.08f else 0.04f))
+                    .then(if (ready) Modifier.spacePress(onNotWatched) else Modifier)
+                    .padding(vertical = 10.dp),
+            )
+            Text(
+                text = "Watched",
+                color = if (ready) Color.Black else Color.Black.copy(alpha = 0.35f),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (ready) Color.White else Color.White.copy(alpha = 0.35f))
+                    .then(if (ready) Modifier.spacePress(onWatched) else Modifier)
+                    .padding(vertical = 10.dp),
+            )
+        }
+        if (!note.isNullOrBlank()) {
+            Text(
+                text = note,
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 12.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SelectMark(selected: Boolean, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(if (selected) Color.White else Color.Black.copy(alpha = 0.45f))
+            .border(1.5.dp, Color.White, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Icon(
+                Icons.Rounded.Check,
+                contentDescription = null,
+                tint = Color.Black,
+                modifier = Modifier.size(14.dp),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+private fun Modifier.spaceHold(
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+): Modifier = composed {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) 0.97f else 1f,
+        animationSpec = tween(140),
+        label = "hold",
+    )
+    graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }.combinedClickable(
+        interactionSource = interaction,
+        indication = null,
+        onClick = onClick,
+        onLongClick = onLongClick,
+    )
 }
