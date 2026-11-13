@@ -128,6 +128,7 @@ import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyBottomNav
+import site.anikitty.app.ui.components.KittySideNav
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
 import site.anikitty.app.ui.components.KittyGenreTiles
@@ -140,6 +141,7 @@ import site.anikitty.app.ui.components.KittyTopTenRow
 import site.anikitty.app.ui.components.KittyPosterSkeletonRow
 import site.anikitty.app.ui.components.KittyRoundIconButton
 import site.anikitty.app.ui.components.KittySectionHeading
+import site.anikitty.app.ui.link.DeviceLinkCard
 import site.anikitty.app.ui.player.PlayerScreen
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
@@ -183,11 +185,16 @@ fun LocalFirstApp(
     onConsumedAniListToken: () -> Unit = {},
     onAniListReady: () -> Unit = {},
     onSignOut: () -> Unit,
+    forTelevision: Boolean = false,
+    pendingPairUri: String? = null,
+    onConsumedPairUri: () -> Unit = {},
 ) {
     val context = LocalContext.current
     // Tab survives recreation; detail/player stack relies on configChanges in the manifest
     // so landscape lock in PlayerScreen does not wipe navigation.
-    var tab by rememberSaveable { mutableStateOf("home") }
+    var tab by rememberSaveable {
+        mutableStateOf(if (forTelevision && !aniListAuth.isLinked) "settings" else "home")
+    }
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
     var searchGenre by remember { mutableStateOf<String?>(null) }
     var libraryFilter by rememberSaveable { mutableStateOf("all") }
@@ -283,14 +290,17 @@ fun LocalFirstApp(
         }
     }
 
-    val tabs = remember {
-        listOf(
-            KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home),
-            KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search),
-            KittyNavTab("schedule", "Schedule", Icons.Filled.DateRange, Icons.Filled.DateRange),
-            KittyNavTab("history", "Library", Icons.Outlined.History, Icons.Rounded.History),
-            KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person),
-        )
+    val tabs = remember(forTelevision) {
+        buildList {
+            add(KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home))
+            add(KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search))
+            add(KittyNavTab("schedule", "Schedule", Icons.Filled.DateRange, Icons.Filled.DateRange))
+            add(KittyNavTab("history", "Library", Icons.Outlined.History, Icons.Rounded.History))
+            if (forTelevision) {
+                add(KittyNavTab("store", "Store", Icons.Outlined.Extension, Icons.Filled.Extension))
+            }
+            add(KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person))
+        }
     }
 
     when (val current = screen) {
@@ -435,8 +445,8 @@ fun LocalFirstApp(
         Screen.Tabs -> Unit
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        KittyAtmosphere()
+    @Composable
+    fun PhoneTabs(modifier: Modifier) {
         AnimatedContent(
             targetState = tab,
             transitionSpec = {
@@ -444,7 +454,7 @@ fun LocalFirstApp(
                     fadeOut(animationSpec = androidx.compose.animation.core.tween(120))
             },
             label = "tabFade",
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier,
         ) { currentTab ->
             when (currentTab) {
                 "home" -> HomeFeed(
@@ -507,6 +517,7 @@ fun LocalFirstApp(
                     aniList = aniList,
                     aniListAuth = aniListAuth,
                     aniListSync = aniListSync,
+                    historyDao = historyDao,
                     accountLabel = accountLabel,
                     syncLabel = syncLabel,
                     onSyncLabel = { syncLabel = it },
@@ -514,6 +525,7 @@ fun LocalFirstApp(
                     onLinkStatus = { aniLinkStatus = it },
                     linkTick = aniLinkTick,
                     onLinkTick = { aniLinkTick++ },
+                    onAccountReady = onAniListReady,
                     onSignOut = onSignOut,
                     onOpenStore = { tab = "store" },
                     onOpenBuilds = { screen = Screen.Builds },
@@ -522,16 +534,44 @@ fun LocalFirstApp(
                         screen = Screen.Tabs
                         tab = "history"
                     },
+                    forTelevision = forTelevision,
+                    history = history,
+                    pendingPairUri = pendingPairUri,
+                    onConsumedPairUri = onConsumedPairUri,
                 )
             }
         }
+    }
 
-        KittyBottomNav(
-            tabs = tabs,
-            selectedId = tab,
-            onSelect = { tab = it },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
+    if (forTelevision) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(KittyPage)
+                .padding(horizontal = 28.dp, vertical = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            KittySideNav(
+                tabs = tabs,
+                selectedId = tab,
+                onSelect = { tab = it },
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                KittyAtmosphere()
+                PhoneTabs(Modifier.fillMaxSize())
+            }
+        }
+    } else {
+        Box(modifier = Modifier.fillMaxSize()) {
+            KittyAtmosphere()
+            PhoneTabs(Modifier.fillMaxSize())
+            KittyBottomNav(
+                tabs = tabs,
+                selectedId = tab,
+                onSelect = { tab = it },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 }
 
@@ -2082,6 +2122,7 @@ private fun SettingsFeed(
     aniList: AniListClient,
     aniListAuth: AniListAuthStore,
     aniListSync: AniListSync,
+    historyDao: WatchHistoryDao,
     accountLabel: String,
     syncLabel: String?,
     onSyncLabel: (String?) -> Unit,
@@ -2089,10 +2130,15 @@ private fun SettingsFeed(
     onLinkStatus: (String?) -> Unit,
     linkTick: Int,
     onLinkTick: () -> Unit,
+    onAccountReady: () -> Unit = {},
     onSignOut: () -> Unit,
     onOpenStore: () -> Unit,
     onOpenBuilds: () -> Unit,
     onOpenLibrary: (String) -> Unit = {},
+    forTelevision: Boolean = false,
+    history: List<WatchHistoryEntity> = emptyList(),
+    pendingPairUri: String? = null,
+    onConsumedPairUri: () -> Unit = {},
 ) {
     val selectedId by catalog.selectedId.collectAsState()
     val resolvers by catalog.resolvers.collectAsState()
@@ -2121,6 +2167,24 @@ private fun SettingsFeed(
                 fallbackName = accountLabel.ifBlank { "AniList" },
                 syncLabel = syncLabel,
                 onOpenList = onOpenLibrary,
+            )
+        }
+        item {
+            DeviceLinkCard(
+                forTelevision = forTelevision,
+                isLinked = isLinked,
+                aniList = aniList,
+                aniListAuth = aniListAuth,
+                aniListSync = aniListSync,
+                historyDao = historyDao,
+                history = history,
+                pendingPairUri = pendingPairUri,
+                onConsumedPairUri = onConsumedPairUri,
+                onStatus = onLinkStatus,
+                onLinked = {
+                    onLinkTick()
+                    onAccountReady()
+                },
             )
         }
         item {

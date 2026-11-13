@@ -17,20 +17,13 @@ import site.anikitty.app.ui.theme.AniKittyTheme
 class MainActivity : AppCompatActivity() {
     private var oauthToken by mutableStateOf<String?>(null)
     private var oauthError by mutableStateOf<String?>(null)
+    private var pairUri by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val television = isTelevisionDevice(
-            config = resources.configuration,
-            hasLeanback = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK),
-        )
-        if (television && !AniListOAuth.matchesCallback(intent)) {
-            startActivity(Intent(this, TvActivity::class.java))
-            finish()
-            return
-        }
+        if (openOnTelevision(intent)) return
         enableEdgeToEdge()
-        consumeOAuthIntent(intent)
+        consumeIncomingIntent(intent)
         val app = application as AnikittyApp
         setContent {
             AniKittyTheme {
@@ -48,6 +41,8 @@ class MainActivity : AppCompatActivity() {
                         oauthToken = null
                         oauthError = null
                     },
+                    pendingPairUri = pairUri,
+                    onConsumedPairUri = { pairUri = null },
                 )
             }
         }
@@ -56,6 +51,33 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (openOnTelevision(intent)) return
+        consumeIncomingIntent(intent)
+    }
+
+    private fun openOnTelevision(intent: Intent?): Boolean {
+        val television = isTelevisionDevice(
+            config = resources.configuration,
+            hasLeanback = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK),
+        )
+        if (!television) return false
+        startActivity(
+            Intent(this, TvActivity::class.java).apply {
+                data = intent?.data
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            },
+        )
+        finish()
+        return true
+    }
+
+    private fun consumeIncomingIntent(intent: Intent?) {
+        val data = intent?.data
+        if (data?.scheme == "anikitty" && data.host == "pair") {
+            pairUri = data.toString()
+            intent.data = null
+            return
+        }
         consumeOAuthIntent(intent)
     }
 
