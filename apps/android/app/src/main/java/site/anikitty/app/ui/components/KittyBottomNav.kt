@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -65,6 +67,8 @@ fun KittyBottomNav(
     selectedId: String,
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
+    profileTabId: String? = null,
+    profileImageUrl: String? = null,
 ) {
     Box(
         modifier = modifier
@@ -111,14 +115,31 @@ fun KittyBottomNav(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Icon(
-                        imageVector = if (selected) tab.selectedIcon else tab.icon,
-                        contentDescription = tab.label,
-                        tint = tint,
-                        modifier = Modifier
-                            .graphicsLayer(scaleX = scale, scaleY = scale)
-                            .size(17.dp),
-                    )
+                    if (tab.id == profileTabId && !profileImageUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = profileImageUrl,
+                            contentDescription = tab.label,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .graphicsLayer(scaleX = scale, scaleY = scale)
+                                .size(18.dp)
+                                .clip(CircleShape)
+                                .border(
+                                    width = if (selected) 1.dp else 0.dp,
+                                    color = if (selected) Color.White else Color.Transparent,
+                                    shape = CircleShape,
+                                ),
+                        )
+                    } else {
+                        Icon(
+                            imageVector = if (selected) tab.selectedIcon else tab.icon,
+                            contentDescription = tab.label,
+                            tint = tint,
+                            modifier = Modifier
+                                .graphicsLayer(scaleX = scale, scaleY = scale)
+                                .size(17.dp),
+                        )
+                    }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         tab.label,
