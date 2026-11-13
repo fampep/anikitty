@@ -1,4 +1,4 @@
-# Local/dev APK cuts while working toward a big update. No GitHub Releases unless asked.
-# Android versionName / versionCode read these.
+# Android versionName / versionCode. Pushes to main cut the next dev prerelease.
+# Stable releases stay manual. The dev workflow commits this file with [skip ci].
 name=1.2.1
 code=63
