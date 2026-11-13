@@ -574,6 +574,20 @@ private fun HomeFeed(
     val planToWatch = remember(history) {
         history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(12)
     }
+    var forYou by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var forYouFrom by remember { mutableStateOf<String?>(null) }
+    val spotlightId = continueWatching.firstOrNull()?.anilistId
+    LaunchedEffect(spotlightId) {
+        val id = spotlightId
+        if (id == null) {
+            forYou = emptyList()
+            forYouFrom = null
+            return@LaunchedEffect
+        }
+        val full = runCatching { aniList.media(id, aniListAuth.accessToken) }.getOrNull()
+        forYouFrom = continueWatching.firstOrNull { it.anilistId == id }?.title
+        forYou = full?.recommendations.orEmpty().filter { it.id != id }
+    }
 
     fun reload(fromPull: Boolean = false) {
         if (catalogJob?.isActive == true) return
@@ -789,6 +803,19 @@ private fun HomeFeed(
                                     }
                                 }
                             }
+                        }
+                    }
+                    if (forYou.isNotEmpty()) {
+                        item {
+                            KittyPosterRow(
+                                title = "For you",
+                                subtitle = forYouFrom?.let { "Because you watch $it" },
+                                items = forYou,
+                                onOpen = {
+                                    scope.launch { historyDao.touchFromCatalog(it) }
+                                    onOpen(it, null)
+                                },
+                            )
                         }
                     }
                     if (planToWatch.isNotEmpty()) {
@@ -1167,6 +1194,7 @@ private fun SearchFeed(
     var seasonYear by remember { mutableStateOf<Int?>(null) }
     var country by remember { mutableStateOf<String?>(null) }
     var sort by remember { mutableStateOf<String?>(null) }
+    var asGrid by rememberSaveable { mutableStateOf(false) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
@@ -1393,21 +1421,75 @@ private fun SearchFeed(
             }
             error != null && items.isEmpty() -> Text(error!!, color = MaterialTheme.colorScheme.error)
             items.isNotEmpty() -> Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    "${items.size} result${if (items.size == 1) "" else "s"}",
-                    color = KittyFaint,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(bottom = 10.dp),
-                )
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f),
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    lazyItems(items, key = { it.id }) { anime ->
-                        KittySearchRow(anime, badge = listMarks[anime.id]) {
-                            scope.launch { historyDao.touchFromCatalog(anime) }
-                            onOpen(anime)
+                    Text(
+                        "${items.size} result${if (items.size == 1) "" else "s"}",
+                        color = KittyFaint,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Chip(if (asGrid) "List" else "Grid", selected = asGrid) { asGrid = !asGrid }
+                }
+                if (asGrid) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(108.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        gridItems(items, key = { it.id }) { anime ->
+                            Column(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable {
+                                        scope.launch { historyDao.touchFromCatalog(anime) }
+                                        onOpen(anime)
+                                    },
+                            ) {
+                                AsyncImage(
+                                    model = anime.coverImageUrl,
+                                    contentDescription = anime.title,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .aspectRatio(2f / 3f)
+                                        .clip(RoundedCornerShape(12.dp)),
+                                    contentScale = ContentScale.Crop,
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    anime.title,
+                                    color = KittyText,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                listMarks[anime.id]?.let { badge ->
+                                    Text(
+                                        badge,
+                                        color = KittyFaint,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        lazyItems(items, key = { it.id }) { anime ->
+                            KittySearchRow(anime, badge = listMarks[anime.id]) {
+                                scope.launch { historyDao.touchFromCatalog(anime) }
+                                onOpen(anime)
+                            }
                         }
                     }
                 }
@@ -2542,6 +2624,18 @@ private fun TitleDetailScreen(
                     DetailStat(
                         value = detail.format ?: "TV",
                         label = "Format",
+                    )
+                }
+                if (listScore > 0) {
+                    Text(
+                        "Your score ${listScore / 10} / 10",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset(y = (-8).dp),
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
                     )
                 }
             }

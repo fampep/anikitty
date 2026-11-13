@@ -207,7 +207,12 @@ fun PlayerScreen(
     var allowHistoryFallback by remember { mutableStateOf(true) }
     var panel by remember { mutableStateOf(Panel.None) }
     var immersive by remember { mutableStateOf(true) }
-    var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    var resizeMode by remember {
+        mutableIntStateOf(
+            context.getSharedPreferences("anikitty_player", 0)
+                .getInt("resize_mode", AspectRatioFrameLayout.RESIZE_MODE_FIT),
+        )
+    }
     var subStyle by remember {
         mutableStateOf(
             loadSubStyle(context.getSharedPreferences("anikitty_player", 0)),
@@ -436,6 +441,9 @@ fun PlayerScreen(
     }
     LaunchedEffect(playbackSpeed) {
         playerPrefs.edit().putFloat("playback_speed", playbackSpeed).apply()
+    }
+    LaunchedEffect(resizeMode) {
+        playerPrefs.edit().putInt("resize_mode", resizeMode).apply()
     }
 
     LaunchedEffect(seekFlashDir) {
@@ -1174,13 +1182,22 @@ fun PlayerScreen(
                                 panel = if (panel == Panel.Speed) Panel.None else Panel.Speed
                                 controlsVisible = true
                             },
-                            size = 40.dp,
+                            size = if (playbackSpeed == 1f) 40.dp else 48.dp,
                         ) {
-                            Icon(
-                                Icons.Rounded.Speed,
-                                contentDescription = "Speed",
-                                tint = if (panel == Panel.Speed) PlayerChrome.Progress else PlayerChrome.Paper,
-                            )
+                            if (playbackSpeed == 1f) {
+                                Icon(
+                                    Icons.Rounded.Speed,
+                                    contentDescription = "Speed",
+                                    tint = if (panel == Panel.Speed) PlayerChrome.Progress else PlayerChrome.Paper,
+                                )
+                            } else {
+                                Text(
+                                    speedLabel(playbackSpeed),
+                                    color = PlayerChrome.Paper,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                )
+                            }
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         ChromeDisc(
