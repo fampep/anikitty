@@ -14,6 +14,7 @@ import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionRepository
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.HttpExtensionResolver
+import site.anikitty.app.data.skip.SkipTimes
 import site.anikitty.app.data.extensions.StoreIndex
 
 /**
@@ -59,6 +60,20 @@ class ServerCatalog(context: Context) {
         if (_resolvers.value.none { it.server.id == id }) return
         prefs.edit().putString(KEY_SELECTED, id).apply()
         _selectedId.update { id }
+    }
+
+    /**
+     * Intro and credits for any playing provider. The timestamps always come
+     * from Anikoto's episode page, not from a separate skip service.
+     */
+    suspend fun anikotoSkipTimes(
+        anilistId: Int,
+        episode: Int,
+        titleHint: String?,
+    ): SkipTimes {
+        val anikoto = bundled.filterIsInstance<AnikotoServer>().firstOrNull()
+            ?: return SkipTimes()
+        return anikoto.loadSkipTimes(anilistId, episode, titleHint)
     }
 
     fun selectedResolver(): StreamResolver {

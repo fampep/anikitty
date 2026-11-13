@@ -1,5 +1,7 @@
 package site.anikitty.app.data.servers
 
+import site.anikitty.app.data.skip.SkipTimes
+
 /**
  * A selectable stream source — bundled or a user-installed HTTP extension.
  *
@@ -33,6 +35,8 @@ data class PlayableSource(
     val subtitles: List<SubtitleTrack> = emptyList(),
     /** Gotaku playlist/segment unwrap; when set, [GotakuObfDataSource] handles CDN crypto. */
     val gotakuObf: GotakuObf? = null,
+    /** Intro / credits from the anime site that supplied this source. Empty when unknown. */
+    val skip: SkipTimes = SkipTimes(),
 )
 
 interface StreamResolver {

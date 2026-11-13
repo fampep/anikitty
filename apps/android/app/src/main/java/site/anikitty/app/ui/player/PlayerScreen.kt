@@ -121,7 +121,6 @@ import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
 import site.anikitty.app.data.servers.SubtitleTrack
 import site.anikitty.app.data.skip.SkipTimes
-import site.anikitty.app.data.skip.SkipTimesClient
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.PlayerChrome
 import java.util.Locale
@@ -181,7 +180,9 @@ fun PlayerScreen(
     episode: Int,
     sources: List<PlayableSource>,
     anilistId: Int = 0,
-    malId: Int? = null,
+    titleHint: String? = null,
+    loadSkip: suspend (anilistId: Int, episode: Int, titleHint: String?) -> SkipTimes =
+        { _, _, _ -> SkipTimes() },
     startPositionMs: Long = 0L,
     onClose: () -> Unit,
     onNextEpisode: (() -> Unit)? = null,
@@ -242,7 +243,6 @@ fun PlayerScreen(
 
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
-    val skipClient = remember { SkipTimesClient() }
     val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
 
     fun closePanelOrExit() {
@@ -615,13 +615,13 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(anilistId, episode, malId, durationMs) {
-        if (anilistId <= 0 || episode <= 0) return@LaunchedEffect
-        val lengthSec = if (durationMs > 0) durationMs / 1000.0 else 1420.0
-        skipTimes = runCatching {
-            skipClient.load(anilistId, episode, malId, lengthSec)
-        }.getOrDefault(SkipTimes())
+    LaunchedEffect(anilistId, episode, titleHint) {
         autoSkippedRecap = false
+        val fromSource = sources.firstOrNull { !it.skip.isEmpty }?.skip ?: SkipTimes()
+        skipTimes = fromSource
+        if (anilistId <= 0 || episode <= 0) return@LaunchedEffect
+        val loaded = runCatching { loadSkip(anilistId, episode, titleHint) }.getOrDefault(SkipTimes())
+        if (!loaded.isEmpty) skipTimes = loaded
     }
 
     DisposableEffect(Unit) {
@@ -1082,45 +1082,6 @@ fun PlayerScreen(
                     }
                 }
 
-                if (activeSkip != null && panel == Panel.None) {
-                    val (kind, iv) = activeSkip
-                    val label = when (kind) {
-                        "intro" -> "Skip intro"
-                        "credits" -> "Skip credits"
-                        "recap" -> "Skip recap"
-                        "preview" -> "Skip preview"
-                        else -> "Skip"
-                    }
-                    val remaining = ((iv.endMs - positionMs) / 1000L).coerceAtLeast(0L)
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .windowInsetsPadding(WindowInsets.navigationBars)
-                            .padding(end = 18.dp, bottom = 108.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(PlayerChrome.Accent)
-                            .border(1.dp, PlayerChrome.Accent, RoundedCornerShape(14.dp))
-                            .clickable { skipTo(iv.endMs) }
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                    ) {
-                        Column {
-                            Text(
-                                kind.uppercase(),
-                                color = PlayerChrome.Ink.copy(alpha = 0.55f),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                            )
-                            Text(label, color = PlayerChrome.Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                            Text(
-                                "${remaining}s",
-                                color = PlayerChrome.Ink.copy(alpha = 0.7f),
-                                fontSize = 11.sp,
-                            )
-                        }
-                    }
-                }
-
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -1312,6 +1273,50 @@ fun PlayerScreen(
                         }
                     }
                 }
+            }
+        }
+
+        if (activeSkip != null && !isCasting) {
+            val (kind, iv) = activeSkip
+            val label = when (kind) {
+                "intro" -> "Skip intro"
+                "credits" -> "Skip credits"
+                "recap" -> "Skip recap"
+                "preview" -> "Skip preview"
+                else -> "Skip"
+            }
+            val remaining = ((iv.endMs - positionMs) / 1000L).coerceAtLeast(0L)
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
+                    .padding(end = 16.dp, bottom = 92.dp)
+                    .shadow(8.dp, RoundedCornerShape(999.dp))
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(PlayerChrome.Accent)
+                    .clickable { skipTo(iv.endMs) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.SkipNext,
+                    contentDescription = null,
+                    tint = PlayerChrome.Ink,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    label,
+                    color = PlayerChrome.Ink,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                )
+                Text(
+                    "${remaining}s",
+                    color = PlayerChrome.Ink.copy(alpha = 0.62f),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                )
             }
         }
     }

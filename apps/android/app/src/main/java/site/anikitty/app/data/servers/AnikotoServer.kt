@@ -7,7 +7,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import site.anikitty.app.data.skip.SkipInterval
+import site.anikitty.app.data.skip.SkipTimes
 import java.net.URLEncoder
+import java.util.concurrent.ConcurrentHashMap
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 
@@ -26,6 +29,8 @@ class AnikotoServer(
         .retryOnConnectionFailure(true)
         .build(),
 ) : StreamResolver {
+    private val skipMemory = ConcurrentHashMap<String, SkipTimes>()
+
     override val server = StreamServer(
         id = ID,
         name = "Anikoto",
@@ -52,12 +57,16 @@ class AnikotoServer(
         if (mode != "dub" && !ep.hasSub) error("Sub unavailable for episode $episode")
         val referer = "${mapped.watchUrl.trimEnd('/')}/ep-$episode"
         val embeds = prioritizeEmbeds(resolveServerEmbeds(ep.ids, mode, mapped.watchUrl))
+        val skip = embeds.firstOrNull { !it.skip.isEmpty }?.skip ?: SkipTimes()
+        if (!skip.isEmpty) skipMemory[skipKey(anilistId, episode)] = skip
         val out = ArrayList<PlayableSource>()
         val seen = HashSet<String>()
         // Collect every labeled quality we can (1080p / 720p / …) across embeds so
         // the player quality sheet can list them all, with CDN fallbacks.
         var lastResolveError: String? = null
-        for ((embedUrl, label) in embeds.take(8)) {
+        for (embed in embeds.take(8)) {
+            val embedUrl = embed.url
+            val label = embed.label
             runCatching { resolveEmbed(embedUrl, referer) }
                 .onSuccess { resolved ->
                     if (!probeMaster(resolved.file, resolved.origin)) {
@@ -75,6 +84,7 @@ class AnikotoServer(
                             label = qualityLabel(label, quality),
                             stripBytes = strip,
                             subtitles = resolved.subtitles,
+                            skip = skip,
                         )
                     }
                 }
@@ -86,6 +96,32 @@ class AnikotoServer(
         }
         // Highest resolution first so 1080p (when present) is the default pick.
         out.sortedByDescending { qualityHeight(it.label) }
+    }
+
+    /**
+     * Intro and credits published by Anikoto for this episode.
+     * Used for every stream provider — playback can be Gotaku or anything else,
+     * the skip window still comes from Anikoto's episode page.
+     */
+    suspend fun loadSkipTimes(
+        anilistId: Int,
+        episode: Int,
+        titleHint: String?,
+    ): SkipTimes = withContext(Dispatchers.IO) {
+        if (anilistId <= 0 || episode <= 0) return@withContext SkipTimes()
+        val key = skipKey(anilistId, episode)
+        skipMemory[key]?.let { return@withContext it }
+        val found = try {
+            val mapped = mapWatchPage(anilistId, buildTitleQueries(titleHint))
+            val ep = fetchEpisodes(mapped.siteId, mapped.watchUrl)
+                .firstOrNull { it.number == episode }
+                ?: return@withContext SkipTimes()
+            fetchSkipData(ep.ids, mapped.watchUrl)
+        } catch (_: Exception) {
+            return@withContext SkipTimes()
+        }
+        skipMemory[key] = found
+        found
     }
 
     /** Cheap GET on the master playlist with MegaPlay referer — skip dead CDNs early. */
@@ -114,6 +150,7 @@ class AnikotoServer(
         val hasSub: Boolean,
         val hasDub: Boolean,
     )
+    private data class ServerEmbed(val url: String, val label: String, val skip: SkipTimes)
     private data class ResolvedEmbed(
         val origin: String,
         val file: String,
@@ -182,24 +219,76 @@ class AnikotoServer(
         episodeIds: String,
         mode: String,
         watchUrl: String,
-    ): List<Pair<String, String>> {
-        val listUrl = "$ANIKOTO_BASE/ajax/server/list?servers=${enc(episodeIds)}"
-        val data = fetchJson(listUrl, watchUrl)
-        if (data.optInt("status") != 200) error("Anikoto server list failed")
-        val html = data.optString("result")
-        val links = parseServerLinks(html, mode)
+    ): List<ServerEmbed> {
+        val links = serverLinks(episodeIds, mode, watchUrl)
         if (links.isEmpty()) error("Anikoto: no $mode servers")
-        val out = ArrayList<Pair<String, String>>()
+        val out = ArrayList<ServerEmbed>()
         for ((linkId, label) in links.take(6)) {
-            val getUrl = "$ANIKOTO_BASE/ajax/server?get=${enc(linkId)}"
-            val body = runCatching { fetchJson(getUrl, watchUrl) }.getOrNull() ?: continue
-            if (body.optInt("status") != 200) continue
-            val url = body.optJSONObject("result")?.optString("url").orEmpty()
-            if (url.startsWith("http")) out += url to label
+            val result = fetchServerResult(linkId, watchUrl) ?: continue
+            val url = result.optString("url").trim()
+            if (!url.startsWith("http")) continue
+            out += ServerEmbed(url, label, parseSkipData(result.optJSONObject("skip_data")))
         }
         if (out.isEmpty()) error("Anikoto: no embed URLs")
         return out
     }
+
+    /** Read intro/credits from the first Anikoto server that publishes them. */
+    private fun fetchSkipData(episodeIds: String, watchUrl: String): SkipTimes {
+        val links = serverLinks(episodeIds, "sub", watchUrl)
+            .ifEmpty { serverLinks(episodeIds, "dub", watchUrl) }
+        for ((linkId, _) in links.take(4)) {
+            val result = fetchServerResult(linkId, watchUrl) ?: continue
+            val skip = parseSkipData(result.optJSONObject("skip_data"))
+            if (!skip.isEmpty) return skip
+        }
+        return SkipTimes()
+    }
+
+    private fun serverLinks(episodeIds: String, mode: String, watchUrl: String): List<Pair<String, String>> {
+        val listUrl = "$ANIKOTO_BASE/ajax/server/list?servers=${enc(episodeIds)}"
+        val data = runCatching { fetchJson(listUrl, watchUrl) }.getOrNull() ?: return emptyList()
+        if (data.optInt("status") != 200) return emptyList()
+        return parseServerLinks(data.optString("result"), mode)
+    }
+
+    private fun fetchServerResult(linkId: String, watchUrl: String): JSONObject? {
+        val body = runCatching {
+            fetchJson("$ANIKOTO_BASE/ajax/server?get=${enc(linkId)}", watchUrl)
+        }.getOrNull() ?: return null
+        if (body.optInt("status") != 200) return null
+        return body.optJSONObject("result")
+    }
+
+    private fun parseSkipData(raw: JSONObject?): SkipTimes {
+        if (raw == null) return SkipTimes()
+        return SkipTimes(
+            intro = skipInterval(raw, "intro"),
+            outro = skipInterval(raw, "outro"),
+            recap = skipInterval(raw, "recap"),
+            preview = skipInterval(raw, "preview"),
+        )
+    }
+
+    private fun skipInterval(raw: JSONObject, key: String): SkipInterval? {
+        val arr = raw.optJSONArray(key)
+        val start: Double
+        val end: Double
+        if (arr != null && arr.length() >= 2) {
+            start = arr.optDouble(0, Double.NaN)
+            end = arr.optDouble(1, Double.NaN)
+        } else {
+            val obj = raw.optJSONObject(key) ?: return null
+            start = obj.optDouble("start", obj.optDouble("startTime", Double.NaN))
+            end = obj.optDouble("end", obj.optDouble("endTime", Double.NaN))
+        }
+        if (!start.isFinite() || !end.isFinite() || end <= start || start < 0.0 || end > 8 * 3600.0) {
+            return null
+        }
+        return SkipInterval(start, end)
+    }
+
+    private fun skipKey(anilistId: Int, episode: Int) = "$anilistId:$episode"
 
     private fun resolveEmbed(embedUrl: String, referer: String): ResolvedEmbed {
         var pageUrl = embedUrl
@@ -668,10 +757,10 @@ class AnikotoServer(
         }
 
         /** Prefer non-tcdn / non-shiora first, but keep tcdn (PNG-stripped) as fallback. */
-        private fun prioritizeEmbeds(embeds: List<Pair<String, String>>): List<Pair<String, String>> {
-            val (prefer, rest) = embeds.partition { (url, _) ->
-                !url.contains("s=tcdn", ignoreCase = true) &&
-                    !url.contains("tcdn", ignoreCase = true)
+        private fun prioritizeEmbeds(embeds: List<ServerEmbed>): List<ServerEmbed> {
+            val (prefer, rest) = embeds.partition { embed ->
+                !embed.url.contains("s=tcdn", ignoreCase = true) &&
+                    !embed.url.contains("tcdn", ignoreCase = true)
             }
             return prefer + rest
         }
