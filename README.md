@@ -1,147 +1,140 @@
-<p align="center">
-  <img src="apps/android/app/src/main/res/drawable/anikitty_logo.png" alt="AniKitty" width="160" />
-</p>
+<div align="center">
+  <img src="apps/android/app/src/main/res/drawable/anikitty_logo.png" alt="AniKitty" width="150" height="150">
 
-<h1 align="center">AniKitty</h1>
+  <p>
+    <img src="https://img.shields.io/badge/platform-Android-white?labelColor=black&style=for-the-badge" alt="Android"/>
+    <a href="https://github.com/fampep/anikitty/releases"><img src="https://img.shields.io/github/downloads/fampep/anikitty/total?color=white&labelColor=black&label=Downloads&style=for-the-badge" alt="GitHub Downloads"></a>
+  </p>
+  <p>
+    <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-white?labelColor=black&style=for-the-badge" alt="Apache License 2.0"></a>
+    <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?color=white&labelColor=black&style=for-the-badge" alt="Stars"></a>
+    <a href="https://github.com/fampep/anikitty/releases/latest"><img src="https://img.shields.io/github/v/release/fampep/anikitty?color=white&labelColor=black&display_name=tag&style=for-the-badge&label=Stable" alt="Latest stable release"></a>
+  </p>
+</div>
 
-<p align="center">
-  <strong>Watch your favourite anime — anywhere, anytime. No ads.</strong>
-</p>
+# AniKitty
 
-<p align="center">
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/Release-1.2.4-0284c7?style=for-the-badge" alt="Release 1.2.4" /></a>
-  <a href="https://github.com/fampep/anikitty/stargazers"><img src="https://img.shields.io/github/stars/fampep/anikitty?style=for-the-badge&logo=github&logoColor=white&color=0ea5e9" alt="Stars" /></a>
-  <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-0284c7?style=for-the-badge" alt="Apache License 2.0" /></a>
-</p>
+**AniKitty** is an Android app for your AniList. The catalog, lists, and schedule come from AniList. The phone plays the video itself with Media3.
 
-<p align="center">
-  <a href="https://t.me/Anikittymoe"><img src="https://img.shields.io/badge/Telegram-Anikittymoe-28A8E9?style=for-the-badge&logo=telegram&logoColor=white" alt="Telegram" /></a>
-  <a href="https://github.com/fampep/anikitty/issues"><img src="https://img.shields.io/badge/Issues-welcome-0369a1?style=for-the-badge&logo=github&logoColor=white" alt="Issues" /></a>
-  <a href="https://github.com/fampep/anikitty/releases/tag/v1.2.4"><img src="https://img.shields.io/badge/APK-download-0ea5e9?style=for-the-badge&logo=android&logoColor=white" alt="Download APK" /></a>
-</p>
+A stream does not come from the app. A stream plays only when an **extension** resolves a URL. The default APK does not include a community extension.
 
-> [!WARNING]
-> **Alpha.** AniKitty is early / unfinished software. Expect bugs, missing features, broken playback on some titles, and breaking changes. Stable release: [**v1.2.4**](https://github.com/fampep/anikitty/releases/tag/v1.2.4). Pushes to `main` still publish dev prereleases for testing.
+> [!IMPORTANT]
+> **AniKitty does not host video.** It does not store, provide, or ship episodes. It asks AniList for titles, and it asks an extension for a playable URL.
+>
+> **The default app has no extension installed.** Nothing from the extension store is preloaded. You add an extension yourself. Until one is installed, the player has no stream to open.
+>
+> **What does ship in the APK:** three first-party resolvers are compiled into the app so a fresh install can still play: **Anikoto** (selected), **Gotaku**, and **Ani.pm**. Those are part of the app, not store extensions. Any other source is an extension you install, and it is not in the default app.
+>
+> **Your responsibility:** you choose the extension and the service it talks to. You have to follow the law that applies to you, including copyright. fampep does not operate community extension servers.
+>
+> **No warranty.** The app is provided “as is” under the [Apache License 2.0](LICENSE). There is no promise that a title will play, that an extension will stay up, or that a cast to a TV will succeed.
 
-<br />
+## Downloads
 
-AniKitty is an **Android APK** + **Go dedicated auth server** + **BYO HTTP stream extensions**, with a black on-phone UI.
+<div align="center">
+  <p>
+    <a href="https://github.com/fampep/anikitty/releases/latest"><img src="https://img.shields.io/github/v/release/fampep/anikitty?color=white&labelColor=black&display_name=tag&style=for-the-badge&label=Stable" alt="Latest stable release"></a>
+  </p>
+  <p>
+    <a href="https://github.com/fampep/anikitty/releases/download/v1.2.4/anikitty-1.2.4.apk"><img src="https://img.shields.io/badge/APK-anikitty--1.2.4.apk-white?labelColor=black&style=for-the-badge&logo=android&logoColor=white" alt="Download the stable APK"></a>
+  </p>
+</div>
 
-1. Sign in with a **password account** on the dedicated auth server (AniList link optional for list sync)  
-2. Browse AniList on-device (Home / Search / Library)  
-3. Open the **Store** tab — search curated listings, install from GitHub, or keep bundled **Anikoto**  
-4. The active extension resolves a playable URL; **Media3** streams on-device (**Chromecast** when Play Services is available)  
+The file to install for everyday use is the **stable** APK:
+
+[anikitty-1.2.4.apk](https://github.com/fampep/anikitty/releases/download/v1.2.4/anikitty-1.2.4.apk)
+
+Package name `site.anikitty.app`. Android 8 or newer. Allow installs from the browser, then open the file. If Android refuses an update because the signature or version does not line up, uninstall the old AniKitty first and install this one.
+
+Pushes to `main` also publish a **dev prerelease**. Those builds are newer and less settled. They are listed on the [releases page](https://github.com/fampep/anikitty/releases) and are marked as prereleases. GitHub writes their notes. The stable badge above stays on the latest stable tag.
+
+## The APK
+
+The APK is the whole phone app. It is local-first. It does not sign you into a private AniKitty server, and it does not put a client secret in the app.
 
 | | |
 |---|---|
-| Latest APK | [v1.2.4](https://github.com/fampep/anikitty/releases/tag/v1.2.4) |
+| Sign-in | AniList only, implicit grant (`anikitty://anilist`, client id 56768). No client secret. |
+| Catalog | AniList. Home, Search, and Schedule read AniList. |
+| My Space | Your AniList profile, list chips, continue watching, and favorites. |
+| Player | Media3 on the phone. Sub and dub, the episode list, and a fullscreen view. Chromecast is offered when Play Services is on the phone and the TV is on the same Wi-Fi. |
+| Look | Black page, white accent, black text on white controls. |
+| Storage | Watch progress stays on the phone and can sync with your AniList list. The app does not download episodes to keep. |
+
+On first open the name **AniKitty** is drawn on a black screen, then you sign in or land in the app.
+
+Search can filter the AniList catalog. A title page shows the banner, stats, tags, and episodes. Play opens the video in a 16:9 frame. The episode shelf sits under it. Full screen is the landscape player.
+
+Account (the gear on My Space) holds AniList, home layout, sources, and the app version. The extension store is opened from Sources.
+
+## Extensions
+
+Only an extension can supply a stream. The app sends it an AniList id and an episode number. The extension returns one or more URLs. Media3 plays that URL on the phone. The extension never receives an AniList password, and it is not a plugin loaded as app code. It is an HTTP resolver described by `anikitty-extension.json`.
+
+The **default app does not have a community extension.** Open Sources and the store when you want one. You can install from the curated index or from a GitHub manifest URL. Every manifest needs an `iconUrl`.
+
+| | |
+|---|---|
 | Author guide | [`extensions/GUIDE.md`](extensions/GUIDE.md) |
 | Protocol | [`extensions/spec/PROTOCOL.md`](extensions/spec/PROTOCOL.md) |
-| Submit to store | [`extensions/store/SUBMIT.md`](extensions/store/SUBMIT.md) |
-| Extension home | [`extensions/README.md`](extensions/README.md) · public [`anikitty-extensions`](https://github.com/fampep/anikitty-extensions) |
+| Submit a listing | [`extensions/store/SUBMIT.md`](extensions/store/SUBMIT.md) |
+| Public extension repo | [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) |
+| Disclaimer | [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md) |
 
----
+Anikoto, Gotaku, and Ani.pm are the resolvers compiled into the APK. They show up without an install. Removing them is not the same as uninstalling a store extension. Skip times used by the player are read from Anikoto’s episode data.
 
-## What’s new in 1.1.x
+Community extensions stay with their authors. A link in the store index is not fampep running that server.
 
-| Version | Highlights |
-|---|---|
-| **1.2.4** | Chromecast answers the receiver's CORS check and tells it whether the stream is MPEG-TS or fMP4. |
-| **1.2.3** | Apache License 2.0. Copyright 2026 fampep. Chromecast relay keeps the whole playlist. |
-| **1.2.2** | Stable release. |
-| **1.1.21** | Black home polish; APK-only (desktop removed); denser rails + welcome chrome |
-| **1.1.20** | Ground-up black home UI with pink accent, pill nav, continue cards |
-| **1.1.3** | Store/Search/Detail polish; floating player; Home refresh guard; live public [`anikitty-extensions`](https://github.com/fampep/anikitty-extensions) store |
-| **1.1.2** | Dedicated **Store** tab (search / install / submit); **`iconUrl` required** |
-| **1.1.1** | Ownership license (PolyForm Noncommercial) |
-| **1.1.0** | BYO HTTP extension architecture (`apiVersion` 1), GitHub install, store feed index |
-
----
-
-## Extension Store
-
-The **Store** bottom-nav tab is the main place to discover and install resolvers:
-
-- Search the curated index ([`extensions/store/index.json`](extensions/store/index.json))
-- Install from a GitHub repo / raw manifest URL
-- **Use** / **Selected** for the bundled Anikoto source (site icon shown)
-- **Submit** opens the [Extension store submission](.github/ISSUE_TEMPLATE/extension_submit.yml) issue form
-
-**Site icons are required.** Every extension manifest must include `iconUrl` — an HTTPS favicon/brand icon for the site you scrape or front. The Store and Account lists show that icon next to the name (Anikoto uses the anikoto.cz favicon).
-
-```json
-{
-  "apiVersion": 1,
-  "id": "com.example.source",
-  "name": "Example",
-  "version": "1.0.0",
-  "baseUrl": "https://your-resolver.example.com",
-  "iconUrl": "https://www.google.com/s2/favicons?domain=watch.example.com&sz=128",
-  "siteUrl": "https://watch.example.com"
-}
-```
-
-Extensions are HTTP resolve services, not dex plugins. Auth stays on the dedicated server; resolvers never receive account passwords. Community backends stay owned by their authors — see [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
-
----
-
-## Repo layout
-
-| Path | What |
-|---|---|
-| `apps/android/` | Kotlin / Jetpack Compose APK (black UI, Media3, Store) |
-| `apps/dedicated-server/` | Go auth + favorites / comments / history API |
-| `extensions/` | Manifest spec, author guide, store index, examples |
-| `docs/public-github-setup.md` | How to publish the public `anikitty-extensions` repo |
-
----
-
-## Android APK
+## Build it yourself
 
 ```bash
 cd apps/android
 ./gradlew :app:assembleRelease
-# app/build/outputs/apk/release/app-release.apk
 ```
 
-Shared cut is repo-root [`VERSION`](VERSION) — Android `versionName` / `versionCode`.
+The release APK is `apps/android/app/build/outputs/apk/release/`. Version name and version code are the repo-root [`VERSION`](VERSION) file. GitHub Actions bumps that file when it publishes a dev prerelease.
 
-Sign in with AniList on the phone. The app uses AniList’s implicit grant (`response_type=token`), the same flow other mobile apps use. No dedicated server and no client secret. The public client id is 56768. On the AniList application, set Redirect URL to `anikitty://anilist`.
-
----
-
-## Dedicated server
-
-```bash
-cd apps/dedicated-server
-export JWT_SECRET="$(openssl rand -base64 48)"
-go run ./cmd/server   # :8788
-```
-
-See `apps/dedicated-server/README.md`.
-
----
-
-## Releases
-
-Pushes to `main` publish the next dev prerelease on their own. GitHub Actions bumps `VERSION`, builds the APK, and fills the notes with GitHub’s generated changelog. Stable releases stay manual.
-
-Releases: https://github.com/fampep/anikitty/releases
-
-| Tag | Notes |
+| Path | What it is |
 |---|---|
-| [v1.2.4](https://github.com/fampep/anikitty/releases/tag/v1.2.4) | Chromecast CORS and segment format. |
-| [v1.2.3](https://github.com/fampep/anikitty/releases/tag/v1.2.3) | Apache License 2.0. Copyright 2026 fampep. |
-| [v1.2.2](https://github.com/fampep/anikitty/releases/tag/v1.2.2) | Stable release. |
-| [v1.1.3](https://github.com/fampep/anikitty/releases/tag/v1.1.3) | Store/Search/Detail polish + Home refresh guard |
-| [v1.1.2](https://github.com/fampep/anikitty/releases/tag/v1.1.2) | Extension Store + site icons |
-| [v1.1.1](https://github.com/fampep/anikitty/releases/tag/v1.1.1) | Glass UI |
-| [v1.1.0](https://github.com/fampep/anikitty/releases/tag/v1.1.0) | Extension architecture |
+| `apps/android/` | The Android app (Kotlin, Jetpack Compose, Media3) |
+| `extensions/` | The extension spec, the author guide, and the store index |
+| `NOTICE` | Copyright notice that stays with copies of the code |
 
----
+## License
 
-## License & ownership
+**Copyright 2026 fampep.** AniKitty is licensed under the [Apache License, Version 2.0](LICENSE).
 
-**Copyright 2026 fampep.** Licensed under the [Apache License 2.0](LICENSE). Use, change, and share it, including commercially. Keep the copyright notice with copies.
+In short, the license lets you:
 
-Community stream extensions are gladly contributed by others; fampep does not own or control third-party extension backends. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
+- Use the app and the source, in private or in a product, including commercial use.
+- Copy it, change it, and share your changes.
+- Grant others the same rights, including by sublicense.
+
+If you share the source or a built APK, you also have to:
+
+- Keep this copyright and the license text with it. The notice lives in [`NOTICE`](NOTICE) and at the top of the source files.
+- Say which files you changed.
+- Leave any existing attribution in place.
+
+The license does **not**:
+
+- Give you the AniKitty name as a trademark.
+- Cover a community extension, or any video that extension points at. Those stay with their own authors and services.
+- Promise that the app works, fits a purpose, or does not infringe someone else’s rights. It is **AS IS**.
+- Make fampep liable for damage from using the app, to the extent the law allows.
+
+The full terms are in [LICENSE](LICENSE). The short form above does not replace them.
+
+## Support
+
+Star the repository if you want the project to keep moving.
+
+<div align="center">
+  <a href="https://ko-fi.com/E6C820K9H8"><img height="36" src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support AniKitty on Ko-fi"></a>
+</div>
+
+Questions and bug reports go in [GitHub issues](https://github.com/fampep/anikitty/issues). Chat lives on [Telegram](https://t.me/Anikittymoe).
+
+## Contribute
+
+Pull requests are welcome. For a new stream source, start with the [author guide](extensions/GUIDE.md) and open a store submission rather than pasting a resolver into the app. The phone app should stay the player. The extension should stay the thing that finds the stream.
