@@ -4,8 +4,6 @@
 package site.anikitty.app.ui.app
 
 import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -31,14 +29,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyFaint
-import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
-import site.anikitty.app.ui.theme.KittyOutlineSoft
-import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
 
 data class HomeSection(
@@ -139,20 +133,9 @@ class HomeLayoutStore(context: Context) {
 
 @Composable
 fun HomeLayoutSettings(store: HomeLayoutStore) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        KittySectionHeading(
-            title = "Home",
-            subtitle = "Turn rows on or off, and move them up or down",
-            padded = false,
-        )
-        val sections = store.sections()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(KittySurface, KittyGlassShape)
-                .border(1.dp, KittyOutlineSoft, KittyGlassShape)
-                .padding(12.dp),
-        ) {
+    val sections = store.sections()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SpaceCard {
             sections.forEachIndexed { index, section ->
                 Row(
                     modifier = Modifier
