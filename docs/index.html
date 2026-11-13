@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AniKitty</title>
+  <meta name="description" content="AniKitty is an Android app for AniList. The catalog is AniList. A stream plays only when an extension resolves it. Download the APK.">
+  <link rel="icon" href="anikitty_logo.png">
+  <style>
+    :root {
+      --bg: #000;
+      --card: #0c0c10;
+      --line: rgba(255,255,255,.08);
+      --text: #fff;
+      --muted: #b3b3b3;
+      --faint: #8a8a8a;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    a { color: #fff; }
+    header {
+      position: sticky; top: 0; z-index: 2;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px;
+      background: rgba(0,0,0,.9);
+      border-bottom: 1px solid var(--line);
+    }
+    header nav { display: flex; gap: 16px; flex-wrap: wrap; }
+    header a { color: var(--muted); text-decoration: none; font-size: 14px; }
+    header a:hover { color: #fff; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.3px; }
+    .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    main { max-width: 1080px; margin: 0 auto; padding: 40px 20px 80px; }
+    .hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: 36px; align-items: center; }
+    .hero img.logo { width: 180px; height: 180px; border-radius: 36px; }
+    h1 { font-size: 56px; letter-spacing: -1.5px; margin: 0 0 8px; }
+    .lede { color: var(--muted); font-size: 18px; max-width: 40rem; }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+    .btn {
+      display: inline-block; background: #fff; color: #000; text-decoration: none;
+      font-weight: 700; border-radius: 999px; padding: 12px 18px;
+    }
+    .btn.ghost { background: transparent; color: #fff; border: 1px solid var(--line); }
+    h2 { font-size: 28px; letter-spacing: -.4px; margin: 56px 0 8px; }
+    .note { color: var(--faint); margin: 0 0 18px; }
+    .shots { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 8px; }
+    .shots figure { margin: 0; flex: none; width: 220px; }
+    .shots img { width: 220px; border-radius: 22px; border: 1px solid var(--line); display: block; }
+    .shots figcaption { color: var(--muted); font-size: 13px; margin-top: 8px; text-align: center; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+    .card {
+      background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px;
+    }
+    .swatches { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch { width: 92px; }
+    .swatch i { display: block; height: 56px; border-radius: 12px; border: 1px solid var(--line); }
+    .swatch span { display: block; color: var(--faint); font-size: 12px; margin-top: 6px; }
+    .ext { display: flex; gap: 12px; align-items: flex-start; }
+    .ext img { width: 40px; height: 40px; border-radius: 10px; background: #141416; }
+    .pill {
+      display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .3px;
+      border-radius: 999px; padding: 3px 8px; border: 1px solid var(--line); color: var(--muted);
+    }
+    .apk { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+    footer { color: var(--faint); font-size: 13px; margin-top: 48px; }
+    @media (max-width: 800px) {
+      .hero { grid-template-columns: 1fr; }
+      h1 { font-size: 40px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="#top"><img src="anikitty_logo.png" alt="">AniKitty</a>
+    <nav>
+      <a href="#screens">Screens</a>
+      <a href="#design">Design</a>
+      <a href="#docs">Docs</a>
+      <a href="#extensions">Extensions</a>
+      <a href="#apk">APK</a>
+    </nav>
+  </header>
+  <main id="top">
+    <section class="hero">
+      <div>
+        <h1>AniKitty</h1>
+        <p class="lede">An Android app for your AniList. The catalog, lists, and schedule come from AniList. The phone plays the video. A stream plays only when an extension resolves a URL. The default APK does not include a community extension.</p>
+        <div class="actions">
+          <a class="btn" id="apk-top" href="https://github.com/fampep/anikitty/releases/latest">Download the APK</a>
+          <a class="btn ghost" href="https://github.com/fampep/anikitty">Source on GitHub</a>
+          <a class="btn ghost" href="https://ko-fi.com/E6C820K9H8">Ko-fi</a>
+        </div>
+      </div>
+      <img class="logo" src="anikitty_logo.png" alt="AniKitty">
+    </section>
+
+    <h2 id="screens">Screens</h2>
+    <p class="note">Home, search, a title, the player, and My Space. Black page, white type, white controls with black text.</p>
+    <div class="shots">
+      <figure><img src="screenshots/splash.png" alt="Opening screen with the AniKitty name"><figcaption>Opening</figcaption></figure>
+      <figure><img src="screenshots/home.png" alt="Home with continue watching and trending"><figcaption>Home</figcaption></figure>
+      <figure><img src="screenshots/search.png" alt="Search grid with filters"><figcaption>Search</figcaption></figure>
+      <figure><img src="screenshots/detail.png" alt="Title page with play button and episodes"><figcaption>Title</figcaption></figure>
+      <figure><img src="screenshots/player.png" alt="Player with the episode shelf"><figcaption>Player</figcaption></figure>
+      <figure><img src="screenshots/space.png" alt="My Space with AniList lists and favorites"><figcaption>My Space</figcaption></figure>
+    </div>
+
+    <h2 id="design">Design</h2>
+    <p class="note">The phone UI is flat black. The accent is white. Text on a white control is black.</p>
+    <div class="swatches">
+      <div class="swatch"><i style="background:#000"></i><span>Page #000000</span></div>
+      <div class="swatch"><i style="background:#141414"></i><span>Surface #141414</span></div>
+      <div class="swatch"><i style="background:#0c0c10"></i><span>Card #0C0C10</span></div>
+      <div class="swatch"><i style="background:#08080c"></i><span>Dock #08080C</span></div>
+      <div class="swatch"><i style="background:#fff"></i><span>Accent #FFFFFF</span></div>
+      <div class="swatch"><i style="background:#b3b3b3"></i><span>Muted #B3B3B3</span></div>
+    </div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card"><strong>Dock</strong><p class="note">Home, Search, Schedule, My Space. Selected mark is white. The bar is 50dp with a hairline on top.</p></div>
+      <div class="card"><strong>Player</strong><p class="note">The video sits in a 16:9 frame. Under it: next, latest, auto, sub or dub, and the episode grid. Full screen opens the landscape player.</p></div>
+      <div class="card"><strong>Type</strong><p class="note">The opening word is AniKitty, bold, tight tracking. Section labels are small, tracked out, and half white.</p></div>
+    </div>
+
+    <h2 id="docs">Docs</h2>
+    <p class="note">The app, the extension contract, and the license.</p>
+    <div class="grid">
+      <a class="card" href="https://github.com/fampep/anikitty/blob/main/README.md"><strong>App</strong><p class="note">What the APK is, how sign-in works, and what a fresh install includes.</p></a>
+      <a class="card" href="https://github.com/fampep/anikitty/blob/main/extensions/GUIDE.md"><strong>Write an extension</strong><p class="note">An extension is an HTTP resolver. It is not code loaded into the APK.</p></a>
+      <a class="card" href="https://github.com/fampep/anikitty/blob/main/extensions/spec/PROTOCOL.md"><strong>Protocol</strong><p class="note">apiVersion 1. The phone sends an AniList id and an episode. The extension returns URLs.</p></a>
+      <a class="card" href="https://github.com/fampep/anikitty/blob/main/extensions/store/SUBMIT.md"><strong>List an extension</strong><p class="note">A listing shows up here and in the store after it is in the index.</p></a>
+      <a class="card" href="https://github.com/fampep/anikitty/blob/main/LICENSE"><strong>Apache License 2.0</strong><p class="note">Copyright 2026 fampep. Use, change, and share it. Keep the notice. No warranty.</p></a>
+      <a class="card" href="https://github.com/fampep/anikitty/blob/main/extensions/DISCLAIMER.md"><strong>Disclaimer</strong><p class="note">fampep owns the app and the protocol. Community servers stay with their authors.</p></a>
+    </div>
+
+    <h2 id="extensions">Extensions</h2>
+    <p class="note">This list is the store index. It updates when that file changes. Anikoto, Gotaku, and Ani.pm are compiled into the APK. Anything else is an extension you add. The default app does not come with a community extension.</p>
+    <div class="grid" id="ext-list"><div class="card">Loading the store index…</div></div>
+
+    <h2 id="apk">APK</h2>
+    <p class="note">Android 8 or newer. Package <code>site.anikitty.app</code>. If an update is refused, uninstall the old build first.</p>
+    <div class="grid" id="apk-list"><div class="card">Loading releases…</div></div>
+
+    <footer>
+      Copyright 2026 fampep. Apache License 2.0.
+      <a href="https://t.me/Anikittymoe">Telegram</a> ·
+      <a href="https://ko-fi.com/E6C820K9H8">Ko-fi</a>
+    </footer>
+  </main>
+  <script>
+    const BUILT_IN = new Set(["anikoto", "gotaku", "anipm"]);
+    const indexUrl = "https://raw.githubusercontent.com/fampep/anikitty/main/extensions/store/index.json";
+    const releasesUrl = "https://api.github.com/repos/fampep/anikitty/releases?per_page=10";
+
+    function card(html) { return `<article class="card">${html}</article>`; }
+
+    fetch(indexUrl).then(r => r.json()).then(data => {
+      const root = document.getElementById("ext-list");
+      const rows = (data.extensions || []).map(ext => {
+        const kind = BUILT_IN.has(ext.id) ? "In the APK" : (ext.id.includes("hello") ? "Example" : "Extension");
+        const site = ext.siteUrl ? `<a href="${ext.siteUrl}">Site</a>` : "";
+        const repo = ext.github ? `<a href="${ext.github}">Source</a>` : "";
+        return card(`<div class="ext"><img alt="" src="${ext.iconUrl || "anikitty_logo.png"}"><div><strong>${ext.name}</strong> <span class="pill">${kind}</span><p class="note">${ext.description || ""}</p><p class="note">${[ext.author, site, repo].filter(Boolean).join(" · ")}</p></div></div>`);
+      });
+      root.innerHTML = rows.join("") || card("No extensions in the index yet.");
+    }).catch(() => {
+      document.getElementById("ext-list").innerHTML = card("The store index could not be loaded.");
+    });
+
+    fetch(releasesUrl).then(r => r.json()).then(list => {
+      const root = document.getElementById("apk-list");
+      if (!Array.isArray(list)) throw new Error("bad");
+      const blocks = [];
+      const stable = list.find(r => !r.prerelease);
+      const dev = list.find(r => r.prerelease);
+      function block(rel, label) {
+        if (!rel) return "";
+        const apk = (rel.assets || []).find(a => a.name.endsWith(".apk"));
+        const href = apk ? apk.browser_download_url : rel.html_url;
+        const name = apk ? apk.name : rel.tag_name;
+        if (label === "Stable" && apk) {
+          const top = document.getElementById("apk-top");
+          top.href = href;
+          top.textContent = "Download " + name;
+        }
+        return card(`<div class="apk"><div><span class="pill">${label}</span><h3 style="margin:8px 0 0">${rel.tag_name}</h3><p class="note">${name}</p></div><a class="btn" href="${href}">Download</a></div>`);
+      }
+      root.innerHTML = block(stable, "Stable") + block(dev, "Dev") || card("No release yet.");
+    }).catch(() => {
+      document.getElementById("apk-list").innerHTML = card('<a href="https://github.com/fampep/anikitty/releases/latest">Open the latest release</a>');
+    });
+  </script>
+</body>
+</html>

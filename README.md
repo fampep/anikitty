@@ -18,6 +18,21 @@
 
 A stream does not come from the app. A stream plays only when an **extension** resolves a URL. The default APK does not include a community extension.
 
+The live page has the screens, the design, the docs, the extension list, and the APK: [fampep.github.io/anikitty](https://fampep.github.io/anikitty/).
+
+## Screens
+
+<p align="center">
+  <img src="docs/screenshots/splash.png" width="180" alt="Opening screen">
+  <img src="docs/screenshots/home.png" width="180" alt="Home">
+  <img src="docs/screenshots/search.png" width="180" alt="Search">
+  <img src="docs/screenshots/detail.png" width="180" alt="Title">
+  <img src="docs/screenshots/player.png" width="180" alt="Player">
+  <img src="docs/screenshots/space.png" width="180" alt="My Space">
+</p>
+
+Opening, Home, Search, a title, the player, and My Space. The same pictures are on the [live page](https://fampep.github.io/anikitty/).
+
 > [!IMPORTANT]
 > **AniKitty does not host video.** It does not store, provide, or ship episodes. It asks AniList for titles, and it asks an extension for a playable URL.
 >
