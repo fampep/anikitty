@@ -1,14 +1,19 @@
 package site.anikitty.app.data.link
 
+import android.content.Context
+import android.net.wifi.WifiManager
 import org.json.JSONArray
 import org.json.JSONObject
 import site.anikitty.app.data.local.WatchHistoryEntity
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
 import java.security.SecureRandom
 
 /**
@@ -28,15 +33,23 @@ data class DeviceLinkPayload(
     val history: List<WatchHistoryEntity>,
 )
 
+data class DeviceEndpoint(
+    val host: String,
+    val port: Int,
+)
+
 class DeviceLinkHost {
     private val random = SecureRandom()
     @Volatile private var running = false
     private var server: ServerSocket? = null
     private var thread: Thread? = null
+    private var discovery: DatagramSocket? = null
+    private var discoveryThread: Thread? = null
+    private var multicast: WifiManager.MulticastLock? = null
 
     private var generation = 0
 
-    fun start(onLinked: (DeviceLinkPayload) -> Unit): DeviceLinkOffer? {
+    fun start(context: Context, onLinked: (DeviceLinkPayload) -> Unit): DeviceLinkOffer? {
         stop()
         val host = lanIpv4() ?: return null
         val socket = ServerSocket()
@@ -48,6 +61,8 @@ class DeviceLinkHost {
         running = true
         val code = randomCode()
         val offer = DeviceLinkOffer(host, socket.localPort, code)
+        holdMulticast(context)
+        startDiscovery(socket.localPort, gen)
         thread = Thread({
             while (running && generation == gen) {
                 val client = try {
@@ -78,8 +93,64 @@ class DeviceLinkHost {
         generation++
         running = false
         runCatching { server?.close() }
+        runCatching { discovery?.close() }
+        runCatching { multicast?.release() }
         server = null
         thread = null
+        discovery = null
+        discoveryThread = null
+        multicast = null
+    }
+
+    private fun holdMulticast(context: Context) {
+        multicast = runCatching {
+            context.applicationContext.getSystemService(WifiManager::class.java)
+                ?.createMulticastLock("anikitty-pair")
+                ?.apply {
+                    setReferenceCounted(false)
+                    acquire()
+                }
+        }.getOrNull()
+    }
+
+    private fun startDiscovery(tcpPort: Int, gen: Int) {
+        val socket = try {
+            DatagramSocket(null).apply {
+                reuseAddress = true
+                broadcast = true
+                soTimeout = 400
+                bind(InetSocketAddress(DISCOVERY_PORT))
+            }
+        } catch (_: Exception) {
+            return
+        }
+        discovery = socket
+        val announce = "ANK1 $tcpPort".toByteArray()
+        discoveryThread = Thread({
+            var nextBeacon = 0L
+            while (running && generation == gen && !socket.isClosed) {
+                val now = System.currentTimeMillis()
+                if (now >= nextBeacon) {
+                    sendDatagram(socket, announce, DISCOVERY_PORT)
+                    nextBeacon = now + 1_000
+                }
+                val buffer = ByteArray(32)
+                val packet = DatagramPacket(buffer, buffer.size)
+                try {
+                    socket.receive(packet)
+                } catch (_: SocketTimeoutException) {
+                    continue
+                } catch (_: Exception) {
+                    break
+                }
+                val text = String(packet.data, 0, packet.length, Charsets.US_ASCII).trim()
+                val from = packet.address?.hostAddress ?: continue
+                if (text == "ANK?" && isPrivateLan(from)) {
+                    val reply = DatagramPacket(announce, announce.size, packet.address, packet.port)
+                    runCatching { socket.send(reply) }
+                }
+            }
+        }, "anikitty-pair-discover").also { it.isDaemon = true; it.start() }
     }
 
     private fun randomCode(): String = buildString(6) {
@@ -102,6 +173,89 @@ class DeviceLinkHost {
     companion object {
         private const val ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
         private const val MAX_LINE = 500_000
+        private const val DISCOVERY_PORT = 47821
+
+        fun normalizeCode(raw: String): String =
+            raw.uppercase().filter { it in ALPHABET }.take(6)
+
+        /** TVs waiting on this Wi-Fi. The code stays on the TV screen; this only finds addresses. */
+        fun discover(context: Context, waitMs: Long = 1_600): List<DeviceEndpoint> {
+            val lock = runCatching {
+                context.applicationContext.getSystemService(WifiManager::class.java)
+                    ?.createMulticastLock("anikitty-pair")
+                    ?.apply {
+                        setReferenceCounted(false)
+                        acquire()
+                    }
+            }.getOrNull()
+            val found = LinkedHashMap<String, DeviceEndpoint>()
+            val socket = try {
+                DatagramSocket(null).apply {
+                    reuseAddress = true
+                    broadcast = true
+                    soTimeout = 250
+                    bind(InetSocketAddress(0))
+                }
+            } catch (_: Exception) {
+                runCatching { lock?.release() }
+                return emptyList()
+            }
+            socket.use {
+                val probe = "ANK?".toByteArray()
+                sendDatagram(socket, probe, DISCOVERY_PORT)
+                val deadline = System.currentTimeMillis() + waitMs
+                while (System.currentTimeMillis() < deadline && found.size < 8) {
+                    val buffer = ByteArray(48)
+                    val packet = DatagramPacket(buffer, buffer.size)
+                    try {
+                        socket.receive(packet)
+                    } catch (_: SocketTimeoutException) {
+                        sendDatagram(socket, probe, DISCOVERY_PORT)
+                        continue
+                    } catch (_: Exception) {
+                        break
+                    }
+                    val text = String(packet.data, 0, packet.length, Charsets.US_ASCII).trim()
+                    val port = parseAnnounce(text) ?: continue
+                    val host = packet.address?.hostAddress ?: continue
+                    if (!isPrivateLan(host)) continue
+                    found["$host:$port"] = DeviceEndpoint(host, port)
+                }
+            }
+            runCatching { lock?.release() }
+            return found.values.toList()
+        }
+
+        private fun parseAnnounce(text: String): Int? {
+            val parts = text.split(' ')
+            if (parts.size != 2 || parts[0] != "ANK1") return null
+            val port = parts[1].toIntOrNull() ?: return null
+            return port.takeIf { it in 1..65535 }
+        }
+
+        private fun sendDatagram(socket: DatagramSocket, payload: ByteArray, port: Int) {
+            for (target in broadcastTargets()) {
+                runCatching {
+                    socket.send(DatagramPacket(payload, payload.size, target, port))
+                }
+            }
+        }
+
+        private fun broadcastTargets(): List<InetAddress> {
+            val out = LinkedHashSet<String>()
+            val addresses = ArrayList<InetAddress>()
+            fun add(address: InetAddress?) {
+                val host = address?.hostAddress ?: return
+                if (out.add(host)) addresses += address
+            }
+            add(runCatching { InetAddress.getByName("255.255.255.255") }.getOrNull())
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return addresses
+            for (nic in interfaces) {
+                if (!runCatching { nic.isUp && !nic.isLoopback }.getOrDefault(false)) continue
+                for (iface in nic.interfaceAddresses) add(iface.broadcast)
+            }
+            return addresses
+        }
 
         fun lanIpv4(): String? {
             val interfaces = NetworkInterface.getNetworkInterfaces() ?: return null
