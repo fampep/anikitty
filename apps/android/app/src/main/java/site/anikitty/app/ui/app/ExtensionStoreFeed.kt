@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import site.anikitty.app.BuildConfig
+import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.StoreListing
@@ -130,7 +131,7 @@ fun ExtensionStoreFeed(
                         (it.updatedAt?.let { d -> " · $d" } ?: "") +
                         updateNote
                 }
-                .onFailure { status = it.message }
+                .onFailure { status = friendlyFailure(it.message) }
             busy = false
         }
     }

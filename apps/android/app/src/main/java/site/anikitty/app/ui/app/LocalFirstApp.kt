@@ -92,7 +92,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -113,6 +115,7 @@ import site.anikitty.app.data.airingLabel
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.minutesLeft
+import site.anikitty.app.data.watchedAgo
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeEpisodeItem
@@ -1611,6 +1614,9 @@ private fun HistoryFeed(
 ) {
     val scope = rememberCoroutineScope()
     var favourites by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var libraryQuery by rememberSaveable { mutableStateOf("") }
+    var librarySort by rememberSaveable { mutableStateOf("recent") }
+    var confirmClear by remember { mutableStateOf(false) }
     LaunchedEffect(accessToken) {
         val token = accessToken
         if (token.isNullOrBlank()) {
@@ -1619,16 +1625,29 @@ private fun HistoryFeed(
         }
         favourites = runCatching { aniList.favourites(token) }.getOrDefault(emptyList())
     }
+    fun List<WatchHistoryEntity>.forLibrary(): List<WatchHistoryEntity> {
+        val q = libraryQuery.trim()
+        val matched = if (q.length < 2) {
+            this
+        } else {
+            filter { it.title.contains(q, ignoreCase = true) }
+        }
+        return when (librarySort) {
+            "title" -> matched.sortedBy { it.title.lowercase() }
+            "episode" -> matched.sortedByDescending { it.episode }
+            else -> matched.sortedByDescending { it.updatedAtEpochMs }
+        }
+    }
     val watching = history.filter {
         val s = it.listStatus?.uppercase()
         s == null || s == "CURRENT" || s == "REPEATING"
-    }
-    val completed = history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }
-    val planning = history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }
-    val paused = history.filter { it.listStatus.equals("PAUSED", ignoreCase = true) }
-    val dropped = history.filter { it.listStatus.equals("DROPPED", ignoreCase = true) }
+    }.forLibrary()
+    val completed = history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }.forLibrary()
+    val planning = history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.forLibrary()
+    val paused = history.filter { it.listStatus.equals("PAUSED", ignoreCase = true) }.forLibrary()
+    val dropped = history.filter { it.listStatus.equals("DROPPED", ignoreCase = true) }.forLibrary()
     val grouped = watching + completed + planning + paused + dropped
-    val other = history.filter { entry -> grouped.none { it.anilistId == entry.anilistId } }
+    val other = history.filter { entry -> grouped.none { it.anilistId == entry.anilistId } }.forLibrary()
 
     LazyColumn(
         modifier = Modifier
@@ -1667,20 +1686,62 @@ private fun HistoryFeed(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 listOf(
-                    "all" to "All",
-                    "watching" to "Watching",
-                    "plan" to "Plan",
-                    "paused" to "Paused",
-                    "done" to "Done",
-                    "dropped" to "Dropped",
-                    "favourites" to "Favourites",
+                    "all" to "All ${history.size}",
+                    "watching" to "Watching ${watching.size}",
+                    "plan" to "Plan ${planning.size}",
+                    "paused" to "Paused ${paused.size}",
+                    "done" to "Done ${completed.size}",
+                    "dropped" to "Dropped ${dropped.size}",
+                    "favourites" to "Favourites ${favourites.size}",
                 ).forEach { (id, label) ->
-                    Chip(label, selected = libraryFilter == id) { onLibraryFilter(id) }
+                    Chip(label, selected = libraryFilter == id) {
+                        confirmClear = false
+                        onLibraryFilter(id)
+                    }
                 }
             }
         }
+        item {
+            OutlinedTextField(
+                value = libraryQuery,
+                onValueChange = {
+                    libraryQuery = it.take(80)
+                    confirmClear = false
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = { Text("Search your library", color = KittyFaint) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = KittyText,
+                    unfocusedTextColor = KittyText,
+                    cursorColor = KittyText,
+                    focusedBorderColor = Color.White.copy(alpha = 0.28f),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
+                    focusedContainerColor = Color(0xFF0C0C10),
+                    unfocusedContainerColor = Color(0xFF0C0C10),
+                ),
+                shape = RoundedCornerShape(16.dp),
+            )
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("recent" to "Recent", "title" to "A–Z", "episode" to "Episode").forEach { (id, label) ->
+                    Chip(label, selected = librarySort == id) { librarySort = id }
+                }
+            }
+        }
+        val q = libraryQuery.trim()
+        val shownFavourites = if (q.length < 2) {
+            favourites
+        } else {
+            favourites.filter { anime ->
+                anime.title.contains(q, ignoreCase = true) ||
+                    anime.romajiTitle?.contains(q, ignoreCase = true) == true ||
+                    anime.searchTitles().any { it.contains(q, ignoreCase = true) }
+            }
+        }
         val showFavourites = libraryFilter == "all" || libraryFilter == "favourites"
-        if (showFavourites && favourites.isNotEmpty()) {
+        if (showFavourites && shownFavourites.isNotEmpty()) {
             item {
                 KittySectionHeading(
                     title = "Favourites",
@@ -1690,7 +1751,7 @@ private fun HistoryFeed(
             }
             item {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    lazyItems(favourites, key = { "fav-${it.id}" }) { anime ->
+                    lazyItems(shownFavourites, key = { "fav-${it.id}" }) { anime ->
                         Column(
                             modifier = Modifier
                                 .width(112.dp)
@@ -1738,34 +1799,64 @@ private fun HistoryFeed(
             )
         }
         val historyVisible = historySections.any { it.second.isNotEmpty() }
-        if (!historyVisible && !(showFavourites && favourites.isNotEmpty())) {
+        val searching = libraryQuery.trim().length >= 2
+        if (!historyVisible && !(showFavourites && shownFavourites.isNotEmpty())) {
             item {
-                KittyEmptyState(
-                    title = "Nothing in this list",
-                    body = "Favourite a show, or set it to Watching, and it lands here.",
-                )
+                val title = when {
+                    searching -> "No titles match"
+                    libraryFilter == "favourites" && aniListLinked -> "No favourites yet"
+                    libraryFilter == "favourites" -> "Sign in for favourites"
+                    else -> "Nothing in this list"
+                }
+                val body = when {
+                    searching -> "Try another word, or clear the search."
+                    libraryFilter == "favourites" && aniListLinked ->
+                        "Heart a show on AniList and it shows up here."
+                    libraryFilter == "favourites" ->
+                        "Favourites come from your AniList account."
+                    else -> "Favourite a show, or set it to Watching, and it lands here."
+                }
+                KittyEmptyState(title = title, body = body)
             }
         } else if (historyVisible) {
             item {
+                val visibleCount = historySections.sumOf { it.second.size }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        "${history.size} on this device",
+                        if (libraryFilter == "all" && !searching) {
+                            "$visibleCount on this device"
+                        } else {
+                            "$visibleCount in this view"
+                        },
                         color = KittyFaint,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    OutlinedButton(
-                        onClick = { scope.launch { historyDao.clear() } },
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(999.dp),
-                        border = BorderStroke(1.dp, KittyOutlineSoft),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
-                    ) {
-                        Text("Clear local", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                    if (libraryFilter == "all" && !searching) {
+                        OutlinedButton(
+                            onClick = {
+                                if (confirmClear) {
+                                    confirmClear = false
+                                    scope.launch { historyDao.clear() }
+                                } else {
+                                    confirmClear = true
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            shape = RoundedCornerShape(999.dp),
+                            border = BorderStroke(1.dp, KittyOutlineSoft),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
+                        ) {
+                            Text(
+                                if (confirmClear) "Confirm clear" else "Clear local",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                            )
+                        }
                     }
                 }
             }
@@ -1803,7 +1894,18 @@ private fun HistoryRow(
         positionMs = entry.positionMs,
         durationMs = entry.durationMs,
         wide = false,
-        badge = listStatusBadge(entry.listStatus),
+        badge = buildString {
+            listStatusBadge(entry.listStatus)?.let { append(it) }
+            minutesLeft(entry.positionMs, entry.durationMs)?.let { left ->
+                if (isNotEmpty()) append(" · ")
+                append(left)
+                append(" min left")
+            }
+            watchedAgo(entry.updatedAtEpochMs).takeIf { it.isNotEmpty() }?.let { ago ->
+                if (isNotEmpty()) append(" · ")
+                append(ago)
+            }
+        }.ifBlank { null },
         onClick = {
             scope.launch {
                 val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
@@ -2218,6 +2320,7 @@ private fun TitleDetailScreen(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
     val selectedId by streamServers.selectedId.collectAsState()
     val resolvers by streamServers.resolvers.collectAsState()
     val activeServer = remember(selectedId, resolvers) {
@@ -2562,8 +2665,18 @@ private fun TitleDetailScreen(
                                 )
                             }
                             detail.nextAiring?.let { next ->
+                                val clock = formatAiring(next.airingAtEpochSec)
+                                val relative = airingLabel(
+                                    next.airingAtEpochSec,
+                                    System.currentTimeMillis() / 1000L,
+                                    clock,
+                                )
                                 Text(
-                                    "Ep ${next.episode} · ${formatAiring(next.airingAtEpochSec)}",
+                                    if (relative == clock) {
+                                        "Ep ${next.episode} · $clock"
+                                    } else {
+                                        "Ep ${next.episode} · $relative"
+                                    },
                                     color = Color.White.copy(alpha = 0.72f),
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -2931,6 +3044,10 @@ private fun TitleDetailScreen(
                     ) {
                         Chip("AniList", false) {
                             openUrl("https://anilist.co/anime/${detail.id}")
+                        }
+                        Chip("Copy title", false) {
+                            clipboard.setText(AnnotatedString(detail.title))
+                            status = "Title copied"
                         }
                         Chip("Share", false) {
                             val send = Intent(Intent.ACTION_SEND).apply {
@@ -3423,7 +3540,11 @@ private fun TitleDetailScreen(
                         Text(
                             status!!,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (status!!.startsWith("Getting")) KittyMuted else MaterialTheme.colorScheme.error,
+                            color = if (status!!.startsWith("Getting") || status!!.startsWith("Title")) {
+                                KittyMuted
+                            } else {
+                                MaterialTheme.colorScheme.error
+                            },
                         )
                     }
                 }
@@ -3500,7 +3621,8 @@ private fun TitleDetailScreen(
                         color = if (
                             status!!.startsWith("Getting") ||
                             status!!.startsWith("Trying") ||
-                            status!!.startsWith("Playing")
+                            status!!.startsWith("Playing") ||
+                            status!!.startsWith("Title")
                         ) {
                             KittyMuted
                         } else {

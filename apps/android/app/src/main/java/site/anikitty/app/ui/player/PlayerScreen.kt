@@ -57,6 +57,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Speed
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastSessionHelper
@@ -128,7 +129,7 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
-private enum class Panel { None, Quality, Subs, Style, Display, Speed }
+private enum class Panel { None, Quality, Subs, Style, Display, Speed, Sleep }
 
 /** Soft “next episode?” offer when this much remains. */
 private const val NEAR_END_THRESHOLD_MS = 90_000L
@@ -242,6 +243,11 @@ fun PlayerScreen(
     var autoplayCancelled by remember(episode) { mutableStateOf(false) }
     var autoplaySecLeft by remember(episode) { mutableIntStateOf(AUTOPLAY_COUNTDOWN_SEC) }
     var nextTriggered by remember(episode) { mutableStateOf(false) }
+    /** 0 off, positive minutes, -1 pause when this episode ends. */
+    var sleepChoice by remember { mutableIntStateOf(0) }
+    var sleepArmedAt by remember { mutableLongStateOf(0L) }
+    var sleepTick by remember { mutableIntStateOf(0) }
+    var sleepNote by remember { mutableStateOf<String?>(null) }
 
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
@@ -373,7 +379,8 @@ fun PlayerScreen(
     val showEndAutoplay = onNextEpisode != null &&
         playbackEnded &&
         !autoplayCancelled &&
-        !nextTriggered
+        !nextTriggered &&
+        sleepChoice != -1
 
     DisposableEffect(castHelper) {
         val helper = castHelper
@@ -640,6 +647,35 @@ fun PlayerScreen(
         }
     }
 
+    LaunchedEffect(sleepChoice) {
+        if (sleepChoice <= 0) return@LaunchedEffect
+        val minutes = sleepChoice
+        sleepArmedAt = System.currentTimeMillis()
+        delay(minutes * 60_000L)
+        if (sleepChoice != minutes) return@LaunchedEffect
+        latestPlayer?.pause()
+        playing = false
+        controlsVisible = true
+        sleepNote = "Sleep timer paused playback"
+        sleepChoice = 0
+    }
+
+    LaunchedEffect(sleepChoice) {
+        if (sleepChoice <= 0) return@LaunchedEffect
+        while (sleepChoice > 0) {
+            delay(30_000)
+            sleepTick++
+        }
+    }
+
+    LaunchedEffect(playbackEnded, sleepChoice) {
+        if (!playbackEnded || sleepChoice != -1) return@LaunchedEffect
+        autoplayCancelled = true
+        sleepNote = "Sleep timer stopped at the end of this episode"
+        sleepChoice = 0
+        controlsVisible = true
+    }
+
     LaunchedEffect(showEndAutoplay, episode, autoplayCancelled, nextTriggered) {
         if (!showEndAutoplay || autoplayCancelled || nextTriggered) return@LaunchedEffect
         for (sec in AUTOPLAY_COUNTDOWN_SEC downTo 1) {
@@ -872,6 +908,22 @@ fun PlayerScreen(
             }
         }
 
+        if (sleepNote != null) {
+            Text(
+                sleepNote!!,
+                color = PlayerChrome.Paper,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = 72.dp, start = 20.dp, end = 20.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PlayerChrome.Sheet)
+                    .border(1.dp, PlayerChrome.SheetStroke, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            )
+        }
+
         if (castHint != null) {
             Text(
                 castHint!!,
@@ -1023,6 +1075,18 @@ fun PlayerScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             PlayerMetaPill("E$episode")
+                            if (sleepChoice != 0) {
+                                val sleepText = if (sleepChoice == -1) {
+                                    "Sleep at end"
+                                } else {
+                                    val elapsed = (System.currentTimeMillis() - sleepArmedAt).coerceAtLeast(0L)
+                                    val leftMin = (
+                                        (sleepChoice * 60_000L - elapsed) / 60_000L
+                                        ).toInt().coerceAtLeast(1)
+                                    if (sleepTick < 0) "" else "Sleep ${leftMin}m"
+                                }
+                                PlayerMetaPill(sleepText, emphasized = true)
+                            }
                             if (durationMs > 0L) {
                                 PlayerMetaPill(formatDurationMinutes(durationMs))
                             }
@@ -1231,6 +1295,29 @@ fun PlayerScreen(
                         Spacer(modifier = Modifier.width(8.dp))
                         ChromeDisc(
                             onClick = {
+                                panel = if (panel == Panel.Sleep) Panel.None else Panel.Sleep
+                                controlsVisible = true
+                            },
+                            size = if (sleepChoice == 0) 40.dp else 48.dp,
+                        ) {
+                            if (sleepChoice == 0) {
+                                Icon(
+                                    Icons.Rounded.Bedtime,
+                                    contentDescription = "Sleep timer",
+                                    tint = if (panel == Panel.Sleep) PlayerChrome.Progress else PlayerChrome.Paper,
+                                )
+                            } else {
+                                Text(
+                                    if (sleepChoice == -1) "End" else "${sleepChoice}m",
+                                    color = PlayerChrome.Paper,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 11.sp,
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        ChromeDisc(
+                            onClick = {
                                 panel = if (panel == Panel.Display) Panel.None else Panel.Display
                                 controlsVisible = true
                             },
@@ -1297,6 +1384,14 @@ fun PlayerScreen(
                                 speed = playbackSpeed,
                                 onPick = {
                                     playbackSpeed = it
+                                    panel = Panel.None
+                                },
+                            )
+                            Panel.Sleep -> SleepSheet(
+                                choice = sleepChoice,
+                                onPick = {
+                                    sleepNote = null
+                                    sleepChoice = it
                                     panel = Panel.None
                                 },
                             )
@@ -1455,6 +1550,27 @@ private fun PlayerSheet(
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             content()
         }
+    }
+}
+
+@Composable
+private fun SleepSheet(choice: Int, onPick: (Int) -> Unit) {
+    SheetTitle("Sleep timer")
+    Spacer(modifier = Modifier.height(6.dp))
+    Text(
+        "Pause playback after a while, or when this episode ends.",
+        color = PlayerChrome.Graphite,
+        fontSize = 12.sp,
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+    listOf(
+        0 to "Off",
+        15 to "15 minutes",
+        30 to "30 minutes",
+        45 to "45 minutes",
+        -1 to "End of this episode",
+    ).forEach { (value, label) ->
+        SheetRow(label = label, selected = choice == value, onClick = { onPick(value) })
     }
 }
 
