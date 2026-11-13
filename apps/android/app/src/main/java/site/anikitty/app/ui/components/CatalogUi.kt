@@ -378,9 +378,9 @@ fun KittyTopTenRow(
 ) {
     val ranked = items.take(10)
     if (ranked.isEmpty()) return
-    Column(modifier = Modifier.padding(top = 18.dp)) {
+    Column(modifier = Modifier.padding(top = 26.dp)) {
         KittySectionHeading(title = title, subtitle = subtitle)
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -544,13 +544,20 @@ fun KittyGenreTiles(
     onSelect: (String) -> Unit,
 ) {
     if (genres.isEmpty()) return
-    Column(modifier = Modifier.padding(top = 16.dp)) {
+    Column(modifier = Modifier.padding(top = 22.dp)) {
         Text(
-            "Popular Genres",
+            "Genres",
             color = Color.White,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 20.dp),
+        )
+        Text(
+            "Jump into a genre",
+            color = KittyMuted,
+            fontWeight = FontWeight.Medium,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
         LazyRow(
             contentPadding = PaddingValues(horizontal = 20.dp),
@@ -614,9 +621,9 @@ fun KittyPosterRow(
     onMore: (() -> Unit)? = null,
 ) {
     if (items.isEmpty()) return
-    Column(modifier = Modifier.padding(top = 18.dp)) {
+    Column(modifier = Modifier.padding(top = 26.dp)) {
         KittySectionHeading(title = title, subtitle = subtitle, onMore = onMore)
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),

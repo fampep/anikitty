@@ -51,17 +51,13 @@ data class HomeSectionState(
 
 object HomeCatalog {
     val sections = listOf(
-        HomeSection("resume", "Resume"),
         HomeSection("featured", "Featured"),
         HomeSection("genres", "Genres"),
         HomeSection("airing", "Airing today"),
-        HomeSection("trending", "Trending"),
-        HomeSection("top10", "Top 10"),
-        HomeSection("popular", "Most popular"),
         HomeSection("continue", "Continue watching"),
         HomeSection("foryou", "For you"),
         HomeSection("plan", "Plan to watch"),
-        HomeSection("completed", "Completed"),
+        HomeSection("top10", "Top 10"),
         HomeSection("season", "This season"),
     )
 }

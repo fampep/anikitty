@@ -1,5 +1,6 @@
 package site.anikitty.app.ui.app
 
+import androidx.activity.compose.BackHandler
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
@@ -46,6 +47,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Favorite
@@ -91,6 +94,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -109,6 +113,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import site.anikitty.app.BuildConfig
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.airingLabel
@@ -595,9 +600,6 @@ private fun HomeFeed(
             s == null || s == "CURRENT" || s == "REPEATING"
         }.take(12)
     }
-    val completedShows = remember(history) {
-        history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }.take(12)
-    }
     val planToWatch = remember(history) {
         history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(12)
     }
@@ -652,8 +654,8 @@ private fun HomeFeed(
                             onOpenAccount = onOpenAccount,
                         )
                     }
-                    item { KittyPosterSkeletonRow("Trending Anime") }
-                    item { KittyPosterSkeletonRow("Most popular") }
+                    item { KittyPosterSkeletonRow("Continue watching") }
+                    item { KittyPosterSkeletonRow("This season") }
                 }
             }
             error != null && trending.isEmpty() -> {
@@ -694,42 +696,21 @@ private fun HomeFeed(
                     phoneSections.forEach { section ->
                         if (!section.enabled) return@forEach
                         when (section.id) {
-                            "resume" -> {
-                    continueWatching.firstOrNull()?.let { spotlight ->
-                        item {
-                            ResumeSpotlight(entry = spotlight) { episode ->
-                                scope.launch {
-                                    val detail = aniList.media(spotlight.anilistId)
-                                        ?: AnimeSummary(
-                                            id = spotlight.anilistId,
-                                            title = spotlight.title,
-                                            coverImageUrl = spotlight.coverImageUrl,
-                                            episodes = null,
-                                            format = null,
-                                            averageScore = null,
-                                            malId = spotlight.malId,
-                                        )
-                                    val total = detail.releasedEpisodeCount().takeIf { it > 0 }
-                                    val play = if (total != null) {
-                                        episode.coerceAtMost(total)
-                                    } else {
-                                        episode
-                                    }
-                                    onOpen(detail, play)
-                                }
-                            }
-                        }
-                    }
-                            }
                             "featured" -> {
                     item {
-                        KittyGlassHeroPager(
-                            items = trending,
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
+                        Column(modifier = Modifier.padding(top = 8.dp)) {
+                            KittySectionHeading(
+                                title = "Featured",
+                                subtitle = "Trending right now",
+                            )
+                            KittyGlassHeroPager(
+                                items = trending,
+                                onOpen = {
+                                    scope.launch { historyDao.touchFromCatalog(it) }
+                                    onOpen(it, null)
+                                },
+                            )
+                        }
                     }
                             }
                             "genres" -> {
@@ -766,37 +747,12 @@ private fun HomeFeed(
                         }
                     }
                             }
-                            "trending" -> {
-                    item {
-                        KittyPosterRow(
-                            title = "Trending Anime",
-                            items = trending.forGenre(),
-                            onMore = onOpenSearch,
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
-                    }
-                            }
                             "top10" -> {
                     item {
                         KittyTopTenRow(
                             title = "Top 10",
+                            subtitle = "Most watched right now",
                             items = popular.forGenre(),
-                            onOpen = {
-                                scope.launch { historyDao.touchFromCatalog(it) }
-                                onOpen(it, null)
-                            },
-                        )
-                    }
-                            }
-                            "popular" -> {
-                    item {
-                        KittyPosterRow(
-                            title = "Most popular",
-                            items = popular.forGenre(),
-                            onMore = onOpenSearch,
                             onOpen = {
                                 scope.launch { historyDao.touchFromCatalog(it) }
                                 onOpen(it, null)
@@ -807,9 +763,12 @@ private fun HomeFeed(
                             "continue" -> {
                     if (continueWatching.isNotEmpty()) {
                         item {
-                            Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
-                                KittySectionHeading(title = "Continue watching")
-                                Spacer(modifier = Modifier.height(12.dp))
+                            Column(modifier = Modifier.padding(top = 26.dp, bottom = 4.dp)) {
+                                KittySectionHeading(
+                                    title = "Continue watching",
+                                    subtitle = "Pick up where you left off",
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -874,7 +833,8 @@ private fun HomeFeed(
                         item {
                             KittyPosterRow(
                                 title = "For you",
-                                subtitle = forYouFrom?.let { "Because you watch $it" },
+                                subtitle = forYouFrom?.let { "Because you watch $it" }
+                                    ?: "Picked from what you watch",
                                 items = forYou,
                                 onOpen = {
                                     scope.launch { historyDao.touchFromCatalog(it) }
@@ -887,12 +847,12 @@ private fun HomeFeed(
                             "plan" -> {
                     if (planToWatch.isNotEmpty()) {
                         item {
-                            Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
+                            Column(modifier = Modifier.padding(top = 26.dp, bottom = 4.dp)) {
                                 KittySectionHeading(
                                     title = "Plan to watch",
-                                    subtitle = "From your AniList",
+                                    subtitle = "Saved on your AniList",
                                 )
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 LazyRow(
                                     contentPadding = PaddingValues(horizontal = 12.dp),
                                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -927,50 +887,11 @@ private fun HomeFeed(
                         }
                     }
                             }
-                            "completed" -> {
-                    if (completedShows.isNotEmpty()) {
-                        item {
-                            Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
-                                KittySectionHeading(title = "Completed")
-                                Spacer(modifier = Modifier.height(12.dp))
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                                ) {
-                                    lazyItems(completedShows, key = { "done-${it.anilistId}" }) { entry ->
-                                        KittyContinueCard(
-                                            title = entry.title,
-                                            coverUrl = entry.coverImageUrl,
-                                            episode = entry.episode.coerceAtLeast(1),
-                                            positionMs = 0L,
-                                            durationMs = 0L,
-                                            badge = "Done",
-                                            onClick = {
-                                                scope.launch {
-                                                    val detail = aniList.media(entry.anilistId)
-                                                        ?: AnimeSummary(
-                                                            id = entry.anilistId,
-                                                            title = entry.title,
-                                                            coverImageUrl = entry.coverImageUrl,
-                                                            episodes = null,
-                                                            format = null,
-                                                            averageScore = null,
-                                                            malId = entry.malId,
-                                                        )
-                                                    onOpen(detail, null)
-                                                }
-                                            },
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                            }
                             "season" -> {
                     item {
                         KittyPosterRow(
-                            title = "Airing this season",
+                            title = "This season",
+                            subtitle = "Airing now",
                             items = seasonal.forGenre(),
                             onMore = onOpenSchedule,
                             onOpen = {
@@ -999,108 +920,6 @@ private fun HomeFeed(
 }
 
 @Composable
-private fun ResumeSpotlight(
-    entry: WatchHistoryEntity,
-    onPlay: (Int) -> Unit,
-) {
-    val target = playbackTarget(entry)
-    val resume = target == entry.episode.coerceAtLeast(1)
-    val fraction = if (
-        resume && entry.durationMs > 0L
-    ) {
-        (entry.positionMs.toFloat() / entry.durationMs.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(KittySurface)
-            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(18.dp))
-            .clickable { onPlay(target) }
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AsyncImage(
-            model = entry.coverImageUrl,
-            contentDescription = entry.title,
-            modifier = Modifier
-                .width(64.dp)
-                .height(92.dp)
-                .clip(RoundedCornerShape(12.dp)),
-            contentScale = ContentScale.Crop,
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                if (resume) "Resume" else "Up next",
-                color = KittyFaint,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.4.sp,
-            )
-            Text(
-                entry.title,
-                color = KittyText,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                buildString {
-                    append("Episode $target")
-                    val left = if (resume) minutesLeft(entry.positionMs, entry.durationMs) else null
-                    if (left != null) {
-                        append(" · ")
-                        append(left)
-                        append(" min left")
-                    }
-                },
-                color = KittyMuted,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (fraction > 0f) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(KittyOutlineSoft),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction)
-                            .height(3.dp)
-                            .background(KittyAccent),
-                    )
-                }
-            }
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(KittyAccent),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Filled.PlayArrow,
-                contentDescription = "Play",
-                tint = KittyOnAccent,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
-}
-
-@Composable
 private fun TodayAiringRail(
     slots: List<AiringSlot>,
     onMore: () -> Unit,
@@ -1112,13 +931,13 @@ private fun TodayAiringRail(
     val clock = remember {
         java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
     }
-    Column(modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) {
+    Column(modifier = Modifier.padding(top = 26.dp, bottom = 4.dp)) {
         KittySectionHeading(
             title = "Airing today",
-            subtitle = "${shown.size} episode${if (shown.size == 1) "" else "s"}",
+            subtitle = "On the schedule today",
             onMore = onMore,
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -2156,207 +1975,348 @@ internal fun SettingsFeed(
 
     // linkTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
     val isLinked = linkTick.let { aniListAuth.isLinked }
+    var page by rememberSaveable { mutableStateOf("hub") }
+    BackHandler(enabled = page != "hub") { page = "hub" }
+    val selectedName = resolvers.firstOrNull { it.server.id == selectedId }?.server?.name ?: "None selected"
+    val homeShown = homeLayout.sections().count { it.enabled }
+    val pageTitle = when (page) {
+        "account" -> "Account"
+        "home" -> "Home"
+        "sources" -> "Sources"
+        "app" -> "App"
+        else -> "Settings"
+    }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(bottom = 100.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        item {
-            AppBuildsRow(onClick = onOpenBuilds)
+        if (page != "hub") {
+            SettingsBackBar(title = pageTitle, onBack = { page = "hub" })
         }
-        item {
-            HomeLayoutSettings(homeLayout)
-        }
-        item {
-            AniListProfileCard(
-                auth = aniListAuth,
-                fallbackName = accountLabel.ifBlank { "AniList" },
-                syncLabel = syncLabel,
-                onOpenList = onOpenLibrary,
-            )
-        }
-        item {
-            KittySectionHeading(
-                title = "AniList",
-                subtitle = if (isLinked) {
-                    "Your list syncs when you sign in and while you watch"
-                } else {
-                    "Sign in to load your AniList profile"
-                },
-                padded = false,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(KittyGlassShape)
-                    .background(KittySurface)
-                    .border(1.dp, KittyOutlineSoft, KittyGlassShape)
-                    .padding(14.dp),
-            ) {
-                if (isLinked) {
-                    Text(
-                        "Watching continues at the next episode. Completed shows stay in your library.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = KittyMuted,
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    onSyncLabel("Syncing…")
-                                    onSyncLabel(
-                                        runCatching {
-                                            val result = aniListSync.pull()
-                                            "Synced ${result.imported} titles"
-                                        }.getOrElse { e -> e.message },
-                                    )
-                                }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            when (page) {
+                "hub" -> {
+                    item {
+                        Text(
+                            "Settings",
+                            color = KittyText,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 28.sp,
+                        )
+                        Text(
+                            "Account, home, sources, and the app",
+                            color = KittyMuted,
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                        )
+                    }
+                    item {
+                        SettingsHubRow(
+                            icon = Icons.Outlined.Person,
+                            title = "Account",
+                            detail = if (isLinked) {
+                                aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
+                                    ?: accountLabel.ifBlank { "Signed in" }
+                            } else {
+                                "Not signed in"
                             },
-                            shape = RoundedCornerShape(12.dp),
+                            onClick = { page = "account" },
+                        )
+                    }
+                    item {
+                        SettingsHubRow(
+                            icon = Icons.Outlined.Home,
+                            title = "Home",
+                            detail = "$homeShown rows showing",
+                            onClick = { page = "home" },
+                        )
+                    }
+                    item {
+                        SettingsHubRow(
+                            icon = Icons.Outlined.Extension,
+                            title = "Sources",
+                            detail = selectedName,
+                            onClick = { page = "sources" },
+                        )
+                    }
+                    item {
+                        SettingsHubRow(
+                            icon = Icons.Outlined.Info,
+                            title = "App",
+                            detail = "Version ${BuildConfig.VERSION_NAME}",
+                            onClick = { page = "app" },
+                        )
+                    }
+                }
+                "account" -> {
+                    item {
+                        AniListProfileCard(
+                            auth = aniListAuth,
+                            fallbackName = accountLabel.ifBlank { "AniList" },
+                            syncLabel = syncLabel,
+                            onOpenList = onOpenLibrary,
+                        )
+                    }
+                    item {
+                        KittySectionHeading(
+                            title = "AniList",
+                            subtitle = if (isLinked) {
+                                "Your list syncs when you sign in and while you watch"
+                            } else {
+                                "Sign in to load your AniList profile"
+                            },
+                            padded = false,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(KittyGlassShape)
+                                .background(KittySurface)
+                                .border(1.dp, KittyOutlineSoft, KittyGlassShape)
+                                .padding(14.dp),
+                        ) {
+                            if (isLinked) {
+                                Text(
+                                    "Watching continues at the next episode. Completed shows stay in your library.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = KittyMuted,
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(
+                                        onClick = {
+                                            scope.launch {
+                                                onSyncLabel("Syncing…")
+                                                onSyncLabel(
+                                                    runCatching {
+                                                        val result = aniListSync.pull()
+                                                        "Synced ${result.imported} titles"
+                                                    }.getOrElse { e -> e.message },
+                                                )
+                                            }
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = KittyAccent,
+                                            contentColor = KittyOnAccent,
+                                        ),
+                                    ) { Text("Sync now", fontWeight = FontWeight.Bold) }
+                                    OutlinedButton(
+                                        onClick = onSignOut,
+                                        shape = RoundedCornerShape(12.dp),
+                                        border = BorderStroke(1.dp, KittyOutlineSoft),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
+                                    ) { Text("Sign out", fontWeight = FontWeight.SemiBold) }
+                                }
+                            } else {
+                                Text(
+                                    "Sign in on AniList. Your list and the next episode come back with you.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = KittyMuted,
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Button(
+                                    onClick = { AniListOAuth.openAuthorize(context) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = KittyAccent,
+                                        contentColor = KittyOnAccent,
+                                    ),
+                                ) { Text("Sign in with AniList", fontWeight = FontWeight.Bold) }
+                            }
+                            if (!linkStatus.isNullOrBlank()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    linkStatus,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = KittyMuted,
+                                )
+                            }
+                        }
+                    }
+                }
+                "home" -> {
+                    item { HomeLayoutSettings(homeLayout) }
+                }
+                "sources" -> {
+                    item {
+                        KittySectionHeading(
+                            title = "Stream source",
+                            subtitle = "Anikoto, Gotaku, and Ani.pm ship in the app. More live in the Store.",
+                            padded = false,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onOpenStore,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = KittyAccent,
                                 contentColor = KittyOnAccent,
                             ),
-                        ) { Text("Sync now", fontWeight = FontWeight.Bold) }
-                        OutlinedButton(
-                            onClick = onSignOut,
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, KittyOutlineSoft),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
-                        ) { Text("Sign out", fontWeight = FontWeight.SemiBold) }
-                    }
-                } else {
-                    Text(
-                        "Sign in on AniList. Your list and the next episode come back with you.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = KittyMuted,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(
-                        onClick = { AniListOAuth.openAuthorize(context) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = KittyAccent,
-                            contentColor = KittyOnAccent,
-                        ),
-                    ) { Text("Sign in with AniList", fontWeight = FontWeight.Bold) }
-                }
-                if (!linkStatus.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        linkStatus,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = KittyMuted,
-                    )
-                }
-            }
-        }
-        item {
-            KittySectionHeading(
-                title = "Stream source",
-                subtitle = "Anikoto · Gotaku · Ani.pm ship in the APK · browse more in Store",
-                padded = false,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = onOpenStore,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = KittyAccent,
-                    contentColor = KittyOnAccent,
-                ),
-            ) {
-                Text("Open Extension Store", fontWeight = FontWeight.Bold)
-            }
-            if (extensionStatus != null) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    extensionStatus!!,
-                    color = KittyMuted,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-        }
-        lazyItems(resolvers.map { it.server }, key = { it.id }) { server ->
-            val selected = server.id == selectedId
-            val isExtension = installedExt.any { it.id == server.id }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(KittyGlassShape)
-                    .background(if (selected) KittySurfaceElevated else KittySurface)
-                    .border(
-                        1.dp,
-                        if (selected) KittyAccent else KittyOutlineSoft,
-                        KittyGlassShape,
-                    )
-                    .clickable { catalog.select(server.id) }
-                    .padding(16.dp),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ExtensionIcon(
-                        iconUrl = server.iconUrl,
-                        contentDescription = server.name,
-                        size = 40.dp,
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        ) {
+                            Text("Open Extension Store", fontWeight = FontWeight.Bold)
+                        }
+                        if (extensionStatus != null) {
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                server.name,
-                                color = KittyText,
-                                fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.weight(1f, fill = false),
+                                extensionStatus!!,
+                                color = KittyMuted,
+                                style = MaterialTheme.typography.bodySmall,
                             )
-                            if (selected) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    "ACTIVE",
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(KittyAccent)
-                                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                                    color = KittyOnAccent,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 10.sp,
+                        }
+                    }
+                    lazyItems(resolvers.map { it.server }, key = { it.id }) { server ->
+                        val selected = server.id == selectedId
+                        val isExtension = installedExt.any { it.id == server.id }
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(KittyGlassShape)
+                                .background(if (selected) KittySurfaceElevated else KittySurface)
+                                .border(
+                                    1.dp,
+                                    if (selected) KittyAccent else KittyOutlineSoft,
+                                    KittyGlassShape,
                                 )
+                                .clickable { catalog.select(server.id) }
+                                .padding(16.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ExtensionIcon(
+                                    iconUrl = server.iconUrl,
+                                    contentDescription = server.name,
+                                    size = 40.dp,
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            server.name,
+                                            color = KittyText,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.weight(1f, fill = false),
+                                        )
+                                        if (selected) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                "ACTIVE",
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(999.dp))
+                                                    .background(KittyAccent)
+                                                    .padding(horizontal = 8.dp, vertical = 3.dp),
+                                                color = KittyOnAccent,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 10.sp,
+                                            )
+                                        }
+                                    }
+                                    Text(
+                                        if (isExtension) "Extension" else "Bundled",
+                                        color = KittyFaint,
+                                        style = MaterialTheme.typography.labelSmall,
+                                    )
+                                }
+                            }
+                            Text(
+                                server.description,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = KittyMuted,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                            if (isExtension) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                TextButton(
+                                    onClick = {
+                                        catalog.uninstallExtension(server.id)
+                                        extensionStatus = "Removed ${server.name}"
+                                    },
+                                    contentPadding = PaddingValues(0.dp),
+                                ) {
+                                    Text("Uninstall", color = KittyFaint, fontSize = 12.sp)
+                                }
                             }
                         }
-                        Text(
-                            if (isExtension) "Extension" else "Bundled",
-                            color = KittyFaint,
-                            style = MaterialTheme.typography.labelSmall,
-                        )
                     }
                 }
-                Text(
-                    server.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = KittyMuted,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-                if (isExtension) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    TextButton(
-                        onClick = {
-                            catalog.uninstallExtension(server.id)
-                            extensionStatus = "Removed ${server.name}"
-                        },
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        Text("Uninstall", color = KittyFaint, fontSize = 12.sp)
-                    }
+                else -> {
+                    item { AppBuildsRow(onClick = onOpenBuilds) }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SettingsBackBar(title: String, onBack: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onBack)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.AutoMirrored.Rounded.ArrowBack,
+            contentDescription = "Back",
+            tint = KittyText,
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(title, color = KittyText, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+    }
+}
+
+@Composable
+private fun SettingsHubRow(
+    icon: ImageVector,
+    title: String,
+    detail: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(KittyGlassShape)
+            .background(KittySurface)
+            .border(1.dp, KittyOutlineSoft, KittyGlassShape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(KittySurfaceElevated),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, contentDescription = null, tint = KittyText, modifier = Modifier.size(20.dp))
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(title, color = KittyText, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+            Text(
+                detail,
+                color = KittyMuted,
+                fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Icon(
+            Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = null,
+            tint = KittyFaint,
+        )
     }
 }
 
