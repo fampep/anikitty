@@ -221,6 +221,9 @@ private fun ScheduleRow(
                 .background(KittyOutlineSoft),
         )
         Spacer(modifier = Modifier.width(12.dp))
+        val now = System.currentTimeMillis() / 1000L
+        val soon = slot.airingAtEpochSec - now in 0..(45 * 60)
+        val aired = slot.airingAtEpochSec < now
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 slot.anime.title,
@@ -237,16 +240,31 @@ private fun ScheduleRow(
                 fontWeight = FontWeight.SemiBold,
             )
         }
-        Text(
-            timeLabel,
-            color = KittyText,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(KittyAccent.copy(alpha = 0.12f))
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-        )
+        Column(horizontalAlignment = Alignment.End) {
+            if (soon) {
+                Text(
+                    "Soon",
+                    color = KittyOnAccent,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(KittyAccent)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+            Text(
+                timeLabel,
+                color = if (aired) KittyFaint else KittyText,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (aired) KittySurface else KittyAccent.copy(alpha = 0.12f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
     }
 }
 
