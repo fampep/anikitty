@@ -10,6 +10,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -31,7 +32,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -85,7 +85,6 @@ import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -181,10 +180,6 @@ import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
-import site.anikitty.app.ui.theme.KittyGlass
-import site.anikitty.app.ui.theme.KittyGlassShape
-import site.anikitty.app.ui.theme.KittyGlassShapeTight
-import site.anikitty.app.ui.theme.KittyGlassStrong
 import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutline
@@ -2287,8 +2282,7 @@ private fun TitleDetailScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        KittyAtmosphere()
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         LazyColumn(contentPadding = PaddingValues(bottom = 148.dp)) {
             item {
                 Box(
@@ -2337,9 +2331,9 @@ private fun TitleDetailScreen(
                             modifier = Modifier
                                 .width(110.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                                .background(Color.White.copy(alpha = 0.05f)),
+                                .clip(RoundedCornerShape(12.dp))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                                .background(Color(0xFF0C0C10)),
                         )
                         Column(
                             modifier = Modifier.weight(1f),
@@ -2384,10 +2378,10 @@ private fun TitleDetailScreen(
                             Text(
                                 detail.title,
                                 color = Color.White,
-                                fontWeight = FontWeight.Black,
+                                fontWeight = FontWeight.SemiBold,
                                 fontSize = 22.sp,
                                 lineHeight = 26.sp,
-                                letterSpacing = (-0.5).sp,
+                                letterSpacing = (-0.4).sp,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -2408,9 +2402,9 @@ private fun TitleDetailScreen(
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
+                                        .clip(RoundedCornerShape(16.dp))
                                         .background(Color.White.copy(alpha = 0.12f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                        .padding(horizontal = 8.dp, vertical = 3.dp),
                                 ) {
                                     Icon(
                                         Icons.Filled.CalendarMonth,
@@ -2440,11 +2434,11 @@ private fun TitleDetailScreen(
                             enabled = !resolving,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(50.dp),
-                            shape = RoundedCornerShape(14.dp),
+                                .height(48.dp),
+                            shape = RoundedCornerShape(16.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
+                                containerColor = Color.White,
+                                contentColor = Color.Black,
                             ),
                         ) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -2452,24 +2446,26 @@ private fun TitleDetailScreen(
                             Text(
                                 when {
                                     lastWatchedEp > 0 -> "Play Ep. $episode"
-                                    else -> "Play Now"
+                                    else -> "Play now"
                                 },
-                                fontWeight = FontWeight.Black,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.Black,
                             )
                         }
                         if (aniListAuth.isLinked) {
-                            IconButton(
-                                onClick = { toggleFavourite() },
+                            Box(
                                 modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(KittySurface)
-                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp)),
+                                    .size(48.dp)
+                                    .spacePress { toggleFavourite() }
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color(0xFF0C0C10))
+                                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp)),
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                     contentDescription = if (favourite) "Remove favourite" else "Favourite",
-                                    tint = KittyText,
+                                    tint = if (favourite) Color.White else Color.White.copy(alpha = 0.7f),
                                 )
                             }
                         }
@@ -2524,8 +2520,11 @@ private fun TitleDetailScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = (-20).dp)
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF0C0C10))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                        .padding(horizontal = 12.dp, vertical = 14.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -2563,10 +2562,10 @@ private fun TitleDetailScreen(
                         "About ${detail.durationMinutes} min each",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .offset(y = (-12).dp),
-                        color = Color.White.copy(alpha = 0.55f),
+                            .padding(top = 8.dp),
+                        color = Color.White.copy(alpha = 0.45f),
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -2575,10 +2574,10 @@ private fun TitleDetailScreen(
                         "Your score ${listScore / 10} / 10",
                         modifier = Modifier
                             .fillMaxWidth()
-                            .offset(y = (-8).dp),
-                        color = Color.White.copy(alpha = 0.72f),
+                            .padding(top = 6.dp),
+                        color = Color.White.copy(alpha = 0.7f),
                         fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -2595,17 +2594,17 @@ private fun TitleDetailScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(KittySurface)
-                                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF0C0C10))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                 .padding(16.dp),
                         ) {
                             Text(
-                                "Details",
-                                color = Color.White.copy(alpha = 0.45f),
+                                "DETAILS",
+                                color = Color.White.copy(alpha = 0.6f),
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 1.2.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.sp,
                             )
                             if (detail.genres.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -2649,8 +2648,8 @@ private fun TitleDetailScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(16f / 9f)
-                                    .clip(RoundedCornerShape(20.dp))
-                                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
                                     .clickable {
                                         if (youtube) trailerPlaying = true else openUrl(watch)
                                     },
@@ -2684,17 +2683,16 @@ private fun TitleDetailScreen(
                                 Box(
                                     modifier = Modifier
                                         .align(Alignment.Center)
-                                        .size(56.dp)
-                                        .clip(RoundedCornerShape(999.dp))
-                                        .background(KittyAccent)
-                                        .border(1.dp, KittyAccentGlow.copy(alpha = 0.55f), RoundedCornerShape(999.dp)),
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
                                         Icons.Filled.PlayArrow,
                                         contentDescription = "Play trailer",
-                                        tint = KittyOnAccent,
-                                        modifier = Modifier.size(30.dp),
+                                        tint = Color.Black,
+                                        modifier = Modifier.size(28.dp),
                                     )
                                 }
                                 Text(
@@ -2702,12 +2700,12 @@ private fun TitleDetailScreen(
                                     modifier = Modifier
                                         .align(Alignment.BottomStart)
                                         .padding(12.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(KittySurface)
-                                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(10.dp))
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(Color(0xFF0C0C10))
+                                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
                                         .padding(horizontal = 10.dp, vertical = 5.dp),
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = KittyText,
+                                    color = Color.White,
                                     fontWeight = FontWeight.SemiBold,
                                 )
                                 }
@@ -2726,9 +2724,9 @@ private fun TitleDetailScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(KittySurface)
-                                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF0C0C10))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                 .padding(14.dp),
                         ) {
                             Row(
@@ -2736,31 +2734,32 @@ private fun TitleDetailScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(
-                                    "Your progress",
-                                    color = KittyText,
+                                    "YOUR PROGRESS",
+                                    color = Color.White.copy(alpha = 0.6f),
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp,
+                                    fontSize = 11.sp,
+                                    letterSpacing = 1.sp,
                                 )
                                 Text(
                                     "$watchedCount of $totalEps",
-                                    color = KittyFaint,
+                                    color = Color.White.copy(alpha = 0.45f),
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Medium,
                                 )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(4.dp)
+                                    .height(2.dp)
                                     .clip(RoundedCornerShape(999.dp))
-                                    .background(KittyOutlineSoft),
+                                    .background(Color.White.copy(alpha = 0.08f)),
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth(fraction)
-                                        .height(4.dp)
-                                        .background(KittyAccent),
+                                        .height(2.dp)
+                                        .background(Color.White),
                                 )
                             }
                         }
@@ -2771,36 +2770,35 @@ private fun TitleDetailScreen(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(KittySurface)
-                                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF0C0C10))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                 .padding(14.dp),
                         ) {
                             Text(
-                                "Synopsis",
-                                color = KittyFaint,
-                                style = MaterialTheme.typography.labelMedium,
+                                "SYNOPSIS",
+                                color = Color.White.copy(alpha = 0.6f),
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 0.6.sp,
+                                letterSpacing = 1.sp,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 detail.description!!,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = KittyMuted,
+                                color = Color.White.copy(alpha = 0.72f),
                                 maxLines = if (synopsisExpanded) 40 else 4,
                                 overflow = TextOverflow.Ellipsis,
                             )
-                            TextButton(
-                                onClick = { synopsisExpanded = !synopsisExpanded },
-                                contentPadding = PaddingValues(horizontal = 0.dp, vertical = 4.dp),
-                            ) {
-                                Text(
-                                    if (synopsisExpanded) "Show less" else "Read more",
-                                    color = KittyAccentGlow,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
+                            Text(
+                                if (synopsisExpanded) "Show less" else "Read more",
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .padding(top = 8.dp)
+                                    .spacePress { synopsisExpanded = !synopsisExpanded },
+                            )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                     }
@@ -2844,10 +2842,18 @@ private fun TitleDetailScreen(
                     val relatedExtras = remember(detail) { detail.relatedOutsideSeasons() }
                     if (relatedExtras.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(20.dp))
-                        KittySectionHeading(
-                            title = "Related",
-                            subtitle = "Spin-offs and more from AniList · seasons switch below",
-                            padded = false,
+                        Text(
+                            "RELATED",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.sp,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Spin-offs and more. Seasons switch below.",
+                            color = Color.White.copy(alpha = 0.4f),
+                            fontSize = 12.sp,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         LazyRow(
@@ -2857,10 +2863,7 @@ private fun TitleDetailScreen(
                                 Column(
                                     modifier = Modifier
                                         .width(112.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(KittySurface)
-                                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp))
-                                        .clickable {
+                                        .spacePress {
                                             onOpenRelated(
                                                 AnimeSummary(
                                                     id = rel.id,
@@ -2874,6 +2877,9 @@ private fun TitleDetailScreen(
                                                 ),
                                             )
                                         }
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF0C0C10))
+                                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                         .padding(6.dp),
                                 ) {
                                     AsyncImage(
@@ -2882,16 +2888,17 @@ private fun TitleDetailScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(2f / 3f)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(10.dp)),
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF141416)),
                                         contentScale = ContentScale.Crop,
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        rel.relationType,
+                                        rel.relationType.uppercase(),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = KittyAccentGlow,
+                                        color = Color.White.copy(alpha = 0.5f),
                                         fontWeight = FontWeight.SemiBold,
+                                        letterSpacing = 0.6.sp,
                                         maxLines = 1,
                                     )
                                     Text(
@@ -2926,10 +2933,12 @@ private fun TitleDetailScreen(
                     }
                     if (detail.recommendations.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(20.dp))
-                        KittySectionHeading(
-                            title = "Recommendations",
-                            subtitle = "From AniList",
-                            padded = false,
+                        Text(
+                            "RECOMMENDED",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.sp,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2937,10 +2946,10 @@ private fun TitleDetailScreen(
                                 Column(
                                     modifier = Modifier
                                         .width(112.dp)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(KittySurface)
-                                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(14.dp))
-                                        .clickable { onOpenRelated(rec) }
+                                        .spacePress { onOpenRelated(rec) }
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Color(0xFF0C0C10))
+                                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                         .padding(6.dp),
                                 ) {
                                     AsyncImage(
@@ -2949,7 +2958,8 @@ private fun TitleDetailScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(2f / 3f)
-                                            .clip(RoundedCornerShape(10.dp)),
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFF141416)),
                                         contentScale = ContentScale.Crop,
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -2968,52 +2978,69 @@ private fun TitleDetailScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(32.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(KittySurface)
-                            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(8.dp))
-                            .padding(2.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        listOf("sub" to "SUBTITLED", "dub" to "DUBBED").forEach { (key, label) ->
+                        listOf("sub" to "Subtitled", "dub" to "Dubbed").forEach { (key, label) ->
                             val selected = audio == key
+                            val background by animateColorAsState(
+                                if (selected) Color.White else Color(0xFF0C0C10),
+                                tween(180),
+                                label = "audioBg",
+                            )
+                            val textColor by animateColorAsState(
+                                if (selected) Color.Black else Color.White.copy(alpha = 0.7f),
+                                tween(180),
+                                label = "audioText",
+                            )
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (selected) KittyAccent else Color.Transparent)
-                                    .clickable {
+                                    .height(36.dp)
+                                    .spacePress {
                                         audio = key
                                         watchPrefs.edit().putString("audio", key).apply()
-                                    },
+                                    }
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(background)
+                                    .border(
+                                        0.5.dp,
+                                        if (selected) Color.White else Color.White.copy(alpha = 0.08f),
+                                        RoundedCornerShape(16.dp),
+                                    ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     label,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.5.sp,
-                                    color = if (selected) KittyOnAccent else KittyMuted,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = textColor,
                                 )
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(18.dp))
-                    KittySectionHeading(
-                        title = "Stream source",
-                        subtitle = "Play tries this first, then other installed providers",
-                        padded = false,
+                    Text(
+                        "SOURCE",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 1.sp,
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Play tries this first, then the other installed providers.",
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 12.sp,
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(KittyGlassShapeTight)
-                            .background(KittySurface)
-                            .border(1.dp, KittyOutlineSoft, KittyGlassShapeTight)
-                            .clickable(onClick = onChangeSource)
+                            .spacePress(onChangeSource)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF0C0C10))
+                            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -3030,10 +3057,10 @@ private fun TitleDetailScreen(
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
-                                "Tap to change in Store",
-                                color = KittyAccentGlow,
+                                "Tap to change",
+                                color = Color.White.copy(alpha = 0.45f),
                                 style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Medium,
                             )
                         }
                     }
@@ -3046,10 +3073,11 @@ private fun TitleDetailScreen(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(34.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color.White.copy(alpha = 0.05f))
-                                .padding(horizontal = 10.dp),
+                                .height(36.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFF0C0C10))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.CenterStart,
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -3086,7 +3114,7 @@ private fun TitleDetailScreen(
                             }
                         }
                         EpisodeTool(
-                            label = "GO",
+                            label = "Go",
                             enabled = epJump.isNotEmpty(),
                             onClick = {
                                 val ep = epJump.toIntOrNull()
@@ -3102,12 +3130,12 @@ private fun TitleDetailScreen(
                             },
                         )
                         EpisodeTool(
-                            label = "NEXT",
+                            label = "Next",
                             enabled = episode < maxEp,
                             onClick = { if (episode < maxEp) episode += 1 },
                         )
                         EpisodeTool(
-                            label = "LATEST",
+                            label = "Latest",
                             selected = episode == maxEp,
                             enabled = episode != maxEp,
                             onClick = { episode = maxEp },
@@ -3120,24 +3148,17 @@ private fun TitleDetailScreen(
                     ) {
                         Text(
                             "EPISODES",
-                            color = Color.White,
+                            color = Color.White.copy(alpha = 0.6f),
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 11.sp,
-                            letterSpacing = 0.5.sp,
+                            letterSpacing = 1.sp,
                         )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(Color.White.copy(alpha = 0.05f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp),
-                        ) {
-                            Text(
-                                "$maxEp",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 9.sp,
-                            )
-                        }
+                        Text(
+                            "$maxEp",
+                            color = Color.White.copy(alpha = 0.45f),
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 11.sp,
+                        )
                     }
                     val selectedTitle = episodeList.firstOrNull { it.number == episode }?.title
                         ?.takeIf { it.isNotBlank() && !it.equals("Episode $episode", ignoreCase = true) }
@@ -3172,11 +3193,11 @@ private fun TitleDetailScreen(
                     if (seasonTabs.size > 1) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "Seasons",
-                            color = KittyFaint,
-                            style = MaterialTheme.typography.labelMedium,
+                            "SEASONS",
+                            color = Color.White.copy(alpha = 0.6f),
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.5.sp,
+                            letterSpacing = 1.sp,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
@@ -3248,52 +3269,44 @@ private fun TitleDetailScreen(
                                 val selected = number == episode
                                 val watched = finishedThrough > 0 && number <= finishedThrough
                                 val continueEp = !watched && number == finishedThrough + 1
+                                val cellBg by animateColorAsState(
+                                    when {
+                                        selected -> Color.White
+                                        continueEp -> Color.White.copy(alpha = 0.14f)
+                                        watched -> Color.White.copy(alpha = 0.04f)
+                                        else -> Color(0xFF0C0C10)
+                                    },
+                                    tween(180),
+                                    label = "epBg",
+                                )
+                                val cellText by animateColorAsState(
+                                    when {
+                                        selected -> Color.Black
+                                        watched -> Color.White.copy(alpha = 0.35f)
+                                        else -> Color.White.copy(alpha = 0.9f)
+                                    },
+                                    tween(180),
+                                    label = "epText",
+                                )
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
                                         .aspectRatio(1f)
+                                        .spacePress { episode = number }
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(
-                                            when {
-                                                selected -> KittyAccent
-                                                continueEp -> KittyAccent.copy(alpha = 0.22f)
-                                                watched -> KittySurfaceElevated
-                                                else -> KittySurface
-                                            },
-                                        )
+                                        .background(cellBg)
                                         .border(
-                                            width = 1.dp,
-                                            color = when {
-                                                selected -> KittyAccent
-                                                continueEp -> KittyAccentGlow.copy(alpha = 0.55f)
-                                                else -> KittyOutlineSoft
-                                            },
+                                            width = 0.5.dp,
+                                            color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
                                             shape = RoundedCornerShape(12.dp),
-                                        )
-                                        .clickable { episode = number },
+                                        ),
                                     contentAlignment = Alignment.Center,
                                 ) {
-                                    if (watched && !selected) {
-                                        Icon(
-                                            Icons.Rounded.Check,
-                                            contentDescription = null,
-                                            tint = KittyFaint,
-                                            modifier = Modifier
-                                                .align(Alignment.TopEnd)
-                                                .padding(3.dp)
-                                                .size(10.dp),
-                                        )
-                                    }
                                     Text(
                                         "$number",
                                         fontSize = 14.sp,
                                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                        color = when {
-                                            selected -> KittyOnAccent
-                                            continueEp -> KittyText
-                                            watched -> KittyFaint
-                                            else -> KittyText.copy(alpha = 0.88f)
-                                        },
+                                        color = cellText,
                                     )
                                 }
                             }
@@ -3349,15 +3362,15 @@ private fun TitleDetailScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(999.dp))
-                                .background(KittySurfaceElevated)
-                                .border(1.dp, KittyOutlineSoft, RoundedCornerShape(999.dp))
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color(0xFF0C0C10))
+                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
                                 .padding(horizontal = 10.dp, vertical = 5.dp),
                         ) {
                             Text(
                                 "Ep $episode · ${audio.uppercase()}",
-                                color = KittyText,
-                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
                             )
                         }
@@ -3373,9 +3386,9 @@ private fun TitleDetailScreen(
                     activeServer?.name?.let { name ->
                         Text(
                             name,
-                            color = KittyAccentGlow,
+                            color = Color.White.copy(alpha = 0.55f),
                             style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -3403,25 +3416,26 @@ private fun TitleDetailScreen(
                     enabled = !resolving,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(14.dp),
+                        .height(48.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = KittyAccent,
-                        contentColor = KittyOnAccent,
+                        containerColor = Color.White,
+                        contentColor = Color.Black,
                     ),
                 ) {
                     if (resolving) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
                             strokeWidth = 2.dp,
-                            color = KittyOnAccent,
+                            color = Color.Black,
                         )
                     } else {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = Color.Black)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Play Episode $episode",
-                            fontWeight = FontWeight.Bold,
+                            "Play episode $episode",
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Black,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -3434,11 +3448,11 @@ private fun TitleDetailScreen(
                 .align(Alignment.TopStart)
                 .windowInsetsPadding(WindowInsets.statusBars)
                 .padding(16.dp)
-                .size(40.dp)
+                .size(36.dp)
+                .spacePress(onBack)
                 .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.6f))
-                .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
-                .clickable(onClick = onBack),
+                .background(Color(0xFF141416))
+                .border(0.5.dp, Color.White.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -3498,25 +3512,36 @@ private fun EpisodeTool(
     selected: Boolean = false,
     onClick: () -> Unit,
 ) {
+    val filled = selected
+    val background by animateColorAsState(
+        if (filled) Color.White else Color(0xFF0C0C10),
+        tween(180),
+        label = "toolBg",
+    )
+    val tint = when {
+        filled -> Color.Black
+        enabled -> Color.White.copy(alpha = 0.85f)
+        else -> Color.White.copy(alpha = 0.3f)
+    }
     Box(
         modifier = Modifier
-            .height(34.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (enabled || selected) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.02f))
+            .height(36.dp)
+            .then(if (enabled) Modifier.spacePress(onClick) else Modifier)
+            .clip(RoundedCornerShape(16.dp))
+            .background(background)
             .border(
                 0.5.dp,
-                if (selected) Color.White else Color.Transparent,
-                RoundedCornerShape(8.dp),
+                if (filled) Color.White else Color.White.copy(alpha = if (enabled) 0.08f else 0.04f),
+                RoundedCornerShape(16.dp),
             )
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
-            fontSize = 9.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (enabled || selected) Color.White else Color.White.copy(alpha = 0.3f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = tint,
         )
     }
 }
@@ -3591,31 +3616,27 @@ private fun SeasonRangeChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(12.dp)
-    Box(
+    val background by animateColorAsState(
+        if (selected) Color.White else Color.White.copy(alpha = 0.06f),
+        tween(180),
+        label = "rangeBg",
+    )
+    val text by animateColorAsState(
+        if (selected) Color.Black else Color.White.copy(alpha = 0.75f),
+        tween(180),
+        label = "rangeText",
+    )
+    Text(
+        label,
+        color = text,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp,
         modifier = Modifier
-            .clip(shape)
-            .then(
-                if (selected) {
-                    Modifier
-                        .background(KittyAccent)
-                        .border(1.dp, KittyAccent, shape)
-                } else {
-                    Modifier
-                        .background(KittySurface)
-                        .border(1.dp, KittyOutlineSoft, shape)
-                },
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-    ) {
-        Text(
-            label,
-            color = if (selected) KittyOnAccent else KittyText.copy(alpha = 0.88f),
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-        )
-    }
+            .clip(RoundedCornerShape(16.dp))
+            .background(background)
+            .spacePress(onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
 }
 
 @Composable
@@ -3810,10 +3831,11 @@ private fun EpisodeLegendDot(color: Color, label: String) {
 private fun PersonRow(title: String, people: List<site.anikitty.app.data.anilist.AnimePerson>) {
     Column {
         Text(
-            title,
-            color = KittyText,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
+            title.uppercase(),
+            color = Color.White.copy(alpha = 0.6f),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 11.sp,
+            letterSpacing = 1.sp,
         )
         Spacer(modifier = Modifier.height(10.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -3825,8 +3847,8 @@ private fun PersonRow(title: String, people: List<site.anikitty.app.data.anilist
                         modifier = Modifier
                             .size(72.dp)
                             .clip(CircleShape)
-                            .background(KittySurface)
-                            .border(1.dp, KittyOutlineSoft, CircleShape),
+                            .background(Color(0xFF1E1E20))
+                            .border(0.5.dp, Color.White.copy(alpha = 0.08f), CircleShape),
                         contentScale = ContentScale.Crop,
                     )
                     Spacer(modifier = Modifier.height(6.dp))
@@ -3891,20 +3913,31 @@ private fun formatAiring(epochSec: Long): String {
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(999.dp)
-    Box(
+    val background by animateColorAsState(
+        if (selected) Color.White else Color.White.copy(alpha = 0.05f),
+        tween(180),
+        label = "chipBg",
+    )
+    val stroke by animateColorAsState(
+        if (selected) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.08f),
+        tween(180),
+        label = "chipStroke",
+    )
+    val text by animateColorAsState(
+        if (selected) Color.Black else Color.White.copy(alpha = 0.75f),
+        tween(180),
+        label = "chipText",
+    )
+    Text(
+        label,
+        color = text,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
         modifier = Modifier
-            .clip(shape)
-            .background(if (selected) KittyAccent else KittySurface)
-            .border(1.dp, if (selected) KittyAccent else KittyOutlineSoft, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    ) {
-        Text(
-            label,
-            color = if (selected) KittyOnAccent else KittyText.copy(alpha = 0.82f),
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 12.sp,
-        )
-    }
+            .clip(RoundedCornerShape(16.dp))
+            .background(background)
+            .border(1.dp, stroke, RoundedCornerShape(16.dp))
+            .spacePress(onClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+    )
 }
