@@ -38,7 +38,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Sync
 import site.anikitty.app.ui.icons.FluentuiSystemIconsBookmarkOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsMoviesAndTvFilled
-import site.anikitty.app.ui.icons.FluentuiSystemIconsSettingsOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsStarFilled
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -87,6 +86,7 @@ fun MySpaceFeed(
     onOpen: (AnimeSummary) -> Unit,
     onOpenAccount: () -> Unit,
     onSignOut: () -> Unit,
+    avatarUrl: String? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -180,13 +180,10 @@ fun MySpaceFeed(
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
-                    Icon(
-                        imageVector = FluentuiSystemIconsSettingsOutline,
-                        contentDescription = "Account",
-                        tint = Color.White.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .size(22.dp)
-                            .spacePress(onOpenAccount),
+                    ProfileMark(
+                        imageUrl = viewer?.avatarUrl ?: avatarUrl,
+                        size = 36.dp,
+                        modifier = Modifier.spacePress(onOpenAccount),
                     )
                 }
             }

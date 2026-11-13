@@ -572,6 +572,7 @@ fun LocalFirstApp(
                     onOpen = { openDetail(it) },
                     onOpenAccount = { tab = "settings" },
                     onSignOut = onSignOut,
+                    avatarUrl = aniListAuth.avatarUrl,
                 )
                 "settings" -> SettingsFeed(
                     catalog = streamServers,
@@ -604,9 +605,12 @@ fun LocalFirstApp(
     Box(modifier = Modifier.fillMaxSize()) {
         KittyAtmosphere()
         PhoneTabs(Modifier.fillMaxSize())
+        val profileAvatar = aniLinkTick.let { aniListAuth.avatarUrl }
         KittyBottomNav(
             tabs = tabs,
             selectedId = if (tab == "settings" || tab == "store") "history" else tab,
+            profileTabId = "history",
+            profileImageUrl = profileAvatar,
             onSelect = { tab = it },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
@@ -715,6 +719,7 @@ private fun HomeFeed(
                             refreshBusy = catalogBusy,
                             onOpenSearch = onOpenSearch,
                             onOpenAccount = onOpenAccount,
+                            avatarUrl = aniListAuth.avatarUrl,
                         )
                     }
                     item { KittyPosterSkeletonRow("Continue watching") }
@@ -734,6 +739,7 @@ private fun HomeFeed(
                         refreshBusy = catalogBusy,
                         onOpenSearch = onOpenSearch,
                         onOpenAccount = onOpenAccount,
+                        avatarUrl = aniListAuth.avatarUrl,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                     KittyEmptyState(
@@ -753,6 +759,7 @@ private fun HomeFeed(
                             refreshBusy = catalogBusy,
                             onOpenSearch = onOpenSearch,
                             onOpenAccount = onOpenAccount,
+                            avatarUrl = aniListAuth.avatarUrl,
                         )
                     }
                     val phoneSections = homeLayout.sections()
@@ -1070,6 +1077,7 @@ private fun HomeWelcomeHeader(
     refreshBusy: Boolean = false,
     onOpenSearch: (() -> Unit)? = null,
     onOpenAccount: (() -> Unit)? = null,
+    avatarUrl: String? = null,
 ) {
     Row(
         modifier = Modifier
@@ -1114,12 +1122,21 @@ private fun HomeWelcomeHeader(
             }
             if (onOpenAccount != null) {
                 KittyRoundIconButton(onClick = onOpenAccount) {
-                    Icon(
-                        Icons.Outlined.Person,
-                        contentDescription = "Account",
-                        tint = KittyText,
-                        modifier = Modifier.size(20.dp),
-                    )
+                    if (!avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "AniList profile",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                    } else {
+                        Icon(
+                            Icons.Outlined.Person,
+                            contentDescription = "Account",
+                            tint = KittyText,
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
                 }
             } else if (onOpenSearch != null) {
                 KittyRoundIconButton(onClick = onOpenSearch) {
@@ -1732,6 +1749,8 @@ internal fun SettingsFeed(
                             } else {
                                 "Not signed in"
                             },
+                            avatarUrl = linkTick.let { aniListAuth.avatarUrl },
+                            useAvatar = true,
                             onClick = { page = "account" },
                         )
                     }
@@ -1980,17 +1999,23 @@ private fun SettingsHubRow(
     title: String,
     detail: String,
     onClick: () -> Unit,
+    avatarUrl: String? = null,
+    useAvatar: Boolean = false,
 ) {
     SpaceCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF141416)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+            if (useAvatar) {
+                ProfileMark(imageUrl = avatarUrl, size = 36.dp)
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF141416)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
