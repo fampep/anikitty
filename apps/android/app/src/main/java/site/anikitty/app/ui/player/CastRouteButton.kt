@@ -1,3 +1,6 @@
+// Copyright 2026 fampep. AniKitty is owned by fampep.
+// PolyForm Noncommercial License 1.0.0. https://polyformproject.org/licenses/noncommercial/1.0.0
+
 package site.anikitty.app.ui.player
 
 import android.view.ContextThemeWrapper

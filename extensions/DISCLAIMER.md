@@ -2,7 +2,7 @@
 
 **AniKitty** is a **custom educational Android client owned by fampep**.
 
-Copyright in the AniKitty application, extension **protocol**, guides, and store **index format** stays with **fampep**, under the **MIT License** (see [LICENSE](./LICENSE)). You can fork, modify, share, and contribute. That does not transfer the existing copyright away from fampep.
+Copyright in the AniKitty application, extension **protocol**, guides, and store **index format** stays with **fampep**, under the **PolyForm Noncommercial License 1.0.0** (see [LICENSE](./LICENSE)). Noncommercial use, changes, and sharing are allowed. That does not transfer the existing copyright away from fampep.
 
 ## What fampep owns and controls
 
@@ -21,7 +21,7 @@ Community contributions (docs, examples, store *links*) are **gladly accepted**.
 
 ## Use
 
-Use AniKitty and this protocol under the MIT License, including learning Compose, Media3, local-first design, and extension contracts. Comply with the laws that apply to you for any media or services you access. Maintainers do not provide copyrighted media catalogs.
+Use AniKitty and this protocol under the PolyForm Noncommercial License 1.0.0, including learning Compose, Media3, local-first design, and extension contracts. Comply with the laws that apply to you for any media or services you access. Maintainers do not provide copyrighted media catalogs.
 
 ## No warranty / no endorsement
 

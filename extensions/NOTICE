@@ -1,12 +1,13 @@
 AniKitty and AniKitty Extensions
 Copyright 2026 fampep
 
-Licensed under the MIT License. See LICENSE.
-https://opensource.org/license/mit
+AniKitty is owned by fampep.
+Licensed under the PolyForm Noncommercial License 1.0.0.
+https://polyformproject.org/licenses/noncommercial/1.0.0
 
-Copyright stays with fampep. Anyone may fork, modify, share, and send
-contributions. Keep this copyright notice and the MIT permission notice
-with copies of the code.
+Required Notice: Copyright 2026 fampep (https://github.com/fampep) — AniKitty is owned by fampep.
+
+Noncommercial use, changes, and sharing are allowed. Keep this notice with copies of the code.
 
 Third-party extension repositories linked from extensions/store/index.json
 remain the property and responsibility of their respective authors. Inclusion
