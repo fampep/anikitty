@@ -307,7 +307,8 @@ fun LocalFirstApp(
                 episode = current.episode,
                 sources = current.sources,
                 anilistId = current.anime.id,
-                malId = current.anime.malId,
+                titleHint = current.anime.searchTitles().joinToString(" || "),
+                loadSkip = streamServers::anikotoSkipTimes,
                 startPositionMs = resumeMs,
                 onClose = {
                     // Return to detail for this title without wiping related back-stack.

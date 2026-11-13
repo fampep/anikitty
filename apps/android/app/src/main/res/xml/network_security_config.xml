@@ -11,9 +11,4 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
     </domain-config>
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">anikitty.online</domain>
-        <domain includeSubdomains="true">anikitty.site</domain>
-        <domain includeSubdomains="true">api.aniskip.com</domain>
-    </domain-config>
 </network-security-config>

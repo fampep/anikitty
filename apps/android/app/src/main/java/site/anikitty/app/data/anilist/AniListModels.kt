@@ -91,7 +91,7 @@ data class AnimeSummary(
     /** AniList romaji — often matches Anikoto page titles better than English. */
     val romajiTitle: String? = null,
     val nativeTitle: String? = null,
-    /** MyAnimeList id — used for AniSkip intro/credits timestamps. */
+    /** MyAnimeList id, kept with local watch history. */
     val malId: Int? = null,
     val status: String? = null,
     val season: String? = null,
