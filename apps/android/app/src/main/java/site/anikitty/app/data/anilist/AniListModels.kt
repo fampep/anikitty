@@ -270,4 +270,6 @@ data class AniListMediaListEntry(
     val status: String,
     val progress: Int,
     val media: AnimeSummary,
+    /** AniList list-entry id, used to remove the show from the list. */
+    val id: Int = 0,
 )
