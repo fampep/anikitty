@@ -358,7 +358,7 @@ fun LocalFirstApp(
                             anilistId = current.anime.id,
                             episode = nextEpisode,
                             audio = nextAudio,
-                            titleHint = current.anime.searchTitles().joinToString(" || "),
+                            titleHint = current.anime.streamTitleHint(),
                         )
                         val existing = historyDao.get(current.anime.id)
                         historyDao.upsert(
@@ -408,7 +408,7 @@ fun LocalFirstApp(
                 episode = current.episode,
                 sources = current.sources,
                 anilistId = current.anime.id,
-                titleHint = current.anime.searchTitles().joinToString(" || "),
+                titleHint = current.anime.streamTitleHint(),
                 loadSkip = streamServers::anikotoSkipTimes,
                 startPositionMs = resumeMs,
                 onClose = {
@@ -2250,7 +2250,7 @@ private fun TitleDetailScreen(
                     anilistId = detail.id,
                     episode = episode,
                     audio = audio,
-                    titleHint = detail.searchTitles().joinToString(" || "),
+                    titleHint = detail.streamTitleHint(),
                     onAttempt = { name, index, total ->
                         status = if (total <= 1) {
                             "Getting stream via $name…"

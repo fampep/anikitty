@@ -125,6 +125,16 @@ data class AnimeSummary(
             .filter { it.length >= 2 }
             .distinct()
 
+    /**
+     * Title hint for stream resolvers. Appends `mal:<id>` so Anikoto can reject
+     * a same-named film or series (Ghost in the Shell vs 2.0 / The New Movie).
+     */
+    fun streamTitleHint(): String {
+        val titles = searchTitles().joinToString(" || ")
+        val mal = malId?.takeIf { it > 0 }?.let { "mal:$it" } ?: return titles
+        return if (titles.isBlank()) mal else "$titles || $mal"
+    }
+
     fun seasonLabel(): String? {
         val s = season?.lowercase()?.replaceFirstChar { it.titlecase() }
         return when {

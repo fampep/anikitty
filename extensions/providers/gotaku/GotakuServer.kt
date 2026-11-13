@@ -336,7 +336,8 @@ class GotakuServer(
         val out = LinkedHashSet<String>()
         // Callers pass "Romaji || English || Native". Searching that whole string
         // ranks spin-offs ahead of the series (One Piece films, other "Monster" shows).
-        val parts = raw.split("||").map { it.trim() }.filter { it.length >= 2 }
+        val parts = raw.split("||").map { it.trim() }
+            .filter { it.length >= 2 && !it.matches(Regex("""(?i)mal:\d+""")) }
         val seeds = if (parts.isEmpty()) listOf(raw) else parts
         for (full in seeds) {
             out += full
