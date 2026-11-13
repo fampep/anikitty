@@ -14,6 +14,8 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import com.google.android.gms.cast.framework.CastContext
 import site.anikitty.app.data.servers.PlayableSource
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.concurrent.thread
 
 /**
@@ -30,6 +32,8 @@ class CastSessionHelper private constructor(
         private set
 
     private val main = Handler(Looper.getMainLooper())
+    private val generation = AtomicInteger(0)
+    private val closed = AtomicBoolean(false)
 
     fun setAvailabilityListener(listener: SessionAvailabilityListener?) {
         castPlayer.setSessionAvailabilityListener(listener)
@@ -43,22 +47,31 @@ class CastSessionHelper private constructor(
         onReady: () -> Unit,
         onError: (String) -> Unit,
     ) {
+        val ticket = generation.incrementAndGet()
         thread(name = "anikitty-cast-load", isDaemon = true) {
             val prepared = runCatching { relay.prepare(source) }
             main.post {
+                if (closed.get() || ticket != generation.get()) return@post
                 prepared.fold(
                     onSuccess = { playback ->
                         runCatching { start(playback, title, episode, positionMs) }
                             .onSuccess { onReady() }
-                            .onFailure { onError(it.message ?: "Cast failed") }
+                            .onFailure {
+                                relay.stop()
+                                onError(it.message ?: "Cast failed")
+                            }
                     },
-                    onFailure = { onError(it.message ?: "Cast failed") },
+                    onFailure = {
+                        relay.stop()
+                        onError(it.message ?: "Cast failed")
+                    },
                 )
             }
         }
     }
 
     private fun start(playback: RelayPlayback, title: String, episode: Int, positionMs: Long) {
+        relay.publish(playback)
         val subs = playback.subtitles.mapIndexed { index, track ->
             MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(track.url))
                 .setMimeType(MimeTypes.TEXT_VTT)
@@ -87,12 +100,15 @@ class CastSessionHelper private constructor(
     }
 
     fun stopCasting() {
-        if (!casting) return
+        generation.incrementAndGet()
         runCatching { castPlayer.stop() }
+        relay.stop()
         casting = false
     }
 
     fun release() {
+        closed.set(true)
+        generation.incrementAndGet()
         setAvailabilityListener(null)
         runCatching { castPlayer.release() }
         relay.stop()

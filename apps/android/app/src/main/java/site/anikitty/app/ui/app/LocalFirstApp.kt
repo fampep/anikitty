@@ -214,6 +214,7 @@ fun LocalFirstApp(
     var syncLabel by remember { mutableStateOf<String?>(null) }
     var aniLinkStatus by remember { mutableStateOf<String?>(null) }
     var aniLinkTick by remember { mutableIntStateOf(0) }
+    var openAccountTick by remember { mutableIntStateOf(0) }
 
     fun openDetail(anime: AnimeSummary, startEpisode: Int? = null, pushCurrent: Boolean = false) {
         val next = Screen.Detail(anime, startEpisode)
@@ -246,11 +247,13 @@ fun LocalFirstApp(
                 aniLinkStatus = "AniList: $pendingAniListError"
                 screen = Screen.Tabs
                 tab = "settings"
+                openAccountTick++
                 onConsumedAniListToken()
             }
             !pendingAniListToken.isNullOrBlank() -> {
                 screen = Screen.Tabs
                 tab = "settings"
+                openAccountTick++
                 if (aniListAuth.isLinked) {
                     onAniListReady()
                     aniLinkStatus = "Signed in as @${aniListAuth.username ?: "anilist"}"
@@ -527,6 +530,7 @@ fun LocalFirstApp(
                     onSignOut = onSignOut,
                     onOpenStore = { tab = "store" },
                     onOpenBuilds = { screen = Screen.Builds },
+                    openAccountTick = openAccountTick,
                     onOpenLibrary = { filter ->
                         libraryFilter = filter
                         screen = Screen.Tabs
@@ -1965,6 +1969,7 @@ internal fun SettingsFeed(
     onOpenBuilds: () -> Unit,
     onOpenLibrary: (String) -> Unit = {},
     homeLayout: HomeLayoutStore,
+    openAccountTick: Int = 0,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
     val resolvers by catalog.resolvers.collectAsState()
@@ -1976,6 +1981,9 @@ internal fun SettingsFeed(
     // linkTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
     val isLinked = linkTick.let { aniListAuth.isLinked }
     var page by rememberSaveable { mutableStateOf("hub") }
+    LaunchedEffect(openAccountTick) {
+        if (openAccountTick > 0) page = "account"
+    }
     BackHandler(enabled = page != "hub") { page = "hub" }
     val selectedName = resolvers.firstOrNull { it.server.id == selectedId }?.server?.name ?: "None selected"
     val homeShown = homeLayout.sections().count { it.enabled }

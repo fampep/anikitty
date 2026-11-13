@@ -22,7 +22,6 @@ import java.net.Socket
 import java.net.URI
 import java.net.URLDecoder
 import java.net.URLEncoder
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
@@ -37,6 +36,10 @@ data class RelayPlayback(
     val url: String,
     val mimeType: String,
     val subtitles: List<RelaySubtitle>,
+    /** Playlist bytes to serve on `/play` once the receiver is actually loaded. */
+    val playlist: ByteArray?,
+    /** Upstream URLs this playback may fetch. Kept off the live allowlist until publish. */
+    val allowed: Set<String>,
 )
 
 /**
@@ -56,10 +59,12 @@ class CastRelay(context: Context) {
     private val gotakuFactory = GotakuObfDataSource.Factory(httpFactory, obf)
     private val factory = SegmentStripDataSource.Factory(gotakuFactory, stripBytes = stripBytes)
 
-    private val allowed = ConcurrentHashMap.newKeySet<String>()
-    private val pool = Executors.newFixedThreadPool(6) { runnable ->
-        Thread(runnable, "anikitty-cast").apply { isDaemon = true }
-    }
+    private val allowLock = Any()
+    /** URLs the receiver is playing now, plus the previous load so a switch does not 403. */
+    private var liveAllowed = emptySet<String>()
+    private var priorAllowed = emptySet<String>()
+    private val collecting = ThreadLocal<MutableSet<String>>()
+    private var pool = newPool()
     @Volatile private var source: PlayableSource? = null
     @Volatile private var cachedPlaylist: ByteArray? = null
     @Volatile private var running = false
@@ -86,31 +91,52 @@ class CastRelay(context: Context) {
             else -> SegmentStripDataSource.DEFAULT_STRIP_BYTES
         }
         stripBytes.set(strip)
-        allowed.clear()
+        val fresh = LinkedHashSet<String>()
+        collecting.set(fresh)
         allow(next.url)
         start()
         val playlist = readPlaylist(next.url)
-        cachedPlaylist = playlist
-        val mime = if (playlist != null) HLS_MIME else "video/mp4"
-        val subs = next.subtitles.mapIndexedNotNull { index, track ->
-            if (!track.url.startsWith("http")) return@mapIndexedNotNull null
-            val lower = track.url.lowercase()
-            val text = lower.contains(".vtt") || lower.contains(".srt") ||
-                track.mimeType?.contains("vtt", true) == true ||
-                track.mimeType?.contains("subrip", true) == true
-            if (!text) return@mapIndexedNotNull null
-            allow(track.url)
-            RelaySubtitle(
-                url = "http://$host:$port/sub?i=$index",
-                label = track.label.ifBlank { "Subtitles" },
-                language = track.language,
-            )
+        val mime = when {
+            playlist != null -> HLS_MIME
+            next.gotakuObf != null -> HLS_MIME
+            next.url.contains(".m3u8", ignoreCase = true) -> HLS_MIME
+            next.url.contains("/p/1") -> HLS_MIME
+            else -> "video/mp4"
+        }
+        val subs = try {
+            next.subtitles.mapIndexedNotNull { index, track ->
+                if (!track.url.startsWith("http")) return@mapIndexedNotNull null
+                val lower = track.url.lowercase()
+                val text = lower.contains(".vtt") || lower.contains(".srt") ||
+                    track.mimeType?.contains("vtt", true) == true ||
+                    track.mimeType?.contains("subrip", true) == true
+                if (!text) return@mapIndexedNotNull null
+                allow(track.url)
+                RelaySubtitle(
+                    url = "http://$host:$port/sub?i=$index",
+                    label = track.label.ifBlank { "Subtitles" },
+                    language = track.language,
+                )
+            }
+        } finally {
+            collecting.remove()
         }
         return RelayPlayback(
             url = "http://$host:$port/play",
             mimeType = mime,
             subtitles = subs,
+            playlist = playlist,
+            allowed = fresh,
         )
+    }
+
+    /** Swap the served playlist and allowlist when the receiver is given this load. */
+    fun publish(playback: RelayPlayback) {
+        synchronized(allowLock) {
+            priorAllowed = liveAllowed
+            liveAllowed = playback.allowed
+            cachedPlaylist = playback.playlist
+        }
     }
 
     fun stop() {
@@ -119,7 +145,13 @@ class CastRelay(context: Context) {
         server = null
         acceptThread = null
         cachedPlaylist = null
-        allowed.clear()
+        synchronized(allowLock) {
+            liveAllowed = emptySet()
+            priorAllowed = emptySet()
+        }
+        val retiring = pool
+        pool = newPool()
+        retiring.shutdownNow()
         runCatching { wifiLock?.release() }
         runCatching { multicast?.release() }
         runCatching { wakeLock?.release() }
@@ -144,7 +176,7 @@ class CastRelay(context: Context) {
                 } catch (_: Exception) {
                     break
                 }
-                pool.execute { handle(client) }
+                workers().execute { handle(client) }
             }
         }, "anikitty-cast-accept").apply {
             isDaemon = true
@@ -193,7 +225,7 @@ class CastRelay(context: Context) {
                 "/play" -> servePlay(client, range)
                 "/u" -> {
                     val raw = queryValue(query, "u")
-                    if (raw == null || raw !in allowed) {
+                    if (raw == null || !permitted(raw)) {
                         writeStatus(client, 403, "text/plain", "No".toByteArray())
                     } else {
                         serveUpstream(client, raw, range)
@@ -202,7 +234,7 @@ class CastRelay(context: Context) {
                 "/sub" -> {
                     val index = queryValue(query, "i")?.toIntOrNull()
                     val track = index?.let { source?.subtitles?.getOrNull(it) }
-                    if (track == null || track.url !in allowed) {
+                    if (track == null || !permitted(track.url)) {
                         writeStatus(client, 404, "text/plain", "No".toByteArray())
                     } else {
                         val body = readBytes(track.url)?.let { toVtt(it) }
@@ -332,7 +364,21 @@ class CastRelay(context: Context) {
     }
 
     private fun allow(url: String) {
-        if (allowed.size < 8_000) allowed.add(url)
+        val set = collecting.get() ?: return
+        if (set.size < 8_000) set.add(url)
+    }
+
+    private fun permitted(url: String): Boolean = synchronized(allowLock) {
+        url in liveAllowed || url in priorAllowed
+    }
+
+    private fun workers(): java.util.concurrent.ExecutorService {
+        if (pool.isShutdown) pool = newPool()
+        return pool
+    }
+
+    private fun newPool() = Executors.newFixedThreadPool(6) { runnable ->
+        Thread(runnable, "anikitty-cast").apply { isDaemon = true }
     }
 
     private fun looksLikePlaylist(url: String, headers: Map<String, List<String>>): Boolean {
