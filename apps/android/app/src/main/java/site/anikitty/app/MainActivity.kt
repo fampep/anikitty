@@ -1,6 +1,7 @@
 package site.anikitty.app
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +20,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val television = isTelevisionDevice(
+            config = resources.configuration,
+            hasLeanback = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK),
+        )
+        if (television && !AniListOAuth.matchesCallback(intent)) {
+            startActivity(Intent(this, TvActivity::class.java))
+            finish()
+            return
+        }
         enableEdgeToEdge()
         consumeOAuthIntent(intent)
         val app = application as AnikittyApp
