@@ -109,7 +109,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListAuthStore
+import site.anikitty.app.data.airingLabel
 import site.anikitty.app.data.anilist.AniListClient
+import site.anikitty.app.data.friendlyFailure
+import site.anikitty.app.data.minutesLeft
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeEpisodeItem
@@ -178,6 +181,7 @@ fun LocalFirstApp(
     onAniListReady: () -> Unit = {},
     onSignOut: () -> Unit,
 ) {
+    val context = LocalContext.current
     // Tab survives recreation; detail/player stack relies on configChanges in the manifest
     // so landscape lock in PlayerScreen does not wipe navigation.
     var tab by rememberSaveable { mutableStateOf("home") }
@@ -347,7 +351,10 @@ fun LocalFirstApp(
                                     val resolved = streamServers.resolveWithFailover(
                                         anilistId = current.anime.id,
                                         episode = next,
-                                        audio = "sub",
+                                        audio = context.getSharedPreferences(
+                                            "anikitty_watch",
+                                            android.content.Context.MODE_PRIVATE,
+                                        ).getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub",
                                         titleHint = current.anime.searchTitles().joinToString(" || "),
                                     )
                                     val existing = historyDao.get(current.anime.id)
@@ -610,7 +617,7 @@ private fun HomeFeed(
                     popular = p.await()
                     seasonal = s.await()
                 }
-            }.onFailure { error = it.message ?: "Failed to load" }
+            }.onFailure { error = friendlyFailure(it.message) }
             loading = false
             refreshing = false
         }
@@ -783,7 +790,24 @@ private fun HomeFeed(
                                             episode = target,
                                             positionMs = if (resume) entry.positionMs else 0L,
                                             durationMs = if (resume) entry.durationMs else 0L,
-                                            badge = if (resume) "Resume" else listStatusBadge(entry.listStatus),
+                                            badge = buildString {
+                                                val label = if (resume) {
+                                                    "Resume"
+                                                } else {
+                                                    listStatusBadge(entry.listStatus)
+                                                }
+                                                if (!label.isNullOrBlank()) append(label)
+                                                val left = if (resume) {
+                                                    minutesLeft(entry.positionMs, entry.durationMs)
+                                                } else {
+                                                    null
+                                                }
+                                                if (left != null) {
+                                                    if (isNotEmpty()) append(" · ")
+                                                    append(left)
+                                                    append(" min left")
+                                                }
+                                            }.ifBlank { null },
                                             onClick = {
                                                 scope.launch {
                                                     val detail = aniList.media(entry.anilistId)
@@ -973,7 +997,15 @@ private fun ResumeSpotlight(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "Episode $target",
+                buildString {
+                    append("Episode $target")
+                    val left = if (resume) minutesLeft(entry.positionMs, entry.durationMs) else null
+                    if (left != null) {
+                        append(" · ")
+                        append(left)
+                        append(" min left")
+                    }
+                },
                 color = KittyMuted,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -1038,7 +1070,6 @@ private fun TodayAiringRail(
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             lazyItems(shown, key = { "${it.anime.id}-${it.episode}-${it.airingAtEpochSec}" }) { slot ->
-                val soon = slot.airingAtEpochSec - now in 0..(45 * 60)
                 Column(
                     modifier = Modifier
                         .width(148.dp)
@@ -1059,7 +1090,11 @@ private fun TodayAiringRail(
                             contentScale = ContentScale.Crop,
                         )
                         Text(
-                            if (soon) "Soon" else clock.format(java.util.Date(slot.airingAtEpochSec * 1000L)),
+                            airingLabel(
+                                slot.airingAtEpochSec,
+                                now,
+                                clock.format(java.util.Date(slot.airingAtEpochSec * 1000L)),
+                            ),
                             color = KittyOnAccent,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
@@ -1252,7 +1287,7 @@ private fun SearchFeed(
             }.onSuccess {
                 items = it
                 if (q.length >= 2 && it.isNotEmpty()) rememberQuery(q)
-            }.onFailure { error = it.message }
+            }.onFailure { error = friendlyFailure(it.message) }
             loading = false
         }
     }
@@ -1418,6 +1453,7 @@ private fun SearchFeed(
                         runSearch(q)
                     }
                 }
+                Chip("Clear", selected = false) { recentRaw = "" }
             }
         }
         Spacer(modifier = Modifier.height(12.dp))
@@ -1425,7 +1461,18 @@ private fun SearchFeed(
             loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = KittyAccent)
             }
-            error != null && items.isEmpty() -> Text(error!!, color = MaterialTheme.colorScheme.error)
+            error != null && items.isEmpty() -> Column(Modifier.weight(1f)) {
+                Text(error!!, color = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { runSearch(query) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = KittyAccent,
+                        contentColor = KittyOnAccent,
+                    ),
+                ) { Text("Retry", fontWeight = FontWeight.Bold) }
+            }
             items.isNotEmpty() -> Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
@@ -2181,7 +2228,12 @@ private fun TitleDetailScreen(
     var detail by remember(anime.id) { mutableStateOf(anime) }
     var episode by remember(anime.id) { mutableIntStateOf(initialEpisode ?: 1) }
     var epJump by remember(anime.id) { mutableStateOf("") }
-    var audio by remember(anime.id) { mutableStateOf("sub") }
+    val watchPrefs = remember {
+        context.getSharedPreferences("anikitty_watch", android.content.Context.MODE_PRIVATE)
+    }
+    var audio by remember(anime.id) {
+        mutableStateOf(watchPrefs.getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub")
+    }
     var resolving by remember(anime.id) { mutableStateOf(false) }
     var status by remember(anime.id) { mutableStateOf<String?>(null) }
     var listBadge by remember(anime.id) { mutableStateOf<String?>(null) }
@@ -2223,7 +2275,7 @@ private fun TitleDetailScreen(
             history?.episode != null -> history.episode.coerceAtLeast(1)
             else -> 1
         }
-        audio = "sub"
+        audio = watchPrefs.getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub"
         listStatus = history?.listStatus
         listBadge = listStatusBadge(history?.listStatus)
         favourite = anime.isFavourite
@@ -2645,6 +2697,18 @@ private fun TitleDetailScreen(
                         label = "Format",
                     )
                 }
+                if (!movie && (detail.durationMinutes ?: 0) > 0) {
+                    Text(
+                        "About ${detail.durationMinutes} min each",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset(y = (-12).dp),
+                        color = Color.White.copy(alpha = 0.55f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 if (listScore > 0) {
                     Text(
                         "Your score ${listScore / 10} / 10",
@@ -2868,6 +2932,16 @@ private fun TitleDetailScreen(
                         Chip("AniList", false) {
                             openUrl("https://anilist.co/anime/${detail.id}")
                         }
+                        Chip("Share", false) {
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    "${detail.title}\nhttps://anilist.co/anime/${detail.id}",
+                                )
+                            }
+                            context.startActivity(Intent.createChooser(send, detail.title))
+                        }
                         detail.malId?.let { mal ->
                             Chip("MyAnimeList", false) {
                                 openUrl("https://myanimelist.net/anime/$mal")
@@ -3026,7 +3100,10 @@ private fun TitleDetailScreen(
                                     .fillMaxHeight()
                                     .clip(RoundedCornerShape(6.dp))
                                     .background(if (selected) KittyAccent else Color.Transparent)
-                                    .clickable { audio = key },
+                                    .clickable {
+                                        audio = key
+                                        watchPrefs.edit().putString("audio", key).apply()
+                                    },
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
@@ -3104,9 +3181,14 @@ private fun TitleDetailScreen(
                                     ),
                                     keyboardActions = KeyboardActions(onGo = {
                                         val ep = epJump.toIntOrNull()
-                                        if (ep != null && ep in 1..maxEp) {
-                                            episode = ep
-                                            epJump = ""
+                                        when {
+                                            ep == null -> status = "Type an episode number"
+                                            ep !in 1..maxEp -> status = "Episodes only go to $maxEp"
+                                            else -> {
+                                                episode = ep
+                                                epJump = ""
+                                                status = null
+                                            }
                                         }
                                     }),
                                     singleLine = true,
@@ -3119,6 +3201,22 @@ private fun TitleDetailScreen(
                                 )
                             }
                         }
+                        EpisodeTool(
+                            label = "GO",
+                            enabled = epJump.isNotEmpty(),
+                            onClick = {
+                                val ep = epJump.toIntOrNull()
+                                when {
+                                    ep == null -> status = "Type an episode number"
+                                    ep !in 1..maxEp -> status = "Episodes only go to $maxEp"
+                                    else -> {
+                                        episode = ep
+                                        epJump = ""
+                                        status = null
+                                    }
+                                }
+                            },
+                        )
                         EpisodeTool(
                             label = "NEXT",
                             enabled = episode < maxEp,

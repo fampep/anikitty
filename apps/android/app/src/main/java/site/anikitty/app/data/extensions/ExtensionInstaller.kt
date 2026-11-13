@@ -1,6 +1,9 @@
 package site.anikitty.app.data.extensions
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 
 class ExtensionInstaller(
@@ -43,14 +46,19 @@ class ExtensionInstaller(
      * Keys are extension ids, values are the newer version string.
      */
     suspend fun availableUpdates(): Map<String, String> = withContext(Dispatchers.IO) {
-        val updates = LinkedHashMap<String, String>()
-        for (installed in repository.installed.value) {
-            val remote = runCatching { fetchPublished(installed) }.getOrNull() ?: continue
-            if (remote.id == installed.id && isNewerVersion(remote.version, installed.version)) {
-                updates[installed.id] = remote.version
-            }
+        coroutineScope {
+            repository.installed.value.map { installed ->
+                async {
+                    val remote = runCatching { fetchPublished(installed) }.getOrNull()
+                        ?: return@async null
+                    if (remote.id == installed.id && isNewerVersion(remote.version, installed.version)) {
+                        installed.id to remote.version
+                    } else {
+                        null
+                    }
+                }
+            }.awaitAll().filterNotNull().toMap()
         }
-        updates
     }
 
     suspend fun update(id: String): ExtensionManifest = withContext(Dispatchers.IO) {

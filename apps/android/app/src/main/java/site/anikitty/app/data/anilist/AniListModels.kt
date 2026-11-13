@@ -91,6 +91,7 @@ data class AnimeSummary(
     /** AniList romaji — often matches Anikoto page titles better than English. */
     val romajiTitle: String? = null,
     val nativeTitle: String? = null,
+    val synonyms: List<String> = emptyList(),
     /** MyAnimeList id, kept with local watch history. */
     val malId: Int? = null,
     val status: String? = null,
@@ -115,9 +116,9 @@ data class AnimeSummary(
 ) {
     /** Titles to try when mapping a watch page / search (romaji first — matches Anikoto). */
     fun searchTitles(): List<String> =
-        listOfNotNull(romajiTitle, title, nativeTitle)
+        (listOfNotNull(romajiTitle, title, nativeTitle) + synonyms)
             .map { it.trim() }
-            .filter { it.isNotEmpty() }
+            .filter { it.length >= 2 }
             .distinct()
 
     fun seasonLabel(): String? {

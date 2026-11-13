@@ -12,6 +12,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import site.anikitty.app.data.friendlyFailure
+import site.anikitty.app.data.plainSynopsis
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 
@@ -635,7 +637,7 @@ class AniListClient(
                             )
                             !response.isSuccessful -> Attempt(
                                 error = IllegalStateException(
-                                    "AniList HTTP ${response.code}: ${body.take(200)}",
+                                    friendlyFailure("HTTP ${response.code}"),
                                 ),
                             )
                             else -> {
@@ -659,7 +661,7 @@ class AniListClient(
                 when {
                     attemptResult.body != null -> return attemptResult.body
                     attemptResult.retryAfterSec != null -> {
-                        lastError = IllegalStateException("AniList rate limited")
+                        lastError = IllegalStateException(friendlyFailure("AniList rate limited"))
                         delay(attemptResult.retryAfterSec.coerceIn(1L, 30L) * 1000L)
                     }
                     else -> {
@@ -823,11 +825,12 @@ class AniListClient(
             episodes = item.nullableInt("episodes"),
             format = item.nullableString("format"),
             averageScore = item.nullableInt("averageScore"),
-            description = item.nullableString("description")?.replace(Regex("<[^>]+>"), " ")
-                ?.replace(Regex("\\s+"), " ")
-                ?.trim(),
+            description = item.nullableString("description")
+                ?.replace(Regex("<[^>]+>"), " ")
+                ?.let(::plainSynopsis),
             romajiTitle = romaji?.takeIf { it != title },
             nativeTitle = native?.takeIf { it != title && it != romaji },
+            synonyms = item.optJSONArray("synonyms")?.toStringList().orEmpty().take(8),
             malId = item.nullableInt("idMal"),
             status = item.nullableString("status"),
             season = item.nullableString("season"),

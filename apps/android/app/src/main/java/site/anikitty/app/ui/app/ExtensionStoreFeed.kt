@@ -453,9 +453,13 @@ fun ExtensionStoreFeed(
                             Text("Selected", fontWeight = FontWeight.Bold)
                         }
                     } else {
+                        val sample = listing.id == "site.anikitty.example.hello"
                         Button(
                             onClick = {
                                 when {
+                                    sample && !onDevice && !isBundled -> {
+                                        status = "Hello is a sample listing, not a stream"
+                                    }
                                     onDevice || isBundled -> {
                                         catalog.select(listing.id)
                                         status = "Selected ${listing.name}"
@@ -474,7 +478,7 @@ fun ExtensionStoreFeed(
                                     }
                                 }
                             },
-                            enabled = !busy,
+                            enabled = !busy && !(sample && !onDevice && !isBundled),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = KittyAccent,
@@ -483,7 +487,11 @@ fun ExtensionStoreFeed(
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
-                                if (onDevice || isBundled) "Use" else "Install",
+                                when {
+                                    onDevice || isBundled -> "Use"
+                                    sample -> "Example"
+                                    else -> "Install"
+                                },
                                 fontWeight = FontWeight.Bold,
                             )
                         }
