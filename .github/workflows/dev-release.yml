@@ -52,6 +52,7 @@ jobs:
           mv "$tmp/cmdline-tools" "$SDK/cmdline-tools/latest"
           "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platforms;android-35" "build-tools;35.0.0"
 
+      # Same key for every dev and stable APK so a later build can install over this one.
       - name: Release signing
         env:
           KEYSTORE_B64: ${{ secrets.ANIKITTY_KEYSTORE_BASE64 }}
@@ -68,7 +69,12 @@ jobs:
           keyPassword=${KEY_PASSWORD}
           EOF
           else
-            echo "No release keystore secret set; the APK will use the runner debug key."
+            cat > apps/android/keystore.properties <<EOF
+          storeFile=${{ github.workspace }}/apps/android/signing/anikitty-ci.key
+          storePassword=anikitty-ci
+          keyAlias=anikitty
+          keyPassword=anikitty-ci
+          EOF
           fi
 
       - name: Build release APK
