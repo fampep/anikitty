@@ -189,6 +189,7 @@ fun LocalFirstApp(
     onConsumedPairUri: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val homeLayout = remember { HomeLayoutStore(context) }
     // Tab survives recreation; detail/player stack relies on configChanges in the manifest
     // so landscape lock in PlayerScreen does not wipe navigation.
     var tab by rememberSaveable {
@@ -474,6 +475,7 @@ fun LocalFirstApp(
                     },
                     onOpenAccount = { tab = "settings" },
                     accountLabel = accountLabel,
+                    homeLayout = homeLayout,
                 )
                 "schedule" -> ScheduleFeed(
                     aniList = aniList,
@@ -538,6 +540,7 @@ fun LocalFirstApp(
                     history = history,
                     pendingPairUri = pendingPairUri,
                     onConsumedPairUri = onConsumedPairUri,
+                    homeLayout = homeLayout,
                 )
             }
         }
@@ -581,9 +584,11 @@ fun LocalFirstApp(
             history = history,
             pendingPairUri = pendingPairUri,
             onConsumedPairUri = onConsumedPairUri,
+            homeLayout = homeLayout,
         )
     },
     store = { ExtensionStoreFeed(catalog = streamServers) },
+    homeLayout = homeLayout,
 )
     } else {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -611,6 +616,7 @@ private fun HomeFeed(
     onOpenSchedule: () -> Unit,
     onOpenAccount: () -> Unit,
     accountLabel: String,
+    homeLayout: HomeLayoutStore,
 ) {
     val homeDisplayName = aniListAuth.username?.takeIf { it.isNotBlank() }
         ?: accountLabel.takeIf { it.isNotBlank() }
@@ -743,6 +749,11 @@ private fun HomeFeed(
                             onOpenAccount = onOpenAccount,
                         )
                     }
+                    val phoneSections = homeLayout.sections(HomeSurface.Phone)
+                    phoneSections.forEach { section ->
+                        if (!section.enabled) return@forEach
+                        when (section.id) {
+                            "resume" -> {
                     continueWatching.firstOrNull()?.let { spotlight ->
                         item {
                             ResumeSpotlight(entry = spotlight) { episode ->
@@ -768,6 +779,8 @@ private fun HomeFeed(
                             }
                         }
                     }
+                            }
+                            "featured" -> {
                     item {
                         KittyGlassHeroPager(
                             items = trending,
@@ -777,6 +790,8 @@ private fun HomeFeed(
                             },
                         )
                     }
+                            }
+                            "genres" -> {
                     item {
                         val tiles = listOf(
                             "Action", "Romance", "Fantasy", "Comedy", "Drama", "Adventure",
@@ -795,6 +810,8 @@ private fun HomeFeed(
                             },
                         )
                     }
+                            }
+                            "airing" -> {
                     if (airingToday.isNotEmpty()) {
                         item {
                             TodayAiringRail(
@@ -807,6 +824,8 @@ private fun HomeFeed(
                             )
                         }
                     }
+                            }
+                            "trending" -> {
                     item {
                         KittyPosterRow(
                             title = "Trending Anime",
@@ -818,6 +837,8 @@ private fun HomeFeed(
                             },
                         )
                     }
+                            }
+                            "top10" -> {
                     item {
                         KittyTopTenRow(
                             title = "Top 10",
@@ -828,6 +849,8 @@ private fun HomeFeed(
                             },
                         )
                     }
+                            }
+                            "popular" -> {
                     item {
                         KittyPosterRow(
                             title = "Most popular",
@@ -839,6 +862,8 @@ private fun HomeFeed(
                             },
                         )
                     }
+                            }
+                            "continue" -> {
                     if (continueWatching.isNotEmpty()) {
                         item {
                             Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
@@ -902,6 +927,8 @@ private fun HomeFeed(
                             }
                         }
                     }
+                            }
+                            "foryou" -> {
                     if (forYou.isNotEmpty()) {
                         item {
                             KittyPosterRow(
@@ -915,6 +942,8 @@ private fun HomeFeed(
                             )
                         }
                     }
+                            }
+                            "plan" -> {
                     if (planToWatch.isNotEmpty()) {
                         item {
                             Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
@@ -956,6 +985,8 @@ private fun HomeFeed(
                             }
                         }
                     }
+                            }
+                            "completed" -> {
                     if (completedShows.isNotEmpty()) {
                         item {
                             Column(modifier = Modifier.padding(top = 18.dp, bottom = 4.dp)) {
@@ -994,6 +1025,8 @@ private fun HomeFeed(
                             }
                         }
                     }
+                            }
+                            "season" -> {
                     item {
                         KittyPosterRow(
                             title = "Airing this season",
@@ -1004,6 +1037,19 @@ private fun HomeFeed(
                                 onOpen(it, null)
                             },
                         )
+                    }
+                            }
+                        }
+                    }
+                    if (phoneSections.none { it.enabled }) {
+                        item {
+                            Text(
+                                "Every home row is turned off. Turn them back on in Settings.",
+                                color = KittyMuted,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -2163,6 +2209,7 @@ internal fun SettingsFeed(
     history: List<WatchHistoryEntity> = emptyList(),
     pendingPairUri: String? = null,
     onConsumedPairUri: () -> Unit = {},
+    homeLayout: HomeLayoutStore,
 ) {
     val selectedId by catalog.selectedId.collectAsState()
     val resolvers by catalog.resolvers.collectAsState()
@@ -2184,6 +2231,9 @@ internal fun SettingsFeed(
     ) {
         item {
             AppBuildsRow(onClick = onOpenBuilds)
+        }
+        item {
+            HomeLayoutSettings(homeLayout)
         }
         item {
             AniListProfileCard(

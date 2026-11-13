@@ -149,6 +149,7 @@ internal fun TvLivingRoom(
     libraryFilter: String,
     account: @Composable () -> Unit,
     store: @Composable () -> Unit,
+    homeLayout: HomeLayoutStore,
 ) {
     var artUrl by remember { mutableStateOf<String?>(null) }
     var browsing by remember { mutableStateOf(false) }
@@ -203,6 +204,7 @@ internal fun TvLivingRoom(
                         onOpen = onOpen,
                         onArt = { artUrl = it },
                         onBrowsing = { browsing = true },
+                        homeLayout = homeLayout,
                     )
                     "search" -> TvSearch(
                         aniList = aniList,
@@ -341,6 +343,7 @@ private fun TvHome(
     onOpen: (AnimeSummary, Int?) -> Unit,
     onArt: (String?) -> Unit,
     onBrowsing: () -> Unit,
+    homeLayout: HomeLayoutStore,
 ) {
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(true) }
@@ -413,21 +416,24 @@ private fun TvHome(
         delta in -20 * 60..3 * 60 * 60
     }
     val laterToday = airing.filter { it !in startingSoon }
-    val shelves = buildList {
+    val planning = history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(16)
+    val shelvesById = buildMap {
         if (continueWatching.isNotEmpty()) {
-            add(shelfFromHistory("Continue watching", continueWatching, ::open))
+            put("continue", shelfFromHistory("Continue watching", continueWatching, ::open))
         }
-        if (startingSoon.isNotEmpty()) add(shelfFromAiring(startingSoon, ::open, "Starting soon"))
-        if (laterToday.isNotEmpty()) add(shelfFromAiring(laterToday, ::open, "Airing today"))
-        if (trending.isNotEmpty()) add(shelfFromAnime("Trending", trending, ::open))
+        if (startingSoon.isNotEmpty()) put("starting", shelfFromAiring(startingSoon, ::open, "Starting soon"))
+        if (laterToday.isNotEmpty()) put("airing", shelfFromAiring(laterToday, ::open, "Airing today"))
+        if (trending.isNotEmpty()) put("trending", shelfFromAnime("Trending", trending, ::open))
         if (forYou.isNotEmpty()) {
-            add(shelfFromAnime(forYouFrom?.let { "Because you watch $it" } ?: "For you", forYou, ::open))
+            put("foryou", shelfFromAnime(forYouFrom?.let { "Because you watch $it" } ?: "For you", forYou, ::open))
         }
-        if (favourites.isNotEmpty()) add(shelfFromAnime("Favourites", favourites, ::open))
-        val planning = history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(16)
-        if (planning.isNotEmpty()) add(shelfFromHistory("Plan to watch", planning, ::open, resume = false))
-        if (popular.isNotEmpty()) add(shelfFromAnime("Popular", popular, ::open))
-        if (seasonal.isNotEmpty()) add(shelfFromAnime("This season", seasonal, ::open))
+        if (favourites.isNotEmpty()) put("favourites", shelfFromAnime("Favourites", favourites, ::open))
+        if (planning.isNotEmpty()) put("plan", shelfFromHistory("Plan to watch", planning, ::open, resume = false))
+        if (popular.isNotEmpty()) put("popular", shelfFromAnime("Popular", popular, ::open))
+        if (seasonal.isNotEmpty()) put("season", shelfFromAnime("This season", seasonal, ::open))
+    }
+    val shelves = homeLayout.sections(HomeSurface.Television).mapNotNull { section ->
+        if (!section.enabled) null else shelvesById[section.id]
     }
 
     when {
