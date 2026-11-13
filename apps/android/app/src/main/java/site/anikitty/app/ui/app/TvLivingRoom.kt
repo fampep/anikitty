@@ -4,7 +4,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -46,6 +44,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -94,6 +93,14 @@ private data class TvCard(
 
 private data class TvShelf(val title: String, val cards: List<TvCard>)
 
+/** Sizes matched to a 960×540dp television canvas: small posters, a short hero, a thin menu. */
+private val PosterWidth = 88.dp
+private val PosterHeight = 132.dp
+private val StillWidth = 180.dp
+private val StillHeight = 100.dp
+private val SafeX = 44.dp
+private val HeroCopyHeight = 168.dp
+
 private val TvTabs = listOf(
     "search" to "Search",
     "home" to "Home",
@@ -124,6 +131,7 @@ internal fun TvLivingRoom(
     schedule: @Composable () -> Unit,
 ) {
     var artUrl by remember { mutableStateOf<String?>(null) }
+    var browsing by remember { mutableStateOf(false) }
     val cinematic = tab == "home" || tab == "search" || tab == "history"
     Box(modifier = Modifier.fillMaxSize().background(KittyPage)) {
         if (cinematic) {
@@ -142,10 +150,9 @@ internal fun TvLivingRoom(
                     .fillMaxSize()
                     .background(
                         Brush.horizontalGradient(
-                            0f to Color.Black.copy(alpha = 0.92f),
-                            0.42f to Color.Black.copy(alpha = 0.72f),
-                            0.78f to Color.Black.copy(alpha = 0.28f),
-                            1f to Color.Black.copy(alpha = 0.55f),
+                            0f to Color.Black.copy(alpha = 0.88f),
+                            0.34f to Color.Black.copy(alpha = 0.42f),
+                            0.62f to Color.Transparent,
                         ),
                     ),
             )
@@ -154,16 +161,24 @@ internal fun TvLivingRoom(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.55f),
-                            0.28f to Color.Transparent,
-                            0.62f to Color.Black.copy(alpha = 0.35f),
+                            0f to Color.Black.copy(alpha = 0.28f),
+                            0.42f to Color.Transparent,
+                            0.78f to Color.Black.copy(alpha = 0.72f),
                             1f to Color.Black,
                         ),
                     ),
             )
         }
         Column(modifier = Modifier.fillMaxSize()) {
-            TvMenu(selected = tab, onSelect = onTab)
+            TvMenu(
+                selected = tab,
+                dimmed = browsing,
+                onSelect = {
+                    browsing = false
+                    onTab(it)
+                },
+                onMenuFocus = { browsing = false },
+            )
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 when (tab) {
                     "home" -> TvHome(
@@ -173,6 +188,7 @@ internal fun TvLivingRoom(
                         historyDao = historyDao,
                         onOpen = onOpen,
                         onArt = { artUrl = it },
+                        onBrowsing = { browsing = true },
                     )
                     "search" -> TvSearch(
                         aniList = aniList,
@@ -181,6 +197,7 @@ internal fun TvLivingRoom(
                         onRequestedGenreConsumed = onRequestedGenreConsumed,
                         onOpen = onOpen,
                         onArt = { artUrl = it },
+                        onBrowsing = { browsing = true },
                     )
                     "history" -> TvLibrary(
                         aniList = aniList,
@@ -190,6 +207,7 @@ internal fun TvLivingRoom(
                         filter = libraryFilter,
                         onOpen = onOpen,
                         onArt = { artUrl = it },
+                        onBrowsing = { browsing = true },
                     )
                     "schedule" -> schedule()
                     "store" -> store()
@@ -201,7 +219,12 @@ internal fun TvLivingRoom(
 }
 
 @Composable
-private fun TvMenu(selected: String, onSelect: (String) -> Unit) {
+private fun TvMenu(
+    selected: String,
+    dimmed: Boolean,
+    onSelect: (String) -> Unit,
+    onMenuFocus: () -> Unit,
+) {
     val requesters = remember { List(TvTabs.size) { FocusRequester() } }
     LaunchedEffect(Unit) {
         val index = TvTabs.indexOfFirst { it.first == selected }.coerceAtLeast(0)
@@ -211,42 +234,47 @@ private fun TvMenu(selected: String, onSelect: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 40.dp, end = 40.dp, top = 18.dp, bottom = 6.dp),
+            .graphicsLayer { alpha = if (dimmed) 0.70f else 1f }
+            .padding(start = SafeX, end = SafeX, top = 28.dp)
+            .height(32.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             "AniKitty",
-            color = Color.White,
-            fontWeight = FontWeight.Black,
-            fontSize = 22.sp,
-            letterSpacing = 0.2.sp,
+            color = Color(0xFFEDEDED),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
         )
-        Spacer(modifier = Modifier.width(28.dp))
+        Spacer(modifier = Modifier.width(22.dp))
         TvTabs.forEachIndexed { index, (id, label) ->
             var focused by remember { mutableStateOf(false) }
             val active = id == selected
+            val shape = RoundedCornerShape(999.dp)
             Text(
                 label,
-                color = if (focused) KittyOnAccent else Color.White,
-                fontWeight = if (active || focused) FontWeight.Bold else FontWeight.Medium,
-                fontSize = 16.sp,
+                color = if (focused) Color.Black else Color(0xFFEDEDED),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 15.sp,
                 modifier = Modifier
-                    .padding(end = 8.dp)
+                    .padding(end = 4.dp)
+                    .height(30.dp)
                     .focusRequester(requesters[index])
                     .onFocusChanged {
                         focused = it.isFocused
-                        if (it.isFocused && id != selected) onSelect(id)
+                        if (it.isFocused) {
+                            onMenuFocus()
+                            if (id != selected) onSelect(id)
+                        }
                     }
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(
-                        when {
-                            focused -> Color.White
-                            active -> Color.White.copy(alpha = 0.16f)
-                            else -> Color.Transparent
-                        },
+                    .clip(shape)
+                    .background(if (focused) Color(0xFFEDEDED) else if (active) Color.White.copy(alpha = 0.14f) else Color.Transparent)
+                    .border(
+                        1.dp,
+                        if (focused) Color.Transparent else if (active) Color.White.copy(alpha = 0.10f) else Color.Transparent,
+                        shape,
                     )
                     .clickable { onSelect(id) }
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
             )
         }
     }
@@ -260,6 +288,7 @@ private fun TvHome(
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onArt: (String?) -> Unit,
+    onBrowsing: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(true) }
@@ -335,7 +364,7 @@ private fun TvHome(
     when {
         loading && shelves.isEmpty() -> TvMessage("Loading the catalog…", busy = true)
         error != null && shelves.isEmpty() -> TvMessage(error ?: "Couldn’t load the catalog")
-        else -> TvSkyline(shelves = shelves, onArt = onArt, empty = "Nothing to show yet")
+        else -> TvSkyline(shelves = shelves, onArt = onArt, onBrowsing = onBrowsing, empty = "Nothing to show yet")
     }
 }
 
@@ -347,6 +376,7 @@ private fun TvSearch(
     onRequestedGenreConsumed: () -> Unit,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onArt: (String?) -> Unit,
+    onBrowsing: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
@@ -405,23 +435,23 @@ private fun TvSearch(
                     if (it.isNotBlank()) genre = null
                 },
                 singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium),
+                textStyle = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium),
                 cursorBrush = SolidColor(Color.White),
                 modifier = Modifier
                     .weight(1f)
                     .onFocusChanged { fieldFocused = it.isFocused }
-                    .clip(RoundedCornerShape(14.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(Color.Black.copy(alpha = 0.45f))
                     .border(
-                        2.dp,
-                        if (fieldFocused) Color.White else Color.White.copy(alpha = 0.28f),
-                        RoundedCornerShape(14.dp),
+                        if (fieldFocused) 2.dp else 1.dp,
+                        if (fieldFocused) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.16f),
+                        RoundedCornerShape(8.dp),
                     )
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
                 decorationBox = { inner ->
                     Box {
                         if (query.isEmpty()) {
-                            Text("Search titles", color = Color.White.copy(alpha = 0.55f), fontSize = 20.sp)
+                            Text("Search titles", color = Color.White.copy(alpha = 0.55f), fontSize = 16.sp)
                         }
                         inner()
                     }
@@ -436,7 +466,7 @@ private fun TvSearch(
             }
         }
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 48.dp),
+            contentPadding = PaddingValues(horizontal = SafeX),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(genres) { name ->
@@ -467,6 +497,7 @@ private fun TvSearch(
                 else -> TvSkyline(
                     shelves = listOf(shelfFromAnime(genre ?: "Results", results, ::open)),
                     onArt = onArt,
+                    onBrowsing = onBrowsing,
                     empty = "No titles match",
                 )
             }
@@ -483,6 +514,7 @@ private fun TvLibrary(
     filter: String,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onArt: (String?) -> Unit,
+    onBrowsing: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var favourites by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
@@ -534,7 +566,7 @@ private fun TvLibrary(
             },
         )
     } else {
-        TvSkyline(shelves = shelves, onArt = onArt, empty = "Nothing in this list yet")
+        TvSkyline(shelves = shelves, onArt = onArt, onBrowsing = onBrowsing, empty = "Nothing in this list yet")
     }
 }
 
@@ -542,6 +574,7 @@ private fun TvLibrary(
 private fun TvSkyline(
     shelves: List<TvShelf>,
     onArt: (String?) -> Unit,
+    onBrowsing: () -> Unit,
     empty: String,
 ) {
     val first = shelves.firstOrNull()?.cards?.firstOrNull()
@@ -562,67 +595,68 @@ private fun TvSkyline(
     Column(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
-                .weight(0.46f)
+                .height(HeroCopyHeight)
                 .fillMaxWidth()
-                .padding(start = 48.dp, end = 180.dp, top = 8.dp),
+                .padding(start = SafeX, end = 220.dp),
             verticalArrangement = Arrangement.Bottom,
         ) {
             Text(
                 shown.eyebrow.uppercase(),
-                color = Color.White.copy(alpha = 0.72f),
-                fontWeight = FontWeight.Bold,
+                color = Color(0xFFEDEDED).copy(alpha = 0.75f),
+                fontWeight = FontWeight.SemiBold,
                 fontSize = 12.sp,
-                letterSpacing = 1.4.sp,
+                letterSpacing = 1.1.sp,
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 shown.title,
-                color = Color.White,
-                fontWeight = FontWeight.Black,
-                fontSize = 40.sp,
-                lineHeight = 44.sp,
-                maxLines = 2,
+                color = Color(0xFFEDEDED),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 28.sp,
+                lineHeight = 32.sp,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             if (shown.meta.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(shown.meta, color = Color.White.copy(alpha = 0.82f), fontSize = 16.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(shown.meta, color = Color(0xFFEDEDED).copy(alpha = 0.75f), fontSize = 14.sp, maxLines = 1)
             }
             if (!shown.blurb.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     shown.blurb,
-                    color = Color.White.copy(alpha = 0.78f),
-                    fontSize = 15.sp,
-                    lineHeight = 20.sp,
-                    maxLines = 3,
+                    color = Color(0xFFEDEDED).copy(alpha = 0.75f),
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             TvPill(label = shown.action, filled = true, onClick = action, leadingPlay = true)
-            Spacer(modifier = Modifier.height(18.dp))
         }
+        Spacer(modifier = Modifier.height(16.dp))
         LazyColumn(
-            modifier = Modifier.weight(0.54f),
-            contentPadding = PaddingValues(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             items(shelves, key = { it.title }) { shelf ->
                 if (shelf.cards.isEmpty()) return@items
                 Text(
                     shelf.title,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    modifier = Modifier.padding(start = 48.dp, bottom = 8.dp),
+                    color = Color(0xFFEDEDED),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(start = SafeX, bottom = 8.dp),
                 )
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 48.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    contentPadding = PaddingValues(horizontal = SafeX),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(shelf.cards, key = { it.key }) { card ->
                         TvPoster(card) {
+                            onBrowsing()
                             spot = card.spot
                             action = card.onClick
                         }
@@ -636,55 +670,49 @@ private fun TvSkyline(
 @Composable
 private fun TvPoster(card: TvCard, onFocused: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) 1.06f else 1f, tween(140), label = "poster")
-    val shape = RoundedCornerShape(14.dp)
-    Column(
+    val scale by animateFloatAsState(if (focused) 1.05f else 1f, tween(160), label = "poster")
+    val shape = RoundedCornerShape(8.dp)
+    Box(
         modifier = Modifier
-            .width(148.dp)
+            .width(PosterWidth)
+            .height(PosterHeight)
             .scale(scale)
             .onFocusChanged {
                 focused = it.isFocused
                 if (it.isFocused) onFocused()
             }
+            .clip(shape)
+            .background(Color.White.copy(alpha = 0.06f))
+            .border(
+                if (focused) 2.dp else 0.dp,
+                if (focused) Color.White.copy(alpha = 0.70f) else Color.Transparent,
+                shape,
+            )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = card.onClick,
             ),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(2f / 3f)
-                .clip(shape)
-                .background(Color.White.copy(alpha = 0.06f))
-                .border(if (focused) 3.dp else 1.dp, if (focused) Color.White else Color.White.copy(alpha = 0.18f), shape),
-        ) {
-            AsyncImage(
-                model = card.coverUrl,
-                contentDescription = card.title,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
-        }
-        Text(
-            card.title,
-            modifier = Modifier
-                .padding(top = 6.dp)
-                .then(if (focused) Modifier.basicMarquee() else Modifier),
-            color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 13.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        AsyncImage(
+            model = card.coverUrl,
+            contentDescription = card.title,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
         )
         if (!card.caption.isNullOrBlank()) {
             Text(
                 card.caption,
-                color = Color.White.copy(alpha = 0.7f),
-                fontSize = 12.sp,
+                color = Color.White,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
             )
         }
     }
@@ -699,34 +727,36 @@ private fun TvPill(
 ) {
     var focused by remember { mutableStateOf(false) }
     val showFill = filled || focused
+    val shape = RoundedCornerShape(8.dp)
     Row(
         modifier = Modifier
+            .height(30.dp)
             .onFocusChanged { focused = it.isFocused }
-            .clip(RoundedCornerShape(999.dp))
-            .background(if (showFill) Color.White else Color.White.copy(alpha = 0.12f))
-            .border(2.dp, Color.White, RoundedCornerShape(999.dp))
+            .clip(shape)
+            .background(if (showFill) Color(0xFFEDEDED) else Color.White.copy(alpha = 0.12f))
+            .border(if (focused) 2.dp else 0.dp, Color.White.copy(alpha = 0.70f), shape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = onClick,
             )
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingPlay) {
             androidx.compose.material3.Icon(
                 Icons.Filled.PlayArrow,
                 contentDescription = null,
-                tint = if (showFill) KittyOnAccent else Color.White,
-                modifier = Modifier.height(18.dp),
+                tint = if (showFill) Color.Black else Color.White,
+                modifier = Modifier.height(16.dp),
             )
-            Spacer(modifier = Modifier.width(4.dp))
+            Spacer(modifier = Modifier.width(2.dp))
         }
         Text(
             label,
-            color = if (showFill) KittyOnAccent else Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 16.sp,
+            color = if (showFill) Color.Black else Color.White,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
         )
     }
 }
@@ -784,31 +814,32 @@ internal fun TvDetailStage(
                 ),
             ),
         )
-        Column(modifier = Modifier.fillMaxSize().padding(start = 48.dp, end = 48.dp, top = 28.dp, bottom = 16.dp)) {
+        Column(modifier = Modifier.fillMaxSize().padding(start = SafeX, end = SafeX, top = 18.dp, bottom = 12.dp)) {
             TvPill(label = "Back", onClick = onBack)
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 detail.title,
-                color = Color.White,
-                fontWeight = FontWeight.Black,
-                fontSize = 36.sp,
-                maxLines = 2,
+                color = Color(0xFFEDEDED),
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 28.sp,
+                lineHeight = 32.sp,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(detailMeta(detail, episode), color = Color.White.copy(alpha = 0.84f), fontSize = 16.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(detailMeta(detail, episode), color = Color(0xFFEDEDED).copy(alpha = 0.75f), fontSize = 14.sp, maxLines = 1)
             if (!blurb.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     blurb,
-                    color = Color.White.copy(alpha = 0.78f),
-                    fontSize = 15.sp,
-                    maxLines = 3,
+                    color = Color(0xFFEDEDED).copy(alpha = 0.75f),
+                    fontSize = 14.sp,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 TvPill(
                     label = if (resolving) "Getting stream…" else "Play episode $episode",
                     filled = true,
@@ -822,7 +853,7 @@ internal fun TvDetailStage(
                 }
             }
             if (signedIn) {
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("CURRENT" to "Watching", "PLANNING" to "Plan", "COMPLETED" to "Completed").forEach { (id, label) ->
                         TvPill(label = label, filled = listStatus.equals(id, ignoreCase = true), onClick = { onListStatus(id) })
@@ -830,37 +861,61 @@ internal fun TvDetailStage(
                 }
             }
             if (!status.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(status, color = Color.White.copy(alpha = 0.8f), fontSize = 14.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(status, color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
             }
-            Spacer(modifier = Modifier.height(18.dp))
-            Text("Episodes", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(14.dp))
+            Text("Episodes", color = Color(0xFFEDEDED), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(8.dp))
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(episodes, key = { it.number }) { item ->
                     val selected = item.number == episode
                     var focused by remember(item.number) { mutableStateOf(false) }
-                    Text(
-                        item.number.toString(),
-                        color = if (focused || selected) KittyOnAccent else Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
+                    val shape = RoundedCornerShape(8.dp)
+                    Box(
                         modifier = Modifier
+                            .width(StillWidth)
+                            .height(StillHeight)
                             .onFocusChanged {
                                 focused = it.isFocused
                                 if (it.isFocused) onEpisode(item.number)
                             }
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (focused || selected) Color.White else Color.White.copy(alpha = 0.12f))
-                            .clickable { onEpisode(item.number) }
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                    )
+                            .clip(shape)
+                            .background(Color.White.copy(alpha = if (selected) 0.18f else 0.08f))
+                            .border(
+                                if (focused) 2.dp else 0.dp,
+                                Color.White.copy(alpha = 0.70f),
+                                shape,
+                            )
+                            .clickable { onEpisode(item.number) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (!item.thumbnailUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = item.thumbnailUrl,
+                                contentDescription = "Episode ${item.number}",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                            )
+                        }
+                        Text(
+                            "Episode ${item.number}",
+                            color = Color.White,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 14.sp,
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .fillMaxWidth()
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
                 }
             }
             val related = detail.recommendations.take(14)
             if (related.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("More like this", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("More like this", color = Color(0xFFEDEDED), fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(related, key = { it.id }) { anime ->
