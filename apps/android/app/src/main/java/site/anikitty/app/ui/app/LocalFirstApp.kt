@@ -573,28 +573,18 @@ fun LocalFirstApp(
                     onSignOut = onSignOut,
                     onOpenStore = { tab = "store" },
                     onOpenBuilds = { screen = Screen.Builds },
-                    onOpenLibrary = { filter ->
-                        libraryFilter = filter
-                        tab = "history"
-                    },
-                    forTelevision = true,
-                    history = history,
-                    pendingPairUri = pendingPairUri,
-                    onConsumedPairUri = onConsumedPairUri,
-                )
+            onOpenLibrary = { filter ->
+                libraryFilter = filter
+                tab = "history"
             },
-            store = { ExtensionStoreFeed(catalog = streamServers) },
-            schedule = {
-                ScheduleFeed(
-                    aniList = aniList,
-                    onBack = { tab = "home" },
-                    onOpen = { openDetail(it) },
-                    showBack = false,
-                    bottomInset = 28.dp,
-                    followedEpisodes = followedEpisodes,
-                )
-            },
+            forTelevision = true,
+            history = history,
+            pendingPairUri = pendingPairUri,
+            onConsumedPairUri = onConsumedPairUri,
         )
+    },
+    store = { ExtensionStoreFeed(catalog = streamServers) },
+)
     } else {
         Box(modifier = Modifier.fillMaxSize()) {
             KittyAtmosphere()

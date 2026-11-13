@@ -1,11 +1,13 @@
 package site.anikitty.app.ui.app
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -26,8 +28,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -64,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -83,6 +88,8 @@ import site.anikitty.app.data.plainSynopsis
 import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyPage
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -102,6 +109,7 @@ private data class TvCard(
     val caption: String?,
     val spot: TvSpot,
     val onClick: () -> Unit,
+    val progress: Float = 0f,
 )
 
 private data class TvShelf(val title: String, val cards: List<TvCard>)
@@ -112,7 +120,7 @@ private val PosterHeight = 132.dp
 private val StillWidth = 180.dp
 private val StillHeight = 100.dp
 private val SafeX = 44.dp
-private val HeroCopyHeight = 168.dp
+private val HeroCopyHeight = 208.dp
 
 private val TvTabs = listOf(
     "search" to "Search",
@@ -141,11 +149,13 @@ internal fun TvLivingRoom(
     libraryFilter: String,
     account: @Composable () -> Unit,
     store: @Composable () -> Unit,
-    schedule: @Composable () -> Unit,
 ) {
     var artUrl by remember { mutableStateOf<String?>(null) }
     var browsing by remember { mutableStateOf(false) }
-    val cinematic = tab == "home" || tab == "search" || tab == "history"
+    val cinematic = tab == "home" || tab == "search" || tab == "history" || tab == "schedule"
+    val menuOpen = !browsing || !cinematic
+    val topPad by animateDpAsState(if (menuOpen) 68.dp else 12.dp, tween(220), label = "tvTop")
+    val showMenu = { browsing = false }
     Box(modifier = Modifier.fillMaxSize().background(KittyPage)) {
         if (cinematic) {
             Crossfade(targetState = artUrl, animationSpec = tween(420), label = "tvArt") { url ->
@@ -163,8 +173,8 @@ internal fun TvLivingRoom(
                     .fillMaxSize()
                     .background(
                         Brush.horizontalGradient(
-                            0f to Color.Black.copy(alpha = 0.88f),
-                            0.34f to Color.Black.copy(alpha = 0.42f),
+                            0f to Color.Black.copy(alpha = 0.90f),
+                            0.28f to Color.Black.copy(alpha = 0.55f),
                             0.62f to Color.Transparent,
                         ),
                     ),
@@ -174,24 +184,15 @@ internal fun TvLivingRoom(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            0f to Color.Black.copy(alpha = 0.28f),
-                            0.42f to Color.Transparent,
-                            0.78f to Color.Black.copy(alpha = 0.72f),
+                            0f to Color.Black.copy(alpha = 0.20f),
+                            0.38f to Color.Transparent,
+                            0.72f to Color.Black.copy(alpha = 0.78f),
                             1f to Color.Black,
                         ),
                     ),
             )
         }
-        Column(modifier = Modifier.fillMaxSize()) {
-            TvMenu(
-                selected = tab,
-                dimmed = browsing,
-                onSelect = {
-                    browsing = false
-                    onTab(it)
-                },
-                onMenuFocus = { browsing = false },
-            )
+        Column(modifier = Modifier.fillMaxSize().padding(top = topPad)) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 when (tab) {
                     "home" -> TvHome(
@@ -211,6 +212,7 @@ internal fun TvLivingRoom(
                         onOpen = onOpen,
                         onArt = { artUrl = it },
                         onBrowsing = { browsing = true },
+                        onShowMenu = showMenu,
                     )
                     "history" -> TvLibrary(
                         aniList = aniList,
@@ -221,13 +223,31 @@ internal fun TvLivingRoom(
                         onOpen = onOpen,
                         onArt = { artUrl = it },
                         onBrowsing = { browsing = true },
+                        onShowMenu = showMenu,
                     )
-                    "schedule" -> schedule()
+                    "schedule" -> TvSchedule(
+                        aniList = aniList,
+                        historyDao = historyDao,
+                        onOpen = onOpen,
+                        onArt = { artUrl = it },
+                        onBrowsing = { browsing = true },
+                        onShowMenu = showMenu,
+                    )
                     "store" -> store()
                     else -> account()
                 }
             }
         }
+        TvMenu(
+            modifier = Modifier.align(Alignment.TopCenter),
+            selected = tab,
+            dimmed = !menuOpen,
+            onSelect = {
+                browsing = false
+                onTab(it)
+            },
+            onMenuFocus = showMenu,
+        )
     }
 }
 
@@ -237,19 +257,31 @@ private fun TvMenu(
     dimmed: Boolean,
     onSelect: (String) -> Unit,
     onMenuFocus: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val requesters = remember { List(TvTabs.size) { FocusRequester() } }
+    var clock by remember { mutableStateOf(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            clock = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"))
+            delay(30_000)
+        }
+    }
     LaunchedEffect(Unit) {
         val index = TvTabs.indexOfFirst { it.first == selected }.coerceAtLeast(0)
         delay(48)
         runCatching { requesters[index].requestFocus() }
     }
+    val shift by animateFloatAsState(if (dimmed) 1f else 0f, tween(220), label = "menuShift")
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer { alpha = if (dimmed) 0.70f else 1f }
-            .padding(start = SafeX, end = SafeX, top = 28.dp)
-            .height(32.dp),
+            .graphicsLayer {
+                translationY = -size.height * shift
+                alpha = 1f - shift
+            }
+            .padding(start = SafeX, end = SafeX, top = 20.dp)
+            .height(36.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -258,7 +290,7 @@ private fun TvMenu(
             fontWeight = FontWeight.SemiBold,
             fontSize = 16.sp,
         )
-        Spacer(modifier = Modifier.width(22.dp))
+        Spacer(modifier = Modifier.width(18.dp))
         TvTabs.forEachIndexed { index, (id, label) ->
             var focused by remember { mutableStateOf(false) }
             val active = id == selected
@@ -290,6 +322,13 @@ private fun TvMenu(
                     .padding(horizontal = 14.dp, vertical = 6.dp),
             )
         }
+        Spacer(modifier = Modifier.weight(1f))
+        Text(
+            clock,
+            color = Color(0xFFEDEDED).copy(alpha = 0.7f),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+        )
     }
 }
 
@@ -306,14 +345,16 @@ private fun TvHome(
     val scope = rememberCoroutineScope()
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
+    var attempt by remember { mutableIntStateOf(0) }
     var trending by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var popular by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var seasonal by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var airing by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
+    var favourites by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var forYou by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var forYouFrom by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(attempt, aniListAuth.accessToken) {
         loading = true
         error = null
         runCatching {
@@ -329,10 +370,19 @@ private fun TvHome(
                 }
                 val from = start.timeInMillis / 1000L
                 val today = async { aniList.airingSchedule(from, from + 24 * 60 * 60) }
+                val saved = async {
+                    val token = aniListAuth.accessToken
+                    if (token.isNullOrBlank()) {
+                        emptyList()
+                    } else {
+                        runCatching { aniList.favourites(token) }.getOrDefault(emptyList())
+                    }
+                }
                 trending = trend.await()
                 popular = pop.await()
                 seasonal = season.await()
                 airing = today.await()
+                favourites = saved.await()
             }
         }.onFailure { error = friendlyFailure(it.message) }
         loading = false
@@ -357,17 +407,23 @@ private fun TvHome(
         onOpen(anime, episode)
     }
 
+    val nowSec = System.currentTimeMillis() / 1000L
+    val startingSoon = airing.filter { slot ->
+        val delta = slot.airingAtEpochSec - nowSec
+        delta in -20 * 60..3 * 60 * 60
+    }
+    val laterToday = airing.filter { it !in startingSoon }
     val shelves = buildList {
         if (continueWatching.isNotEmpty()) {
             add(shelfFromHistory("Continue watching", continueWatching, ::open))
         }
-        if (airing.isNotEmpty()) {
-            add(shelfFromAiring(airing, ::open))
-        }
+        if (startingSoon.isNotEmpty()) add(shelfFromAiring(startingSoon, ::open, "Starting soon"))
+        if (laterToday.isNotEmpty()) add(shelfFromAiring(laterToday, ::open, "Airing today"))
         if (trending.isNotEmpty()) add(shelfFromAnime("Trending", trending, ::open))
         if (forYou.isNotEmpty()) {
             add(shelfFromAnime(forYouFrom?.let { "Because you watch $it" } ?: "For you", forYou, ::open))
         }
+        if (favourites.isNotEmpty()) add(shelfFromAnime("Favourites", favourites, ::open))
         val planning = history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(16)
         if (planning.isNotEmpty()) add(shelfFromHistory("Plan to watch", planning, ::open, resume = false))
         if (popular.isNotEmpty()) add(shelfFromAnime("Popular", popular, ::open))
@@ -376,7 +432,11 @@ private fun TvHome(
 
     when {
         loading && shelves.isEmpty() -> TvMessage("Loading the catalog…", busy = true)
-        error != null && shelves.isEmpty() -> TvMessage(error ?: "Couldn’t load the catalog")
+        error != null && shelves.isEmpty() -> TvMessage(
+            error ?: "Couldn’t load the catalog",
+            actionLabel = "Try again",
+            onAction = { attempt++ },
+        )
         else -> TvSkyline(shelves = shelves, onArt = onArt, onBrowsing = onBrowsing, empty = "Nothing to show yet")
     }
 }
@@ -390,6 +450,7 @@ private fun TvSearch(
     onOpen: (AnimeSummary, Int?) -> Unit,
     onArt: (String?) -> Unit,
     onBrowsing: () -> Unit,
+    onShowMenu: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var query by remember { mutableStateOf("") }
@@ -398,7 +459,8 @@ private fun TvSearch(
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val genres = listOf(
-        "Action", "Romance", "Fantasy", "Comedy", "Drama", "Adventure", "Slice of Life", "Sports",
+        "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Slice of Life",
+        "Sports", "Supernatural", "Mystery", "Sci-Fi", "Horror", "Mecha", "Music",
     )
 
     LaunchedEffect(requestedGenre) {
@@ -448,23 +510,26 @@ private fun TvSearch(
                     if (it.isNotBlank()) genre = null
                 },
                 singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Medium),
+                textStyle = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Medium),
                 cursorBrush = SolidColor(Color.White),
                 modifier = Modifier
                     .weight(1f)
-                    .onFocusChanged { fieldFocused = it.isFocused }
+                    .onFocusChanged {
+                        fieldFocused = it.isFocused
+                        if (it.isFocused) onShowMenu()
+                    }
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color.Black.copy(alpha = 0.45f))
+                    .background(Color.Black.copy(alpha = 0.55f))
                     .border(
                         if (fieldFocused) 2.dp else 1.dp,
-                        if (fieldFocused) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.16f),
+                        if (fieldFocused) Color.White else Color.White.copy(alpha = 0.18f),
                         RoundedCornerShape(8.dp),
                     )
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
                 decorationBox = { inner ->
                     Box {
                         if (query.isEmpty()) {
-                            Text("Search titles", color = Color.White.copy(alpha = 0.55f), fontSize = 16.sp)
+                            Text("Search titles", color = Color.White.copy(alpha = 0.55f), fontSize = 18.sp)
                         }
                         inner()
                     }
@@ -483,23 +548,27 @@ private fun TvSearch(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(genres) { name ->
-                var focused by remember(name) { mutableStateOf(false) }
-                val picked = genre == name && query.isBlank()
-                Text(
-                    name,
-                    color = if (focused) KittyOnAccent else Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                    modifier = Modifier
-                        .onFocusChanged { focused = it.isFocused }
-                        .clip(RoundedCornerShape(999.dp))
-                        .background(if (focused) Color.White else Color.White.copy(alpha = if (picked) 0.2f else 0.08f))
-                        .clickable {
-                            query = ""
-                            genre = if (genre == name) null else name
-                        }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                TvPill(
+                    label = name,
+                    filled = genre == name && query.isBlank(),
+                    onClick = {
+                        query = ""
+                        genre = if (genre == name) null else name
+                    },
+                    onFocused = onShowMenu,
                 )
+            }
+            if (query.isNotBlank() || !genre.isNullOrBlank()) {
+                item {
+                    TvPill(
+                        label = "Clear",
+                        onClick = {
+                            query = ""
+                            genre = null
+                        },
+                        onFocused = onShowMenu,
+                    )
+                }
             }
         }
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -528,6 +597,7 @@ private fun TvLibrary(
     onOpen: (AnimeSummary, Int?) -> Unit,
     onArt: (String?) -> Unit,
     onBrowsing: () -> Unit,
+    onShowMenu: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     var favourites by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
@@ -554,7 +624,8 @@ private fun TvLibrary(
     val paused = history.filter { it.listStatus.equals("PAUSED", ignoreCase = true) }
     val done = history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }
     val dropped = history.filter { it.listStatus.equals("DROPPED", ignoreCase = true) }
-    val shelves = when (filter) {
+    var picked by remember(filter) { mutableStateOf(filter.ifBlank { "all" }) }
+    val shelves = when (picked) {
         "watching" -> listOfNotNull(rows(watching, "Watching"))
         "plan" -> listOfNotNull(rows(planning, "Plan to watch", resume = false))
         "paused" -> listOfNotNull(rows(paused, "Paused"))
@@ -570,16 +641,43 @@ private fun TvLibrary(
             rows(dropped, "Dropped", resume = false),
         )
     }
-    if (shelves.isEmpty()) {
-        TvMessage(
-            if (filter == "favourites" && !aniListAuth.isLinked) {
-                "Sign in to see favourites"
+    val filters = listOf(
+        "all" to "All" to history.size,
+        "watching" to "Watching" to watching.size,
+        "plan" to "Plan" to planning.size,
+        "paused" to "Paused" to paused.size,
+        "done" to "Done" to done.size,
+        "dropped" to "Dropped" to dropped.size,
+        "favourites" to "Favourites" to favourites.size,
+    )
+    Column(modifier = Modifier.fillMaxSize()) {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = SafeX),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(filters, key = { it.first.first }) { (pair, count) ->
+                val (id, label) = pair
+                TvPill(
+                    label = "$label $count",
+                    filled = picked == id || (id == "all" && picked.isBlank()),
+                    onClick = { picked = id },
+                    onFocused = onShowMenu,
+                )
+            }
+        }
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            if (shelves.isEmpty()) {
+                TvMessage(
+                    if (picked == "favourites" && !aniListAuth.isLinked) {
+                        "Sign in to see favourites"
+                    } else {
+                        "Nothing in this list yet"
+                    },
+                )
             } else {
-                "Nothing in this list yet"
-            },
-        )
-    } else {
-        TvSkyline(shelves = shelves, onArt = onArt, onBrowsing = onBrowsing, empty = "Nothing in this list yet")
+                TvSkyline(shelves = shelves, onArt = onArt, onBrowsing = onBrowsing, empty = "Nothing in this list yet")
+            }
+        }
     }
 }
 
@@ -625,14 +723,21 @@ private fun TvSkyline(
                 shown.title,
                 color = Color(0xFFEDEDED),
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 28.sp,
-                lineHeight = 32.sp,
-                maxLines = 1,
+                fontSize = 32.sp,
+                lineHeight = 36.sp,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             if (shown.meta.isNotBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(shown.meta, color = Color(0xFFEDEDED).copy(alpha = 0.75f), fontSize = 14.sp, maxLines = 1)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    shown.meta.split("  ·  ").map { it.trim() }.filter { it.isNotEmpty() }.take(4).forEach { chip ->
+                        TvFact(chip)
+                    }
+                }
             }
             if (!shown.blurb.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -646,7 +751,12 @@ private fun TvSkyline(
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))
-            TvPill(label = shown.action, filled = true, onClick = action, leadingPlay = true)
+            TvPill(
+                label = shown.action,
+                filled = true,
+                onClick = action,
+                leadingPlay = shown.action.startsWith("Resume") || shown.action.startsWith("Play"),
+            )
         }
         Spacer(modifier = Modifier.height(16.dp))
         LazyColumn(
@@ -656,22 +766,37 @@ private fun TvSkyline(
         ) {
             items(shelves, key = { it.title }) { shelf ->
                 if (shelf.cards.isEmpty()) return@items
-                Text(
-                    shelf.title,
-                    color = Color(0xFFEDEDED),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(start = SafeX, bottom = 8.dp),
-                )
+                val rowState = remember(shelf.title) { LazyListState() }
+                val rowScope = rememberCoroutineScope()
+                Row(
+                    modifier = Modifier.padding(start = SafeX, end = SafeX, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        shelf.title,
+                        color = Color(0xFFEDEDED),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 16.sp,
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "${shelf.cards.size}",
+                        color = Color.White.copy(alpha = 0.5f),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = SafeX),
+                    state = rowState,
+                    contentPadding = PaddingValues(horizontal = SafeX, vertical = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(shelf.cards, key = { it.key }) { card ->
+                    itemsIndexed(shelf.cards, key = { _, card -> card.key }) { index, card ->
                         TvPoster(card) {
                             onBrowsing()
                             spot = card.spot
                             action = card.onClick
+                            rowScope.launch { rowState.animateScrollToItem(index) }
                         }
                     }
                 }
@@ -683,7 +808,7 @@ private fun TvSkyline(
 @Composable
 private fun TvPoster(card: TvCard, onFocused: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(if (focused) 1.05f else 1f, tween(160), label = "poster")
+    val scale by animateFloatAsState(if (focused) 1.06f else 1f, tween(160), label = "poster")
     val shape = RoundedCornerShape(8.dp)
     Box(
         modifier = Modifier
@@ -698,7 +823,7 @@ private fun TvPoster(card: TvCard, onFocused: () -> Unit) {
             .background(Color.White.copy(alpha = 0.06f))
             .border(
                 if (focused) 2.dp else 0.dp,
-                if (focused) Color.White.copy(alpha = 0.70f) else Color.Transparent,
+                if (focused) Color.White else Color.Transparent,
                 shape,
             )
             .clickable(
@@ -717,16 +842,37 @@ private fun TvPoster(card: TvCard, onFocused: () -> Unit) {
             Text(
                 card.caption,
                 color = Color.White,
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                    .background(Color.Black.copy(alpha = 0.62f))
+                    .padding(
+                        start = 4.dp,
+                        end = 4.dp,
+                        top = 2.dp,
+                        bottom = if (card.progress > 0.02f) 6.dp else 2.dp,
+                    ),
             )
+        }
+        if (card.progress > 0.02f) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(Color.White.copy(alpha = 0.22f)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(card.progress.coerceIn(0f, 1f))
+                        .height(3.dp)
+                        .background(Color.White),
+                )
+            }
         }
     }
 }
@@ -737,6 +883,8 @@ private fun TvPill(
     onClick: () -> Unit,
     filled: Boolean = false,
     leadingPlay: Boolean = false,
+    focusRequester: FocusRequester? = null,
+    onFocused: () -> Unit = {},
 ) {
     var focused by remember { mutableStateOf(false) }
     val showFill = filled || focused
@@ -744,10 +892,14 @@ private fun TvPill(
     Row(
         modifier = Modifier
             .height(30.dp)
-            .onFocusChanged { focused = it.isFocused }
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) onFocused()
+            }
             .clip(shape)
             .background(if (showFill) Color(0xFFEDEDED) else Color.White.copy(alpha = 0.12f))
-            .border(if (focused) 2.dp else 0.dp, Color.White.copy(alpha = 0.70f), shape)
+            .border(if (focused) 2.dp else 0.dp, Color.White, shape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -775,7 +927,12 @@ private fun TvPill(
 }
 
 @Composable
-private fun TvMessage(text: String, busy: Boolean = false) {
+private fun TvMessage(
+    text: String,
+    busy: Boolean = false,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
     Column(
         modifier = Modifier.fillMaxSize().padding(48.dp),
         verticalArrangement = Arrangement.Center,
@@ -785,6 +942,10 @@ private fun TvMessage(text: String, busy: Boolean = false) {
             Spacer(modifier = Modifier.height(16.dp))
         }
         Text(text, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Medium)
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            TvPill(label = actionLabel, filled = true, onClick = onAction)
+        }
     }
 }
 
@@ -943,11 +1104,17 @@ internal fun TvDetailStage(
                 modifier = Modifier.padding(start = SafeX, end = SafeX, top = 8.dp, bottom = 28.dp),
             ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                val playFocus = remember(detail.id) { FocusRequester() }
+                LaunchedEffect(detail.id) {
+                    delay(80)
+                    runCatching { playFocus.requestFocus() }
+                }
                 TvPill(
                     label = if (resolving) "Getting stream…" else "Play episode $episode",
                     filled = true,
                     leadingPlay = !resolving,
                     onClick = { if (!resolving) onPlay() },
+                    focusRequester = playFocus,
                 )
                 TvPill(label = "Sub", filled = audio != "dub", onClick = { onAudio("sub") })
                 TvPill(label = "Dub", filled = audio == "dub", onClick = { onAudio("dub") })
@@ -1324,6 +1491,95 @@ private fun tvListLabel(status: String?): String? = when (status?.uppercase()) {
     else -> null
 }
 
+@Composable
+private fun TvSchedule(
+    aniList: AniListClient,
+    historyDao: WatchHistoryDao,
+    onOpen: (AnimeSummary, Int?) -> Unit,
+    onArt: (String?) -> Unit,
+    onBrowsing: () -> Unit,
+    onShowMenu: () -> Unit,
+) {
+    val zone = ZoneId.systemDefault()
+    val today = remember { LocalDate.now(zone) }
+    val days = remember { (0 until 5).map { today.plusDays(it.toLong()) } }
+    var selected by remember { mutableIntStateOf(0) }
+    var slots by remember { mutableStateOf<List<List<AiringSlot>>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var attempt by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    val dayFormat = remember { DateTimeFormatter.ofPattern("EEE d") }
+    val fullFormat = remember { DateTimeFormatter.ofPattern("EEEE") }
+    LaunchedEffect(attempt) {
+        loading = true
+        error = null
+        runCatching {
+            coroutineScope {
+                days.map { day ->
+                    async {
+                        val from = day.atStartOfDay(zone).toEpochSecond()
+                        val to = day.plusDays(1).atStartOfDay(zone).toEpochSecond()
+                        aniList.airingSchedule(from, to)
+                    }
+                }.awaitAll()
+            }
+        }.onSuccess { slots = it }
+            .onFailure { error = friendlyFailure(it.message) }
+        loading = false
+    }
+    fun open(anime: AnimeSummary, episode: Int?) {
+        scope.launch { historyDao.touchFromCatalog(anime) }
+        onOpen(anime, episode)
+    }
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = SafeX)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            days.forEachIndexed { index, day ->
+                val label = when (index) {
+                    0 -> "Today"
+                    1 -> "Tomorrow"
+                    else -> day.format(dayFormat)
+                }
+                TvPill(
+                    label = label,
+                    filled = selected == index,
+                    onClick = { selected = index },
+                    onFocused = onShowMenu,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            val daySlots = slots.getOrNull(selected).orEmpty()
+            val title = when (selected) {
+                0 -> "Airing today"
+                1 -> "Airing tomorrow"
+                else -> days[selected].format(fullFormat)
+            }
+            when {
+                loading && slots.isEmpty() -> TvMessage("Loading the schedule…", busy = true)
+                error != null && daySlots.isEmpty() -> TvMessage(
+                    error ?: "Couldn’t load the schedule",
+                    actionLabel = "Try again",
+                    onAction = { attempt++ },
+                )
+                daySlots.isEmpty() -> TvMessage("Nothing airing")
+                else -> TvSkyline(
+                    shelves = listOf(shelfFromAiring(daySlots, ::open, title, limit = 40)),
+                    onArt = onArt,
+                    onBrowsing = onBrowsing,
+                    empty = "Nothing airing",
+                )
+            }
+        }
+    }
+}
+
 private fun shelfFromAnime(
     title: String,
     items: List<AnimeSummary>,
@@ -1343,29 +1599,46 @@ private fun shelfFromHistory(
 ): TvShelf = TvShelf(
     title = title,
     cards = entries.map { entry ->
-        val target = if (resume) playbackEpisode(entry) else entry.episode.coerceAtLeast(1)
+        val stored = entry.episode.coerceAtLeast(1)
+        val hasDuration = entry.durationMs > 30_000L
+        val ratio = if (hasDuration) entry.positionMs.toFloat() / entry.durationMs.toFloat() else 0f
+        val inProgress = resume && hasDuration && entry.positionMs >= 15_000L && ratio < 0.9f
+        val target = if (inProgress) stored else if (resume) stored + 1 else stored
         val anime = entry.asAnime()
-        val caption = if (resume) "Episode $target" else null
-        anime.toCard(title, if (resume) "Resume" else "Open", caption) { open(anime, if (resume) target else null) }
+        val caption = when {
+            !resume -> null
+            inProgress -> "Ep $target · ${(ratio * 100).toInt()}%"
+            else -> "Episode $target"
+        }
+        val action = when {
+            inProgress -> "Resume Ep $target"
+            resume -> "Play Ep $target"
+            else -> "Open"
+        }
+        anime.toCard(title, action, caption, if (inProgress) ratio.coerceIn(0f, 1f) else 0f) {
+            open(anime, if (resume) target else null)
+        }
     },
 )
 
 private fun shelfFromAiring(
     slots: List<AiringSlot>,
     open: (AnimeSummary, Int?) -> Unit,
+    title: String = "Airing today",
+    limit: Int = 18,
 ): TvShelf {
     val now = System.currentTimeMillis() / 1000L
     val clock = DateTimeFormatter.ofPattern("HH:mm")
     return TvShelf(
-        title = "Airing today",
-        cards = slots.take(18).map { slot ->
+        title = title,
+        cards = slots.take(limit).map { slot ->
             val whenLabel = airingLabel(
                 slot.airingAtEpochSec,
                 now,
                 clock.format(Instant.ofEpochSecond(slot.airingAtEpochSec).atZone(ZoneId.systemDefault())),
             )
             val caption = "Ep ${slot.episode} · $whenLabel"
-            slot.anime.toCard("Airing today", "Open", caption) { open(slot.anime, null) }
+            slot.anime.toCard(title, "Open", caption) { open(slot.anime, null) }
         },
     )
 }
@@ -1374,6 +1647,7 @@ private fun AnimeSummary.toCard(
     eyebrow: String,
     action: String,
     caption: String? = null,
+    progress: Float = 0f,
     onClick: () -> Unit,
 ): TvCard {
     val blurb = description
@@ -1395,6 +1669,7 @@ private fun AnimeSummary.toCard(
             action = action,
         ),
         onClick = onClick,
+        progress = progress,
     )
 }
 
@@ -1426,12 +1701,4 @@ private fun detailMeta(anime: AnimeSummary, episode: Int?): String = buildString
         if (isNotEmpty()) append("  ·  ")
         append("Episode $episode")
     }
-}
-
-private fun playbackEpisode(entry: WatchHistoryEntity): Int {
-    val stored = entry.episode.coerceAtLeast(1)
-    val hasDuration = entry.durationMs > 30_000L
-    val ratio = if (hasDuration) entry.positionMs.toFloat() / entry.durationMs.toFloat() else 0f
-    val inProgress = hasDuration && entry.positionMs >= 15_000L && ratio < 0.9f
-    return if (inProgress) stored else stored + 1
 }
