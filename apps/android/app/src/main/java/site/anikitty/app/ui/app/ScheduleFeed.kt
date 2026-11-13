@@ -222,9 +222,10 @@ fun ScheduleFeed(
     }
 }
 
+/** [watchedEpisode] is episodes finished. 0 means on the list but nothing finished, so episode 1 is New. */
 private fun catchUpLabel(airingEpisode: Int, watchedEpisode: Int?): String? {
     if (watchedEpisode == null) return null
-    val behind = airingEpisode - watchedEpisode
+    val behind = airingEpisode - watchedEpisode.coerceAtLeast(0)
     return when {
         behind > 1 -> "$behind behind"
         behind == 1 -> "New"
