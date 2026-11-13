@@ -763,19 +763,13 @@ private fun HomeFeed(
                         when (section.id) {
                             "featured" -> {
                     item {
-                        Column(modifier = Modifier.padding(top = 8.dp)) {
-                            KittySectionHeading(
-                                title = "Featured",
-                                subtitle = "Trending right now",
-                            )
-                            KittyGlassHeroPager(
-                                items = trending,
-                                onOpen = {
-                                    scope.launch { historyDao.touchFromCatalog(it) }
-                                    onOpen(it, null)
-                                },
-                            )
-                        }
+                        KittyGlassHeroPager(
+                            items = trending,
+                            onOpen = {
+                                scope.launch { historyDao.touchFromCatalog(it) }
+                                onOpen(it, null)
+                            },
+                        )
                     }
                             }
                             "genres" -> {
@@ -1011,10 +1005,10 @@ private fun TodayAiringRail(
                 Column(
                     modifier = Modifier
                         .width(148.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(KittySurface)
-                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
-                        .clickable { onOpen(slot.anime) }
+                        .spacePress { onOpen(slot.anime) }
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(0xFF0C0C10))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                         .padding(8.dp),
                 ) {
                     Box {
@@ -1078,7 +1072,7 @@ private fun HomeWelcomeHeader(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
