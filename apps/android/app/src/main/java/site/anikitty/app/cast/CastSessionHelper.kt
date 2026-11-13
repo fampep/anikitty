@@ -1,5 +1,5 @@
-// Copyright 2026 fampep. AniKitty is owned by fampep.
-// PolyForm Noncommercial License 1.0.0. https://polyformproject.org/licenses/noncommercial/1.0.0
+// Copyright 2026 fampep
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 package site.anikitty.app.cast
 
@@ -86,7 +86,11 @@ class CastSessionHelper private constructor(
         val item = MediaItem.Builder()
             .setUri(playback.url)
             .setMimeType(
-                if (playback.mimeType.contains("mpegurl")) MimeTypes.APPLICATION_M3U8 else MimeTypes.VIDEO_MP4,
+                if (playback.mimeType.contains("mpegurl", ignoreCase = true)) {
+                    MimeTypes.APPLICATION_M3U8
+                } else {
+                    MimeTypes.VIDEO_MP4
+                },
             )
             .setMediaMetadata(
                 MediaMetadata.Builder()

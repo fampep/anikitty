@@ -9,4 +9,4 @@ Playback stays on the phone. This repository is where the extension version of e
 | [gotaku](./gotaku) | Gotaku HLS unwrap |
 | [anipm](./anipm) | ani.pm → Settlar |
 
-Copyright 2026 fampep. AniKitty is owned by fampep. [PolyForm Noncommercial License 1.0.0](../LICENSE).
+Copyright 2026 fampep. [Apache License 2.0](../LICENSE).

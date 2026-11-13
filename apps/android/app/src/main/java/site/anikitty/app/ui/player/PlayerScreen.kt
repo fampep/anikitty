@@ -1,5 +1,5 @@
-// Copyright 2026 fampep. AniKitty is owned by fampep.
-// PolyForm Noncommercial License 1.0.0. https://polyformproject.org/licenses/noncommercial/1.0.0
+// Copyright 2026 fampep
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 package site.anikitty.app.ui.player
 
@@ -404,6 +404,16 @@ fun PlayerScreen(
         if (helper == null) {
             onDispose { }
         } else {
+            val castErrors = object : Player.Listener {
+                override fun onPlayerError(error: PlaybackException) {
+                    if (!isCasting) return
+                    castHint = error.message?.takeIf { it.isNotBlank() }
+                        ?: "Chromecast could not play this stream"
+                    isCasting = false
+                    latestPlayer?.play()
+                }
+            }
+            helper.castPlayer.addListener(castErrors)
             helper.setAvailabilityListener(object : SessionAvailabilityListener {
                 override fun onCastSessionAvailable() {
                     val src = latestSources.getOrNull(latestSourceIndex) ?: return
@@ -447,6 +457,7 @@ fun PlayerScreen(
                 }
             })
             onDispose {
+                helper.castPlayer.removeListener(castErrors)
                 helper.setAvailabilityListener(null)
                 helper.release()
             }

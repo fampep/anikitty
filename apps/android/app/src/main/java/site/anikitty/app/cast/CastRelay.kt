@@ -1,9 +1,11 @@
-// Copyright 2026 fampep. AniKitty is owned by fampep.
-// PolyForm Noncommercial License 1.0.0. https://polyformproject.org/licenses/noncommercial/1.0.0
+// Copyright 2026 fampep
+// Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
 package site.anikitty.app.cast
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.os.PowerManager
@@ -124,8 +126,9 @@ class CastRelay(context: Context) {
         } finally {
             collecting.remove()
         }
+        val file = if (mime == HLS_MIME) "index.m3u8" else "video.mp4"
         return RelayPlayback(
-            url = "http://$host:$port/play",
+            url = "http://$host:$port/$file",
             mimeType = mime,
             subtitles = subs,
             playlist = playlist,
@@ -216,22 +219,26 @@ class CastRelay(context: Context) {
             val header = readHeader(client)
             val request = header.lineSequence().firstOrNull().orEmpty()
             val parts = request.split(' ')
-            if (parts.size < 2 || !parts[0].equals("GET", true)) {
+            val method = parts.getOrNull(0).orEmpty()
+            if (parts.size < 2 || (!method.equals("GET", true) && !method.equals("HEAD", true))) {
                 writeStatus(client, 405, "text/plain", "No".toByteArray())
                 return
             }
+            val headOnly = method.equals("HEAD", true)
             val target = parts[1]
             val path = target.substringBefore('?')
             val query = target.substringAfter('?', "")
             val range = rangeStart(header)
             when (path) {
-                "/play" -> servePlay(client, range)
-                "/u" -> {
+                "/index.m3u8" -> servePlay(client, range, playlist = true, headOnly = headOnly)
+                "/video.mp4" -> servePlay(client, range, playlist = false, headOnly = headOnly)
+                "/play" -> servePlay(client, range, playlist = cachedPlaylist != null, headOnly = headOnly)
+                "/u", "/u.m3u8" -> {
                     val raw = queryValue(query, "u")
                     if (raw == null || !permitted(raw)) {
-                        writeStatus(client, 403, "text/plain", "No".toByteArray())
+                        writeStatus(client, 403, "text/plain", "No".toByteArray(), headOnly = headOnly)
                     } else {
-                        serveUpstream(client, raw, range)
+                        serveUpstream(client, raw, range, headOnly)
                     }
                 }
                 "/sub" -> {
@@ -253,21 +260,21 @@ class CastRelay(context: Context) {
         }
     }
 
-    private fun servePlay(client: Socket, range: Long?) {
+    private fun servePlay(client: Socket, range: Long?, playlist: Boolean, headOnly: Boolean) {
         val cached = cachedPlaylist
         val url = source?.url
-        if (cached != null) {
-            writeStatus(client, 200, "$HLS_MIME; charset=utf-8", cached)
+        if (playlist && cached != null) {
+            writeStatus(client, 200, "$HLS_MIME; charset=utf-8", cached, headOnly = headOnly)
             return
         }
         if (url == null) {
-            writeStatus(client, 404, "text/plain", "No".toByteArray())
+            writeStatus(client, 404, "text/plain", "No".toByteArray(), headOnly = headOnly)
             return
         }
-        serveUpstream(client, url, range)
+        serveUpstream(client, url, range, headOnly)
     }
 
-    private fun serveUpstream(client: Socket, url: String, range: Long?) {
+    private fun serveUpstream(client: Socket, url: String, range: Long?, headOnly: Boolean = false) {
         val position = range?.coerceAtLeast(0L) ?: 0L
         val spec = DataSpec.Builder()
             .setUri(Uri.parse(url))
@@ -281,10 +288,29 @@ class CastRelay(context: Context) {
                 val text = body.toString(Charsets.UTF_8)
                 if (text.trimStart().startsWith("#EXTM3U")) {
                     val rewritten = rewritePlaylist(text, upstream.uri?.toString() ?: url)
-                    writeStatus(client, 200, "$HLS_MIME; charset=utf-8", rewritten.toByteArray(Charsets.UTF_8))
+                    writeStatus(
+                        client,
+                        200,
+                        "$HLS_MIME; charset=utf-8",
+                        rewritten.toByteArray(Charsets.UTF_8),
+                        headOnly = headOnly,
+                    )
                     return
                 }
-                writeBytes(client, 200, contentType(url, upstream.responseHeaders), body, null, body.size.toLong())
+                writeBytes(
+                    client,
+                    200,
+                    contentType(url, upstream.responseHeaders),
+                    body,
+                    null,
+                    body.size.toLong(),
+                    headOnly,
+                )
+                return
+            }
+            if (headOnly) {
+                val total = if (length == C.LENGTH_UNSET.toLong()) null else position + length
+                writeHead(client, if (position > 0L) 206 else 200, contentType(url, upstream.responseHeaders), if (length >= 0) length else null, position, total)
                 return
             }
             val total = when {
@@ -358,7 +384,8 @@ class CastRelay(context: Context) {
     private fun proxy(absolute: String): String {
         val host = lanIpv4() ?: return absolute
         val encoded = URLEncoder.encode(absolute, Charsets.UTF_8.name())
-        return "http://$host:$port/u?u=$encoded"
+        val suffix = if (looksLikePlaylist(absolute, emptyMap())) ".m3u8" else ""
+        return "http://$host:$port/u$suffix?u=$encoded"
     }
 
     private fun resolve(base: URI?, ref: String): String {
@@ -367,8 +394,16 @@ class CastRelay(context: Context) {
     }
 
     private fun allow(url: String) {
-        val set = collecting.get() ?: return
-        if (set.size < 8_000) set.add(url)
+        val set = collecting.get()
+        if (set != null) {
+            if (set.size < 8_000) set.add(url)
+            return
+        }
+        // A variant playlist is rewritten when the TV asks for it, after publish.
+        synchronized(allowLock) {
+            if (url in liveAllowed || url in priorAllowed || liveAllowed.size >= 8_000) return
+            liveAllowed = liveAllowed + url
+        }
     }
 
     private fun permitted(url: String): Boolean = synchronized(allowLock) {
@@ -486,8 +521,14 @@ class CastRelay(context: Context) {
         return null
     }
 
-    private fun writeStatus(client: Socket, status: Int, type: String, body: ByteArray) {
-        writeBytes(client, status, type, body, null, body.size.toLong())
+    private fun writeStatus(
+        client: Socket,
+        status: Int,
+        type: String,
+        body: ByteArray,
+        headOnly: Boolean = false,
+    ) {
+        writeBytes(client, status, type, body, null, body.size.toLong(), headOnly)
     }
 
     private fun writeBytes(
@@ -497,10 +538,13 @@ class CastRelay(context: Context) {
         body: ByteArray,
         position: Long?,
         total: Long?,
+        headOnly: Boolean = false,
     ) {
         writeHead(client, status, type, body.size.toLong(), position ?: 0L, total)
-        client.getOutputStream().write(body)
-        client.getOutputStream().flush()
+        if (!headOnly) {
+            client.getOutputStream().write(body)
+            client.getOutputStream().flush()
+        }
     }
 
     private fun writeHead(
@@ -516,6 +560,7 @@ class CastRelay(context: Context) {
         builder.append("HTTP/1.1 ").append(status).append(' ').append(reason).append("\r\n")
         builder.append("Content-Type: ").append(type).append("\r\n")
         builder.append("Access-Control-Allow-Origin: *\r\n")
+        builder.append("Accept-Ranges: bytes\r\n")
         builder.append("Connection: close\r\n")
         if (length != null && length >= 0) {
             builder.append("Content-Length: ").append(length).append("\r\n")
@@ -529,7 +574,26 @@ class CastRelay(context: Context) {
         client.getOutputStream().write(builder.toString().toByteArray(Charsets.ISO_8859_1))
     }
 
-    private fun lanIpv4(): String? {
+    private fun lanIpv4(): String? = wifiIpv4() ?: interfaceIpv4()
+
+    private fun wifiIpv4(): String? {
+        val cm = appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return null
+        val network = cm.activeNetwork ?: return null
+        val caps = cm.getNetworkCapabilities(network) ?: return null
+        val onLan = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+            caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        if (!onLan) return null
+        val props = cm.getLinkProperties(network) ?: return null
+        val found = ArrayList<Inet4Address>()
+        for (link in props.linkAddresses) {
+            val addr = link.address
+            if (addr is Inet4Address && isPrivate(addr)) found += addr
+        }
+        return preferPrivate(found)
+    }
+
+    private fun interfaceIpv4(): String? {
         val interfaces = NetworkInterface.getNetworkInterfaces() ?: return null
         val found = ArrayList<Inet4Address>()
         for (nic in interfaces) {
@@ -540,6 +604,10 @@ class CastRelay(context: Context) {
                 }
             }
         }
+        return preferPrivate(found)
+    }
+
+    private fun preferPrivate(found: List<Inet4Address>): String? {
         return found.minByOrNull { address ->
             val first = address.address[0].toInt() and 0xff
             when (first) {
@@ -558,7 +626,7 @@ class CastRelay(context: Context) {
     }
 
     companion object {
-        private const val HLS_MIME = "application/vnd.apple.mpegurl"
+        private const val HLS_MIME = "application/x-mpegURL"
         private const val DEFAULT_UA =
             "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36"
         private val URI_ATTR = Regex("""URI="([^"]*)"""")

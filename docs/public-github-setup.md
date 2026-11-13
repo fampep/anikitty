@@ -43,12 +43,12 @@ gh repo edit fampep/anikitty-extensions --add-topic anikitty,extensions,educatio
 
 ## 4. Framing
 
-Both GitHub repos use the PolyForm Noncommercial [LICENSE](../LICENSE). Copyright 2026 fampep. AniKitty is owned by fampep.  
+Both GitHub repos use the Apache License 2.0 [LICENSE](../LICENSE). Copyright 2026 fampep.  
 [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) must show that same license file at its root.
 
 Keep [extensions/DISCLAIMER.md](../extensions/DISCLAIMER.md) after the split:
 
-- **fampep owns** AniKitty / protocol / provider source
-- PolyForm Noncommercial 1.0.0: noncommercial use, changes, and sharing
+- **fampep holds copyright** in AniKitty / protocol / provider source
+- Apache License 2.0: use, change, and share, including commercially
 - community extensions gladly accepted; **fampep does not control third-party backends**
 - provider Kotlin lives in [extensions/providers](../extensions/providers) and is compiled by the app
