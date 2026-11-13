@@ -186,7 +186,7 @@ fun MySpaceFeed(
                         tint = Color.White.copy(alpha = 0.7f),
                         modifier = Modifier
                             .size(22.dp)
-                            .clickable(onClick = onOpenAccount),
+                            .spacePress(onOpenAccount),
                     )
                 }
             }
@@ -399,30 +399,12 @@ private fun CloudSyncBlock(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     items(tabs) { tab ->
-                        val selected = selectedTab == tab
                         val count = tabCount(tab, favourites, cloudLists, history)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(
-                                    if (selected) Color.White.copy(alpha = 0.15f)
-                                    else Color.White.copy(alpha = 0.05f),
-                                )
-                                .border(
-                                    width = 1.dp,
-                                    color = if (selected) Color.White.copy(alpha = 0.3f)
-                                    else Color.White.copy(alpha = 0.08f),
-                                    shape = RoundedCornerShape(16.dp),
-                                )
-                                .clickable { onSelectTab(tab) }
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text(
-                                text = "$tab ($count)",
-                                color = if (selected) Color.White else Color.White.copy(alpha = 0.7f),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                            )
-                        }
+                        SpaceChip(
+                            label = "$tab ($count)",
+                            selected = selectedTab == tab,
+                            onClick = { onSelectTab(tab) },
+                        )
                     }
                 }
             }
@@ -607,7 +589,7 @@ private fun SpacePoster(
     Column(
         modifier = Modifier
             .width(width)
-            .clickable(onClick = onClick),
+            .spacePress(onClick),
     ) {
         Box(
             modifier = Modifier
@@ -679,7 +661,7 @@ private fun FavoriteRow(anime: AnimeSummary, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .spacePress(onClick)
             .background(Color(0xFF0C0C10))
             .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
     ) {

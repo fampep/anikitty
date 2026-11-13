@@ -3,6 +3,7 @@
 
 package site.anikitty.app.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -89,9 +90,14 @@ fun KittyBottomNav(
             tabs.forEach { tab ->
                 val selected = tab.id == selectedId
                 val scale by animateFloatAsState(
-                    targetValue = if (selected) 1.05f else 1f,
-                    animationSpec = tween(150),
+                    targetValue = if (selected) 1.08f else 1f,
+                    animationSpec = tween(180),
                     label = "navScale",
+                )
+                val tint by animateColorAsState(
+                    targetValue = if (selected) KittyAccent else KittyNavPillContent,
+                    animationSpec = tween(180),
+                    label = "navTint",
                 )
                 Column(
                     modifier = Modifier
@@ -108,7 +114,7 @@ fun KittyBottomNav(
                     Icon(
                         imageVector = if (selected) tab.selectedIcon else tab.icon,
                         contentDescription = tab.label,
-                        tint = if (selected) KittyAccent else KittyNavPillContent,
+                        tint = tint,
                         modifier = Modifier
                             .graphicsLayer(scaleX = scale, scaleY = scale)
                             .size(17.dp),
@@ -116,7 +122,7 @@ fun KittyBottomNav(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         tab.label,
-                        color = if (selected) KittyAccent else KittyNavPillContent,
+                        color = tint,
                         fontSize = 8.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                         letterSpacing = 0.05.sp,

@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -82,20 +83,12 @@ import java.util.Locale
 
 @Composable
 fun AppBuildsRow(onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(KittySurface)
-            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
-            .padding(16.dp),
-    ) {
-        Text("App builds", color = KittyText, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+    SpaceCard(onClick = onClick) {
+        Text("App builds", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "Choose dev or stable, and read the pull requests in each.",
-            color = KittyMuted,
+            color = Color.White.copy(alpha = 0.5f),
             fontSize = 13.sp,
         )
     }
