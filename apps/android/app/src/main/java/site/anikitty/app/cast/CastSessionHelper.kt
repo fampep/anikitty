@@ -1,51 +1,84 @@
 package site.anikitty.app.cast
 
 import android.content.Context
+import android.net.wifi.WifiManager
+import android.os.Handler
+import android.os.Looper
 import androidx.annotation.OptIn
 import androidx.media3.cast.CastPlayer
 import androidx.media3.cast.SessionAvailabilityListener
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
 import com.google.android.gms.cast.framework.CastContext
 import site.anikitty.app.data.servers.PlayableSource
+import kotlin.concurrent.thread
 
 /**
- * Thin bridge between local ExoPlayer and Media3 [CastPlayer].
- * Returns null when Play Services / Cast is unavailable on the device.
- *
- * Note: the default Cast receiver cannot send custom Referer headers some
- * stream hosts require — those sources may fail on TV while working on-phone.
+ * Plays through a phone-side relay so the Chromecast receives a clean stream.
+ * Returns null when Play Services / Cast is unavailable.
  */
 @OptIn(UnstableApi::class)
 class CastSessionHelper private constructor(
-    val castContext: CastContext,
     val castPlayer: CastPlayer,
+    private val relay: CastRelay,
+    private val multicast: WifiManager.MulticastLock?,
 ) {
     var casting: Boolean = false
         private set
+
+    private val main = Handler(Looper.getMainLooper())
 
     fun setAvailabilityListener(listener: SessionAvailabilityListener?) {
         castPlayer.setSessionAvailabilityListener(listener)
     }
 
-    fun isCastSessionAvailable(): Boolean = castPlayer.isCastSessionAvailable
+    fun load(
+        source: PlayableSource,
+        title: String,
+        episode: Int,
+        positionMs: Long,
+        onReady: () -> Unit,
+        onError: (String) -> Unit,
+    ) {
+        thread(name = "anikitty-cast-load", isDaemon = true) {
+            val prepared = runCatching { relay.prepare(source) }
+            main.post {
+                prepared.fold(
+                    onSuccess = { playback ->
+                        runCatching { start(playback, title, episode, positionMs) }
+                            .onSuccess { onReady() }
+                            .onFailure { onError(it.message ?: "Cast failed") }
+                    },
+                    onFailure = { onError(it.message ?: "Cast failed") },
+                )
+            }
+        }
+    }
 
-    fun load(source: PlayableSource, title: String, episode: Int, positionMs: Long) {
+    private fun start(playback: RelayPlayback, title: String, episode: Int, positionMs: Long) {
+        val subs = playback.subtitles.mapIndexed { index, track ->
+            MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(track.url))
+                .setMimeType(MimeTypes.TEXT_VTT)
+                .setLanguage(track.language ?: "en")
+                .setLabel(track.label)
+                .setSelectionFlags(if (index == 0) C.SELECTION_FLAG_DEFAULT else 0)
+                .build()
+        }
         val item = MediaItem.Builder()
-            .setUri(source.url)
+            .setUri(playback.url)
+            .setMimeType(
+                if (playback.mimeType.contains("mpegurl")) MimeTypes.APPLICATION_M3U8 else MimeTypes.VIDEO_MP4,
+            )
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(title)
                     .setArtist("Episode $episode")
                     .build(),
             )
-            .apply {
-                if (source.url.contains(".m3u8", ignoreCase = true)) {
-                    setMimeType(MimeTypes.APPLICATION_M3U8)
-                }
-            }
+            .setSubtitleConfigurations(subs)
             .build()
         castPlayer.setMediaItem(item, positionMs.coerceAtLeast(0L))
         castPlayer.prepare()
@@ -62,14 +95,22 @@ class CastSessionHelper private constructor(
     fun release() {
         setAvailabilityListener(null)
         runCatching { castPlayer.release() }
+        relay.stop()
+        runCatching { multicast?.release() }
         casting = false
     }
 
     companion object {
         fun create(context: Context): CastSessionHelper? = runCatching {
-            val castContext = CastContext.getSharedInstance(context.applicationContext)
+            val app = context.applicationContext
+            val castContext = CastContext.getSharedInstance(app)
             val castPlayer = CastPlayer(castContext)
-            CastSessionHelper(castContext, castPlayer)
+            val wifi = app.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+            val multicast = wifi?.createMulticastLock("anikitty-cast-discover")?.apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+            CastSessionHelper(castPlayer, CastRelay(app), multicast)
         }.getOrNull()
     }
 }

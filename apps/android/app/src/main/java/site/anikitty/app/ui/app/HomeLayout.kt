@@ -38,11 +38,6 @@ import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
 
-enum class HomeSurface(val key: String, val title: String) {
-    Phone("phone", "Phone"),
-    Television("tv", "Television"),
-}
-
 data class HomeSection(
     val id: String,
     val title: String,
@@ -55,7 +50,7 @@ data class HomeSectionState(
 )
 
 object HomeCatalog {
-    val phone = listOf(
+    val sections = listOf(
         HomeSection("resume", "Resume"),
         HomeSection("featured", "Featured"),
         HomeSection("genres", "Genres"),
@@ -69,38 +64,22 @@ object HomeCatalog {
         HomeSection("completed", "Completed"),
         HomeSection("season", "This season"),
     )
-    val television = listOf(
-        HomeSection("continue", "Continue watching"),
-        HomeSection("starting", "Starting soon"),
-        HomeSection("airing", "Airing today"),
-        HomeSection("trending", "Trending"),
-        HomeSection("foryou", "For you"),
-        HomeSection("favourites", "Favourites"),
-        HomeSection("plan", "Plan to watch"),
-        HomeSection("popular", "Most popular"),
-        HomeSection("season", "This season"),
-    )
-
-    fun catalog(surface: HomeSurface): List<HomeSection> = when (surface) {
-        HomeSurface.Phone -> phone
-        HomeSurface.Television -> television
-    }
 }
 
 /**
- * Order and visibility of home rows. Phone and television each keep their own list.
+ * Order and visibility of home rows.
  * Missing ids from a newer build are appended so a saved layout does not drop them.
  */
 class HomeLayoutStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("anikitty_home", Context.MODE_PRIVATE)
     private var tick by mutableIntStateOf(0)
 
-    fun sections(surface: HomeSurface): List<HomeSectionState> {
+    fun sections(): List<HomeSectionState> {
         tick
-        val catalog = HomeCatalog.catalog(surface)
+        val catalog = HomeCatalog.sections
         val known = catalog.map { it.id }
-        val hidden = hidden(surface)
-        val saved = prefs.getString(orderKey(surface), null)
+        val hidden = hidden()
+        val saved = (prefs.getString(ORDER, null) ?: prefs.getString("order_phone", null))
             ?.split(',')
             ?.map { it.trim() }
             ?.filter { it in known }
@@ -112,44 +91,44 @@ class HomeLayoutStore(context: Context) {
         }
     }
 
-    fun setEnabled(surface: HomeSurface, id: String, enabled: Boolean) {
-        val next = hidden(surface).toMutableSet()
+    fun setEnabled(id: String, enabled: Boolean) {
+        val next = hidden().toMutableSet()
         if (enabled) next.remove(id) else next.add(id)
-        prefs.edit().putString(hiddenKey(surface), next.joinToString(",")).apply()
+        prefs.edit().putString(HIDDEN, next.joinToString(",")).apply()
         tick++
     }
 
-    fun move(surface: HomeSurface, id: String, delta: Int) {
-        val ids = sections(surface).map { it.id }.toMutableList()
+    fun move(id: String, delta: Int) {
+        val ids = sections().map { it.id }.toMutableList()
         val index = ids.indexOf(id)
         val target = index + delta
         if (index < 0 || target !in ids.indices) return
         val displaced = ids[target]
         ids[target] = id
         ids[index] = displaced
-        prefs.edit().putString(orderKey(surface), ids.joinToString(",")).apply()
+        prefs.edit().putString(ORDER, ids.joinToString(",")).apply()
         tick++
     }
 
-    fun reset(surface: HomeSurface) {
-        prefs.edit()
-            .remove(orderKey(surface))
-            .remove(hiddenKey(surface))
-            .apply()
+    fun reset() {
+        prefs.edit().remove(ORDER).remove(HIDDEN).apply()
         tick++
     }
 
-    private fun hidden(surface: HomeSurface): Set<String> =
-        prefs.getString(hiddenKey(surface), null)
+    private fun hidden(): Set<String> {
+        val raw = prefs.getString(HIDDEN, null) ?: prefs.getString("hidden_phone", null)
+        return raw
             ?.split(',')
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() }
             ?.toSet()
             .orEmpty()
+    }
 
-    private fun orderKey(surface: HomeSurface) = "order_${surface.key}"
-
-    private fun hiddenKey(surface: HomeSurface) = "hidden_${surface.key}"
+    private companion object {
+        const val ORDER = "order"
+        const val HIDDEN = "hidden"
+    }
 }
 
 @Composable
@@ -160,59 +139,55 @@ fun HomeLayoutSettings(store: HomeLayoutStore) {
             subtitle = "Turn rows on or off, and move them up or down",
             padded = false,
         )
-        HomeSurface.entries.forEach { surface ->
-            val sections = store.sections(surface)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(KittySurface, KittyGlassShape)
-                    .border(1.dp, KittyOutlineSoft, KittyGlassShape)
-                    .padding(12.dp),
-            ) {
-                Text(surface.title, color = KittyText, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Spacer(modifier = Modifier.height(8.dp))
-                sections.forEachIndexed { index, section ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            section.title,
-                            color = if (section.enabled) KittyText else KittyFaint,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            modifier = Modifier.weight(1f),
-                        )
-                        TextButton(
-                            onClick = { store.move(surface, section.id, -1) },
-                            enabled = index > 0,
-                        ) { Text("Up") }
-                        TextButton(
-                            onClick = { store.move(surface, section.id, 1) },
-                            enabled = index < sections.lastIndex,
-                        ) { Text("Down") }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Switch(
-                            checked = section.enabled,
-                            onCheckedChange = { store.setEnabled(surface, section.id, it) },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = KittyOnAccent,
-                                checkedTrackColor = KittyAccent,
-                                uncheckedThumbColor = Color.White,
-                                uncheckedTrackColor = Color.White.copy(alpha = 0.24f),
-                                uncheckedBorderColor = Color.White.copy(alpha = 0.35f),
-                            ),
-                        )
-                    }
+        val sections = store.sections()
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(KittySurface, KittyGlassShape)
+                .border(1.dp, KittyOutlineSoft, KittyGlassShape)
+                .padding(12.dp),
+        ) {
+            sections.forEachIndexed { index, section ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        section.title,
+                        color = if (section.enabled) KittyText else KittyFaint,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 14.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(
+                        onClick = { store.move(section.id, -1) },
+                        enabled = index > 0,
+                    ) { Text("Up") }
+                    TextButton(
+                        onClick = { store.move(section.id, 1) },
+                        enabled = index < sections.lastIndex,
+                    ) { Text("Down") }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Switch(
+                        checked = section.enabled,
+                        onCheckedChange = { store.setEnabled(section.id, it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = KittyOnAccent,
+                            checkedTrackColor = KittyAccent,
+                            uncheckedThumbColor = Color.White,
+                            uncheckedTrackColor = Color.White.copy(alpha = 0.24f),
+                            uncheckedBorderColor = Color.White.copy(alpha = 0.35f),
+                        ),
+                    )
                 }
-                OutlinedButton(
-                    onClick = { store.reset(surface) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
-                ) { Text("Reset ${surface.title.lowercase()}") }
             }
+            OutlinedButton(
+                onClick = { store.reset() },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
+            ) { Text("Reset home") }
         }
     }
 }

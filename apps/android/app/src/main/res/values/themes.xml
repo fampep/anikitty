@@ -10,4 +10,8 @@
         <item name="colorPrimaryDark">#0B0B0C</item>
         <item name="colorAccent">#F4F0EA</item>
     </style>
+
+    <style name="Theme.AniKitty.CastButton" parent="Theme.AniKitty">
+        <item name="mediaRouteButtonTint">#FFFFFF</item>
+    </style>
 </resources>

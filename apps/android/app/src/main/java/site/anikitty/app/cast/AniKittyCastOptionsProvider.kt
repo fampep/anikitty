@@ -6,15 +6,13 @@ import com.google.android.gms.cast.framework.OptionsProvider
 import com.google.android.gms.cast.framework.SessionProvider
 import com.google.android.gms.cast.framework.media.CastMediaOptions
 import com.google.android.gms.cast.framework.media.NotificationOptions
+import site.anikitty.app.MainActivity
 
-/**
- * Default Cast receiver — works for publicly reachable stream URLs.
- * Streams that require custom Referer headers may fail on the stock receiver.
- */
+/** Default Cast receiver. Streams are relayed from the phone so the TV gets a clean URL. */
 class AniKittyCastOptionsProvider : OptionsProvider {
     override fun getCastOptions(context: Context): CastOptions {
         val notification = NotificationOptions.Builder()
-            .setTargetActivityClassName(site.anikitty.app.MainActivity::class.java.name)
+            .setTargetActivityClassName(MainActivity::class.java.name)
             .build()
         val media = CastMediaOptions.Builder()
             .setNotificationOptions(notification)
@@ -22,6 +20,8 @@ class AniKittyCastOptionsProvider : OptionsProvider {
         return CastOptions.Builder()
             .setReceiverApplicationId(DEFAULT_RECEIVER_ID)
             .setCastMediaOptions(media)
+            .setStopReceiverApplicationWhenEndingSession(true)
+            .setResumeSavedSession(false)
             .build()
     }
 

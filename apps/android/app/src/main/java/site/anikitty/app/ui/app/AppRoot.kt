@@ -66,12 +66,9 @@ fun AppRoot(
     pendingAniListToken: String? = null,
     pendingAniListError: String? = null,
     onConsumedAniListToken: () -> Unit = {},
-    forTelevision: Boolean = false,
-    pendingPairUri: String? = null,
-    onConsumedPairUri: () -> Unit = {},
 ) {
     var signedIn by remember { mutableStateOf(aniListAuth.isLinked) }
-    val showApp = forTelevision || signedIn || !pendingAniListToken.isNullOrBlank()
+    val showApp = signedIn || !pendingAniListToken.isNullOrBlank()
 
     if (!showApp) {
         LoginScreen(
@@ -86,7 +83,7 @@ fun AppRoot(
             historyDao = historyDao,
             streamServers = streamServers,
             accountLabel = aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
-                ?: if (forTelevision) "Guest" else "@anilist",
+                ?: "@anilist",
             pendingAniListToken = pendingAniListToken,
             pendingAniListError = pendingAniListError,
             onConsumedAniListToken = onConsumedAniListToken,
@@ -96,9 +93,6 @@ fun AppRoot(
                 aniListAuth.clear()
                 signedIn = false
             },
-            forTelevision = forTelevision,
-            pendingPairUri = pendingPairUri,
-            onConsumedPairUri = onConsumedPairUri,
         )
     }
 }
