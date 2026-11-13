@@ -109,6 +109,16 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    sourceSets {
+        getByName("main") {
+            // Provider resolvers live in the extensions repo tree so that
+            // folder is the place to build the extension version.
+            java.srcDir("../../../extensions/providers/anikoto")
+            java.srcDir("../../../extensions/providers/gotaku")
+            java.srcDir("../../../extensions/providers/anipm")
+        }
+    }
 }
 
 dependencies {

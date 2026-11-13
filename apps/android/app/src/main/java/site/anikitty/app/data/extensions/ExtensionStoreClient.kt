@@ -8,15 +8,49 @@ class ExtensionStoreClient(
     private val indexUrls: List<String> = DEFAULT_INDEX_URLS,
 ) {
     suspend fun fetchIndex(): StoreIndex = withContext(Dispatchers.IO) {
+        val loaded = ArrayList<StoreIndex>()
         var last: String? = null
         for (url in indexUrls) {
             val result = runCatching {
                 parseIndex(ExtensionHttp.getString(url), sourceUrl = url)
             }
-            if (result.isSuccess) return@withContext result.getOrThrow()
-            last = result.exceptionOrNull()?.message
+            if (result.isSuccess) loaded += result.getOrThrow()
+            else last = result.exceptionOrNull()?.message
         }
-        error(last ?: "Could not load extension store")
+        if (loaded.isEmpty()) error(last ?: "Could not load extension store")
+        mergeIndexes(loaded)
+    }
+
+    /**
+     * Newer `updatedAt` wins on the same id. A tie prefers anikitty-extensions.
+     * Listings that exist on only one index are kept.
+     */
+    private fun mergeIndexes(loaded: List<StoreIndex>): StoreIndex {
+        val ranked = loaded.sortedWith(
+            compareByDescending<StoreIndex> { it.updatedAt.orEmpty() }
+                .thenByDescending { it.sourceUrl?.contains("anikitty-extensions") == true },
+        )
+        val byId = LinkedHashMap<String, StoreListing>()
+        for (index in ranked) {
+            for (ext in index.extensions) {
+                if (ext.id !in byId) byId[ext.id] = ext
+            }
+        }
+        val urls = buildList {
+            val extensions = loaded.mapNotNull { it.sourceUrl }
+                .filter { it.contains("anikitty-extensions") }
+            val rest = loaded.mapNotNull { it.sourceUrl }
+                .filter { !it.contains("anikitty-extensions") }
+            addAll(extensions)
+            addAll(rest)
+        }
+        return StoreIndex(
+            apiVersion = ranked.first().apiVersion,
+            updatedAt = ranked.first().updatedAt,
+            extensions = byId.values.toList(),
+            sourceUrl = urls.firstOrNull(),
+            sourceUrls = urls,
+        )
     }
 
     private fun parseIndex(raw: String, sourceUrl: String): StoreIndex {
@@ -46,18 +80,18 @@ class ExtensionStoreClient(
             updatedAt = o.optString("updatedAt", null)?.takeIf { it.isNotBlank() },
             extensions = list,
             sourceUrl = sourceUrl,
+            sourceUrls = listOf(sourceUrl),
         )
     }
 
     companion object {
         /**
-         * Prefer the monorepo index (always published with APK/provider changes),
-         * then the dedicated `anikitty-extensions` mirror. Dedicated can lag when
-         * only fampep can push that repo — monorepo-first keeps Gotaku/Anikoto current.
+         * The extensions repo is the store the app talks to. The monorepo copy
+         * fills any listing the mirror does not have yet.
          */
         val DEFAULT_INDEX_URLS = listOf(
-            "https://raw.githubusercontent.com/fampep/anikitty/main/extensions/store/index.json",
             "https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json",
+            "https://raw.githubusercontent.com/fampep/anikitty/main/extensions/store/index.json",
         )
 
         /**

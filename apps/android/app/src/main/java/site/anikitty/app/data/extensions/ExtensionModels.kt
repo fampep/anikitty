@@ -51,4 +51,6 @@ data class StoreIndex(
     val extensions: List<StoreListing>,
     /** Which index URL served this payload (for Store status chrome). */
     val sourceUrl: String? = null,
+    /** Every index that contributed listings, extensions repo first when present. */
+    val sourceUrls: List<String> = emptyList(),
 )

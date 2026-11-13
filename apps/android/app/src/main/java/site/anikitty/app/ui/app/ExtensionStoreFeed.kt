@@ -72,6 +72,7 @@ import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyEmptyState
 import site.anikitty.app.ui.components.KittyPageHeader
+import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyFaint
@@ -114,8 +115,8 @@ fun ExtensionStoreFeed(
                     listings = it.extensions
                     updates = runCatching { catalog.extensionUpdates() }.getOrDefault(emptyMap())
                     val from = when {
-                        it.sourceUrl?.contains("anikitty-extensions") == true ->
-                            "extensions mirror"
+                        it.sourceUrls.any { url -> url.contains("anikitty-extensions") } ->
+                            "anikitty-extensions"
                         it.sourceUrl?.contains("fampep/anikitty") == true ->
                             "main store"
                         else -> "store"
@@ -181,6 +182,31 @@ fun ExtensionStoreFeed(
                 .thenByDescending { it.featured }
                 .thenBy { it.name.lowercase() },
         )
+    }
+
+    val rows = remember(filtered, bundledIds) {
+        val onPhone = filtered.filter { it.id in bundledIds }
+        val community = filtered.filter { it.id !in bundledIds }
+        buildList {
+            if (onPhone.isNotEmpty()) {
+                add(
+                    StoreRow.Head(
+                        title = "On this phone",
+                        subtitle = "Ships with AniKitty. The source is in anikitty-extensions.",
+                    ),
+                )
+                onPhone.forEach { add(StoreRow.Card(it)) }
+            }
+            if (community.isNotEmpty()) {
+                add(
+                    StoreRow.Head(
+                        title = "Community",
+                        subtitle = "Installed from GitHub. fampep does not run these.",
+                    ),
+                )
+                community.forEach { add(StoreRow.Card(it)) }
+            }
+        }
     }
 
     LazyColumn(
@@ -276,7 +302,21 @@ fun ExtensionStoreFeed(
             }
         }
 
-        lazyItems(filtered, key = { "store-${it.id}" }) { listing ->
+        lazyItems(rows, key = { row ->
+            when (row) {
+                is StoreRow.Head -> "head-${row.title}"
+                is StoreRow.Card -> "store-${row.listing.id}"
+            }
+        }) { row ->
+            if (row is StoreRow.Head) {
+                KittySectionHeading(
+                    title = row.title,
+                    subtitle = row.subtitle,
+                    padded = false,
+                )
+                return@lazyItems
+            }
+            val listing = (row as StoreRow.Card).listing
             val isBundled = listing.id in bundledIds
             val installedManifest = installedExt.firstOrNull { it.id == listing.id }
             val installed = isBundled || installedManifest != null
@@ -338,6 +378,15 @@ fun ExtensionStoreFeed(
                         Text(
                             buildString {
                                 if (listing.author.isNotBlank()) append(listing.author)
+                                listing.siteUrl?.let { site ->
+                                    val host = runCatching { Uri.parse(site).host }
+                                        .getOrNull()
+                                        ?.removePrefix("www.")
+                                    if (!host.isNullOrBlank()) {
+                                        if (isNotEmpty()) append(" · ")
+                                        append(host)
+                                    }
+                                }
                                 when {
                                     isBundled -> {
                                         if (isNotEmpty()) append(" · ")
@@ -437,6 +486,19 @@ fun ExtensionStoreFeed(
                                 if (onDevice || isBundled) "Use" else "Install",
                                 fontWeight = FontWeight.Bold,
                             )
+                        }
+                    }
+                    if (listing.github.contains("github.com/") &&
+                        listing.github.substringAfter("github.com/").length > 1
+                    ) {
+                        TextButton(
+                            onClick = {
+                                context.startActivity(
+                                    Intent(Intent.ACTION_VIEW, Uri.parse(listing.github)),
+                                )
+                            },
+                        ) {
+                            Text("Source", color = KittyMuted, fontSize = 12.sp)
                         }
                     }
                     if (listing.siteUrl != null) {
@@ -588,7 +650,7 @@ private fun StreamServer.toStoreListing(
             id = id,
             name = name,
             description = description,
-            github = FIRST_PARTY_GITHUB,
+            github = providerSource(id),
             author = "fampep",
             featured = true,
             iconUrl = iconUrl,
@@ -614,4 +676,14 @@ private fun StreamServer.toStoreListing(
     )
 }
 
-private const val FIRST_PARTY_GITHUB = "https://github.com/fampep/anikitty"
+private sealed interface StoreRow {
+    data class Head(val title: String, val subtitle: String) : StoreRow
+    data class Card(val listing: StoreListing) : StoreRow
+}
+
+private fun providerSource(id: String): String = when (id) {
+    "anikoto" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/anikoto"
+    "gotaku" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/gotaku"
+    "anipm" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/anipm"
+    else -> "https://github.com/fampep/anikitty-extensions"
+}
