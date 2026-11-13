@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import site.anikitty.app.data.airingLabel
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListClient
@@ -215,11 +216,39 @@ fun ScheduleFeed(
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                 )
             }
-            visible.isEmpty() -> Text(
-                if (onlyMine) "Nothing from your list airs this day." else "Nothing airing this day.",
-                color = KittyMuted,
-                modifier = Modifier.padding(16.dp),
-            )
+            visible.isEmpty() -> {
+                val nextIndex = days.indices.firstOrNull { index ->
+                    index != selected && slots.any { slot ->
+                        val ms = slot.airingAtEpochSec * 1000L
+                        val start = days[index].timeInMillis
+                        val onDay = ms in start until start + 24L * 60L * 60L * 1000L
+                        val mine = !onlyMine || followedEpisodes.containsKey(slot.anime.id)
+                        onDay && mine
+                    }
+                }
+                val dayName = nextIndex?.let { index ->
+                    if (index == 0) {
+                        "Today"
+                    } else {
+                        days[index].getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.getDefault())
+                    }
+                }
+                val hint = when {
+                    dayName != null && onlyMine -> "Nothing from your list this day. $dayName has shows."
+                    dayName != null -> "Nothing this day. $dayName has shows."
+                    onlyMine -> "Nothing from your list airs this day."
+                    else -> "Nothing airing this day."
+                }
+                Text(
+                    hint,
+                    color = KittyMuted,
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable(enabled = nextIndex != null) {
+                            if (nextIndex != null) selected = nextIndex
+                        },
+                )
+            }
             else -> LazyColumn(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -277,8 +306,8 @@ private fun ScheduleRow(
         )
         Spacer(modifier = Modifier.width(12.dp))
         val now = System.currentTimeMillis() / 1000L
-        val soon = slot.airingAtEpochSec - now in 0..(45 * 60)
-        val aired = slot.airingAtEpochSec < now
+        val relative = airingLabel(slot.airingAtEpochSec, now, timeLabel)
+        val aired = slot.airingAtEpochSec + 60 < now
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 slot.anime.title,
@@ -309,9 +338,9 @@ private fun ScheduleRow(
             }
         }
         Column(horizontalAlignment = Alignment.End) {
-            if (soon) {
+            if (relative != timeLabel) {
                 Text(
-                    "Soon",
+                    relative,
                     color = KittyOnAccent,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
@@ -319,6 +348,14 @@ private fun ScheduleRow(
                         .clip(RoundedCornerShape(999.dp))
                         .background(KittyAccent)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+            } else if (aired) {
+                Text(
+                    "Aired",
+                    color = KittyFaint,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
             }

@@ -39,6 +39,19 @@ fun airingLabel(airingAtEpochSec: Long, nowEpochSec: Long, clock: String): Strin
     }
 }
 
+/** Short relative time for a library row. Blank when the watch is older than two weeks. */
+fun watchedAgo(updatedAtEpochMs: Long, nowEpochMs: Long = System.currentTimeMillis()): String {
+    if (updatedAtEpochMs <= 0L) return ""
+    val minutes = ((nowEpochMs - updatedAtEpochMs).coerceAtLeast(0L) / 60_000L)
+    return when {
+        minutes < 1L -> "Just now"
+        minutes < 60L -> "${minutes}m ago"
+        minutes < 60L * 24L -> "${minutes / 60L}h ago"
+        minutes < 60L * 24L * 14L -> "${minutes / (60L * 24L)}d ago"
+        else -> ""
+    }
+}
+
 /** Drop AniList source footnotes and leftover entities after tag stripping. */
 fun plainSynopsis(raw: String): String {
     return raw
