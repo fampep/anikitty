@@ -3,6 +3,7 @@ package site.anikitty.app.ui.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -15,17 +16,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -36,6 +43,8 @@ import androidx.compose.ui.unit.sp
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyNavPillContent
 import site.anikitty.app.ui.theme.KittyNavPillSurface
+import site.anikitty.app.ui.theme.KittyOnAccent
+import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 
 data class KittyNavTab(
@@ -110,6 +119,72 @@ fun KittyBottomNav(
                         maxLines = 1,
                     )
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Living-room version of the phone dock. Same destinations, sized for a remote.
+ * Focus fills the row white so the selection is obvious from the couch.
+ */
+@Composable
+fun KittySideNav(
+    tabs: List<KittyNavTab>,
+    selectedId: String,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .width(196.dp)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(20.dp))
+            .background(KittyNavPillSurface)
+            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(20.dp))
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            "AniKitty",
+            color = KittyAccent,
+            fontWeight = FontWeight.Black,
+            fontSize = 18.sp,
+            modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+        )
+        tabs.forEach { tab ->
+            val selected = tab.id == selectedId
+            var focused by remember { mutableStateOf(false) }
+            val shape = RoundedCornerShape(14.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focused = it.hasFocus }
+                    .clip(shape)
+                    .background(if (focused) KittyAccent else Color.Transparent)
+                    .border(
+                        width = if (selected && !focused) 1.dp else 0.dp,
+                        color = if (selected && !focused) KittyAccent else Color.Transparent,
+                        shape = shape,
+                    )
+                    .clickable { onSelect(tab.id) }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(
+                    imageVector = if (selected) tab.selectedIcon else tab.icon,
+                    contentDescription = tab.label,
+                    tint = if (focused) KittyOnAccent else if (selected) KittyAccent else KittyNavPillContent,
+                    modifier = Modifier.size(22.dp),
+                )
+                Text(
+                    tab.label,
+                    color = if (focused) KittyOnAccent else if (selected) KittyAccent else KittyNavPillContent,
+                    fontSize = 15.sp,
+                    fontWeight = if (selected || focused) FontWeight.Bold else FontWeight.Medium,
+                    maxLines = 1,
+                )
             }
         }
     }
