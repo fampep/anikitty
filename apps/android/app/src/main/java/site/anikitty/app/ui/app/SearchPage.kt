@@ -40,7 +40,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.FilterList
+import site.anikitty.app.ui.icons.FluentuiSystemIconsFilter
+import site.anikitty.app.ui.icons.FluentuiSystemIconsStarFilled
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -347,7 +348,7 @@ fun SearchFeed(
                 Spacer(Modifier.width(8.dp))
                 HeaderDisc(onClick = { filtersOpen = true }, selected = filtersOpen || pick.on()) {
                     Icon(
-                        Icons.Filled.FilterList,
+                        FluentuiSystemIconsFilter,
                         contentDescription = "Filters",
                         tint = if (filtersOpen || pick.on()) Color.White else Color.White.copy(alpha = 0.75f),
                         modifier = Modifier.size(16.dp),
@@ -729,7 +730,7 @@ private fun ScoreBadge(text: String, score: Int, modifier: Modifier = Modifier) 
             .padding(horizontal = 5.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.Star, contentDescription = null, tint = tint, modifier = Modifier.size(9.dp))
+        Icon(FluentuiSystemIconsStarFilled, contentDescription = null, tint = tint, modifier = Modifier.size(9.dp))
         Spacer(Modifier.width(2.dp))
         Text(text, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
     }

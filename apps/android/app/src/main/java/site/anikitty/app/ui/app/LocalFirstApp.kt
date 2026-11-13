@@ -55,6 +55,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DateRange
@@ -148,6 +149,13 @@ import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
+import site.anikitty.app.ui.icons.FluentuiSystemIconsCalendarClockFilled
+import site.anikitty.app.ui.icons.FluentuiSystemIconsCalendarClockOutline
+import site.anikitty.app.ui.icons.FluentuiSystemIconsHomeFilled
+import site.anikitty.app.ui.icons.FluentuiSystemIconsHomeOutline
+import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonFilled
+import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonOutline
+import site.anikitty.app.ui.icons.FluentuiSystemIconsSearchSparkleOutline
 import site.anikitty.app.ui.components.KittyBottomNav
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
@@ -312,11 +320,10 @@ fun LocalFirstApp(
 
     val tabs = remember {
         listOf(
-            KittyNavTab("home", "Home", Icons.Outlined.Home, Icons.Filled.Home),
-            KittyNavTab("search", "Search", Icons.Outlined.Search, Icons.Filled.Search),
-            KittyNavTab("schedule", "Schedule", Icons.Filled.DateRange, Icons.Filled.DateRange),
-            KittyNavTab("history", "Library", Icons.Outlined.History, Icons.Rounded.History),
-            KittyNavTab("settings", "Account", Icons.Outlined.Person, Icons.Filled.Person),
+            KittyNavTab("home", "Home", FluentuiSystemIconsHomeOutline, FluentuiSystemIconsHomeFilled),
+            KittyNavTab("search", "Search", FluentuiSystemIconsSearchSparkleOutline, FluentuiSystemIconsSearchSparkleOutline),
+            KittyNavTab("schedule", "Schedule", FluentuiSystemIconsCalendarClockOutline, FluentuiSystemIconsCalendarClockFilled),
+            KittyNavTab("history", "My Space", FluentuiSystemIconsPersonOutline, FluentuiSystemIconsPersonFilled),
         )
     }
 
@@ -533,13 +540,15 @@ fun LocalFirstApp(
                     onOpen = { openDetail(it) },
                 )
                 "store" -> ExtensionStoreFeed(catalog = streamServers)
-                "history" -> HistoryFeed(
+                "history" -> MySpaceFeed(
                     history = history,
                     historyDao = historyDao,
                     aniList = aniList,
                     aniListLinked = aniListAuth.isLinked,
                     accessToken = aniListAuth.accessToken,
+                    accountLabel = accountLabel,
                     syncLabel = syncLabel,
+                    libraryFilter = libraryFilter,
                     onSync = {
                         scope.launch {
                             syncLabel = "Syncing…"
@@ -550,8 +559,8 @@ fun LocalFirstApp(
                         }
                     },
                     onOpen = { openDetail(it) },
-                    libraryFilter = libraryFilter,
-                    onLibraryFilter = { libraryFilter = it },
+                    onOpenAccount = { tab = "settings" },
+                    onSignOut = onSignOut,
                 )
                 "settings" -> SettingsFeed(
                     catalog = streamServers,
@@ -586,7 +595,7 @@ fun LocalFirstApp(
         PhoneTabs(Modifier.fillMaxSize())
         KittyBottomNav(
             tabs = tabs,
-            selectedId = tab,
+            selectedId = if (tab == "settings" || tab == "store") "history" else tab,
             onSelect = { tab = it },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
