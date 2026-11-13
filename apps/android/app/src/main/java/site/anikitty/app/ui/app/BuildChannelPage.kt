@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import site.anikitty.app.BuildConfig
+import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.updates.AppReleaseClient
 import site.anikitty.app.data.updates.BuildChannel
 import site.anikitty.app.data.updates.BuildChannelStore
@@ -127,7 +128,7 @@ fun BuildChannelPage(onBack: () -> Unit) {
                     loading = false
                 }
                 .onFailure {
-                    error = it.message ?: "Couldn't load releases"
+                    error = friendlyFailure(it.message ?: "Couldn't load releases")
                     loading = false
                 }
         }

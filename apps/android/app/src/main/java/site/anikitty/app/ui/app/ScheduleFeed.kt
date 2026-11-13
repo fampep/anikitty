@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
@@ -76,8 +77,9 @@ fun ScheduleFeed(
     var error by remember { mutableStateOf<String?>(null) }
     val clock = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
     var onlyMine by remember { mutableStateOf(false) }
+    var reloadTick by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(reloadTick) {
         loading = true
         error = null
         runCatching {
@@ -89,7 +91,7 @@ fun ScheduleFeed(
                 },
             )
         }.onSuccess { slots = it }
-            .onFailure { error = it.message ?: "Could not load the schedule" }
+            .onFailure { error = friendlyFailure(it.message ?: "Could not load the schedule") }
         loading = false
     }
 
@@ -175,9 +177,13 @@ fun ScheduleFeed(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
-                        day.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault())
-                            .orEmpty()
-                            .uppercase(Locale.getDefault()),
+                        if (index == 0) {
+                            "TODAY"
+                        } else {
+                            day.getDisplayName(Calendar.DAY_OF_WEEK, Calendar.SHORT, Locale.getDefault())
+                                .orEmpty()
+                                .uppercase(Locale.getDefault())
+                        },
                         color = if (on) KittyOnAccent else KittyFaint,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
@@ -195,11 +201,20 @@ fun ScheduleFeed(
             loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = KittyAccent)
             }
-            error != null && slots.isEmpty() -> Text(
-                error!!,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(16.dp),
-            )
+            error != null && slots.isEmpty() -> Column(Modifier.padding(16.dp)) {
+                Text(error!!, color = MaterialTheme.colorScheme.error)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Retry",
+                    color = KittyOnAccent,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(KittyAccent)
+                        .clickable { reloadTick++ }
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                )
+            }
             visible.isEmpty() -> Text(
                 if (onlyMine) "Nothing from your list airs this day." else "Nothing airing this day.",
                 color = KittyMuted,

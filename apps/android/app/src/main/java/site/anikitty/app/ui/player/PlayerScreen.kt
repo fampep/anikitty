@@ -116,6 +116,7 @@ import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
+import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.servers.GotakuObfDataSource
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
@@ -199,7 +200,8 @@ fun PlayerScreen(
     var durationMs by remember { mutableLongStateOf(0L) }
     var scrubbing by remember { mutableStateOf(false) }
     var scrubValue by remember { mutableFloatStateOf(0f) }
-    var sourceIndex by remember(sources) { mutableIntStateOf(0) }
+    var playAttempt by remember { mutableIntStateOf(0) }
+    var sourceIndex by remember(sources, playAttempt) { mutableIntStateOf(0) }
     var skipTimes by remember { mutableStateOf(SkipTimes()) }
     var autoSkippedRecap by remember { mutableStateOf(false) }
     var didSeekStart by remember { mutableStateOf(false) }
@@ -289,7 +291,7 @@ fun PlayerScreen(
 
     // Fresh DefaultTrackSelector per ExoPlayer — release() owns the selector, so a
     // remembered shared instance would be detached after the first quality switch.
-    val playerBundle = remember(source?.url, source?.subtitles, source?.gotakuObf) {
+    val playerBundle = remember(source?.url, source?.subtitles, source?.gotakuObf, playAttempt) {
         if (source == null) return@remember null
         val httpFactory = DefaultHttpDataSource.Factory()
             .setUserAgent(source.headers["User-Agent"] ?: DEFAULT_UA)
@@ -517,8 +519,10 @@ fun PlayerScreen(
                     sourceIndex += 1
                 } else {
                     val cause = e.cause?.message?.takeIf { it.isNotBlank() }
-                    error = listOfNotNull(e.message, cause).joinToString(" — ")
-                        .ifBlank { "Playback failed" }
+                    error = friendlyFailure(
+                        listOfNotNull(e.message, cause).joinToString(" — ")
+                            .ifBlank { "Playback failed" },
+                    )
                 }
             }
         }
@@ -529,7 +533,7 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(sources) {
+    LaunchedEffect(sources, playAttempt) {
         sourceIndex = 0
         resumeAtMs = startPositionMs
         didSeekStart = false
@@ -851,10 +855,21 @@ fun PlayerScreen(
         }
 
         if (!ready && error == null && !isCasting) {
-            CircularProgressIndicator(
+            Column(
                 modifier = Modifier.align(Alignment.Center),
-                color = PlayerChrome.Accent,
-            )
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator(color = PlayerChrome.Accent)
+                if (sourceIndex > 0 && sources.size > 1) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        "Source ${sourceIndex + 1} of ${sources.size}",
+                        color = PlayerChrome.Paper,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
 
         if (castHint != null) {
@@ -916,9 +931,25 @@ fun PlayerScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    error!!,
+                    error!!.take(160),
                     color = PlayerChrome.Graphite,
                     fontSize = 13.sp,
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    "Try again",
+                    color = PlayerChrome.Ink,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PlayerChrome.Accent)
+                        .clickable {
+                            error = null
+                            ready = false
+                            playAttempt++
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
         }
@@ -1301,7 +1332,7 @@ fun PlayerScreen(
             ) {
                 Icon(
                     Icons.Rounded.SkipNext,
-                    contentDescription = null,
+                    contentDescription = label,
                     tint = PlayerChrome.Ink,
                     modifier = Modifier.size(18.dp),
                 )
