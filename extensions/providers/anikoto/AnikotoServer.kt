@@ -51,8 +51,8 @@ class AnikotoServer(
         require(anilistId > 0) { "anilistId required" }
         require(episode > 0) { "episode required" }
         val mode = if (audio.equals("dub", ignoreCase = true)) "dub" else "sub"
-        val titles = buildTitleQueries(titleHint)
-        val mapped = mapWatchPage(anilistId, titles)
+        val (titles, malId) = hintParts(titleHint)
+        val mapped = mapWatchPage(anilistId, titles, malId)
         val episodes = fetchEpisodes(mapped.siteId, mapped.watchUrl)
         val ep = episodes.firstOrNull { it.number == episode }
             ?: error("Episode $episode not found")
@@ -115,7 +115,8 @@ class AnikotoServer(
         val key = skipKey(anilistId, episode)
         skipMemory[key]?.let { return@withContext it }
         val found = try {
-            val mapped = mapWatchPage(anilistId, buildTitleQueries(titleHint))
+            val (titles, malId) = hintParts(titleHint)
+            val mapped = mapWatchPage(anilistId, titles, malId)
             val ep = fetchEpisodes(mapped.siteId, mapped.watchUrl)
                 .firstOrNull { it.number == episode }
                 ?: return@withContext SkipTimes()
@@ -161,15 +162,19 @@ class AnikotoServer(
         val subtitles: List<SubtitleTrack>,
     )
 
-    private fun mapWatchPage(anilistId: Int, titles: List<String>): MappedShow {
+    private fun mapWatchPage(anilistId: Int, titles: List<String>, malId: Int?): MappedShow {
         cache?.getShow(ID, anilistId)?.let { hit ->
-            // Trust the cache for rematches; fall through if the page is gone.
+            // A stored page is only reused when it still belongs to this AniList
+            // entry. A same-named film (2.0, The New Movie) used to stick forever.
             val html = runCatching { fetchText(hit.watchUrl, ANIKOTO_BASE) }.getOrNull()
-            if (html != null && parseWatchId(html) == hit.siteId) {
+            if (html != null &&
+                parseWatchId(html) == hit.siteId &&
+                pageMatchesAnilist(html, anilistId, titles) &&
+                malAgrees(hit.siteId, hit.watchUrl, malId)
+            ) {
                 return MappedShow(hit.siteId, hit.watchUrl)
             }
         }
-        val seen = LinkedHashSet<String>()
         val ranked = ArrayList<Pair<String, Int>>() // url to score
         for (q in titles.take(8)) {
             val slug = titleSlug(q)
@@ -180,22 +185,48 @@ class AnikotoServer(
                 val html = data.optJSONObject("result")?.optString("html")
                     ?: data.optString("result")
                 parseSearchCandidates(html).forEach { (url, name) ->
-                    val score = if (searchNameMatches(name, titles)) 10 else 2
+                    val score = when {
+                        titlesIdentifySameWork(name, titles) -> 100
+                        searchNameMatches(name, titles) -> 10
+                        else -> 2
+                    }
                     ranked += url to score
                 }
             }
         }
-        for ((url, _) in ranked.sortedByDescending { it.second }.take(10)) {
-            if (!seen.add(url)) continue
+        val best = LinkedHashMap<String, Int>()
+        for ((url, score) in ranked.sortedByDescending { it.second }) {
+            if (url !in best) best[url] = score
+        }
+        for (url in best.keys.take(8)) {
             val abs = absoluteUrl(url)
             val html = runCatching { fetchText(abs, ANIKOTO_BASE) }.getOrNull() ?: continue
             if (!pageMatchesAnilist(html, anilistId, titles)) continue
             val siteId = parseWatchId(html) ?: continue
+            if (!malAgrees(siteId, abs, malId)) continue
             val mapped = MappedShow(siteId, abs)
             cache?.putShow(ID, anilistId, mapped.siteId, mapped.watchUrl)
             return mapped
         }
         error("No watch page for AniList $anilistId")
+    }
+
+    /**
+     * Episode `data-mal` is the MyAnimeList id. When AniList gave us one, a page
+     * whose episodes belong to a different MAL id is a different work.
+     * A failed fetch does not reject the page.
+     */
+    private fun malAgrees(siteId: String, watchUrl: String, malId: Int?): Boolean {
+        if (malId == null || malId <= 0) return true
+        val found = runCatching { episodeMalIds(siteId, watchUrl) }.getOrNull() ?: return true
+        if (found.isEmpty()) return true
+        return malId in found
+    }
+
+    private fun episodeMalIds(siteId: String, watchUrl: String): Set<Int> {
+        val data = fetchJson("$ANIKOTO_BASE/ajax/episode/list/$siteId?style=multi", watchUrl)
+        val html = data.optString("result")
+        return DATA_MAL.findAll(html).mapNotNull { it.groupValues[1].toIntOrNull() }.toSet()
     }
 
     private fun fetchEpisodes(siteId: String, watchUrl: String): List<SiteEpisode> {
@@ -510,6 +541,8 @@ class AnikotoServer(
         private val EPISODE = Regex(
             """(?is)<a\b[^>]*\bdata-num=["'](\d+)["'][^>]*\bdata-sub=["']([^"']*)["'][^>]*\bdata-dub=["']([^"']*)["'][^>]*\bdata-ids=["']([^"']+)["'][^>]*>""",
         )
+        private val DATA_MAL = Regex("""(?i)\bdata-mal=["'](\d+)["']""")
+        private val MAL_HINT = Regex("""(?i)\bmal:(\d+)\b""")
         private val SERVER_LI = Regex(
             """(?is)<li\b[^>]*\bdata-link-id=["']([^"']+)["'][^>]*>(.*?)</li>""",
         )
@@ -578,18 +611,54 @@ class AnikotoServer(
             return sb.trim().toString()
         }
 
+        /**
+         * Same work, not a longer sibling. "Ghost in the Shell" matches itself
+         * and a year suffix, and does not match "2.0", "The New Movie", or
+         * "The Ghost in the Shell".
+         */
+        private fun identityKey(title: String): String {
+            val stripped = normalizeTitleKey(title)
+                .replace(Regex("""\b(?:19|20)\d{2}\b"""), " ")
+                .replace(Regex("""\s+"""), " ")
+                .trim()
+            return stripped.split(' ')
+                .filter { it.length > 1 || it.all(Char::isDigit) }
+                .joinToString(" ")
+        }
+
+        private fun titlesIdentifySameWork(pageTitle: String, expected: List<String>): Boolean {
+            val page = identityKey(pageTitle)
+            if (page.isEmpty()) return false
+            return expected.any { identityKey(it) == page }
+        }
+
         private fun titlesLooselyMatch(a: String, b: String): Boolean {
             val na = normalizeTitleKey(a)
             val nb = normalizeTitleKey(b)
             if (na.isEmpty() || nb.isEmpty()) return false
             if (na == nb) return true
-            if (na.contains(nb) || nb.contains(na)) return true
+            val shorter = minOf(na.length, nb.length)
+            val longer = maxOf(na.length, nb.length)
+            if ((na.contains(nb) || nb.contains(na)) && shorter >= 8 && shorter * 10 >= longer * 8) {
+                return true
+            }
             val ta = na.split(' ').filter { it.length > 2 }.toSet()
             val tb = nb.split(' ').filter { it.length > 2 }.toSet()
             if (ta.isEmpty() || tb.isEmpty()) return false
             val inter = ta.intersect(tb)
             val need = minOf(3, minOf(ta.size, tb.size))
             return inter.size >= need
+        }
+
+        /** Split a resolver hint into search titles and an optional MAL id (`mal:43`). */
+        private fun hintParts(titleHint: String?): Pair<List<String>, Int?> {
+            val raw = titleHint?.trim().orEmpty()
+            val mal = MAL_HINT.find(raw)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
+            val cleaned = raw.replace(MAL_HINT, " ").replace(Regex("""\s*\|\|\s*"""), " || ")
+                .trim()
+                .trim('|')
+                .trim()
+            return buildTitleQueries(cleaned.ifBlank { null }) to mal
         }
 
         private fun buildTitleQueries(hint: String?): List<String> {
@@ -653,7 +722,7 @@ class AnikotoServer(
         private fun pageMatchesAnilist(html: String, anilistId: Int, expectedTitles: List<String>): Boolean {
             pageAnilistId(html)?.let { return it == anilistId }
             val pageTitle = parsePageTitle(html) ?: return false
-            return expectedTitles.any { titlesLooselyMatch(it, pageTitle) }
+            return titlesIdentifySameWork(pageTitle, expectedTitles)
         }
 
         private fun searchNameMatches(candidateName: String, expectedTitles: List<String>): Boolean =

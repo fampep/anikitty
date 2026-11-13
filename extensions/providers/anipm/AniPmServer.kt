@@ -128,7 +128,9 @@ class AniPmServer(
             cache?.putShow(ID, anilistId, fromPartner, "$SITE_URL/anime/$fromPartner")
             return fromPartner
         }
-        val q = titleHint?.trim().orEmpty()
+        val q = titleHint?.replace(Regex("""(?i)\s*\|\|\s*mal:\d+\b"""), "")
+            ?.replace(Regex("""(?i)\bmal:\d+\b"""), "")
+            ?.trim().orEmpty()
         if (q.length >= 2) {
             val fromSearch = runCatching { siteIdFromTitleSearch(q, anilistId) }.getOrNull()
             if (!fromSearch.isNullOrBlank()) {
