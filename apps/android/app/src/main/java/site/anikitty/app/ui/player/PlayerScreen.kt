@@ -84,7 +84,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
@@ -97,6 +99,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -778,6 +781,7 @@ fun PlayerScreen(
             .fillMaxSize()
             .background(KittyInk)
             .onFocusChanged { chromeFocused = it.hasFocus }
+            .focusProperties { canFocus = panel == Panel.None && !controlsVisible }
             .focusable()
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
@@ -1653,20 +1657,36 @@ private fun PlayerSheet(
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(16.dp)
+    val focusManager = LocalFocusManager.current
     Box(
         modifier = modifier
             .shadow(18.dp, shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.5f))
             .clip(shape)
             .background(PlayerChrome.Sheet)
             .border(1.dp, PlayerChrome.SheetStroke, shape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = { /* absorb */ },
-            )
+            .focusProperties { canFocus = false }
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.DirectionDown -> {
+                        focusManager.moveFocus(FocusDirection.Down)
+                        true
+                    }
+                    Key.DirectionUp -> {
+                        focusManager.moveFocus(FocusDirection.Up)
+                        true
+                    }
+                    else -> false
+                }
+            }
+            .pointerInput(Unit) { detectTapGestures { } }
             .padding(16.dp),
     ) {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .focusProperties { canFocus = false },
+        ) {
             content()
         }
     }
@@ -1688,8 +1708,13 @@ private fun SleepSheet(choice: Int, onPick: (Int) -> Unit) {
         30 to "30 minutes",
         45 to "45 minutes",
         -1 to "End of this episode",
-    ).forEach { (value, label) ->
-        SheetRow(label = label, selected = choice == value, onClick = { onPick(value) })
+    ).forEachIndexed { index, (value, label) ->
+        SheetRow(
+            label = label,
+            selected = choice == value,
+            onClick = { onPick(value) },
+            initiallyFocused = index == 0,
+        )
     }
 }
 
@@ -1697,11 +1722,12 @@ private fun SleepSheet(choice: Int, onPick: (Int) -> Unit) {
 private fun SpeedSheet(speed: Float, onPick: (Float) -> Unit) {
     SheetTitle("Speed")
     Spacer(modifier = Modifier.height(10.dp))
-    listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEach { rate ->
+    listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEachIndexed { index, rate ->
         SheetRow(
             label = speedLabel(rate),
             selected = kotlin.math.abs(speed - rate) < 0.01f,
             onClick = { onPick(rate) },
+            initiallyFocused = index == 0,
         )
     }
 }
@@ -1726,12 +1752,13 @@ private fun QualitySheet(
     val resolutions = videoOptions.ifEmpty {
         listOf(VideoOption(id = "auto", label = "Auto (best available)"))
     }
-    resolutions.forEach { opt ->
+    resolutions.forEachIndexed { index, opt ->
         SheetRow(
             label = opt.label,
             selected = selectedVideoId == opt.id ||
                 (opt.id == "auto" && selectedVideoId == "auto"),
             onClick = { onPickVideo(opt.id) },
+            initiallyFocused = index == 0,
         )
     }
     if (sources.size > 1) {
@@ -1776,6 +1803,7 @@ private fun SubsSheet(
         label = "Off",
         selected = !enabled || selectedId == "off",
         onClick = { onToggle(false) },
+        initiallyFocused = true,
     )
     SheetRow(
         label = "Auto",
@@ -1820,14 +1848,11 @@ private fun StyleSheet(
         else -> "Top"
     }
     SheetTitle("Captions")
-    Text(
-        "Tracks",
-        color = PlayerChrome.Accent,
-        fontSize = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        modifier = Modifier
-            .padding(top = 4.dp, bottom = 12.dp)
-            .clickable(onClick = onBack),
+    SheetRow(
+        label = "Back to subtitles",
+        selected = false,
+        onClick = onBack,
+        initiallyFocused = true,
     )
 
     Row(
@@ -2006,6 +2031,7 @@ private fun DisplaySheet(
         label = "Fit (letterbox)",
         selected = resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT,
         onClick = { onResize(AspectRatioFrameLayout.RESIZE_MODE_FIT) },
+        initiallyFocused = true,
     )
     SheetRow(
         label = "Fill (crop)",
@@ -2037,12 +2063,25 @@ private fun SheetTitle(text: String) {
 }
 
 @Composable
-private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
+private fun SheetRow(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    initiallyFocused: Boolean = false,
+) {
     val shape = RoundedCornerShape(12.dp)
+    val focusRequester = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(initiallyFocused) {
+        if (!initiallyFocused) return@LaunchedEffect
+        delay(80)
+        runCatching { focusRequester.requestFocus() }
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .focusRequester(focusRequester)
+            .onFocusChanged { focused = it.isFocused }
             .clip(shape)
             .background(if (selected || focused) PlayerChrome.RowSelected else Color.Transparent)
             .border(
@@ -2054,7 +2093,6 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
                 },
                 shape,
             )
-            .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
