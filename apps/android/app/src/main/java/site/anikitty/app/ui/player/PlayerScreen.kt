@@ -906,7 +906,9 @@ fun PlayerScreen(
                             controlsVisible = true
                             return@detectTapGestures
                         }
-                        if (panel != Panel.None) {
+                        if (!theater) {
+                            activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
+                        } else if (panel != Panel.None) {
                             panel = Panel.None
                         } else {
                             controlsVisible = !controlsVisible
@@ -1183,7 +1185,7 @@ fun PlayerScreen(
         }
 
         AnimatedVisibility(
-            visible = !controlsLocked && (controlsVisible || error != null || panel != Panel.None),
+            visible = theater && !controlsLocked && (controlsVisible || error != null || panel != Panel.None),
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize(),
@@ -1613,25 +1615,6 @@ fun PlayerScreen(
                 )
             }
         }
-        if (!theater) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .clickable { theater = true },
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Rounded.Fullscreen,
-                    contentDescription = "Full screen",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
     }
     }
 
@@ -1654,7 +1637,10 @@ fun PlayerScreen(
             modifier = if (theater) {
                 Modifier.weight(1f)
             } else {
-                Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .border(1.dp, Color.White.copy(alpha = 0.06f))
             },
         )
         if (!theater) {
@@ -1695,8 +1681,9 @@ private fun PlayerPageBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(Color(0xFF0C0B0F))
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -1724,9 +1711,9 @@ private fun PlayerPageBar(
             )
             Text(
                 if (isMovie) {
-                    "Full movie · ${audio.uppercase()}"
+                    "Full Movie • ${audio.uppercase()}"
                 } else {
-                    "Episode $episode · ${audio.uppercase()}"
+                    "Episode $episode • ${audio.uppercase()}"
                 },
                 color = Color.White.copy(alpha = 0.5f),
                 fontSize = 11.sp,

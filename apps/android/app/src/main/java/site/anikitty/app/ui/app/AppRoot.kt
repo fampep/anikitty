@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,7 +72,13 @@ fun AppRoot(
     onConsumedAniListToken: () -> Unit = {},
 ) {
     var signedIn by remember { mutableStateOf(aniListAuth.isLinked) }
+    var showSplash by rememberSaveable { mutableStateOf(true) }
     val showApp = signedIn || !pendingAniListToken.isNullOrBlank()
+
+    if (showSplash) {
+        SplashScreen(onFinished = { showSplash = false })
+        return
+    }
 
     if (!showApp) {
         LoginScreen(
