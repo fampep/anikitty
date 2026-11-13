@@ -45,7 +45,9 @@ Optional: `description`, `author`, `homepage`, `resolvePath`, `siteUrl`, `nsfw`.
   sources: Array<{
     url: string;                          // absolute http(s) media URL
     headers?: Record<string, string>;     // request headers for Media3
-    label?: string;                       // quality / source name
+    referer?: string;                     // shorthand for headers.Referer
+    origin?: string;                      // shorthand for headers.Origin
+    label?: string;                       // quality / source name, e.g. "1080p"
     stripBytes?: number;                  // leading bytes to strip (MegaPlay-style); 0 = none
     subtitles?: Array<{
       url: string;
@@ -62,6 +64,9 @@ Constraints:
 - At least one `sources[]` entry with a non-empty `url`.
 - `url` must be absolute (`http://` or `https://`).
 - Headers are passed through to Media3; common keys: `Referer`, `Origin`, `User-Agent`, `Cookie`.
+- `referer` and `origin` are copied into those headers when the header map does not already set them.
+- The client keeps the first copy of a repeated `url`, and plays the highest labeled quality first (`1080p` before `720p`).
+- A dropped connection is tried once more. An HTTP error is not retried.
 - Empty `sources` → client treats as failure.
 
 ### Errors
