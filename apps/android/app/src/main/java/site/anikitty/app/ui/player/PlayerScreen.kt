@@ -2,6 +2,7 @@ package site.anikitty.app.ui.player
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.graphics.Color as AndroidColor
 import android.graphics.Typeface
 import android.view.ViewGroup
@@ -15,6 +16,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -80,9 +82,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -118,6 +129,7 @@ import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeoutOrNull
 import site.anikitty.app.data.friendlyFailure
+import site.anikitty.app.isTelevisionDevice
 import site.anikitty.app.data.servers.GotakuObfDataSource
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
@@ -197,6 +209,14 @@ fun PlayerScreen(
     var ready by remember { mutableStateOf(false) }
     var playing by remember { mutableStateOf(true) }
     var controlsVisible by remember { mutableStateOf(true) }
+    var chromeFocused by remember { mutableStateOf(false) }
+    val television = remember {
+        isTelevisionDevice(
+            context.resources.configuration,
+            context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK),
+        )
+    }
+    val playFocus = remember { FocusRequester() }
     var positionMs by remember { mutableLongStateOf(0L) }
     var durationMs by remember { mutableLongStateOf(0L) }
     var scrubbing by remember { mutableStateOf(false) }
@@ -693,11 +713,19 @@ fun PlayerScreen(
         nextTriggered = false
     }
 
-    LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting, nearEndOffer, showEndAutoplay) {
+    LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting, nearEndOffer, showEndAutoplay, chromeFocused) {
         if (nearEndOffer || showEndAutoplay) return@LaunchedEffect
-        if (controlsVisible && playing && !scrubbing && panel == Panel.None) {
-            delay(if (isCasting) 5_500 else 3_600)
+        if (controlsVisible && playing && !scrubbing && panel == Panel.None && !chromeFocused) {
+            delay(if (isCasting) 5_500 else if (television) 7_000 else 3_600)
             controlsVisible = false
+        }
+    }
+
+    LaunchedEffect(controlsVisible, panel, controlsLocked, television) {
+        if (!television || !controlsVisible || panel != Panel.None || controlsLocked) return@LaunchedEffect
+        repeat(5) {
+            delay(50)
+            if (runCatching { playFocus.requestFocus() }.isSuccess) return@LaunchedEffect
         }
     }
 
@@ -749,6 +777,72 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(KittyInk)
+            .onFocusChanged { chromeFocused = it.hasFocus }
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                val showChrome = {
+                    if (!controlsLocked) controlsVisible = true
+                }
+                when (event.key) {
+                    Key.MediaPlay -> {
+                        activePlayer?.play()
+                        showChrome()
+                        true
+                    }
+                    Key.MediaPause -> {
+                        activePlayer?.pause()
+                        showChrome()
+                        true
+                    }
+                    Key.MediaPlayPause -> {
+                        activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
+                        showChrome()
+                        true
+                    }
+                    Key.MediaRewind, Key.MediaPrevious -> {
+                        seekBy(-10_000)
+                        true
+                    }
+                    Key.MediaFastForward, Key.MediaNext -> {
+                        seekBy(30_000)
+                        true
+                    }
+                    Key.DirectionLeft -> {
+                        if (!controlsVisible) {
+                            if (controlsLocked) controlsVisible = true else seekBy(-10_000)
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    Key.DirectionRight -> {
+                        if (!controlsVisible) {
+                            if (controlsLocked) controlsVisible = true else seekBy(30_000)
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    Key.DirectionUp, Key.DirectionDown -> {
+                        if (!controlsVisible) {
+                            controlsVisible = true
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    Key.DirectionCenter, Key.Enter, Key.NumPadEnter -> {
+                        if (!controlsVisible) {
+                            controlsVisible = true
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    else -> false
+                }
+            }
             .pointerInput(controlsLocked) {
                 detectTapGestures(
                     onTap = {
@@ -838,6 +932,9 @@ fun PlayerScreen(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
                         useController = false
+                        isFocusable = false
+                        isFocusableInTouchMode = false
+                        descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
                         this.resizeMode = resizeMode
                         layoutParams = FrameLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1158,6 +1255,7 @@ fun PlayerScreen(
                             size = 76.dp,
                             large = true,
                             accent = !playing,
+                            focusRequester = playFocus,
                         ) {
                             Icon(
                                 if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -1197,9 +1295,10 @@ fun PlayerScreen(
                             scrubValue = it
                             controlsVisible = true
                         },
-                        onScrubFinished = {
-                            activePlayer?.seekTo((scrubValue * durationMs).toLong())
-                            positionMs = (scrubValue * durationMs).toLong()
+                        onScrubFinished = { fraction ->
+                            val target = (fraction * durationMs).toLong()
+                            activePlayer?.seekTo(target)
+                            positionMs = target
                             scrubbing = false
                         },
                         formatClock = ::formatClock,
@@ -1412,6 +1511,7 @@ fun PlayerScreen(
                 else -> "Skip"
             }
             val remaining = ((iv.endMs - positionMs) / 1000L).coerceAtLeast(0L)
+            var skipFocused by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
@@ -1420,6 +1520,12 @@ fun PlayerScreen(
                     .shadow(8.dp, RoundedCornerShape(999.dp))
                     .clip(RoundedCornerShape(999.dp))
                     .background(PlayerChrome.Accent)
+                    .border(
+                        if (skipFocused) 3.dp else 0.dp,
+                        Color.Black,
+                        RoundedCornerShape(999.dp),
+                    )
+                    .onFocusChanged { skipFocused = it.isFocused }
                     .clickable { skipTo(iv.endMs) }
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1494,16 +1600,24 @@ private fun NextEpisodePrompt(
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            var playNowFocused by remember { mutableStateOf(false) }
+            var dismissFocused by remember { mutableStateOf(false) }
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(PlayerChrome.Accent)
+                    .background(if (playNowFocused) Color.White else PlayerChrome.Accent)
+                    .border(
+                        if (playNowFocused) 2.dp else 0.dp,
+                        Color.White,
+                        RoundedCornerShape(12.dp),
+                    )
+                    .onFocusChanged { playNowFocused = it.isFocused }
                     .clickable(enabled = !busy, onClick = onPlayNow)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
                 Text(
                     if (ended) "Play now" else "Next episode",
-                    color = Color.White,
+                    color = if (playNowFocused) Color.Black else Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                 )
@@ -1511,14 +1625,19 @@ private fun NextEpisodePrompt(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(PlayerChrome.Disc)
-                    .border(1.dp, PlayerChrome.Accent.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                    .background(if (dismissFocused) Color.White else PlayerChrome.Disc)
+                    .border(
+                        if (dismissFocused) 2.dp else 1.dp,
+                        if (dismissFocused) Color.White else PlayerChrome.Accent.copy(alpha = 0.35f),
+                        RoundedCornerShape(12.dp),
+                    )
+                    .onFocusChanged { dismissFocused = it.isFocused }
                     .clickable(enabled = !busy, onClick = onDismiss)
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
                 Text(
                     if (ended) "Cancel" else "Not now",
-                    color = PlayerChrome.Paper,
+                    color = if (dismissFocused) Color.Black else PlayerChrome.Paper,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 13.sp,
                 )
@@ -1920,16 +2039,22 @@ private fun SheetTitle(text: String) {
 @Composable
 private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
+    var focused by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(if (selected) PlayerChrome.RowSelected else Color.Transparent)
+            .background(if (selected || focused) PlayerChrome.RowSelected else Color.Transparent)
             .border(
-                1.dp,
-                if (selected) PlayerChrome.Accent.copy(alpha = 0.45f) else Color.Transparent,
+                if (focused) 2.dp else 1.dp,
+                when {
+                    focused -> Color.White
+                    selected -> PlayerChrome.Accent.copy(alpha = 0.45f)
+                    else -> Color.Transparent
+                },
                 shape,
             )
+            .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -1955,21 +2080,23 @@ private fun SheetRow(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(999.dp)
+    var focused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .clip(shape)
-            .background(if (selected) PlayerChrome.Accent else PlayerChrome.Disc)
+            .background(if (selected || focused) PlayerChrome.Accent else PlayerChrome.Disc)
             .border(
-                1.dp,
-                if (selected) PlayerChrome.Accent else PlayerChrome.DiscStroke,
+                if (focused) 2.dp else 1.dp,
+                if (selected || focused) Color.White else PlayerChrome.DiscStroke,
                 shape,
             )
+            .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     ) {
         Text(
             label,
-            color = if (selected) PlayerChrome.Ink else PlayerChrome.Paper,
+            color = if (selected || focused) PlayerChrome.Ink else PlayerChrome.Paper,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
         )
@@ -2006,12 +2133,15 @@ private fun ChromeDisc(
     size: androidx.compose.ui.unit.Dp = 40.dp,
     large: Boolean = false,
     accent: Boolean = false,
+    focusRequester: FocusRequester? = null,
     content: @Composable () -> Unit,
 ) {
     val shape = RoundedCornerShape(if (large) 22.dp else 14.dp)
+    var focused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .size(size)
+            .scale(if (focused) 1.08f else 1f)
             .shadow(
                 elevation = if (large) 16.dp else 10.dp,
                 shape = shape,
@@ -2028,10 +2158,12 @@ private fun ChromeDisc(
                 },
             )
             .border(
-                1.dp,
-                if (accent) Color.White else Color.White.copy(alpha = 0.16f),
+                if (focused) 3.dp else 1.dp,
+                if (focused || accent) Color.White else Color.White.copy(alpha = 0.16f),
                 shape,
             )
+            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .onFocusChanged { focused = it.isFocused }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,

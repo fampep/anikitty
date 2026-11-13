@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -20,15 +21,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +57,7 @@ fun GlassScrubber(
     durationMs: Long,
     scrubbing: Boolean,
     onScrub: (Float) -> Unit,
-    onScrubFinished: () -> Unit,
+    onScrubFinished: (Float) -> Unit,
     formatClock: (Long) -> String,
     skipTimes: SkipTimes = SkipTimes(),
     modifier: Modifier = Modifier,
@@ -77,8 +88,46 @@ fun GlassScrubber(
     val latestOnScrub by rememberUpdatedState(onScrub)
     val latestOnFinished by rememberUpdatedState(onScrubFinished)
     val density = LocalDensity.current
+    var focused by remember { mutableStateOf(false) }
+    var latestFraction by remember { mutableFloatStateOf(clamped) }
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+    fun jumpBy(deltaMs: Long) {
+        if (durationMs <= 0L) return
+        val baseMs = latestFraction * durationMs
+        val next = (baseMs + deltaMs).coerceIn(0f, durationMs.toFloat()) / durationMs
+        latestFraction = next
+        latestOnScrub(next)
+        latestOnFinished(next)
+    }
+
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .onFocusChanged {
+                focused = it.isFocused
+                if (it.isFocused) latestFraction = clamped
+            }
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.DirectionLeft -> {
+                        jumpBy(-10_000)
+                        true
+                    }
+                    Key.DirectionRight -> {
+                        jumpBy(10_000)
+                        true
+                    }
+                    else -> false
+                }
+            }
+            .border(
+                if (focused) 2.dp else 0.dp,
+                Color.White.copy(alpha = if (focused) 0.85f else 0f),
+                RoundedCornerShape(8.dp),
+            ),
+    ) {
         val trackWidthPx = with(density) { maxWidth.toPx() }
         val scrubMs = (clamped * durationMs).toLong()
 
@@ -111,22 +160,28 @@ fun GlassScrubber(
                 .pointerInput(durationMs, trackWidthPx) {
                     detectTapGestures { offset ->
                         if (trackWidthPx <= 0f) return@detectTapGestures
-                        latestOnScrub((offset.x / trackWidthPx).coerceIn(0f, 1f))
-                        latestOnFinished()
+                        val fraction = (offset.x / trackWidthPx).coerceIn(0f, 1f)
+                        latestFraction = fraction
+                        latestOnScrub(fraction)
+                        latestOnFinished(fraction)
                     }
                 }
                 .pointerInput(durationMs, trackWidthPx) {
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
                             if (trackWidthPx <= 0f) return@detectHorizontalDragGestures
-                            latestOnScrub((offset.x / trackWidthPx).coerceIn(0f, 1f))
+                            val fraction = (offset.x / trackWidthPx).coerceIn(0f, 1f)
+                            latestFraction = fraction
+                            latestOnScrub(fraction)
                         },
-                        onDragEnd = { latestOnFinished() },
-                        onDragCancel = { latestOnFinished() },
+                        onDragEnd = { latestOnFinished(latestFraction) },
+                        onDragCancel = { latestOnFinished(latestFraction) },
                         onHorizontalDrag = { change, _ ->
                             change.consume()
                             if (trackWidthPx <= 0f) return@detectHorizontalDragGestures
-                            latestOnScrub((change.position.x / trackWidthPx).coerceIn(0f, 1f))
+                            val fraction = (change.position.x / trackWidthPx).coerceIn(0f, 1f)
+                            latestFraction = fraction
+                            latestOnScrub(fraction)
                         },
                     )
                 },
