@@ -16,4 +16,16 @@ data class WatchHistoryEntity(
     /** AniList MediaListStatus when synced (CURRENT, COMPLETED, …). */
     val listStatus: String? = null,
     val malId: Int? = null,
-)
+) {
+    /**
+     * Episodes actually finished. Opening a title from the catalog seeds episode 1
+     * with no playback and no list status; that is not progress. AniList progress 0 stays 0.
+     */
+    fun episodesFinished(): Int {
+        val openedOnly = listStatus.isNullOrBlank() &&
+            positionMs == 0L &&
+            durationMs == 0L &&
+            episode <= 1
+        return if (openedOnly) 0 else episode.coerceAtLeast(0)
+    }
+}

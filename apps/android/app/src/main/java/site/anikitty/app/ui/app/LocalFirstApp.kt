@@ -193,7 +193,7 @@ fun LocalFirstApp(
         }
     }
     val followedEpisodes = remember(history) {
-        history.associate { it.anilistId to it.episode.coerceAtLeast(0) }
+        history.associate { it.anilistId to it.episodesFinished() }
     }
     val scope = rememberCoroutineScope()
     var syncLabel by remember { mutableStateOf<String?>(null) }
