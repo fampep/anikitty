@@ -6,7 +6,11 @@ package site.anikitty.app.ui.app
 import androidx.activity.compose.BackHandler
 import android.content.Intent
 import android.net.Uri
+import android.webkit.WebChromeClient
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -52,11 +56,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -110,7 +118,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.request.SuccessResult
+import androidx.core.graphics.drawable.toBitmap
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -310,11 +323,63 @@ fun LocalFirstApp(
     when (val current = screen) {
         is Screen.Player -> {
             var resumeMs by remember(current.anime.id, current.episode) { mutableStateOf(0L) }
+            var watchedThrough by remember(current.anime.id) {
+                mutableIntStateOf(current.anime.listState?.progress ?: 0)
+            }
+            var playerAudio by remember {
+                mutableStateOf(
+                    context.getSharedPreferences("anikitty_watch", android.content.Context.MODE_PRIVATE)
+                        .getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub",
+                )
+            }
+            fun openResolved(nextEpisode: Int, nextAudio: String) {
+                scope.launch {
+                    context.getSharedPreferences("anikitty_watch", android.content.Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("audio", nextAudio)
+                        .apply()
+                    playerAudio = nextAudio
+                    runCatching {
+                        val resolved = streamServers.resolveWithFailover(
+                            anilistId = current.anime.id,
+                            episode = nextEpisode,
+                            audio = nextAudio,
+                            titleHint = current.anime.searchTitles().joinToString(" || "),
+                        )
+                        val existing = historyDao.get(current.anime.id)
+                        historyDao.upsert(
+                            WatchHistoryEntity(
+                                anilistId = current.anime.id,
+                                title = current.anime.title,
+                                coverImageUrl = current.anime.coverImageUrl,
+                                episode = nextEpisode,
+                                positionMs = 0L,
+                                durationMs = 0L,
+                                updatedAtEpochMs = System.currentTimeMillis(),
+                                listStatus = existing?.listStatus ?: "CURRENT",
+                                malId = current.anime.malId ?: existing?.malId,
+                            ),
+                        )
+                        if (aniListAuth.isLinked) {
+                            aniListSync.pushProgress(
+                                anilistId = current.anime.id,
+                                episode = nextEpisode,
+                                totalEpisodes = current.anime.episodes,
+                            )
+                        }
+                        screen = Screen.Player(current.anime, nextEpisode, resolved.sources)
+                    }
+                }
+            }
             LaunchedEffect(current.anime.id, current.episode) {
                 val entry = historyDao.get(current.anime.id)
                 if (entry != null && entry.episode == current.episode && entry.positionMs > 2_000L) {
                     resumeMs = entry.positionMs
                 }
+                watchedThrough = maxOf(
+                    current.anime.listState?.progress ?: 0,
+                    (entry?.episode ?: 1) - 1,
+                ).coerceAtLeast(0)
                 // Push episode progress to AniList when opening / advancing.
                 if (aniListAuth.isLinked) {
                     aniListSync.pushProgress(
@@ -358,48 +423,19 @@ fun LocalFirstApp(
                 onNextEpisode = run {
                     val released = current.anime.releasedEpisodeCount()
                     val hasNext = released <= 0 || current.episode < released
-                    if (!hasNext) {
-                        null
-                    } else {
-                        {
-                            scope.launch {
-                                val next = current.episode + 1
-                                runCatching {
-                                    val resolved = streamServers.resolveWithFailover(
-                                        anilistId = current.anime.id,
-                                        episode = next,
-                                        audio = context.getSharedPreferences(
-                                            "anikitty_watch",
-                                            android.content.Context.MODE_PRIVATE,
-                                        ).getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub",
-                                        titleHint = current.anime.searchTitles().joinToString(" || "),
-                                    )
-                                    val existing = historyDao.get(current.anime.id)
-                                    historyDao.upsert(
-                                        WatchHistoryEntity(
-                                            anilistId = current.anime.id,
-                                            title = current.anime.title,
-                                            coverImageUrl = current.anime.coverImageUrl,
-                                            episode = next,
-                                            positionMs = 0L,
-                                            durationMs = 0L,
-                                            updatedAtEpochMs = System.currentTimeMillis(),
-                                            listStatus = existing?.listStatus ?: "CURRENT",
-                                            malId = current.anime.malId ?: existing?.malId,
-                                        ),
-                                    )
-                                    if (aniListAuth.isLinked) {
-                                        aniListSync.pushProgress(
-                                            anilistId = current.anime.id,
-                                            episode = next,
-                                            totalEpisodes = current.anime.episodes,
-                                        )
-                                    }
-                                    screen = Screen.Player(current.anime, next, resolved.sources)
-                                }
-                            }
-                        }
+                    if (!hasNext) null else {
+                        { openResolved(current.episode + 1, playerAudio) }
                     }
+                },
+                totalEpisodes = current.anime.releasedEpisodeCount().coerceAtLeast(current.episode),
+                watchedThrough = watchedThrough,
+                audio = playerAudio,
+                isMovie = current.anime.format.equals("MOVIE", ignoreCase = true),
+                onPickEpisode = { picked ->
+                    if (picked != current.episode) openResolved(picked, playerAudio)
+                },
+                onPickAudio = { picked ->
+                    if (picked != playerAudio) openResolved(current.episode, picked)
                 },
             )
             return
@@ -1097,384 +1133,6 @@ private fun listStatusBadge(status: String?): String? = when (status?.uppercase(
     else -> null
 }
 
-@Composable
-private fun SearchFeed(
-    aniList: AniListClient,
-    historyDao: WatchHistoryDao,
-    onOpen: (AnimeSummary) -> Unit,
-    requestedGenre: String? = null,
-    onRequestedGenreConsumed: () -> Unit = {},
-    listMarks: Map<Int, String> = emptyMap(),
-) {
-    var query by remember { mutableStateOf("") }
-    var format by remember { mutableStateOf<String?>(null) }
-    var airingStatus by remember { mutableStateOf<String?>(null) }
-    var season by remember { mutableStateOf<String?>(null) }
-    var genre by remember { mutableStateOf<String?>(null) }
-    var tag by remember { mutableStateOf<String?>(null) }
-    var seasonYear by remember { mutableStateOf<Int?>(null) }
-    var country by remember { mutableStateOf<String?>(null) }
-    var sort by remember { mutableStateOf<String?>(null) }
-    var asGrid by rememberSaveable { mutableStateOf(false) }
-    var loading by remember { mutableStateOf(false) }
-    var error by remember { mutableStateOf<String?>(null) }
-    var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
-    var discover by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
-    var recentRaw by rememberSaveable { mutableStateOf("") }
-    val recent = remember(recentRaw) {
-        recentRaw.split('\u001f').map { it.trim() }.filter { it.isNotEmpty() }
-    }
-    val scope = rememberCoroutineScope()
-    var searchJob by remember { mutableStateOf<Job?>(null) }
-
-    fun rememberQuery(q: String) {
-        val trimmed = q.trim()
-        if (trimmed.length < 2) return
-        val next = (listOf(trimmed) + recent.filterNot { it.equals(trimmed, ignoreCase = true) })
-            .take(8)
-        recentRaw = next.joinToString("\u001f")
-    }
-
-    fun filtersOn(): Boolean =
-        format != null || airingStatus != null || season != null || genre != null ||
-            tag != null || seasonYear != null || country != null || sort != null
-
-    fun runSearch(raw: String) {
-        val q = raw.trim()
-        searchJob?.cancel()
-        if (q.length < 2 && !filtersOn()) {
-            items = emptyList()
-            error = null
-            loading = false
-            return
-        }
-        searchJob = scope.launch {
-            delay(350)
-            loading = true
-            error = null
-            runCatching {
-                aniList.browse(
-                    query = q,
-                    format = format,
-                    status = airingStatus,
-                    season = season,
-                    genre = genre,
-                    tag = tag,
-                    seasonYear = seasonYear,
-                    country = country,
-                    sort = sort ?: if (q.length >= 2) "SEARCH_MATCH" else "POPULARITY_DESC",
-                )
-            }.onSuccess {
-                items = it
-                if (q.length >= 2 && it.isNotEmpty()) rememberQuery(q)
-            }.onFailure { error = friendlyFailure(it.message) }
-            loading = false
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        runCatching { aniList.trending(perPage = 12) }
-            .onSuccess { discover = it }
-    }
-
-    LaunchedEffect(requestedGenre) {
-        val next = requestedGenre ?: return@LaunchedEffect
-        genre = next
-        runSearch(query)
-        onRequestedGenreConsumed()
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 16.dp)
-            .padding(top = 12.dp, bottom = 100.dp),
-    ) {
-        KittyPageHeader(
-            title = "Search",
-            subtitle = "Find something to watch",
-        )
-        Spacer(modifier = Modifier.height(14.dp))
-        OutlinedTextField(
-            value = query,
-            onValueChange = {
-                query = it
-                runSearch(it)
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            placeholder = { Text("Title, studio, or character", color = KittyFaint) },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = KittyText,
-                unfocusedTextColor = KittyText,
-                cursorColor = KittyText,
-                focusedBorderColor = Color.White.copy(alpha = 0.28f),
-                unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
-                focusedContainerColor = Color(0xFF0C0C10),
-                unfocusedContainerColor = Color(0xFF0C0C10),
-            ),
-            leadingIcon = {
-                AnimatedSearchIcon(
-                    tint = if (query.isNotBlank()) KittyAccentGlow else KittyMuted,
-                    active = query.isBlank() || loading,
-                )
-            },
-            trailingIcon = {
-                if (query.isNotEmpty()) {
-                    IconButton(
-                        onClick = {
-                            query = ""
-                            runSearch("")
-                        },
-                    ) {
-                        Icon(Icons.Rounded.Clear, contentDescription = "Clear search", tint = KittyMuted)
-                    }
-                }
-            },
-            shape = RoundedCornerShape(12.dp),
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            fun toggle(current: String?, value: String, assign: (String?) -> Unit) {
-                assign(if (current == value) null else value)
-                runSearch(query)
-            }
-            listOf("TV" to "TV", "MOVIE" to "Movie", "OVA" to "OVA").forEach { (value, label) ->
-                Chip(label, selected = format == value) { toggle(format, value) { format = it } }
-            }
-            listOf(
-                "RELEASING" to "Airing",
-                "FINISHED" to "Finished",
-                "NOT_YET_RELEASED" to "Upcoming",
-            ).forEach { (value, label) ->
-                Chip(label, selected = airingStatus == value) {
-                    toggle(airingStatus, value) { airingStatus = it }
-                }
-            }
-            listOf("WINTER", "SPRING", "SUMMER", "FALL").forEach { value ->
-                val label = value.lowercase().replaceFirstChar { it.titlecase() }
-                Chip(label, selected = season == value) { toggle(season, value) { season = it } }
-            }
-            listOf(
-                "Action", "Adventure", "Comedy", "Drama", "Fantasy", "Romance", "Slice of Life",
-            ).forEach { value ->
-                Chip(value, selected = genre == value) { toggle(genre, value) { genre = it } }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            fun toggle(current: String?, value: String, assign: (String?) -> Unit) {
-                assign(if (current == value) null else value)
-                runSearch(query)
-            }
-            listOf(
-                null to "Match",
-                "POPULARITY_DESC" to "Popular",
-                "TRENDING_DESC" to "Trending",
-                "SCORE_DESC" to "Score",
-                "START_DATE_DESC" to "Newest",
-                "FAVOURITES_DESC" to "Favourites",
-            ).forEach { (value, label) ->
-                Chip(label, selected = sort == value) {
-                    sort = value
-                    runSearch(query)
-                }
-            }
-            val thisYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
-            (thisYear downTo thisYear - 4).forEach { year ->
-                Chip(year.toString(), selected = seasonYear == year) {
-                    seasonYear = if (seasonYear == year) null else year
-                    runSearch(query)
-                }
-            }
-            listOf("JP" to "Japan", "KR" to "Korea", "CN" to "China").forEach { (value, label) ->
-                Chip(label, selected = country == value) { toggle(country, value) { country = it } }
-            }
-            listOf("Isekai", "School", "Mecha", "Supernatural", "Psychological").forEach { value ->
-                Chip(value, selected = tag == value) { toggle(tag, value) { tag = it } }
-            }
-            if (filtersOn()) {
-                Chip("Clear", selected = true) {
-                    format = null
-                    airingStatus = null
-                    season = null
-                    genre = null
-                    tag = null
-                    seasonYear = null
-                    country = null
-                    sort = null
-                    runSearch(query)
-                }
-            }
-        }
-        if (recent.isNotEmpty() && query.isBlank()) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                "Recent",
-                color = KittyMuted,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                recent.forEach { q ->
-                    Chip(q, selected = false) {
-                        query = q
-                        runSearch(q)
-                    }
-                }
-                Chip("Clear", selected = false) { recentRaw = "" }
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        when {
-            loading -> Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = KittyAccent)
-            }
-            error != null && items.isEmpty() -> Column(Modifier.weight(1f)) {
-                Text(error!!, color = MaterialTheme.colorScheme.error)
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = { runSearch(query) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = KittyAccent,
-                        contentColor = KittyOnAccent,
-                    ),
-                ) { Text("Retry", fontWeight = FontWeight.Bold) }
-            }
-            items.isNotEmpty() -> Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "${items.size} result${if (items.size == 1) "" else "s"}",
-                        color = KittyFaint,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Chip(if (asGrid) "List" else "Grid", selected = asGrid) { asGrid = !asGrid }
-                }
-                if (asGrid) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(108.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        gridItems(items, key = { it.id }) { anime ->
-                            Column(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .clickable {
-                                        scope.launch { historyDao.touchFromCatalog(anime) }
-                                        onOpen(anime)
-                                    },
-                            ) {
-                                AsyncImage(
-                                    model = anime.coverImageUrl,
-                                    contentDescription = anime.title,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .aspectRatio(2f / 3f)
-                                        .clip(RoundedCornerShape(12.dp)),
-                                    contentScale = ContentScale.Crop,
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    anime.title,
-                                    color = KittyText,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                listMarks[anime.id]?.let { badge ->
-                                    Text(
-                                        badge,
-                                        color = KittyFaint,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        lazyItems(items, key = { it.id }) { anime ->
-                            KittySearchRow(anime, badge = listMarks[anime.id]) {
-                                scope.launch { historyDao.touchFromCatalog(anime) }
-                                onOpen(anime)
-                            }
-                        }
-                    }
-                }
-            }
-            (query.trim().length >= 2 || filtersOn()) && items.isEmpty() && !loading -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(KittySurface)
-                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
-                        .padding(18.dp),
-                ) {
-                    Text(
-                        "No titles matched “${query.trim()}”",
-                        color = KittyText,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Try another spelling or a shorter title.",
-                        color = KittyMuted,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                }
-            }
-            else -> {
-                KittySectionHeading(
-                    title = if (query.isBlank()) "Trending picks" else "Keep typing…",
-                    subtitle = if (query.isBlank()) {
-                        "Tap a poster to open"
-                    } else {
-                        "Need at least 2 characters"
-                    },
-                    padded = false,
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    lazyItems(discover, key = { it.id }) { anime ->
-                        KittySearchRow(anime, badge = listMarks[anime.id]) {
-                            scope.launch { historyDao.touchFromCatalog(anime) }
-                            onOpen(anime)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 @Composable
 private fun HistoryFeed(
@@ -2380,6 +2038,8 @@ private fun TitleDetailScreen(
     var listBusy by remember(anime.id) { mutableStateOf(false) }
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
+    var heroColor by remember(anime.id) { mutableStateOf(Color.Black) }
+    var trailerPlaying by remember(anime.id) { mutableStateOf(false) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
     var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
     val maxEp = episodeList.maxOfOrNull { it.number }?.coerceAtLeast(1) ?: 1
@@ -2394,6 +2054,20 @@ private fun TitleDetailScreen(
 
     LaunchedEffect(detail) {
         episodeList = detail.episodeItems()
+    }
+    LaunchedEffect(detail.bannerImageUrl, detail.coverImageUrl) {
+        val imageUrl = detail.bannerImageUrl ?: detail.coverImageUrl ?: return@LaunchedEffect
+        val result = runCatching {
+            context.imageLoader.execute(
+                ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .allowHardware(false)
+                    .size(48)
+                    .build(),
+            )
+        }.getOrNull()
+        val bitmap = (result as? SuccessResult)?.drawable?.toBitmap() ?: return@LaunchedEffect
+        heroColor = sampleBitmapColor(bitmap)
     }
     LaunchedEffect(anime.id, episode, rangeCount) {
         browseRange = ((episode - 1) / episodePageSize).coerceIn(0, (rangeCount - 1).coerceAtLeast(0))
@@ -2588,33 +2262,15 @@ private fun TitleDetailScreen(
                             .background(
                                 Brush.verticalGradient(
                                     listOf(
-                                        Color.Black.copy(alpha = 0.35f),
+                                        heroColor.copy(alpha = 0.6f),
+                                        heroColor.copy(alpha = 0.2f),
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.45f),
+                                        Color.Black.copy(alpha = 0.5f),
                                         Color.Black,
                                     ),
                                 ),
                             ),
                     )
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .windowInsetsPadding(WindowInsets.statusBars)
-                            .padding(16.dp)
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color.Black.copy(alpha = 0.6f))
-                            .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
-                            .clickable(onClick = onBack),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
                 }
             }
             item {
@@ -2699,23 +2355,31 @@ private fun TitleDetailScreen(
                                 )
                             }
                             detail.nextAiring?.let { next ->
-                                val clock = formatAiring(next.airingAtEpochSec)
-                                val relative = airingLabel(
-                                    next.airingAtEpochSec,
-                                    System.currentTimeMillis() / 1000L,
-                                    clock,
-                                )
-                                Text(
-                                    if (relative == clock) {
-                                        "Ep ${next.episode} · $clock"
-                                    } else {
-                                        "Ep ${next.episode} · $relative"
-                                    },
-                                    color = Color.White.copy(alpha = 0.72f),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    maxLines = 1,
-                                )
+                                val left = (next.airingAtEpochSec - System.currentTimeMillis() / 1000L).coerceAtLeast(0L)
+                                val days = left / 86_400
+                                val hours = (left % 86_400) / 3_600
+                                val countdown = if (days > 0) "${days}d ${hours}h" else "${hours}h"
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color.White.copy(alpha = 0.12f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(10.dp),
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "EP ${next.episode}: $countdown",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 9.sp,
+                                    )
+                                }
                             }
                         }
                     }
@@ -2822,6 +2486,7 @@ private fun TitleDetailScreen(
                     DetailStat(
                         value = score?.let { "$it%" } ?: "--",
                         label = "Score",
+                        icon = Icons.Filled.Star,
                         color = scoreColor,
                     )
                     DetailStatDivider()
@@ -2832,16 +2497,19 @@ private fun TitleDetailScreen(
                             shownEpisodeCount?.let { "$it EP" } ?: "--"
                         },
                         label = if (movie) "Duration" else "Episodes",
+                        icon = if (movie) Icons.Filled.Movie else Icons.AutoMirrored.Filled.FormatListBulleted,
                     )
                     DetailStatDivider()
                     DetailStat(
                         value = detail.seasonYear?.toString() ?: "--",
                         label = "Year",
+                        icon = Icons.Filled.CalendarMonth,
                     )
                     DetailStatDivider()
                     DetailStat(
                         value = detail.format ?: "TV",
                         label = "Format",
+                        icon = Icons.Filled.Info,
                     )
                 }
                 if (!movie && (detail.durationMinutes ?: 0) > 0) {
@@ -2929,15 +2597,33 @@ private fun TitleDetailScreen(
                     detail.trailer?.let { trailer ->
                         val thumb = trailer.thumbnailUrl
                         val watch = trailer.watchUrl()
+                        val youtube = trailer.site.equals("youtube", ignoreCase = true)
                         if (watch != null) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(16f / 9f)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(16.dp))
-                                    .clickable { openUrl(watch) },
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(20.dp))
+                                    .clickable {
+                                        if (youtube) trailerPlaying = true else openUrl(watch)
+                                    },
                             ) {
+                                if (youtube && trailerPlaying) {
+                                    AndroidView(
+                                        factory = { ctx ->
+                                            WebView(ctx).apply {
+                                                webViewClient = WebViewClient()
+                                                webChromeClient = WebChromeClient()
+                                                settings.javaScriptEnabled = true
+                                                settings.mediaPlaybackRequiresUserGesture = false
+                                                setBackgroundColor(android.graphics.Color.BLACK)
+                                                loadUrl("https://www.youtube.com/embed/${trailer.id}?autoplay=1&playsinline=1")
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else {
                                 AsyncImage(
                                     model = thumb ?: detail.bannerImageUrl ?: detail.coverImageUrl,
                                     contentDescription = "Trailer",
@@ -2978,6 +2664,7 @@ private fun TitleDetailScreen(
                                     color = KittyText,
                                     fontWeight = FontWeight.SemiBold,
                                 )
+                                }
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                         }
@@ -3696,12 +3383,47 @@ private fun TitleDetailScreen(
                 }
             }
         }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(16.dp)
+                .size(40.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.6f))
+                .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 
 @Composable
-private fun DetailStat(value: String, label: String, color: Color = Color.White) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun DetailStat(
+    value: String,
+    label: String,
+    icon: ImageVector? = null,
+    color: Color = Color.White,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        if (icon != null) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = color.copy(alpha = 0.6f),
+                modifier = Modifier.size(16.dp),
+            )
+        }
         Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Text(
             label.uppercase(),
@@ -4083,6 +3805,37 @@ private fun PersonRow(title: String, people: List<site.anikitty.app.data.anilist
             }
         }
     }
+}
+
+private fun sampleBitmapColor(bitmap: android.graphics.Bitmap): Color {
+    val width = bitmap.width
+    val height = bitmap.height
+    if (width <= 0 || height <= 0) return Color.Black
+    var red = 0L
+    var green = 0L
+    var blue = 0L
+    var count = 0
+    val stepX = (width / 12).coerceAtLeast(1)
+    val stepY = (height / 12).coerceAtLeast(1)
+    var y = 0
+    while (y < height) {
+        var x = 0
+        while (x < width) {
+            val pixel = bitmap.getPixel(x, y)
+            red += android.graphics.Color.red(pixel)
+            green += android.graphics.Color.green(pixel)
+            blue += android.graphics.Color.blue(pixel)
+            count++
+            x += stepX
+        }
+        y += stepY
+    }
+    if (count == 0) return Color.Black
+    return Color(
+        red = (red / count) / 255f * 0.45f,
+        green = (green / count) / 255f * 0.45f,
+        blue = (blue / count) / 255f * 0.45f,
+    )
 }
 
 private fun formatAiring(epochSec: Long): String {

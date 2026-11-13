@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -46,11 +47,17 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Forward30
 import androidx.compose.material.icons.rounded.Hd
@@ -58,6 +65,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
@@ -84,6 +92,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusDirection
@@ -205,6 +217,12 @@ fun PlayerScreen(
     onClose: () -> Unit,
     onNextEpisode: (() -> Unit)? = null,
     onProgress: ((positionMs: Long, durationMs: Long) -> Unit)? = null,
+    totalEpisodes: Int = 1,
+    watchedThrough: Int = 0,
+    audio: String = "sub",
+    isMovie: Boolean = false,
+    onPickEpisode: ((Int) -> Unit)? = null,
+    onPickAudio: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -249,6 +267,7 @@ fun PlayerScreen(
     var playbackSpeed by remember {
         mutableFloatStateOf(playerPrefs.getFloat("playback_speed", 1f).coerceIn(0.5f, 2f))
     }
+    var autoNext by remember { mutableStateOf(playerPrefs.getBoolean("auto_next", true)) }
     var holdBoost by remember { mutableStateOf(false) }
     var controlsLocked by remember { mutableStateOf(false) }
     var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
@@ -270,9 +289,13 @@ fun PlayerScreen(
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
     val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
 
+    var theater by remember { mutableStateOf(false) }
+
     fun closePanelOrExit() {
         if (panel != Panel.None) {
             panel = Panel.None
+        } else if (theater) {
+            theater = false
         } else {
             onClose()
         }
@@ -280,9 +303,13 @@ fun PlayerScreen(
 
     BackHandler(onBack = { closePanelOrExit() })
 
-    DisposableEffect(Unit) {
+    DisposableEffect(theater) {
         val previous = activity?.requestedOrientation
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        activity?.requestedOrientation = if (theater) {
+            ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             activity?.requestedOrientation =
@@ -298,7 +325,7 @@ fun PlayerScreen(
         } else {
             WindowCompat.setDecorFitsSystemWindows(window, false)
             val controller = WindowInsetsControllerCompat(window, view)
-            if (immersive) {
+            if (immersive && theater) {
                 controller.hide(WindowInsetsCompat.Type.systemBars())
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -393,7 +420,8 @@ fun PlayerScreen(
         !nextTriggered &&
         durationMs >= NEAR_END_MIN_DURATION_MS &&
         remainingMs in 1L..NEAR_END_THRESHOLD_MS
-    val showEndAutoplay = onNextEpisode != null &&
+    val showEndAutoplay = autoNext &&
+        onNextEpisode != null &&
         playbackEnded &&
         !autoplayCancelled &&
         !nextTriggered &&
@@ -798,9 +826,11 @@ fun PlayerScreen(
         else -> textOptions.firstOrNull { it.id == selectedTextId }?.label ?: "Subs"
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
+    @Composable
+    fun VideoStage(modifier: Modifier) {
+        Box(
+        modifier = modifier
+            .clipToBounds()
             .background(KittyInk)
             .onFocusChanged { chromeFocused = it.hasFocus }
             .focusProperties { canFocus = panel == Panel.None && !controlsVisible }
@@ -1580,6 +1610,465 @@ fun PlayerScreen(
                     color = PlayerChrome.Ink.copy(alpha = 0.62f),
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 12.sp,
+                )
+            }
+        }
+        if (!theater) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .clickable { theater = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.Fullscreen,
+                    contentDescription = "Full screen",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF060508)),
+    ) {
+        if (!theater) {
+            PlayerPageBar(
+                title = title,
+                episode = episode,
+                audio = audio,
+                isMovie = isMovie,
+                onBack = onClose,
+                onExpand = { theater = true },
+            )
+        }
+        VideoStage(
+            modifier = if (theater) {
+                Modifier.weight(1f)
+            } else {
+                Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+            },
+        )
+        if (!theater) {
+            val fraction = if (durationMs > 0L) {
+                (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+            PlayerEpisodeShelf(
+                episode = episode,
+                totalEpisodes = totalEpisodes.coerceAtLeast(1),
+                watchedThrough = watchedThrough,
+                positionFraction = fraction,
+                audio = audio,
+                isMovie = isMovie,
+                autoNext = autoNext,
+                onPickEpisode = { picked -> onPickEpisode?.invoke(picked) },
+                onPickAudio = { picked -> onPickAudio?.invoke(picked) },
+                onToggleAutoNext = {
+                    autoNext = !autoNext
+                    playerPrefs.edit().putBoolean("auto_next", autoNext).apply()
+                },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerPageBar(
+    title: String,
+    episode: Int,
+    audio: String,
+    isMovie: Boolean,
+    onBack: () -> Unit,
+    onExpand: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onBack),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.AutoMirrored.Rounded.ArrowBack,
+                contentDescription = "Back",
+                tint = Color.White,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                color = Color.White,
+                fontWeight = FontWeight.Medium,
+                fontSize = 15.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                if (isMovie) {
+                    "Full movie · ${audio.uppercase()}"
+                } else {
+                    "Episode $episode · ${audio.uppercase()}"
+                },
+                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 11.sp,
+                maxLines = 1,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onExpand),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.Fullscreen,
+                contentDescription = "Full screen",
+                tint = Color.White,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlayerEpisodeShelf(
+    episode: Int,
+    totalEpisodes: Int,
+    watchedThrough: Int,
+    positionFraction: Float,
+    audio: String,
+    isMovie: Boolean,
+    autoNext: Boolean,
+    onPickEpisode: (Int) -> Unit,
+    onPickAudio: (String) -> Unit,
+    onToggleAutoNext: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val showGrid = !isMovie && totalEpisodes > 1
+    var jump by remember { mutableStateOf("") }
+    val pageSize = 100
+    val rangeCount = ((totalEpisodes + pageSize - 1) / pageSize).coerceAtLeast(1)
+    var browseRange by remember(episode, rangeCount) {
+        mutableIntStateOf(((episode - 1) / pageSize).coerceIn(0, (rangeCount - 1).coerceAtLeast(0)))
+    }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (showGrid) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White.copy(alpha = 0.05f))
+                        .padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("#", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        BasicTextField(
+                            value = jump,
+                            onValueChange = { next -> if (next.all { it.isDigit() }) jump = next },
+                            textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number,
+                                imeAction = ImeAction.Go,
+                            ),
+                            keyboardActions = KeyboardActions(onGo = {
+                                val picked = jump.toIntOrNull()
+                                if (picked != null && picked in 1..totalEpisodes) {
+                                    onPickEpisode(picked)
+                                    jump = ""
+                                }
+                            }),
+                            singleLine = true,
+                            decorationBox = { inner ->
+                                if (jump.isEmpty()) {
+                                    Text("Ep...", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp)
+                                }
+                                inner()
+                            },
+                        )
+                    }
+                }
+                ShelfAction(
+                    label = "NEXT",
+                    enabled = episode < totalEpisodes,
+                    icon = Icons.Rounded.PlayArrow,
+                    onClick = { onPickEpisode(episode + 1) },
+                )
+                ShelfAction(
+                    label = "LATEST",
+                    enabled = episode != totalEpisodes,
+                    selected = episode == totalEpisodes,
+                    onClick = { onPickEpisode(totalEpisodes) },
+                )
+                val autoColor = if (autoNext) Color.White else Color.White.copy(alpha = 0.3f)
+                Box(
+                    modifier = Modifier
+                        .height(34.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (autoNext) Color.White.copy(alpha = 0.1f) else Color.White.copy(alpha = 0.05f))
+                        .border(
+                            0.5.dp,
+                            if (autoNext) Color.White.copy(alpha = 0.5f) else Color.Transparent,
+                            RoundedCornerShape(8.dp),
+                        )
+                        .clickable(onClick = onToggleAutoNext)
+                        .padding(horizontal = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Icon(
+                            if (autoNext) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                            contentDescription = "Auto next",
+                            tint = autoColor,
+                            modifier = Modifier.size(11.dp),
+                        )
+                        Text("AUTO", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = autoColor)
+                    }
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.05f))
+                .padding(2.dp),
+        ) {
+            listOf("sub" to "SUBTITLED", "dub" to "DUBBED").forEach { (key, label) ->
+                val selected = audio == key
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (selected) Color.White else Color.Transparent)
+                        .clickable { onPickAudio(key) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        label,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
+                        color = if (selected) Color.Black else Color.White.copy(alpha = 0.5f),
+                    )
+                }
+            }
+        }
+        if (showGrid) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    "EPISODES",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 11.sp,
+                    letterSpacing = 0.5.sp,
+                )
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.White.copy(alpha = 0.05f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        "$totalEpisodes",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 9.sp,
+                    )
+                }
+            }
+            if (rangeCount > 1) {
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    for (index in 0 until rangeCount) {
+                        val start = index * pageSize + 1
+                        val end = minOf(totalEpisodes, start + pageSize - 1)
+                        val selected = browseRange == index
+                        Text(
+                            "$start–$end",
+                            color = if (selected) Color.Black else Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) Color.White else Color.White.copy(alpha = 0.08f))
+                                .clickable { browseRange = index }
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                        )
+                    }
+                }
+            }
+            val rangeStart = browseRange * pageSize + 1
+            val rangeEnd = minOf(totalEpisodes, rangeStart + pageSize - 1)
+            (rangeStart..rangeEnd).toList().chunked(6).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    rowItems.forEach { number ->
+                        val selected = number == episode
+                        val progress = when {
+                            number == episode -> positionFraction
+                            number <= watchedThrough -> 1f
+                            else -> 0f
+                        }
+                        EpisodeShelfCell(
+                            number = number,
+                            progress = progress,
+                            selected = selected,
+                            onClick = { onPickEpisode(number) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    repeat(6 - rowItems.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShelfAction(
+    label: String,
+    enabled: Boolean,
+    selected: Boolean = false,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: () -> Unit,
+) {
+    val tint = when {
+        selected -> Color.White
+        enabled -> Color.White
+        else -> Color.White.copy(alpha = 0.3f)
+    }
+    Box(
+        modifier = Modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(
+                when {
+                    selected -> Color.White.copy(alpha = 0.15f)
+                    enabled -> Color.White.copy(alpha = 0.08f)
+                    else -> Color.White.copy(alpha = 0.02f)
+                },
+            )
+            .border(
+                0.5.dp,
+                if (selected) Color.White else Color.Transparent,
+                RoundedCornerShape(8.dp),
+            )
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(12.dp), tint = tint)
+                Spacer(modifier = Modifier.width(2.dp))
+            }
+            Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = tint)
+        }
+    }
+}
+
+@Composable
+private fun EpisodeShelfCell(
+    number: Int,
+    progress: Float,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val complete = progress >= 0.85f
+    Box(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                when {
+                    selected -> Color.White.copy(alpha = 0.2f)
+                    complete -> Color.White.copy(alpha = 0.02f)
+                    else -> Color.White.copy(alpha = 0.03f)
+                },
+            )
+            .border(
+                width = if (selected) 1.5.dp else 1.dp,
+                color = if (selected) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(12.dp),
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            "$number",
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = when {
+                selected -> Color.White
+                complete -> Color.White.copy(alpha = 0.3f)
+                else -> Color.White.copy(alpha = 0.8f)
+            },
+        )
+        if (progress > 0f && !complete) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                    .height(2.5.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.1f)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress.coerceIn(0f, 1f))
+                        .background(Color.White),
                 )
             }
         }
