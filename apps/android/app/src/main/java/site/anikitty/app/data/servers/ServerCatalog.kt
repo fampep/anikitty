@@ -17,6 +17,7 @@ import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionRepository
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.HttpExtensionResolver
+import site.anikitty.app.data.extensions.isRetiredExtension
 import site.anikitty.app.data.skip.SkipTimes
 import site.anikitty.app.data.extensions.StoreIndex
 
@@ -175,7 +176,9 @@ class ServerCatalog(context: Context) {
         val fromExt = installed.map { HttpExtensionResolver(it) }
         // Bundled Anikoto remains available until users rely fully on BYO extensions.
         val bundledIds = bundled.map { it.server.id }.toSet()
-        val extras = fromExt.filterNot { it.server.id in bundledIds }
+        val extras = fromExt.filterNot {
+            it.server.id in bundledIds || isRetiredExtension(it.server.id, it.server.name)
+        }
         return bundled + extras
     }
 

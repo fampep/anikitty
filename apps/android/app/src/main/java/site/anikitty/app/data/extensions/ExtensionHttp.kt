@@ -3,6 +3,7 @@
 
 package site.anikitty.app.data.extensions
 
+import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
@@ -17,9 +18,15 @@ internal object ExtensionHttp {
         .build()
 
     fun getString(url: String): String {
+        // raw.githubusercontent.com keeps a copy for about five minutes.
+        // A new query plus no-cache asks that copy to get out of the way.
+        val sep = if ('?' in url) '&' else '?'
+        val fresh = "$url${sep}anikitty_refresh=${System.currentTimeMillis()}"
         val req = Request.Builder()
-            .url(url)
+            .url(fresh)
+            .cacheControl(CacheControl.FORCE_NETWORK)
             .header("Accept", "application/json, text/plain, */*")
+            .header("Pragma", "no-cache")
             .header("User-Agent", "AniKitty-ExtensionClient/1")
             .get()
             .build()

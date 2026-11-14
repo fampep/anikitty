@@ -46,7 +46,20 @@ data class StoreListing(
     /** Site icon shown in the Store grid (required for new listings). */
     val iconUrl: String? = null,
     val siteUrl: String? = null,
+    /** Extension semver from the store index. Manifest `version` is what an install updates to. */
+    val version: String? = null,
+    /** Protocol document version, such as "1.1". Manifest `apiVersion` stays 1. */
+    val protocol: String? = null,
 )
+
+/** Ani.pm, Settlar, and Yozora are one retired source. The store never lists them. */
+internal fun isRetiredExtension(id: String, name: String = ""): Boolean {
+    fun norm(raw: String) = raw.trim().lowercase().replace(".", "").replace(" ", "")
+    val key = norm(id)
+    if (key == "anipm" || key == "settlar" || key == "yozora") return true
+    val label = norm(name)
+    return label == "anipm" || label == "settlar" || label == "yozora"
+}
 
 data class StoreIndex(
     val apiVersion: Int,

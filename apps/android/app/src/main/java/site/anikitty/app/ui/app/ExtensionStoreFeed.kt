@@ -67,6 +67,7 @@ import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.StoreListing
+import site.anikitty.app.data.extensions.isRetiredExtension
 import site.anikitty.app.data.servers.ReanimeServer
 import site.anikitty.app.data.servers.AnikotoServer
 import site.anikitty.app.data.servers.GotakuServer
@@ -155,14 +156,32 @@ fun ExtensionStoreFeed(
     // keep author/github from their manifest (never mislabeled as official).
     val mergedListings = remember(listings, resolvers, installedExt, bundledIds) {
         val byId = LinkedHashMap<String, StoreListing>()
-        for (listing in listings) byId[listing.id] = listing
+        for (listing in listings) {
+            if (isRetiredExtension(listing.id, listing.name)) continue
+            byId[listing.id] = listing
+        }
         val manifests = installedExt.associateBy { it.id }
         for (resolver in resolvers) {
             val server = resolver.server
-            if (byId.containsKey(server.id)) continue
-            byId[server.id] = server.toStoreListing(
-                bundled = server.id in bundledIds,
-                manifest = manifests[server.id],
+            if (isRetiredExtension(server.id, server.name)) continue
+            val existing = byId[server.id]
+            val bundled = server.id in bundledIds
+            if (existing == null) {
+                byId[server.id] = server.toStoreListing(
+                    bundled = bundled,
+                    manifest = manifests[server.id],
+                )
+                continue
+            }
+            if (!bundled) continue
+            val fallback = server.toStoreListing(bundled = true)
+            byId[server.id] = existing.copy(
+                name = existing.name.ifBlank { fallback.name },
+                description = existing.description.ifBlank { fallback.description },
+                iconUrl = existing.iconUrl ?: fallback.iconUrl,
+                siteUrl = existing.siteUrl ?: fallback.siteUrl,
+                version = existing.version?.takeIf { it.isNotBlank() } ?: fallback.version,
+                protocol = existing.protocol?.takeIf { it.isNotBlank() } ?: fallback.protocol,
             )
         }
         byId.values.toList()
@@ -395,6 +414,8 @@ fun ExtensionStoreFeed(
                                     isBundled -> {
                                         if (isNotEmpty()) append(" · ")
                                         append("bundled")
+                                        appendStoreVersion(listing.version)
+                                        appendProtocol(listing.protocol)
                                     }
                                     installed -> {
                                         if (isNotEmpty()) append(" · ")
@@ -408,6 +429,11 @@ fun ExtensionStoreFeed(
                                             append(newer)
                                             append(" ready")
                                         }
+                                        appendProtocol(listing.protocol)
+                                    }
+                                    else -> {
+                                        appendStoreVersion(listing.version)
+                                        appendProtocol(listing.protocol)
                                     }
                                 }
                             },
@@ -653,6 +679,20 @@ fun ExtensionStoreFeed(
     }
 }
 
+private fun StringBuilder.appendStoreVersion(version: String?) {
+    val v = version?.takeIf { it.isNotBlank() } ?: return
+    if (isNotEmpty()) append(" · ")
+    append("v")
+    append(v)
+}
+
+private fun StringBuilder.appendProtocol(protocol: String?) {
+    val p = protocol?.takeIf { it.isNotBlank() } ?: return
+    if (isNotEmpty()) append(" · ")
+    append("protocol ")
+    append(p)
+}
+
 private fun StreamServer.toStoreListing(
     bundled: Boolean,
     manifest: ExtensionManifest? = null,
@@ -667,6 +707,8 @@ private fun StreamServer.toStoreListing(
             featured = true,
             iconUrl = iconUrl,
             siteUrl = siteUrl,
+            version = bundledStoreVersion(id),
+            protocol = "1.1",
         )
     }
     val author = manifest?.author?.trim()?.takeIf { it.isNotEmpty() } ?: "community"
@@ -685,7 +727,15 @@ private fun StreamServer.toStoreListing(
         featured = false,
         iconUrl = iconUrl ?: manifest?.iconUrl,
         siteUrl = siteUrl ?: manifest?.siteUrl,
+        version = manifest?.version?.takeIf { it.isNotBlank() },
+        protocol = "1.1",
     )
+}
+
+/** Shown when the store index has not published a version for a bundled source. */
+private fun bundledStoreVersion(id: String): String = when (id) {
+    "reanime" -> "1.0.0"
+    else -> "1.1.1"
 }
 
 private sealed interface StoreRow {

@@ -15,7 +15,7 @@
 
 The in-app store loads  
 `https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`  
-and fills any missing listing from the copy in this monorepo. The newer `updatedAt` wins.  
+(the current `main` branch). A refresh skips the raw-file cache. The monorepo copy fills a listing the mirror does not have yet when that copy is the same day or newer. An older copy cannot put a removed listing back. Ani.pm is not listed.  
 Maintainer notes: [public GitHub setup](https://github.com/fampep/anikitty/blob/main/docs/public-github-setup.md).
 
 ## License & ownership

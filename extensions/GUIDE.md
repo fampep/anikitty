@@ -129,6 +129,8 @@ Fork / PR into [store/index.json](./store/index.json):
 {
   "id": "com.example.hello",
   "name": "Hello HTTP",
+  "version": "1.1.1",
+  "protocol": "1.1",
   "description": "Minimal BYO resolve example",
   "github": "https://github.com/you/hello-anikitty-ext",
   "author": "you",
