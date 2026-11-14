@@ -58,6 +58,28 @@ class AniPmHttpFailureTest {
     }
 
     @Test
+    fun embedPageNonceMatchesTheNekoWatchPlayer() {
+        val html = """
+            <html><script id="anipm-embed-config" type="application/json">{"nonce":"abc/def+123","v":1}</script></html>
+        """.trimIndent()
+        assertEquals("abc/def+123", aniPmEmbedNonce(html))
+        assertEquals(
+            "https://ani.pm/embed/ani/181444/7/sub?autonext=0&episodes=0&adult=0",
+            partnerEmbedUrl(181444, 7, "sub"),
+        )
+        assertEquals(
+            "https://ani.pm/api/partner/v1/session?n=abc%2Fdef%2B123&id=181444&ep=7&lang=sub&hardsub=0&adult=0",
+            partnerSessionUrl("abc/def+123", 181444, 7, "sub"),
+        )
+    }
+
+    @Test
+    fun challengePageHasNoEmbedNonce() {
+        val html = "<html><title>Just a moment...</title></html>"
+        assertEquals(null, aniPmEmbedNonce(html))
+    }
+
+    @Test
     fun clearBlockMessageIsKept() {
         val joined = "All installed providers failed — Ani.pm: ${AniPmServer.BLOCKED}"
         assertEquals(joined, friendlyFailure(joined))
