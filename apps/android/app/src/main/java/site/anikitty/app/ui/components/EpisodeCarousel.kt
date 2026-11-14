@@ -66,6 +66,7 @@ data class EpisodeSlide(
     val imageUrl: String?,
     val marker: String? = null,
     val airLabel: String? = null,
+    val overview: String? = null,
 )
 
 /**

@@ -57,6 +57,29 @@ class TmdbMapTest {
     }
 
     @Test
+    fun mappedShowRoundTripKeepsSeasonAndOffset() {
+        val show = MappedShow(
+            anilistId = 164,
+            tmdbId = 128,
+            movie = true,
+            season = null,
+            episodeOffset = 0,
+            malId = 164,
+            tvdbId = 0,
+            kitsuId = 142,
+        )
+        val back = readMapped(writeMapped(show))
+        assertEquals(128, back?.tmdbId)
+        assertEquals(true, back?.movie)
+        assertEquals(null, back?.season)
+        val series = show.copy(movie = false, tmdbId = 26209, season = 1, episodeOffset = 11)
+        val seriesBack = readMapped(writeMapped(series))
+        assertEquals(1, seriesBack?.season)
+        assertEquals(11, seriesBack?.episodeOffset)
+        assertEquals(12, tmdbEpisodeNumber(1, 11))
+    }
+
+    @Test
     fun episodeTitleAndStillAndDate() {
         assertEquals("The Interview", preferEpisodeTitle("Episode 1", 1, "The Interview"))
         assertEquals("Already named", preferEpisodeTitle("Already named", 1, "  "))

@@ -79,6 +79,7 @@ import site.anikitty.app.data.anilist.AnimePerson
 import site.anikitty.app.data.anilist.AnimeRelation
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.anilist.MediaRank
+import site.anikitty.app.data.tmdb.SeasonChip
 import site.anikitty.app.data.tmdb.TitleArt
 import site.anikitty.app.data.tmdb.TmdbCatalog
 import site.anikitty.app.data.tmdb.preferEpisodeTitle
@@ -154,21 +155,49 @@ internal fun TitleStage(
     val context = LocalContext.current
     val tmdb = remember { TmdbCatalog(context) }
     var art by remember(detail.id) { mutableStateOf<TitleArt?>(null) }
+    var backdropIndex by remember(detail.id) { mutableStateOf(0) }
+    var shelfSeason by remember(detail.id) { mutableStateOf<Int?>(null) }
+    var shelf by remember(detail.id) { mutableStateOf<Map<Int, site.anikitty.app.data.tmdb.TmdbEpisode>>(emptyMap()) }
     LaunchedEffect(detail.id, detail.title, detail.seasonYear, detail.format, detail.detailLoaded) {
         art = withContext(Dispatchers.IO) { tmdb.load(detail) }
+        shelfSeason = null
+        shelf = emptyMap()
     }
-    val slides = remember(episodeSlides, art) {
-        val episodes = art?.episodes.orEmpty()
-        if (episodes.isEmpty()) {
-            episodeSlides
-        } else {
-            episodeSlides.map { slide ->
-                val episodeArt = episodes[slide.number]
-                slide.copy(
-                    title = preferEpisodeTitle(slide.title, slide.number, episodeArt?.title),
-                    imageUrl = preferStill(slide.imageUrl, episodeArt?.stillUrl),
-                    airLabel = episodeArt?.airLabel ?: slide.airLabel,
+    LaunchedEffect(art?.tmdbId, shelfSeason) {
+        val current = art ?: return@LaunchedEffect
+        val season = shelfSeason ?: return@LaunchedEffect
+        if (season == current.seasonNumber) {
+            shelf = emptyMap()
+            return@LaunchedEffect
+        }
+        shelf = withContext(Dispatchers.IO) { tmdb.seasonShelf(current.tmdbId, season) }
+    }
+    val slides = remember(episodeSlides, art, shelf, shelfSeason) {
+        val browsing = shelfSeason != null && shelfSeason != art?.seasonNumber && shelf.isNotEmpty()
+        if (browsing) {
+            shelf.entries.sortedBy { it.key }.map { (number, episode) ->
+                EpisodeSlide(
+                    number = number,
+                    title = episode.title.ifBlank { "Episode $number" },
+                    imageUrl = episode.stillUrl,
+                    airLabel = episode.airLabel,
+                    overview = episode.overview,
                 )
+            }
+        } else {
+            val episodes = art?.episodes.orEmpty()
+            if (episodes.isEmpty()) {
+                episodeSlides
+            } else {
+                episodeSlides.map { slide ->
+                    val episodeArt = episodes[slide.number]
+                    slide.copy(
+                        title = preferEpisodeTitle(slide.title, slide.number, episodeArt?.title),
+                        imageUrl = preferStill(slide.imageUrl, episodeArt?.stillUrl),
+                        airLabel = episodeArt?.airLabel ?: slide.airLabel,
+                        overview = episodeArt?.overview,
+                    )
+                }
             }
         }
     }
@@ -229,11 +258,13 @@ internal fun TitleStage(
                         .height(heroHeight)
                         .clipToBounds(),
                 ) {
+                    val gallery = art?.backdrops.orEmpty()
+                    val pickedBackdrop = gallery.getOrNull(backdropIndex.coerceIn(0, (gallery.size - 1).coerceAtLeast(0)))
                     val localArt = detail.bannerImageUrl?.startsWith("android.resource://") == true ||
                         detail.coverImageUrl?.startsWith("android.resource://") == true
                     HeroBanner(
                         anilistId = detail.id,
-                        bannerUrl = if (localArt) detail.coverImageUrl else detail.bannerImageUrl,
+                        bannerUrl = pickedBackdrop ?: if (localArt) detail.coverImageUrl else detail.bannerImageUrl,
                         coverUrl = detail.coverImageUrl,
                         contentDescription = detail.title,
                         contentScale = ContentScale.Crop,
@@ -241,6 +272,7 @@ internal fun TitleStage(
                         title = detail.title,
                         year = detail.seasonYear,
                         movie = movie,
+                        locked = pickedBackdrop != null,
                         modifier = posterModifier
                             .fillMaxSize()
                             .graphicsLayer {
@@ -455,6 +487,15 @@ internal fun TitleStage(
                     }
                 }
             }
+            if ((art?.backdrops?.size ?: 0) > 1) {
+                item(key = "gallery", contentType = "gallery") {
+                    BackdropStrip(
+                        urls = art?.backdrops.orEmpty(),
+                        selected = backdropIndex,
+                        onSelect = { backdropIndex = it },
+                    )
+                }
+            }
             item(key = "synopsis", contentType = "copy") {
                 if (detailLoading && detail.description.isNullOrBlank()) {
                     Column(Modifier.padding(KittySpace.md)) {
@@ -470,6 +511,9 @@ internal fun TitleStage(
                     }
                 } else if (!synopsis.isNullOrBlank()) {
                     Synopsis(synopsis)
+                }
+                if (!art?.keywords.isNullOrEmpty()) {
+                    KeywordRow(art?.keywords.orEmpty())
                 }
             }
             item(key = "episodes", contentType = "episodes") {
@@ -504,6 +548,10 @@ internal fun TitleStage(
                         onToggleWatched = onToggleWatched,
                         onOpenRelation = onOpenRelation,
                         activeServer = activeServer,
+                        tmdbSeasons = art?.seasons.orEmpty(),
+                        selectedSeason = shelfSeason ?: art?.seasonNumber,
+                        onSeason = { shelfSeason = it },
+                        episodeNote = slides.firstOrNull { it.number == episode }?.overview,
                     )
                 }
             }
@@ -515,6 +563,16 @@ internal fun TitleStage(
             if (!detailLoading && detail.staff.isNotEmpty()) {
                 item(key = "staff", contentType = "people") {
                     PeopleRow("Staff", detail.staff) { person = it to "staff" }
+                }
+            }
+            if (!art?.crew.isNullOrEmpty()) {
+                item(key = "crew", contentType = "people") {
+                    PeopleRow(
+                        "Crew",
+                        art?.crew.orEmpty().map { credit ->
+                            AnimePerson(id = credit.name.hashCode(), name = credit.name, imageUrl = credit.photoUrl, role = credit.job)
+                        },
+                    ) { person = it to "staff" }
                 }
             }
             if (related.isNotEmpty()) {
@@ -530,13 +588,29 @@ internal fun TitleStage(
                 }
             }
             val picks = detail.recommendations.filter { it.id != detail.id }
-            if (picks.isNotEmpty()) {
+            val fromTmdb = art?.suggestions.orEmpty().filter { suggestion ->
+                suggestion.anilistId != detail.id && picks.none { it.id == suggestion.anilistId }
+            }
+            if (picks.isNotEmpty() || fromTmdb.isNotEmpty()) {
                 item(key = "recs", contentType = "posters") {
                     PosterLane(
-                        title = "Recommended",
+                        title = "More like this",
                         cards = picks.map { rec ->
                             LaneCard(rec.id, rec.title, rec.coverImageUrl, rec.seasonLabel()) {
                                 onOpenRelated(rec)
+                            }
+                        } + fromTmdb.map { rec ->
+                            LaneCard(rec.anilistId, rec.title, rec.posterUrl, "TMDB") {
+                                onOpenRelated(
+                                    AnimeSummary(
+                                        id = rec.anilistId,
+                                        title = rec.title,
+                                        coverImageUrl = rec.posterUrl,
+                                        episodes = null,
+                                        format = null,
+                                        averageScore = null,
+                                    ),
+                                )
                             }
                         },
                     )
@@ -552,7 +626,7 @@ internal fun TitleStage(
                 }
             }
             item(key = "links", contentType = "links") {
-                LinkRow(detail, onOpenUrl)
+                LinkRow(detail, art, onOpenUrl)
             }
         }
 
@@ -801,6 +875,10 @@ private fun EpisodeBlock(
     onToggleWatched: (Int) -> Unit,
     onOpenRelation: (AnimeRelation) -> Unit,
     activeServer: StreamServer?,
+    tmdbSeasons: List<SeasonChip> = emptyList(),
+    selectedSeason: Int? = null,
+    onSeason: (Int) -> Unit = {},
+    episodeNote: String? = null,
 ) {
     val palette = LocalKittyPalette.current
     Column {
@@ -809,6 +887,23 @@ private fun EpisodeBlock(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             KittySectionHeading(title = "Episodes", subtitle = "$maxEp", padded = false)
+        }
+        if (tmdbSeasons.size > 1) {
+            Spacer(Modifier.height(KittySpace.sm))
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = KittySpace.md),
+                horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
+            ) {
+                tmdbSeasons.forEach { season ->
+                    KittyChip(
+                        label = season.name,
+                        selected = season.number == selectedSeason,
+                        onClick = { onSeason(season.number) },
+                    )
+                }
+            }
         }
         if (seasonTabs.size > 1) {
             Spacer(Modifier.height(KittySpace.sm))
@@ -884,6 +979,59 @@ private fun EpisodeBlock(
             anilistId = detail.id,
             onToggleWatched = onToggleWatched,
         )
+        if (!episodeNote.isNullOrBlank()) {
+            Text(
+                episodeNote,
+                color = palette.muted,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.sm),
+            )
+        }
+    }
+}
+
+@Composable
+private fun BackdropStrip(urls: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = KittySpace.md, vertical = KittySpace.sm),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(urls.size) { index ->
+            val shape = RoundedCornerShape(10.dp)
+            AsyncImage(
+                model = urls[index],
+                contentDescription = "Backdrop ${index + 1}",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .width(168.dp)
+                    .height(94.dp)
+                    .clip(shape)
+                    .border(
+                        width = if (index == selected) 1.5.dp else 0.dp,
+                        color = Color.White,
+                        shape = shape,
+                    )
+                    .spacePress { onSelect(index) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun KeywordRow(words: List<String>) {
+    Row(
+        modifier = Modifier
+            .padding(horizontal = KittySpace.md)
+            .padding(bottom = KittySpace.sm)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
+    ) {
+        words.forEach { word ->
+            KittyChip(label = word, selected = false, onClick = {})
+        }
     }
 }
 
@@ -1085,7 +1233,7 @@ private fun StatFigure(value: String, label: String) {
 }
 
 @Composable
-private fun LinkRow(detail: AnimeSummary, onOpenUrl: (String) -> Unit) {
+private fun LinkRow(detail: AnimeSummary, art: TitleArt?, onOpenUrl: (String) -> Unit) {
     Row(
         modifier = Modifier
             .padding(horizontal = KittySpace.md, vertical = KittySpace.lg)
@@ -1095,9 +1243,31 @@ private fun LinkRow(detail: AnimeSummary, onOpenUrl: (String) -> Unit) {
         KittyChip(label = "AniList", selected = false, onClick = {
             onOpenUrl("https://anilist.co/anime/${detail.id}")
         })
-        detail.malId?.let { mal ->
+        val mal = detail.malId?.takeIf { it > 0 } ?: art?.malId?.takeIf { it > 0 }
+        mal?.let { id ->
             KittyChip(label = "MyAnimeList", selected = false, onClick = {
-                onOpenUrl("https://myanimelist.net/anime/$mal")
+                onOpenUrl("https://myanimelist.net/anime/$id")
+            })
+        }
+        art?.tmdbId?.takeIf { it > 0 }?.let { id ->
+            val path = if (art.movie) "movie" else "tv"
+            KittyChip(label = "TMDB", selected = false, onClick = {
+                onOpenUrl("https://www.themoviedb.org/$path/$id")
+            })
+        }
+        art?.tvdbId?.takeIf { it > 0 }?.let { id ->
+            KittyChip(label = "TVDB", selected = false, onClick = {
+                onOpenUrl("https://www.thetvdb.com/dereferrer/series/$id")
+            })
+        }
+        art?.kitsuId?.takeIf { it > 0 }?.let { id ->
+            KittyChip(label = "Kitsu", selected = false, onClick = {
+                onOpenUrl("https://kitsu.io/anime/$id")
+            })
+        }
+        art?.clips.orEmpty().forEach { clip ->
+            KittyChip(label = clip.name, selected = false, onClick = {
+                onOpenUrl("https://www.youtube.com/watch?v=${clip.youtubeId}")
             })
         }
         detail.externalLinks

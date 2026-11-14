@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.ui.components.HeroBanner
@@ -170,6 +171,7 @@ private fun HomeBarIcon(
 internal fun HomeFeatured(
     items: List<AnimeSummary>,
     onOpen: (AnimeSummary) -> Unit,
+    logos: Map<Int, String> = emptyMap(),
 ) {
     val pages = items.take(5)
     if (pages.isEmpty()) return
@@ -197,7 +199,7 @@ internal fun HomeFeatured(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .height(228.dp)
+                .height(248.dp)
                 .clip(RoundedCornerShape(KittyRadius.lg)),
         ) {
             HorizontalPager(
@@ -257,16 +259,29 @@ internal fun HomeFeatured(
                             .padding(horizontal = 14.dp, vertical = 12.dp)
                             .fillMaxWidth(),
                     ) {
-                        Text(
-                            anime.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 22.sp,
-                            lineHeight = 26.sp,
-                            letterSpacing = (-0.4).sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        val logo = logos[anime.id]
+                        if (logo != null) {
+                            AsyncImage(
+                                model = logo,
+                                contentDescription = anime.title,
+                                contentScale = ContentScale.Fit,
+                                alignment = Alignment.CenterStart,
+                                modifier = Modifier
+                                    .height(52.dp)
+                                    .fillMaxWidth(0.72f),
+                            )
+                        } else {
+                            Text(
+                                anime.title,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 22.sp,
+                                lineHeight = 26.sp,
+                                letterSpacing = (-0.4).sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                         val meta = listOfNotNull(
                             anime.format?.takeIf { it.isNotBlank() }?.let(::homeFormat),
                             anime.airedLabel(),

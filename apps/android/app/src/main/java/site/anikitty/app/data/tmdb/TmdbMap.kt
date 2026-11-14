@@ -13,7 +13,22 @@ data class TitleArt(
     val episodes: Map<Int, TmdbEpisode> = emptyMap(),
     /** Keys are normalized names. Values are profile image URLs. */
     val castPhotos: Map<String, String> = emptyMap(),
+    val backdrops: List<String> = emptyList(),
+    val keywords: List<String> = emptyList(),
+    val suggestions: List<Suggestion> = emptyList(),
+    val seasons: List<SeasonChip> = emptyList(),
+    val crew: List<CrewCredit> = emptyList(),
+    val seasonNumber: Int? = null,
+    val episodeOffset: Int = 0,
+    val tmdbId: Int = 0,
+    val movie: Boolean = false,
+    val malId: Int = 0,
+    val tvdbId: Int = 0,
+    val kitsuId: Int = 0,
+    val clips: List<VideoClip> = emptyList(),
 )
+
+data class VideoClip(val name: String, val youtubeId: String)
 
 data class BrandMark(val name: String, val logoUrl: String?)
 
@@ -21,6 +36,38 @@ data class TmdbEpisode(
     val title: String,
     val stillUrl: String?,
     val airLabel: String?,
+    val overview: String? = null,
+    val runtimeMinutes: Int? = null,
+)
+
+data class SeasonChip(
+    val number: Int,
+    val name: String,
+    val episodes: Int,
+)
+
+data class Suggestion(
+    val anilistId: Int,
+    val title: String,
+    val posterUrl: String?,
+)
+
+data class CrewCredit(
+    val name: String,
+    val job: String,
+    val photoUrl: String?,
+)
+
+/** One AniList title in the Fribb anime-lists index. */
+data class MappedShow(
+    val anilistId: Int,
+    val tmdbId: Int,
+    val movie: Boolean,
+    val season: Int?,
+    val episodeOffset: Int,
+    val malId: Int,
+    val tvdbId: Int,
+    val kitsuId: Int,
 )
 
 data class TmdbImage(
@@ -153,6 +200,41 @@ fun shortAirDate(iso: String?): String? {
 
 fun nameKey(value: String): String {
     return value.lowercase().replace(Regex("""[^a-z0-9]+"""), " ").trim()
+}
+
+fun tmdbEpisodeNumber(shown: Int, offset: Int): Int = (shown + offset).coerceAtLeast(1)
+
+fun writeMapped(show: MappedShow): String {
+    val season = show.season?.toString() ?: ""
+    val kind = if (show.movie) "m" else "t"
+    return listOf(
+        show.anilistId,
+        show.tmdbId,
+        kind,
+        season,
+        show.episodeOffset,
+        show.malId,
+        show.tvdbId,
+        show.kitsuId,
+    ).joinToString("\t")
+}
+
+fun readMapped(line: String): MappedShow? {
+    val parts = line.split('\t')
+    if (parts.size < 8) return null
+    val anilist = parts[0].toIntOrNull() ?: return null
+    val tmdb = parts[1].toIntOrNull() ?: return null
+    if (anilist <= 0 || tmdb <= 0) return null
+    return MappedShow(
+        anilistId = anilist,
+        tmdbId = tmdb,
+        movie = parts[2] == "m",
+        season = parts[3].toIntOrNull(),
+        episodeOffset = parts[4].toIntOrNull() ?: 0,
+        malId = parts[5].toIntOrNull() ?: 0,
+        tvdbId = parts[6].toIntOrNull() ?: 0,
+        kitsuId = parts[7].toIntOrNull() ?: 0,
+    )
 }
 
 fun imageUrl(path: String?, size: String): String? {
