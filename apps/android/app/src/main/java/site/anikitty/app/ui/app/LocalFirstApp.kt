@@ -134,7 +134,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import site.anikitty.app.data.tmdb.TmdbCatalog
 import site.anikitty.app.BuildConfig
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListAuthStore
@@ -866,6 +869,9 @@ private fun HomeFeed(
     val planToWatch = remember(history) {
         history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(12)
     }
+    var heroLogos by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var stills by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var collection by remember { mutableStateOf<Pair<String, List<AnimeSummary>>?>(null) }
     var forYou by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var forYouFrom by remember { mutableStateOf<String?>(null) }
     val spotlightId = continueWatching.firstOrNull()?.anilistId
@@ -926,6 +932,54 @@ private fun HomeFeed(
             }.onFailure { error = friendlyFailure(it.message) }
             loading = false
             refreshing = false
+            if (error != null && trending.isEmpty()) return@launch
+            runCatching {
+                val shown = trending
+                val catalog = TmdbCatalog(context)
+                val discovered = runCatching {
+                    withContext(Dispatchers.IO) { catalog.discoverAnilistIds() }
+                }.getOrDefault(emptyList())
+                if (discovered.size >= 4) {
+                    val mapped = discovered.mapNotNull { id ->
+                        shown.firstOrNull { it.id == id } ?: runCatching { aniList.media(id) }.getOrNull()
+                    }
+                    if (mapped.size >= 4) trending = mapped
+                }
+                val heroes = trending.take(5).map { it.id }
+                val art = runCatching { withContext(Dispatchers.IO) { catalog.heroArt(heroes) } }.getOrDefault(emptyMap())
+                if (art.isNotEmpty()) {
+                    heroLogos = art.mapNotNull { (id, pair) -> pair.first?.let { id to it } }.toMap()
+                    trending = trending.map { anime ->
+                        val backdrop = art[anime.id]?.second
+                        if (backdrop != null) anime.copy(bannerImageUrl = backdrop) else anime
+                    }
+                }
+                val stillMap = LinkedHashMap<String, String>()
+                withContext(Dispatchers.IO) {
+                    continueWatching.take(6).forEach { entry ->
+                        val episode = playbackTarget(entry)
+                        catalog.episodeStill(entry.anilistId, episode)?.let {
+                            stillMap["${entry.anilistId}-$episode"] = it
+                        }
+                    }
+                    airingToday.take(8).forEach { slot ->
+                        catalog.episodeStill(slot.anime.id, slot.episode)?.let {
+                            stillMap["air-${slot.anime.id}-${slot.episode}"] = it
+                        }
+                    }
+                }
+                stills = stillMap
+                val seed = continueWatching.firstOrNull()?.anilistId ?: trending.firstOrNull()?.id
+                if (seed != null) {
+                    val group = runCatching { withContext(Dispatchers.IO) { catalog.collection(seed) } }.getOrNull()
+                    val shows = group?.second.orEmpty().mapNotNull { id ->
+                        shown.firstOrNull { it.id == id }
+                            ?: trending.firstOrNull { it.id == id }
+                            ?: runCatching { aniList.media(id) }.getOrNull()
+                    }
+                    collection = if (group != null && shows.isNotEmpty()) group.first to shows else null
+                }
+            }
         }
     }
 
@@ -1010,7 +1064,7 @@ private fun HomeFeed(
                         if (!section.enabled) return@forEach
                         when (section.id) {
                             "featured" -> item(key = "featured", contentType = "hero") {
-                                HomeFeatured(items = trending, onOpen = openCatalog)
+                                HomeFeatured(items = trending, onOpen = openCatalog, logos = heroLogos)
                             }
                             "continue" -> {
                                 if (LookState.abandonedReminders) {
@@ -1032,6 +1086,7 @@ private fun HomeFeed(
                                     HomeContinueRow(
                                         continueWatching.map { entry ->
                                             val target = playbackTarget(entry)
+                                            val still = stills["${entry.anilistId}-$target"]
                                             val resume = target == entry.episode.coerceAtLeast(1)
                                             val fraction = if (resume && entry.durationMs > 0L) {
                                                 (entry.positionMs.toFloat() / entry.durationMs.toFloat()).coerceIn(0f, 1f)
@@ -1046,7 +1101,7 @@ private fun HomeFeed(
                                             HomeContinueCard(
                                                 id = entry.anilistId,
                                                 title = entry.title,
-                                                imageUrl = entry.coverImageUrl,
+                                                imageUrl = still ?: entry.coverImageUrl,
                                                 label = buildString {
                                                     append("Episode $target")
                                                     if (left != null) append(" · $left min left")
@@ -1082,6 +1137,31 @@ private fun HomeFeed(
                                 if (trending.isNotEmpty()) item(key = "top10", contentType = "rank") {
                                     HomeBlock(title = "Top 10", subtitle = "Trending this week") {
                                         HomeRankRow(items = trending, onOpen = openCatalog)
+                                    }
+                                }
+                            }
+                            "fresh" -> if (airingToday.isNotEmpty()) item(key = "fresh", contentType = "fresh") {
+                                HomeBlock(title = "New episodes", subtitle = "Stills from today's airings") {
+                                    HomeContinueRow(
+                                        airingToday.take(8).map { slot ->
+                                            HomeContinueCard(
+                                                id = slot.anime.id * 1000 + slot.episode,
+                                                title = slot.anime.title,
+                                                imageUrl = stills["air-${slot.anime.id}-${slot.episode}"]
+                                                    ?: slot.anime.bannerImageUrl
+                                                    ?: slot.anime.coverImageUrl,
+                                                label = "Episode ${slot.episode}",
+                                                progress = 0f,
+                                                onClick = { openCatalog(slot.anime) },
+                                            )
+                                        },
+                                    )
+                                }
+                            }
+                            "collection" -> collection?.let { (name, shows) ->
+                                item(key = "collection", contentType = "collection") {
+                                    HomeBlock(title = name, subtitle = "Same collection") {
+                                        HomePosterRow(items = shows, onOpen = openCatalog)
                                     }
                                 }
                             }

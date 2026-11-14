@@ -42,10 +42,11 @@ fun HeroBanner(
     title: String? = null,
     year: Int? = null,
     movie: Boolean = false,
+    locked: Boolean = false,
 ) {
     val localArt = bannerUrl?.startsWith("android.resource://") == true ||
         coverUrl?.startsWith("android.resource://") == true
-    if (localArt) {
+    if (localArt || (locked && !bannerUrl.isNullOrBlank())) {
         AsyncImage(
             model = ImageRequest.Builder(LocalContext.current)
                 .data(bannerUrl ?: coverUrl)

@@ -166,41 +166,75 @@ You can use, copy, change, and share this project, including in a product. Keep 
 ## Disclaimer
 
 > [!WARNING]
-> ⚠️ AniKitty is a client and a player. It hosts no video and stores no episodes on a server of its own. It does not ship a video library. Metadata comes from AniList. Extra art and episode detail can come from TMDB and similar services. Playback is a URL a resolver returns. **Anikoto**, **Gotaku**, and **Ani.pm** are compiled into the app, so a fresh install can play. Any other source is a third-party extension you install yourself. Those community extensions are not part of this repository. The app plays what the resolver returns.
+> ⚠️ AniKitty is a client and a player. It is not a streaming service, a studio, or a file host. The phone asks AniList for the catalog, and it asks a resolver for a playback URL. The app then plays that URL. It does not upload episodes, it does not keep a copy of an episode on a server of its own, and it does not ship a video library inside the APK. **Anikoto**, **Gotaku**, and **Ani.pm** are compiled in, so a fresh install can try to play. Any other source is an extension you install yourself. Those community extensions are not part of this repository, and this project does not operate the sites a resolver calls. You choose the source. You are responsible for whether that use is lawful where you are.
 
 | | |
 |---|---|
 | What this repository is | The app, the extension protocol, and the guides |
 | What it hosts | No video files, and no copy of an episode |
-| Built-in resolvers | Anikoto, Gotaku, and Ani.pm. They are not a video library, and this repository does not operate the sites they call |
-| Community extensions | Installed by you. A store listing does not make the maintainers the operator of that service |
+| Built-in resolvers | Anikoto, Gotaku, and Ani.pm. They return a URL. They are not a video library, and this repository does not operate the sites they call |
+| Community extensions | Installed by you, from a repository you add. A listing does not make the maintainers the operator of that service |
 | Who chooses the source | You do, and you have to follow the law that applies to you |
 
-<details>
-<summary>Disclaimer</summary>
+### How playback works
 
-The maintainers do not control the media a resolver points at, and they do not endorse it. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
+1. The catalog identity is an AniList id. Titles, scores, list status, relations, and the public trending and seasonal rows come from `https://graphql.anilist.co`.
+2. When a TMDB key is built into the app or typed in Settings, the phone also asks TMDB for backdrops, logos, episode stills, cast, and similar titles. Without a key, those requests are skipped and the AniList catalog stays as it is.
+3. AniList ids are matched to TMDB, TVDB, MAL, and Kitsu with the public mapping from [Fribb/anime-lists](https://github.com/Fribb/anime-lists). The phone downloads `anime-list-mini.json` from that project's raw GitHub URL, keeps a small local index, and refreshes it about once a week. The file is not shipped in the APK. The same project publishes `collections/anilist_collection.json`, which the home screen can use for a collection row. That repository does not include a license file. The data stays with [Fribb/anime-lists](https://github.com/Fribb/anime-lists), which is generated from [anime-offline-database](https://github.com/manami-project/anime-offline-database) and [Anime-Lists/anime-lists](https://github.com/Anime-Lists/anime-lists).
+4. When you press play, the selected resolver receives the AniList id, the episode number, the audio mode, and a title hint. It does not receive your AniList token. It returns a URL. The player opens that URL. If the resolver fails, nothing is played.
 
-AniList, MyAnimeList, and the names of studios and streaming services are trademarks of their owners. The [Apache License 2.0](LICENSE) does not grant the AniKitty name as a trademark.
+### Where data goes
 
-The software is provided as is, without warranty of any kind, under the Apache License 2.0. Sections 7 and 8 of the [LICENSE](LICENSE) are the warranty disclaimer and the limitation of liability.
+| Data | Where it goes |
+|---|---|
+| AniList token | Encrypted on the phone. Sent only to `https://graphql.anilist.co` while you are signed in |
+| Watch progress | A local database on the phone. The JSON export includes the AniList id, title, episode, position, duration, list status, and MAL id. It does not include the token |
+| Catalog | AniList. Anonymous when you are not signed in |
+| Art and episode detail | TMDB, and Fanart only when that key is present. Cover images also load from the URLs AniList returns |
+| Id mapping | A public JSON file from GitHub, cached on the phone. No account |
+| Stream request | The resolver you selected. Not this repository |
+| Update check | The public releases of this repository |
 
-</details>
+### Extensions
 
-<details>
-<summary>DMCA and takedown</summary>
+An extension is code that turns an AniList id and an episode number into a URL. The three compiled-in resolvers are part of the app binary. A community extension is a separate package you install. This repository does not review the media that package points at, does not host that media, and does not take payment for it. Removing an extension stops the app from asking that resolver. It does not delete anything from the site the resolver called. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
 
-A takedown for a video goes to the provider that hosts that video. This repository does not host the file.
+### Your responsibility
 
-A notice about this repository — the app source, the docs, or a link published here — belongs in [GitHub issues](https://github.com/fampep/anikitty/issues). The repository does not list a separate security email. Include the URL, the work you own, and the change you are asking for.
+Copyright law is not the same in every country. Some places allow private streaming of a work you did not license. Others do not. A resolver that works on your network is not evidence that the use is legal. You have to decide, for the country you are in, whether opening a given URL is allowed. The maintainers do not give legal advice, and they do not know which titles you play.
 
-</details>
+Do not use the app to copy a stream and republish it. Do not point a community extension at a service you are not allowed to use. Do not treat a GitHub release of this app as a license to the anime it can display.
+
+### DMCA and takedown
+
+This repository does not store the video file. A notice that asks this project to delete an episode cannot be completed here, because the episode is not in the repository and is not on a server this project runs. Send that notice to the host that actually has the file, and to the operator of the site the resolver called.
+
+A notice about material that **is** in this repository — source code, a document, a screenshot, or a link published here — can be opened as a [GitHub issue](https://github.com/fampep/anikitty/issues). This repository does not list a separate security or legal email. Include:
+
+- the URL of the file or page in this repository
+- the work you own, and where it appears
+- the change you want (removal of a link, a credit, or a file)
+- a way to reach you
+
+GitHub's own process for content on GitHub is described in [GitHub's DMCA policy](https://docs.github.com/en/site-policy/content-removal-policies/dmca-takedown-policy). A takedown of a GitHub release asset is a GitHub request. It is not a request this app can fulfill by changing a resolver.
+
+The maintainers will remove a link or a file from this repository when the notice is specific and the material is actually here. They will not add a filter that claims to block every unlicensed stream. They do not operate the third-party sites.
+
+### Trademarks and attribution
+
+AniList, MyAnimeList, Kitsu, TheTVDB, and the names and logos of studios and streaming services are trademarks of their owners. AniKitty is not affiliated with them, and this project is not an official client of any of them.
+
+The [Apache License 2.0](LICENSE) does not grant the AniKitty name as a trademark. Keep the copyright and the [`NOTICE`](NOTICE) file if you redistribute the source.
 
 <p>
   <a href="https://www.themoviedb.org/"><img src="docs/brand/tmdb-logo.svg" alt="The Movie Database" height="16"></a>
 </p>
 
-This product uses the TMDB API but is not endorsed or certified by TMDB.
+This product uses the TMDB API but is not endorsed or certified by TMDB. Artwork, stills, and logos returned by that API stay with their owners.
+
+### No warranty
+
+The software is provided as is, without warranty of any kind, under the Apache License 2.0. Sections 7 and 8 of the [LICENSE](LICENSE) are the warranty disclaimer and the limitation of liability. There is no promise that a title will play, that a resolver will stay online, that metadata will be correct, or that a dev build will be stable. Dev builds can break between days. Sideload only from the releases of this repository.
 
 ## Privacy
 
@@ -210,4 +244,4 @@ Sign-in is optional. The token from AniList's implicit grant is stored encrypted
 
 A stream request sends the AniList id, episode number, audio mode, and title hint to the resolver you are using. It does not send the AniList token.
 
-Cover images load from the URLs AniList returns. When a TMDB key is built into the app, or entered in Settings, the app also requests backdrop art, title art, and extra episode detail from TMDB. Fanart is used only when that key is present. The update check reads the public releases of this repository and can download an APK from one of them.
+Cover images load from the URLs AniList returns. When a TMDB key is built into the app, or entered in Settings, the app also requests backdrop art, title art, and extra episode detail from TMDB. Fanart is used only when that key is present. With either key, the phone also downloads the public AniList mapping from Fribb/anime-lists and caches it locally. The update check reads the public releases of this repository and can download an APK from one of them.
