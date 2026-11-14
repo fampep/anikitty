@@ -35,8 +35,8 @@ Walk the same screens the gallery uses:
 | `home.png` | Home, hero and the continue heading |
 | `home-continue.png` | Continue card with progress, Top 10, and airing |
 | `home-swipe.gif` | A short swipe across the hero |
-| `title.png` | A demo title, with picture and sound marks |
-| `title-episodes.png` | Episode shelf |
+| `title.png` | Title page: backdrop, resume, and actions |
+| `title-episodes.png` | Episodes, season picker, and quality marks |
 | `player.png` | Player for the bundled clip |
 | `search.png` | Search, showing the demo catalog |
 | `myspace.png` | My Space |

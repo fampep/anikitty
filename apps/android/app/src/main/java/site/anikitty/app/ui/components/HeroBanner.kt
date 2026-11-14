@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -37,6 +38,7 @@ fun HeroBanner(
     contentDescription: String?,
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
+    alignment: Alignment = Alignment.Center,
 ) {
     val localArt = bannerUrl?.startsWith("android.resource://") == true ||
         coverUrl?.startsWith("android.resource://") == true
@@ -49,6 +51,7 @@ fun HeroBanner(
                 .build(),
             contentDescription = contentDescription,
             contentScale = contentScale,
+            alignment = alignment,
             modifier = modifier,
         )
         return
@@ -82,6 +85,7 @@ fun HeroBanner(
             contentDescription = contentDescription,
             modifier = Modifier.fillMaxSize(),
             contentScale = contentScale,
+            alignment = alignment,
         )
         if (shown?.blur == true && lowRam) {
             Box(

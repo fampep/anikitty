@@ -6,8 +6,13 @@ package site.anikitty.app.data.demo
 import android.content.Context
 import site.anikitty.app.R
 import site.anikitty.app.data.anilist.AiringSlot
+import site.anikitty.app.data.anilist.AnimePerson
+import site.anikitty.app.data.anilist.AnimeRelation
 import site.anikitty.app.data.anilist.AnimeStreamingEpisode
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.data.anilist.MediaRank
+import site.anikitty.app.data.anilist.NextAiring
+import site.anikitty.app.data.anilist.ScoreBucket
 import site.anikitty.app.data.local.WatchHistoryEntity
 import site.anikitty.app.data.servers.PlayableSource
 import java.io.File
@@ -35,6 +40,17 @@ object DemoLibrary {
         studio: String,
         year: Int,
         recommendations: List<AnimeSummary> = emptyList(),
+        season: String = "SPRING",
+        popularity: Int? = null,
+        favourites: Int? = null,
+        malId: Int? = null,
+        characters: List<AnimePerson> = emptyList(),
+        staff: List<AnimePerson> = emptyList(),
+        relations: List<AnimeRelation> = emptyList(),
+        nextAiring: NextAiring? = null,
+        scoreDistribution: List<ScoreBucket> = emptyList(),
+        rankings: List<MediaRank> = emptyList(),
+        recapEpisode: Int? = null,
     ): AnimeSummary = AnimeSummary(
         id = id,
         title = title,
@@ -44,17 +60,27 @@ object DemoLibrary {
         format = format,
         averageScore = score,
         description = description,
+        season = season,
         seasonYear = year,
         startMonth = 4,
+        popularity = popularity,
+        malId = malId,
         durationMinutes = 24,
         genres = genres,
         studios = listOf(studio),
         streamingEpisodes = (1..episodes.coerceAtMost(8)).map { number ->
             AnimeStreamingEpisode(
-                title = "Episode $number",
+                title = if (number == recapEpisode) "Episode $number — Recap" else "Episode $number",
                 thumbnailUrl = cover(art),
             )
         },
+        characters = characters,
+        staff = staff,
+        relations = relations,
+        nextAiring = nextAiring,
+        favourites = favourites,
+        scoreDistribution = scoreDistribution,
+        rankings = rankings,
         recommendations = recommendations,
         detailLoaded = true,
     )
@@ -99,6 +125,44 @@ object DemoLibrary {
         studio = "Demo Studio",
         year = 2025,
         recommendations = listOf(night, glass),
+        popularity = 18420,
+        favourites = 2104,
+        malId = 910001,
+        recapEpisode = 1,
+        characters = listOf(
+            AnimePerson(1, "Hana Ito", cover("harbor"), "Main"),
+            AnimePerson(2, "Ren Sato", cover("night"), "Main"),
+            AnimePerson(3, "Mio Abe", cover("glass"), "Supporting"),
+        ),
+        staff = listOf(
+            AnimePerson(11, "Demo Director", cover("tide"), "Director"),
+            AnimePerson(12, "Demo Writer", cover("garden"), "Series composition"),
+        ),
+        relations = listOf(
+            AnimeRelation(
+                id = night.id,
+                title = night.title,
+                coverImageUrl = night.coverImageUrl,
+                relationType = "Sequel",
+                format = "TV",
+                episodes = 12,
+                season = "SPRING",
+                seasonYear = 2024,
+            ),
+        ),
+        nextAiring = NextAiring(5, System.currentTimeMillis() / 1000L + 50 * 60),
+        scoreDistribution = listOf(
+            ScoreBucket(50, 18),
+            ScoreBucket(60, 42),
+            ScoreBucket(70, 96),
+            ScoreBucket(80, 240),
+            ScoreBucket(90, 310),
+            ScoreBucket(100, 74),
+        ),
+        rankings = listOf(
+            MediaRank(4, "RATED", "season", "SPRING", 2025, false),
+            MediaRank(28, "POPULAR", "season", "SPRING", 2025, false),
+        ),
     )
 
     private val tide = show(

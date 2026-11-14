@@ -64,6 +64,7 @@ data class EpisodeSlide(
     val number: Int,
     val title: String,
     val imageUrl: String?,
+    val marker: String? = null,
 )
 
 /**
@@ -304,6 +305,20 @@ private fun EpisodeThumb(
                 badge = badge,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp),
             )
+            slide.marker?.let { marker ->
+                Text(
+                    marker,
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Color.White)
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
             KittyMenu(
                 expanded = menu,
                 onDismiss = { menu = false },

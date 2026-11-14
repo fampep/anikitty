@@ -77,6 +77,9 @@ class AniListClient(
         }
         tags { name rank isMediaSpoiler }
         isFavourite
+        favourites
+        rankings { rank type context year season allTime }
+        stats { scoreDistribution { score amount } }
         nextAiringEpisode { episode airingAt }
         mediaListEntry { status progress score }
         recommendations(perPage: 12, sort: RATING_DESC) {
@@ -895,6 +898,40 @@ class AniListClient(
         } else {
             null
         }
+        val favourites = if (detail) item.nullableInt("favourites") else null
+        val scoreDistribution = if (detail) {
+            item.optJSONObject("stats")
+                ?.optJSONArray("scoreDistribution")
+                ?.toObjectList()
+                ?.mapNotNull { row ->
+                    val score = row.optInt("score")
+                    val amount = row.optInt("amount")
+                    if (amount <= 0) null else ScoreBucket(score, amount)
+                }
+                .orEmpty()
+        } else {
+            emptyList()
+        }
+        val rankings = if (detail) {
+            item.optJSONArray("rankings")
+                ?.toObjectList()
+                ?.mapNotNull { row ->
+                    val rank = row.optInt("rank")
+                    if (rank <= 0) return@mapNotNull null
+                    MediaRank(
+                        rank = rank,
+                        type = row.optString("type"),
+                        context = row.optString("context"),
+                        season = row.nullableString("season"),
+                        year = row.nullableInt("year"),
+                        allTime = row.optBoolean("allTime", false),
+                    )
+                }
+                .orEmpty()
+                .take(6)
+        } else {
+            emptyList()
+        }
         val recommendations = if (detail) {
             item.optJSONObject("recommendations")
                 ?.optJSONArray("nodes")
@@ -946,6 +983,9 @@ class AniListClient(
             staff = staff,
             recommendations = recommendations,
             nextAiring = nextAiring,
+            favourites = favourites,
+            scoreDistribution = scoreDistribution,
+            rankings = rankings,
             listState = listState,
             isFavourite = item.optBoolean("isFavourite", false),
             detailLoaded = detail,
