@@ -602,17 +602,20 @@ private fun CloudSyncBlock(
                 )
             }
         } else if (loading && viewer == null) {
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 20.dp),
-                contentAlignment = Alignment.Center,
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = palette.text.copy(alpha = 0.5f),
-                    strokeWidth = 2.dp,
-                )
+                repeat(4) {
+                    site.anikitty.app.ui.theme.ShimmerBox(
+                        modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(2f / 3f)
+                            .clip(RoundedCornerShape(6.dp)),
+                    )
+                }
             }
         } else {
             Row(
@@ -652,7 +655,7 @@ private fun CloudSyncBlock(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    items(tabs) { tab ->
+                    items(tabs, key = { it }, contentType = { "chip" }) { tab ->
                         val count = tabCount(tab, favourites, cloudLists, history)
                         SpaceChip(
                             label = "$tab ($count)",
@@ -670,7 +673,7 @@ private fun CloudSyncBlock(
                     contentPadding = PaddingValues(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    items(row, key = { "cloud-${it.key}" }) { card ->
+                    items(row, key = { "cloud-${it.key}" }, contentType = { "poster" }) { card ->
                         SpacePoster(
                             title = card.title,
                             imageUrl = card.imageUrl,
@@ -745,7 +748,7 @@ private fun ContinueBlock(
                 contentPadding = PaddingValues(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(rows, key = { "cw-${it.anilistId}" }) { watch ->
+                items(rows, key = { "cw-${it.anilistId}" }, contentType = { "continue" }) { watch ->
                     val fraction = if (watch.durationMs > 0L) {
                         (watch.positionMs.toFloat() / watch.durationMs.toFloat()).coerceIn(0f, 1f)
                     } else {

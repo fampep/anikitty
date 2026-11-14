@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "anikitty"
 include(":app")
+include(":macrobenchmark")

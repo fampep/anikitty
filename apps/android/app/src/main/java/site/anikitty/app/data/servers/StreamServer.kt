@@ -3,6 +3,7 @@
 
 package site.anikitty.app.data.servers
 
+import androidx.compose.runtime.Immutable
 import site.anikitty.app.data.skip.SkipTimes
 
 /**
@@ -29,6 +30,7 @@ data class SubtitleTrack(
     val mimeType: String? = null,
 )
 
+@Immutable
 data class PlayableSource(
     val url: String,
     val headers: Map<String, String> = emptyMap(),

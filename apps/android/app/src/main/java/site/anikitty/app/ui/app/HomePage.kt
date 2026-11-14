@@ -34,8 +34,16 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,10 +55,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.ui.components.HeroBanner
+import site.anikitty.app.ui.components.KittyImage
 import site.anikitty.app.ui.components.KittyBadge
 import site.anikitty.app.ui.components.KittyMenuEntry
 import site.anikitty.app.ui.components.KittyOverflow
@@ -166,13 +174,21 @@ internal fun HomeFeatured(
     if (pages.isEmpty()) return
     val reducedMotion = prefersReducedMotion()
     val pagerState = rememberPagerState(pageCount = { pages.size })
+    var holding by remember { mutableStateOf(false) }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.isScrollInProgress }.collect { scrolling ->
+            if (scrolling) holding = true
+        }
+    }
     LaunchedEffect(pages.size, reducedMotion) {
         if (reducedMotion || pages.size < 2) return@LaunchedEffect
         while (true) {
             delay(6500)
-            if (!pagerState.isScrollInProgress) {
-                pagerState.animateScrollToPage((pagerState.currentPage + 1) % pages.size)
+            if (holding || pagerState.isScrollInProgress) {
+                holding = false
+                continue
             }
+            pagerState.animateScrollToPage((pagerState.currentPage + 1) % pages.size)
         }
     }
     Column {
@@ -183,13 +199,18 @@ internal fun HomeFeatured(
                 .height(228.dp)
                 .clip(RoundedCornerShape(KittyRadius.lg)),
         ) {
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            holding = true
+                        }
+                    },
+            ) { page ->
                 val anime = pages[page]
-                val drift = if (reducedMotion) {
-                    0f
-                } else {
-                    ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction) * -32f
-                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -203,7 +224,14 @@ internal fun HomeFeatured(
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                translationX = drift
+                                val offset = (pagerState.currentPage - page) +
+                                    pagerState.currentPageOffsetFraction
+                                translationX = if (reducedMotion) 0f else offset * -32f
+                                alpha = if (reducedMotion) {
+                                    1f
+                                } else {
+                                    1f - kotlin.math.abs(offset).coerceIn(0f, 1f) * 0.4f
+                                }
                                 scaleX = 1.12f
                                 scaleY = 1.12f
                             },
@@ -328,7 +356,7 @@ internal fun HomePosterRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        items(items, key = { it.id }) { anime ->
+        items(items, key = { it.id }, contentType = { "poster" }) { anime ->
             HomePosterCell(
                 anime = anime,
                 onOpen = onOpen,
@@ -346,15 +374,15 @@ private fun HomePosterCell(
 ) {
     val palette = LocalKittyPalette.current
     Column(modifier = modifier.spacePress { onOpen(anime) }) {
-        AsyncImage(
-            model = anime.coverImageUrl,
+        KittyImage(
+            url = anime.coverImageUrl,
             contentDescription = anime.title,
-            contentScale = ContentScale.Crop,
+            widthPx = 360,
+            heightPx = 540,
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(4.dp))
-                .background(palette.surface),
+                .clip(RoundedCornerShape(4.dp)),
         )
         Text(
             anime.title,
@@ -429,7 +457,7 @@ internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(rest, key = { it.id }) { card ->
+                items(rest, key = { it.id }, contentType = { "continue" }) { card ->
                     Column(
                         modifier = Modifier
                             .width(196.dp)
@@ -464,10 +492,11 @@ private fun ContinueArt(
             .clip(RoundedCornerShape(radius))
             .background(Color(0xFF141416)),
     ) {
-        AsyncImage(
-            model = card.imageUrl,
+        KittyImage(
+            url = card.imageUrl,
             contentDescription = card.title,
-            contentScale = ContentScale.Crop,
+            widthPx = 640,
+            heightPx = 360,
             modifier = Modifier.fillMaxSize(),
         )
         Box(
@@ -547,14 +576,14 @@ internal fun HomeAiringRow(cards: List<HomeAiringCard>) {
                     .background(Color(0xFF0C0C10)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                AsyncImage(
-                    model = card.imageUrl,
+                KittyImage(
+                    url = card.imageUrl,
                     contentDescription = null,
-                    contentScale = ContentScale.Crop,
+                    widthPx = 140,
+                    heightPx = 200,
                     modifier = Modifier
                         .width(46.dp)
-                        .fillMaxHeight()
-                        .background(Color(0xFF141416)),
+                        .fillMaxHeight(),
                 )
                 Column(
                     modifier = Modifier
@@ -592,7 +621,7 @@ internal fun HomeGenreRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(names) { name ->
+        items(names, key = { it }, contentType = { "genre" }) { name ->
             Text(
                 name,
                 color = Color.White.copy(alpha = 0.85f),
@@ -604,6 +633,60 @@ internal fun HomeGenreRow(
                     .spacePress { onOpen(name) }
                     .padding(horizontal = 12.dp, vertical = 7.dp),
             )
+        }
+    }
+}
+
+@Composable
+internal fun HomeRankRow(
+    items: List<AnimeSummary>,
+    onOpen: (AnimeSummary) -> Unit,
+) {
+    val shown = items.take(10)
+    if (shown.isEmpty()) return
+    val palette = LocalKittyPalette.current
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        items(shown.size, key = { shown[it].id }, contentType = { "rank" }) { index ->
+            val anime = shown[index]
+            Column(
+                modifier = Modifier
+                    .width(104.dp)
+                    .spacePress { onOpen(anime) },
+            ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    KittyImage(
+                        url = anime.coverImageUrl,
+                        contentDescription = anime.title,
+                        widthPx = 320,
+                        heightPx = 480,
+                        modifier = Modifier
+                            .padding(start = 18.dp)
+                            .fillMaxWidth()
+                            .aspectRatio(2f / 3f)
+                            .clip(RoundedCornerShape(4.dp)),
+                    )
+                    Text(
+                        "${index + 1}",
+                        color = palette.text.copy(alpha = 0.22f),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 42.sp,
+                        letterSpacing = (-1.5).sp,
+                        modifier = Modifier.align(Alignment.BottomStart),
+                    )
+                }
+                Text(
+                    anime.title,
+                    color = palette.text,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = 18.dp, top = 6.dp),
+                )
+            }
         }
     }
 }

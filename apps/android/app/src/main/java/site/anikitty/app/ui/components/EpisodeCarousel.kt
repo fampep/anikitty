@@ -135,7 +135,11 @@ fun EpisodeCarousel(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        itemsIndexed(slides, key = { _, slide -> slide.number }) { index, slide ->
+        itemsIndexed(
+            slides,
+            key = { _, slide -> slide.number },
+            contentType = { _, _ -> "episode" },
+        ) { index, slide ->
             val selected = slide.number == current
             val progress = when {
                 slide.number == current -> currentProgress.coerceIn(0f, 1f)

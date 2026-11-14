@@ -1,0 +1,5 @@
+HSPLsite/anikitty/app/MainActivity;-><init>()V
+HSPLsite/anikitty/app/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLsite/anikitty/app/AnikittyApp;-><init>()V
+HSPLsite/anikitty/app/AnikittyApp;->onCreate()V
+HSPLsite/anikitty/app/AnikittyApp;->newImageLoader()Lcoil/ImageLoader;
