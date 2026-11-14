@@ -887,10 +887,16 @@ private fun SpacePoster(
         tween(160),
         label = "posterFrame",
     )
+    var menu by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .width(width)
-            .spaceHold(onClick = onClick, onLongClick = onLongClick)
+            .spaceHold(
+                onClick = onClick,
+                onLongClick = {
+                    if (selecting) onLongClick?.invoke() else menu = true
+                },
+            )
             .border(1.5.dp, frame, RoundedCornerShape(10.dp))
             .padding(2.dp),
     ) {
@@ -940,6 +946,16 @@ private fun SpacePoster(
                         .padding(6.dp),
                 )
             }
+            site.anikitty.app.ui.components.KittyMenu(
+                expanded = menu,
+                onDismiss = { menu = false },
+                entries = listOf(
+                    site.anikitty.app.ui.components.KittyMenuEntry("Open", onClick),
+                    site.anikitty.app.ui.components.KittyMenuEntry("Select") {
+                        onLongClick?.invoke()
+                    },
+                ),
+            )
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
@@ -980,10 +996,16 @@ private fun FavoriteRow(
         tween(160),
         label = "favStroke",
     )
+    var menu by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .spaceHold(onClick = onClick, onLongClick = onLongClick)
+            .spaceHold(
+                onClick = onClick,
+                onLongClick = {
+                    if (selecting) onLongClick?.invoke() else menu = true
+                },
+            )
             .clip(RoundedCornerShape(12.dp))
             .background(palette.surface)
             .border(if (selected) 1.5.dp else 0.5.dp, stroke, RoundedCornerShape(12.dp)),
@@ -1114,6 +1136,16 @@ private fun FavoriteRow(
                 }
             }
         }
+        site.anikitty.app.ui.components.KittyMenu(
+            expanded = menu,
+            onDismiss = { menu = false },
+            entries = listOf(
+                site.anikitty.app.ui.components.KittyMenuEntry("Open", onClick),
+                site.anikitty.app.ui.components.KittyMenuEntry("Select") {
+                    onLongClick?.invoke()
+                },
+            ),
+        )
     }
 }
 

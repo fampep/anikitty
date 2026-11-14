@@ -7,6 +7,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      stable:
+        description: Cut a stable release of the current dev line, then bump main to the next dev
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -29,7 +34,22 @@ jobs:
       - name: Next dev version
         id: ver
         run: |
-          read -r name code < <(bash scripts/next-dev-version.sh)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.stable }}" = "true" ]; then
+            current="$(grep -E '^name=' VERSION | head -1 | cut -d= -f2- | tr -d '[:space:]')"
+            code="$(grep -E '^code=' VERSION | head -1 | cut -d= -f2- | tr -d '[:space:]')"
+            base="${current%-dev.*}"
+            if [ "$base" = "$current" ]; then
+              echo "VERSION is already stable ($current). Refusing to cut it again." >&2
+              exit 1
+            fi
+            name="$base"
+            code="$((code + 1))"
+            printf '%s\n' '# Android versionName / versionCode. Pushes to main cut the next dev prerelease.' '# Stable releases stay manual. The dev workflow commits this file with [skip ci].' "name=${name}" "code=${code}" > VERSION
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            read -r name code < <(bash scripts/next-dev-version.sh)
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+          fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "code=$code" >> "$GITHUB_OUTPUT"
 
@@ -91,15 +111,26 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add VERSION
           git commit -m "Cut ${{ steps.ver.outputs.name }} [skip ci]"
-          git push origin HEAD:main
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if [ "${{ steps.ver.outputs.stable }}" = "true" ]; then
+            bash scripts/next-dev-version.sh >/dev/null
+            git add VERSION
+            git commit -m "Cut next dev after ${{ steps.ver.outputs.name }} [skip ci]"
+          fi
+          git push origin HEAD:main
 
       - name: Generate release notes
+        id: notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          prev="$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName')"
+          if [ "${{ steps.ver.outputs.stable }}" = "true" ]; then
+            prev="$(gh release list --repo "${{ github.repository }}" --limit 40 --json tagName,isPrerelease --jq '[.[] | select(.isPrerelease==false)][0].tagName')"
+          else
+            prev="$(gh release list --repo "${{ github.repository }}" --limit 1 --json tagName --jq '.[0].tagName')"
+          fi
           test -n "$prev"
+          echo "previous=$prev" >> "$GITHUB_OUTPUT"
           gh api --method POST "repos/${{ github.repository }}/releases/generate-notes" \
             -f tag_name="v${{ steps.ver.outputs.name }}" \
             -f previous_tag_name="$prev" \
@@ -112,11 +143,15 @@ jobs:
         run: |
           cp apps/android/app/build/outputs/apk/release/app-release.apk \
             "anikitty-${{ steps.ver.outputs.name }}.apk"
+          flags=()
+          if [ "${{ steps.ver.outputs.stable }}" != "true" ]; then
+            flags+=(--prerelease)
+          fi
           gh release create "v${{ steps.ver.outputs.name }}" \
             --repo "${{ github.repository }}" \
             --target "${{ steps.commit.outputs.sha }}" \
             --title "${{ steps.ver.outputs.name }}" \
-            --prerelease \
+            ${flags[@]+"${flags[@]}"} \
             --notes-file notes.md \
             "anikitty-${{ steps.ver.outputs.name }}.apk" \
             docs/brand/anikitty-icon-512.png
