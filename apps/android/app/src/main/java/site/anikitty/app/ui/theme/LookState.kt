@@ -30,6 +30,10 @@ object LookState {
         private set
     var abandonedReminders by mutableStateOf(false)
         private set
+    var weekGoalMinutes by mutableStateOf(120)
+        private set
+    var welcomed by mutableStateOf(false)
+        private set
     private var loaded = false
 
     fun ensure(context: Context) {
@@ -37,6 +41,8 @@ object LookState {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         accent = Color(prefs.getInt("accent", Color.White.toArgb()))
         abandonedReminders = prefs.getBoolean("abandoned_reminders", false)
+        weekGoalMinutes = prefs.getInt("week_goal_minutes", 120).coerceIn(15, 600)
+        welcomed = prefs.getBoolean("welcomed", false)
         loaded = true
     }
 
@@ -46,6 +52,30 @@ object LookState {
             .edit()
             .putInt("accent", color.toArgb())
             .apply()
+    }
+
+    fun setWeekGoal(context: Context, minutes: Int) {
+        weekGoalMinutes = minutes.coerceIn(15, 600)
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putInt("week_goal_minutes", weekGoalMinutes)
+            .apply()
+    }
+
+    fun setWelcomed(context: Context) {
+        welcomed = true
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean("welcomed", true)
+            .apply()
+    }
+
+    /** Returns true the first time this ISO week hits the goal. */
+    fun markWeekCelebrated(context: Context, weekKey: String): Boolean {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getString("celebrated_week", "") == weekKey) return false
+        prefs.edit().putString("celebrated_week", weekKey).apply()
+        return true
     }
 
     fun setAbandonedReminders(context: Context, on: Boolean) {

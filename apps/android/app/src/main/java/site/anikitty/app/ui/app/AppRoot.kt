@@ -3,8 +3,11 @@
 
 package site.anikitty.app.ui.app
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,13 +34,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import site.anikitty.app.R
+import java.util.Locale
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AniListOAuth
@@ -46,7 +50,11 @@ import site.anikitty.app.data.auth.SavedPassphraseStore
 import site.anikitty.app.data.auth.SessionStore
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.servers.ServerCatalog
+import site.anikitty.app.ui.components.KittyFace
 import site.anikitty.app.ui.theme.KittyAccent
+import site.anikitty.app.ui.theme.KittyHaptics
+import site.anikitty.app.ui.theme.LookState
+import site.anikitty.app.ui.theme.prefersReducedMotion
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyMuted
@@ -80,6 +88,9 @@ fun AppRoot(
         return
     }
 
+    val context = LocalContext.current
+    LookState.ensure(context)
+    Box(modifier = Modifier.fillMaxSize()) {
     if (!showApp) {
         LoginScreen(
             statusMessage = pendingAniListError,
@@ -105,6 +116,10 @@ fun AppRoot(
             },
         )
     }
+        if (!LookState.welcomed) {
+            WelcomeOverlay(onDismiss = { LookState.setWelcomed(context) })
+        }
+    }
 }
 
 @Composable
@@ -123,13 +138,9 @@ private fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Image(
-                painter = painterResource(R.drawable.anikitty_logo),
-                contentDescription = "AniKitty",
-                modifier = Modifier
-                    .size(96.dp)
-                    .clip(RoundedCornerShape(24.dp)),
-                contentScale = ContentScale.Fit,
+            KittyFace(
+                modifier = Modifier.size(96.dp),
+                waving = true,
             )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
@@ -193,6 +204,68 @@ private fun LoginScreen(
                     color = KittyMuted,
                     textAlign = TextAlign.Center,
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WelcomeOverlay(onDismiss: () -> Unit) {
+    val reduced = prefersReducedMotion()
+    val view = LocalView.current
+    var shown by remember { mutableStateOf(reduced) }
+    androidx.compose.runtime.LaunchedEffect(Unit) { shown = true }
+    val rise by animateFloatAsState(
+        targetValue = if (shown) 0f else 28f,
+        animationSpec = tween(320, easing = FastOutSlowInEasing),
+        label = "welcome",
+    )
+    val danish = Locale.getDefault().language == "da"
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .clickable(onClick = {
+                KittyHaptics.perform(view, KittyHaptics.Kind.Confirm)
+                onDismiss()
+            }),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .graphicsLayer {
+                    translationY = if (reduced) 0f else rise
+                    alpha = if (reduced) 1f else (1f - (rise / 28f)).coerceIn(0f, 1f)
+                }
+                .clip(RoundedCornerShape(20.dp))
+                .background(Color(0xFF101012))
+                .clickable(onClick = {})
+                .padding(horizontal = 22.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            KittyFace(modifier = Modifier.size(88.dp), waving = true)
+            Spacer(modifier = Modifier.height(14.dp))
+            Text(
+                if (danish) "Hej. Klar til næste episode?" else "Hi. Ready for the next episode?",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    KittyHaptics.perform(view, KittyHaptics.Kind.Confirm)
+                    onDismiss()
+                },
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = KittyAccent,
+                    contentColor = KittyOnAccent,
+                ),
+            ) {
+                Text(if (danish) "Lad os" else "Let's go", fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -109,7 +109,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -160,6 +163,8 @@ import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsSettingsOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsSearchSparkleOutline
 import site.anikitty.app.ui.components.KittyBottomNav
+import site.anikitty.app.ui.components.KittyDock
+import site.anikitty.app.ui.components.rememberDockScroll
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
 import site.anikitty.app.ui.components.KittyMetaChips
@@ -339,6 +344,7 @@ fun LocalFirstApp(
                 )
             }
         }
+        Box(modifier = Modifier.fillMaxSize()) {
         SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
             val shared = this
             AnimatedContent(
@@ -545,21 +551,59 @@ fun LocalFirstApp(
                 }
             }
         }
+            if (screen is Screen.Detail) {
+                DockOverlay(
+                    tabs = tabs,
+                    selectedId = if (tab == "settings" || tab == "store") "history" else tab,
+                    profileImageUrl = aniListAuth.avatarUrl,
+                    onSelect = { id ->
+                        detailBackStack = emptyList()
+                        screen = Screen.Tabs
+                        tab = id
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
         return
     }
 
     when (screen) {
         Screen.Schedule -> {
-            ScheduleFeed(
-                aniList = aniList,
-                onBack = { screen = Screen.Tabs },
-                onOpen = { openDetail(it) },
-                followedEpisodes = followedEpisodes,
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                ScheduleFeed(
+                    aniList = aniList,
+                    onBack = { screen = Screen.Tabs },
+                    onOpen = { openDetail(it) },
+                    followedEpisodes = followedEpisodes,
+                )
+                DockOverlay(
+                    tabs = tabs,
+                    selectedId = "schedule",
+                    profileImageUrl = aniListAuth.avatarUrl,
+                    onSelect = { id ->
+                        screen = Screen.Tabs
+                        tab = id
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
             return
         }
         Screen.Builds -> {
-            BuildChannelPage(onBack = { screen = Screen.Tabs })
+            Box(modifier = Modifier.fillMaxSize()) {
+                BuildChannelPage(onBack = { screen = Screen.Tabs })
+                DockOverlay(
+                    tabs = tabs,
+                    selectedId = if (tab == "settings" || tab == "store") "history" else tab,
+                    profileImageUrl = aniListAuth.avatarUrl,
+                    onSelect = { id ->
+                        screen = Screen.Tabs
+                        tab = id
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
             return
         }
         else -> Unit
@@ -636,6 +680,7 @@ fun LocalFirstApp(
                     },
                     onOpen = { openDetail(it) },
                     onOpenAccount = { tab = "settings" },
+                    onBrowse = { tab = "search" },
                     onSignOut = onSignOut,
                     avatarUrl = aniListAuth.avatarUrl,
                 )
@@ -672,15 +717,38 @@ fun LocalFirstApp(
         KittyAtmosphere()
         PhoneTabs(Modifier.fillMaxSize())
         val profileAvatar = aniLinkTick.let { aniListAuth.avatarUrl }
-        KittyBottomNav(
+        DockOverlay(
             tabs = tabs,
             selectedId = if (tab == "settings" || tab == "store") "history" else tab,
-            profileTabId = "history",
             profileImageUrl = profileAvatar,
             onSelect = { tab = it },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
+}
+
+@Composable
+private fun DockOverlay(
+    tabs: List<KittyNavTab>,
+    selectedId: String,
+    profileImageUrl: String?,
+    onSelect: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val reduced = prefersReducedMotion()
+    val shift by animateDpAsState(
+        targetValue = if (KittyDock.shown) 0.dp else 92.dp,
+        animationSpec = if (reduced) snap() else tween(220, easing = FastOutSlowInEasing),
+        label = "dock",
+    )
+    KittyBottomNav(
+        tabs = tabs,
+        selectedId = selectedId,
+        profileTabId = "history",
+        profileImageUrl = profileImageUrl,
+        onSelect = onSelect,
+        modifier = modifier.graphicsLayer { translationY = shift.toPx() },
+    )
 }
 
 @Composable
@@ -824,7 +892,10 @@ private fun HomeFeed(
                 }
             }
             else -> {
-                LazyColumn(contentPadding = PaddingValues(bottom = 110.dp)) {
+                LazyColumn(
+                    modifier = Modifier.nestedScroll(rememberDockScroll()),
+                    contentPadding = PaddingValues(bottom = 110.dp),
+                ) {
                     item {
                         HomeBar(
                             onRefresh = { reload(fromPull = true) },
@@ -1113,6 +1184,40 @@ private fun LookSettings(onExport: () -> Unit) {
             Switch(
                 checked = LookState.abandonedReminders,
                 onCheckedChange = { LookState.setAbandonedReminders(context, it) },
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                "Weekly goal · ${LookState.weekGoalMinutes} min",
+                color = palette.text,
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "−",
+                color = palette.text,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable {
+                        LookState.setWeekGoal(context, LookState.weekGoalMinutes - 15)
+                    }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+            Text(
+                "+",
+                color = palette.text,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable {
+                        LookState.setWeekGoal(context, LookState.weekGoalMinutes + 15)
+                    }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
             )
         }
         Button(
@@ -2254,7 +2359,8 @@ private fun TitleDetailScreen(
     Box(modifier = Modifier.fillMaxSize().background(LocalKittyPalette.current.page)) {
         LazyColumn(
             state = listState,
-            contentPadding = PaddingValues(bottom = 148.dp),
+            modifier = Modifier.nestedScroll(rememberDockScroll()),
+            contentPadding = PaddingValues(bottom = 198.dp),
         ) {
             item {
                 Column(
@@ -3029,6 +3135,23 @@ private fun TitleDetailScreen(
                         },
                         modifier = Modifier.padding(horizontal = 0.dp),
                     )
+                    if (maxEp > 1 && episode >= maxEp) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            site.anikitty.app.ui.components.KittyFace(
+                                modifier = Modifier.size(28.dp),
+                                waving = true,
+                                contentDescription = "All caught up",
+                            )
+                            Text(
+                                "You're all caught up",
+                                color = palette.text,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(start = 10.dp),
+                            )
+                        }
+                    }
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
@@ -3061,6 +3184,7 @@ private fun TitleDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
+                    .padding(bottom = 50.dp)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Row(

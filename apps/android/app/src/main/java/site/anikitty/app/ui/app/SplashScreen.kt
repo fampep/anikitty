@@ -6,7 +6,6 @@ package site.anikitty.app.ui.app
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -16,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.material3.MaterialTheme
@@ -47,10 +47,7 @@ fun SplashScreen(onFinished: () -> Unit) {
 
     val progress by animateFloatAsState(
         targetValue = if (startAnimation) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = 0.7f,
-            stiffness = 60f,
-        ),
+        animationSpec = tween(520, easing = FastOutSlowInEasing),
         label = "progress",
     )
 
@@ -120,10 +117,15 @@ fun SplashScreen(onFinished: () -> Unit) {
                     val scale = 0.8f + (0.2f * progress)
                     scaleX = scale
                     scaleY = scale
-                    translationY = 50f * (1f - progress)
+                    translationY = 12f * (1f - progress)
                     alpha = progress.coerceIn(0f, 1f)
                 },
         ) {
+            site.anikitty.app.ui.components.KittyFace(
+                modifier = Modifier.size(112.dp),
+                waving = true,
+            )
+            Spacer(modifier = Modifier.height(18.dp))
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = "AniKitty",

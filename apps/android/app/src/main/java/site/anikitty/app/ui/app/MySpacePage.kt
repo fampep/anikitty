@@ -99,6 +99,7 @@ fun MySpaceFeed(
     onOpen: (AnimeSummary) -> Unit,
     onOpenAccount: () -> Unit,
     onSignOut: () -> Unit,
+    onBrowse: () -> Unit = {},
     avatarUrl: String? = null,
 ) {
     val palette = LocalKittyPalette.current
@@ -378,27 +379,35 @@ fun MySpaceFeed(
                 }
             }
             item {
-                Column(
+                Row(
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
                         .background(palette.surface)
                         .padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        "This week",
-                        color = palette.muted,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
+                    site.anikitty.app.ui.components.WeekGoalRing(
+                        minutes = weekMinutes,
+                        goal = site.anikitty.app.ui.theme.LookState.weekGoalMinutes,
+                        modifier = Modifier.size(64.dp),
                     )
-                    Text(
-                        "$weekMinutes min logged on this phone",
-                        color = palette.text,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.padding(top = 4.dp),
-                    )
+                    Column(modifier = Modifier.padding(start = 14.dp)) {
+                        Text(
+                            "This week",
+                            color = palette.muted,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            "$weekMinutes of ${site.anikitty.app.ui.theme.LookState.weekGoalMinutes} min",
+                            color = palette.text,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
             }
 
@@ -428,6 +437,7 @@ fun MySpaceFeed(
                     rows = continueWatching,
                     confirmClear = confirmClear,
                     selection = selection,
+                    onBrowse = onBrowse,
                     onClear = {
                         if (confirmClear) {
                             confirmClear = false
@@ -676,6 +686,7 @@ private fun ContinueBlock(
     rows: List<WatchHistoryEntity>,
     confirmClear: Boolean,
     selection: ShowSelection,
+    onBrowse: () -> Unit,
     onClear: () -> Unit,
     onOpen: (WatchHistoryEntity) -> Unit,
 ) {
@@ -707,9 +718,17 @@ private fun ContinueBlock(
         }
         if (rows.isEmpty()) {
             EmptyPanel(
-                icon = { Icon(FluentuiSystemIconsMoviesAndTvFilled, null, tint = palette.text.copy(alpha = 0.15f), modifier = Modifier.size(42.dp)) },
+                icon = {
+                    site.anikitty.app.ui.components.KittyFace(
+                        modifier = Modifier.size(72.dp),
+                        waving = true,
+                        contentDescription = "Nothing in progress",
+                    )
+                },
                 title = "Nothing in progress",
                 body = "Start a show and it will wait for you here.",
+                action = "Browse",
+                onAction = onBrowse,
             )
         } else {
             LazyRow(
@@ -763,11 +782,9 @@ private fun FavoritesBlock(
         if (favourites.isEmpty()) {
             EmptyPanel(
                 icon = {
-                    Icon(
-                        FluentuiSystemIconsBookmarkOutline,
-                        null,
-                        tint = palette.text.copy(alpha = 0.15f),
-                        modifier = Modifier.size(42.dp),
+                    site.anikitty.app.ui.components.KittyFace(
+                        modifier = Modifier.size(56.dp),
+                        contentDescription = "Favorites",
                     )
                 },
                 title = "Your favorites will gather here",
@@ -803,6 +820,8 @@ private fun EmptyPanel(
     icon: @Composable () -> Unit,
     title: String,
     body: String,
+    action: String? = null,
+    onAction: (() -> Unit)? = null,
 ) {
     val palette = LocalKittyPalette.current
     Box(
@@ -829,7 +848,21 @@ private fun EmptyPanel(
                 text = body,
                 style = MaterialTheme.typography.labelMedium,
                 color = palette.text.copy(alpha = 0.4f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 24.dp),
             )
+            if (action != null && onAction != null) {
+                Text(
+                    text = action,
+                    color = palette.onAccent,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(palette.accent)
+                        .clickable(onClick = onAction)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
         }
     }
 }

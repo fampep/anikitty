@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -28,6 +29,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,10 +40,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
@@ -50,6 +52,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import site.anikitty.app.ui.app.spacePress
+import kotlinx.coroutines.delay
+import site.anikitty.app.ui.theme.KittyHaptics
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.ShimmerBox
 import site.anikitty.app.ui.theme.prefersReducedMotion
@@ -80,16 +84,38 @@ fun EpisodeCarousel(
     if (slides.isEmpty()) return
     val palette = LocalKittyPalette.current
     val reduced = prefersReducedMotion()
-    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
     val state = rememberLazyListState()
     val fling = rememberSnapFlingBehavior(lazyListState = state)
     var didScroll by remember { mutableStateOf(false) }
+    var peekNumber by remember { mutableIntStateOf(-1) }
+    var lastPeekAt by remember { mutableLongStateOf(0L) }
     LaunchedEffect(state.isScrollInProgress) {
         if (state.isScrollInProgress) {
             didScroll = true
         } else if (didScroll) {
             didScroll = false
-            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            KittyHaptics.perform(view, KittyHaptics.Kind.Tick)
+            if (reduced) return@LaunchedEffect
+            val layout = state.layoutInfo
+            val viewportCenter = (layout.viewportStartOffset + layout.viewportEndOffset) / 2f
+            val nearest = layout.visibleItemsInfo.minByOrNull { info ->
+                kotlin.math.abs(info.offset + info.size / 2f - viewportCenter)
+            }
+            val slide = nearest?.let { slides.getOrNull(it.index) }
+            val now = android.os.SystemClock.uptimeMillis()
+            if (
+                slide != null &&
+                watchedThrough > 0 &&
+                slide.number <= watchedThrough &&
+                slide.number != current &&
+                now - lastPeekAt > 900L
+            ) {
+                lastPeekAt = now
+                peekNumber = slide.number
+                delay(700)
+                if (peekNumber == slide.number) peekNumber = -1
+            }
         }
     }
     LaunchedEffect(current, slides.size) {
@@ -133,13 +159,11 @@ fun EpisodeCarousel(
                 surface = if (onDark) Color(0xFF16161A) else palette.surface,
                 scale = scale,
                 minutesLeft = if (selected) minutesLeft else null,
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onPick(slide.number)
-                },
+                peek = peekNumber == slide.number,
+                onClick = { onPick(slide.number) },
                 onSwipeWatched = onToggleWatched?.let { toggle ->
                     {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        KittyHaptics.perform(view, KittyHaptics.Kind.Success)
                         toggle(slide.number)
                     }
                 },
@@ -159,6 +183,7 @@ private fun EpisodeThumb(
     surface: Color,
     scale: Float,
     minutesLeft: Int?,
+    peek: Boolean,
     onClick: () -> Unit,
     onSwipeWatched: (() -> Unit)?,
 ) {
@@ -247,6 +272,16 @@ private fun EpisodeThumb(
                     .align(Alignment.BottomStart)
                     .padding(start = 8.dp, bottom = if (progress > 0f) 8.dp else 6.dp),
             )
+            if (peek && minutesLeft == null) {
+                KittyFace(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .size(22.dp),
+                    animated = false,
+                    contentDescription = "Watched",
+                )
+            }
             if (minutesLeft != null) {
                 Text(
                     "$minutesLeft min left",

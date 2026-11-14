@@ -1149,12 +1149,24 @@ fun PlayerScreen(
         }
 
         if (error != null) {
+            val errorView = androidx.compose.ui.platform.LocalView.current
+            androidx.compose.runtime.LaunchedEffect(error) {
+                site.anikitty.app.ui.theme.KittyHaptics.perform(
+                    errorView,
+                    site.anikitty.app.ui.theme.KittyHaptics.Kind.Error,
+                )
+            }
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                site.anikitty.app.ui.components.KittyFace(
+                    modifier = Modifier.size(72.dp),
+                    contentDescription = "Couldn't play this source",
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     "Couldn't play this source",
                     color = PlayerChrome.Paper,
@@ -1801,6 +1813,12 @@ private fun PlayerPageBar(
                 modifier = Modifier.size(18.dp),
             )
         }
+        site.anikitty.app.ui.components.KittyFace(
+            modifier = Modifier
+                .padding(start = 10.dp)
+                .size(28.dp),
+            contentDescription = title,
+        )
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -2148,13 +2166,21 @@ private fun NextEpisodePrompt(
             .border(1.dp, PlayerChrome.SheetStroke, shape)
             .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {
-        Text(
-            if (ended) "Up next" else "Almost done",
-            color = PlayerChrome.Faint,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            site.anikitty.app.ui.components.KittyFace(
+                modifier = Modifier
+                    .padding(end = 8.dp)
+                    .size(22.dp),
+                contentDescription = "Up next",
+            )
+            Text(
+                if (ended) "Up next" else "Almost done",
+                color = PlayerChrome.Faint,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+            )
+        }
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "Episode $nextEpisode",
