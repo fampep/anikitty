@@ -5,6 +5,7 @@ package site.anikitty.app.ui.player
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.widget.Toast
 import android.graphics.Color as AndroidColor
 import android.graphics.Typeface
 import android.view.ViewGroup
@@ -473,8 +474,8 @@ fun PlayerScreen(
                     val local = latestPlayer
                     val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition.ms
                     local?.pause()
-                    isCasting = true
-                    castHint = null
+                    isCasting = false
+                    castHint = "Connecting to your TV"
                     controlsVisible = true
                     helper.load(
                         source = src,
@@ -545,9 +546,12 @@ fun PlayerScreen(
     }
 
     LaunchedEffect(castHint) {
-        if (castHint == null) return@LaunchedEffect
+        val message = castHint ?: return@LaunchedEffect
+        if (message != "Connecting to your TV") {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+        }
         delay(4_200)
-        castHint = null
+        if (castHint == message) castHint = null
     }
 
     LaunchedEffect(player, playbackSpeed, holdBoost) {

@@ -72,7 +72,8 @@ class CastRelay(context: Context) {
     private var pool = newPool()
     @Volatile private var source: PlayableSource? = null
     @Volatile private var cachedPlaylist: ByteArray? = null
-    @Volatile var segmentPack: String = "ts"
+    /** "ts" or "fmp4" only when the playlist proves it. Null lets the receiver sniff. */
+    @Volatile var segmentPack: String? = null
         private set
     @Volatile private var running = false
     private var server: ServerSocket? = null
@@ -128,7 +129,8 @@ class CastRelay(context: Context) {
         } finally {
             collecting.remove()
         }
-        val file = if (mime == HLS_MIME) "index.m3u8?pack=$segmentPack" else "video.mp4"
+        val pack = segmentPack?.let { "?pack=$it" }.orEmpty()
+        val file = if (mime == HLS_MIME) "index.m3u8$pack" else "video.mp4"
         return RelayPlayback(
             url = "http://$host:$port/$file",
             mimeType = mime,
@@ -427,15 +429,9 @@ class CastRelay(context: Context) {
         Thread(runnable, "anikitty-cast").apply { isDaemon = true }
     }
 
-    private fun classifyPack(text: String, baseUrl: String, depth: Int = 0): String {
-        val lower = text.lowercase()
-        if (lower.contains("#ext-x-map") || lower.contains(".m4s") || lower.contains(".cmf") ||
-            lower.contains(".m4a") || lower.contains(".m4v") || lower.contains(".mp4")
-        ) {
-            return "fmp4"
-        }
-        if (lower.contains(".ts")) return "ts"
-        if (depth == 0 && lower.contains("#ext-x-stream-inf")) {
+    private fun classifyPack(text: String, baseUrl: String, depth: Int = 0): String? {
+        certainHlsPack(text)?.let { return it }
+        if (depth == 0 && text.lowercase().contains("#ext-x-stream-inf")) {
             val line = text.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() && !it.startsWith("#") }
             if (line != null) {
                 val abs = resolve(runCatching { URI(baseUrl) }.getOrNull(), line)
@@ -445,7 +441,7 @@ class CastRelay(context: Context) {
                 }
             }
         }
-        return "ts"
+        return null
     }
 
     private fun fetchText(url: String): String? {
@@ -605,11 +601,9 @@ class CastRelay(context: Context) {
         val builder = StringBuilder()
         builder.append("HTTP/1.1 ").append(status).append(' ').append(reason).append("\r\n")
         builder.append("Content-Type: ").append(type).append("\r\n")
-        builder.append("Access-Control-Allow-Origin: *\r\n")
-        builder.append("Access-Control-Allow-Methods: GET, HEAD, OPTIONS\r\n")
-        builder.append("Access-Control-Allow-Headers: Content-Type, Range, Accept, Origin\r\n")
-        builder.append("Access-Control-Expose-Headers: Content-Length, Content-Range, Content-Type, Accept-Ranges\r\n")
-        builder.append("Access-Control-Max-Age: 86400\r\n")
+        for (line in castRelayCorsLines()) {
+            builder.append(line).append("\r\n")
+        }
         builder.append("Accept-Ranges: bytes\r\n")
         builder.append("Connection: close\r\n")
         if (length != null && length >= 0) {
@@ -682,4 +676,36 @@ class CastRelay(context: Context) {
         private val URI_ATTR = Regex("""URI="([^"]*)"""")
         private val TIME_COMMA = Regex("""(\d{2}:\d{2}:\d{2}),(\d{3})""")
     }
+}
+
+/**
+ * CORS for a public HTTPS receiver (the Default Media Receiver) fetching this
+ * phone on the LAN. Private Network Access and Local Network Access both have
+ * to be allowed on every response, including the OPTIONS preflight.
+ */
+internal fun castRelayCorsLines(): List<String> = listOf(
+    "Access-Control-Allow-Origin: *",
+    "Access-Control-Allow-Private-Network: true",
+    "Access-Control-Allow-Local-Network: true",
+    "Access-Control-Allow-Methods: GET, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers: Content-Type, Range, Accept, Origin",
+    "Access-Control-Expose-Headers: Content-Length, Content-Range, Content-Type, Accept-Ranges",
+    "Access-Control-Max-Age: 86400",
+)
+
+/** "fmp4" or "ts" when this playlist names its segments. Null when it does not. */
+internal fun certainHlsPack(text: String): String? {
+    val lower = text.lowercase()
+    if (
+        lower.contains("#ext-x-map") ||
+        lower.contains(".m4s") ||
+        lower.contains(".cmf") ||
+        lower.contains(".m4a") ||
+        lower.contains(".m4v") ||
+        lower.contains(".mp4")
+    ) {
+        return "fmp4"
+    }
+    if (lower.contains(".ts")) return "ts"
+    return null
 }
