@@ -4,8 +4,6 @@
 package site.anikitty.app.ui.app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -50,10 +48,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
-import java.util.Locale
 
-private val Hairline = Color.White.copy(alpha = 0.12f)
-private val ChipShape = RoundedCornerShape(4.dp)
+private val Hairline = Color.White.copy(alpha = 0.14f)
 
 @Composable
 internal fun HomeBar(
@@ -67,53 +63,26 @@ internal fun HomeBar(
         modifier = Modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(start = 16.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             "anikitty.",
             color = Color.White,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 18.sp,
-            letterSpacing = (-0.4).sp,
+            fontSize = 20.sp,
+            letterSpacing = (-0.5).sp,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(modifier = Modifier.width(12.dp))
-        Row(
-            modifier = Modifier
-                .weight(1f)
-                .height(34.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.06f))
-                .border(1.dp, Hairline, RoundedCornerShape(8.dp))
-                .spacePress(onOpenSearch)
-                .padding(horizontal = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        HomeBarIcon(onClick = onOpenSearch) {
             Icon(
                 Icons.Filled.Search,
-                contentDescription = null,
-                tint = Color.White.copy(alpha = 0.45f),
-                modifier = Modifier.height(16.dp).width(16.dp),
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                "Search",
-                color = Color.White.copy(alpha = 0.4f),
-                fontSize = 13.sp,
-                maxLines = 1,
+                contentDescription = "Search",
+                tint = Color.White,
+                modifier = Modifier.height(18.dp).width(18.dp),
             )
         }
-        Spacer(modifier = Modifier.width(10.dp))
-        Box(
-            modifier = Modifier
-                .height(34.dp)
-                .width(34.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.06f))
-                .border(1.dp, Hairline, CircleShape)
-                .spacePress(onRefresh),
-            contentAlignment = Alignment.Center,
-        ) {
+        HomeBarIcon(onClick = onRefresh) {
             if (refreshBusy) {
                 CircularProgressIndicator(
                     modifier = Modifier.height(16.dp).width(16.dp),
@@ -125,16 +94,31 @@ internal fun HomeBar(
                     Icons.Rounded.Refresh,
                     contentDescription = "Refresh",
                     tint = Color.White,
-                    modifier = Modifier.height(16.dp).width(16.dp),
+                    modifier = Modifier.height(18.dp).width(18.dp),
                 )
             }
         }
-        Spacer(modifier = Modifier.width(8.dp))
         ProfileMark(
             imageUrl = avatarUrl,
-            size = 34.dp,
-            modifier = Modifier.spacePress(onOpenAccount),
+            size = 32.dp,
+            modifier = Modifier.padding(start = 4.dp).spacePress(onOpenAccount),
         )
+    }
+}
+
+@Composable
+private fun HomeBarIcon(
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .height(36.dp)
+            .width(36.dp)
+            .spacePress(onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
     }
 }
 
@@ -143,20 +127,26 @@ internal fun HomeFeatured(
     items: List<AnimeSummary>,
     onOpen: (AnimeSummary) -> Unit,
 ) {
-    val pages = items.take(8)
+    val pages = items.take(5)
     if (pages.isEmpty()) return
     val pagerState = rememberPagerState(pageCount = { pages.size })
     LaunchedEffect(pages.size) {
         if (pages.size < 2) return@LaunchedEffect
         while (true) {
-            delay(7000)
+            delay(6500)
             if (!pagerState.isScrollInProgress) {
                 pagerState.animateScrollToPage((pagerState.currentPage + 1) % pages.size)
             }
         }
     }
     Column {
-        Box(modifier = Modifier.fillMaxWidth().height(292.dp)) {
+        Box(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .height(210.dp)
+                .clip(RoundedCornerShape(8.dp)),
+        ) {
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                 val anime = pages[page]
                 Box(
@@ -174,109 +164,70 @@ internal fun HomeFeatured(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
-                                Brush.horizontalGradient(
-                                    0f to Color.Black.copy(alpha = 0.88f),
-                                    0.55f to Color.Black.copy(alpha = 0.45f),
-                                    1f to Color.Black.copy(alpha = 0.15f),
-                                ),
-                            ),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.25f),
-                                    0.7f to Color.Transparent,
-                                    1f to Color.Black,
+                                    0f to Color.Black.copy(alpha = 0.15f),
+                                    0.42f to Color.Transparent,
+                                    1f to Color.Black.copy(alpha = 0.88f),
                                 ),
                             ),
                     )
                     Column(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(start = 16.dp, end = 72.dp, bottom = 16.dp)
+                            .padding(horizontal = 14.dp, vertical = 12.dp)
                             .fillMaxWidth(),
                     ) {
                         Text(
                             anime.title,
                             color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 26.sp,
-                            lineHeight = 30.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 22.sp,
+                            lineHeight = 26.sp,
                             letterSpacing = (-0.4).sp,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        val alt = anime.romajiTitle ?: anime.nativeTitle
-                        if (!alt.isNullOrBlank()) {
+                        val meta = listOfNotNull(
+                            anime.format?.takeIf { it.isNotBlank() }?.let(::homeFormat),
+                            anime.airedLabel(),
+                            anime.episodes?.takeIf { it > 0 }?.let { "$it eps" },
+                            anime.scoreLabel(),
+                        )
+                        if (meta.isNotEmpty()) {
                             Text(
-                                alt.uppercase(Locale.getDefault()),
-                                color = Color.White.copy(alpha = 0.55f),
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 11.sp,
-                                letterSpacing = 0.8.sp,
+                                meta.joinToString("  ·  "),
+                                color = Color.White.copy(alpha = 0.75f),
+                                fontSize = 12.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 2.dp),
+                                modifier = Modifier.padding(top = 3.dp),
                             )
-                        }
-                        val blurb = anime.description?.trim().orEmpty()
-                        if (blurb.isNotEmpty()) {
-                            Text(
-                                blurb,
-                                color = Color.White.copy(alpha = 0.78f),
-                                fontSize = 12.sp,
-                                lineHeight = 16.sp,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 8.dp),
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            anime.episodes?.takeIf { it > 0 }?.let { BannerStat("$it episodes") }
-                            anime.averageScore?.let { BannerStat("$it / 100") }
-                            anime.popularity?.takeIf { it > 0 }?.let {
-                                BannerStat(String.format(Locale.US, "%,d", it))
-                            }
-                            anime.format?.takeIf { it.isNotBlank() }?.let { BannerStat(homeFormat(it)) }
                         }
                     }
                 }
             }
-            if (pages.size > 1) {
-                Text(
-                    "${pagerState.currentPage + 1} of ${pages.size}",
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = 10.dp, end = 14.dp),
-                )
+        }
+        if (pages.size > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                repeat(pages.size) { index ->
+                    val selected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .height(4.dp)
+                            .width(if (selected) 14.dp else 4.dp)
+                            .clip(CircleShape)
+                            .background(if (selected) Color.White else Color.White.copy(alpha = 0.28f)),
+                    )
+                }
             }
         }
-        HomePosterGrid(items = items.take(12), onOpen = onOpen)
     }
-}
-
-@Composable
-private fun BannerStat(label: String) {
-    Text(
-        label,
-        color = Color.White.copy(alpha = 0.85f),
-        fontSize = 11.sp,
-        fontWeight = FontWeight.Medium,
-        maxLines = 1,
-        modifier = Modifier
-            .clip(ChipShape)
-            .border(1.dp, Hairline, ChipShape)
-            .padding(horizontal = 6.dp, vertical = 3.dp),
-    )
 }
 
 @Composable
@@ -286,7 +237,7 @@ internal fun HomeBlock(
     onMore: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    Column(modifier = Modifier.padding(top = 22.dp)) {
+    Column(modifier = Modifier.padding(top = 26.dp)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -299,20 +250,23 @@ internal fun HomeBlock(
                     color = Color.White,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
+                    letterSpacing = (-0.2).sp,
                 )
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         subtitle,
                         color = Color.White.copy(alpha = 0.4f),
                         fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 2.dp),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 1.dp),
                     )
                 }
             }
             if (onMore != null) {
                 Text(
                     "See all",
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = Color.White.copy(alpha = 0.55f),
                     fontWeight = FontWeight.Medium,
                     fontSize = 13.sp,
                     modifier = Modifier.spacePress(onMore),
@@ -331,8 +285,8 @@ internal fun HomePosterGrid(
 ) {
     if (items.isEmpty()) return
     Column(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         items.chunked(3).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -364,7 +318,7 @@ internal fun HomePosterRow(
             HomePosterCell(
                 anime = anime,
                 onOpen = onOpen,
-                modifier = Modifier.width(108.dp),
+                modifier = Modifier.width(104.dp),
             )
         }
     }
@@ -384,7 +338,7 @@ private fun HomePosterCell(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(3.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .background(Color(0xFF141416)),
         )
         Text(
@@ -393,43 +347,39 @@ private fun HomePosterCell(
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
             lineHeight = 15.sp,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 6.dp),
         )
-        Row(
-            modifier = Modifier.padding(top = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            val aired = anime.airedLabel()
-            if (!aired.isNullOrBlank()) {
-                Text(
-                    aired,
-                    color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-            }
-            anime.format?.takeIf { it.isNotBlank() }?.let { format ->
-                if (!aired.isNullOrBlank()) Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    homeFormat(format),
-                    color = Color.White.copy(alpha = 0.55f),
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                )
-            }
-            if (anime.status.equals("RELEASING", true)) {
-                Spacer(modifier = Modifier.width(5.dp))
-                Box(
-                    modifier = Modifier
-                        .height(6.dp)
-                        .width(6.dp)
-                        .clip(CircleShape)
-                        .background(Color.White),
-                )
+        val meta = listOfNotNull(
+            anime.airedLabel(),
+            anime.format?.takeIf { it.isNotBlank() }?.let(::homeFormat),
+        ).joinToString(" · ")
+        if (meta.isNotEmpty() || anime.status.equals("RELEASING", true)) {
+            Row(
+                modifier = Modifier.padding(top = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (meta.isNotEmpty()) {
+                    Text(
+                        meta,
+                        color = Color.White.copy(alpha = 0.4f),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                }
+                if (anime.status.equals("RELEASING", true)) {
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .height(5.dp)
+                            .width(5.dp)
+                            .clip(CircleShape)
+                            .background(Color.White),
+                    )
+                }
             }
         }
     }
@@ -453,14 +403,14 @@ internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
         items(cards, key = { it.id }) { card ->
             Column(
                 modifier = Modifier
-                    .width(168.dp)
+                    .width(196.dp)
                     .spacePress(card.onClick),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(94.dp)
-                        .clip(RoundedCornerShape(3.dp))
+                        .height(110.dp)
+                        .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xFF141416)),
                 ) {
                     AsyncImage(
@@ -468,6 +418,27 @@ internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
                         contentDescription = card.title,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize(),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0.45f to Color.Transparent,
+                                    1f to Color.Black.copy(alpha = 0.82f),
+                                ),
+                            ),
+                    )
+                    Text(
+                        card.title,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
                     )
                     if (card.progress > 0f) {
                         Box(
@@ -487,20 +458,11 @@ internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
                     }
                 }
                 Text(
-                    card.title,
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-                Text(
                     card.label,
                     color = Color.White.copy(alpha = 0.45f),
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     maxLines = 1,
-                    modifier = Modifier.padding(top = 2.dp),
+                    modifier = Modifier.padding(top = 6.dp, start = 2.dp),
                 )
             }
         }
@@ -518,19 +480,18 @@ internal data class HomeAiringCard(
 
 @Composable
 internal fun HomeAiringRow(cards: List<HomeAiringCard>) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Column(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(cards, key = { it.key }) { card ->
+        cards.forEach { card ->
             Row(
                 modifier = Modifier
-                    .width(240.dp)
+                    .fillMaxWidth()
                     .height(64.dp)
                     .spacePress(card.onClick)
-                    .border(1.dp, Hairline, RoundedCornerShape(4.dp))
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(Color(0xFF0A0A0A)),
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color(0xFF0C0C10)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 AsyncImage(
@@ -538,34 +499,30 @@ internal fun HomeAiringRow(cards: List<HomeAiringCard>) {
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .width(48.dp)
+                        .width(46.dp)
                         .fillMaxHeight()
                         .background(Color(0xFF141416)),
                 )
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 10.dp),
+                        .padding(horizontal = 12.dp),
                 ) {
-                    Text(
-                        card.whenLabel,
-                        color = Color.White.copy(alpha = 0.45f),
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                    )
                     Text(
                         card.title,
                         color = Color.White,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        card.episodeLabel,
-                        color = Color.White.copy(alpha = 0.55f),
-                        fontSize = 11.sp,
+                        "${card.whenLabel}  ·  ${card.episodeLabel}",
+                        color = Color.White.copy(alpha = 0.45f),
+                        fontSize = 12.sp,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(top = 2.dp),
                     )
                 }
             }
@@ -589,7 +546,8 @@ internal fun HomeGenreRow(
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp,
                 modifier = Modifier
-                    .border(1.dp, Hairline, ChipShape)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.dp, Hairline, RoundedCornerShape(16.dp))
                     .spacePress { onOpen(name) }
                     .padding(horizontal = 12.dp, vertical = 7.dp),
             )
