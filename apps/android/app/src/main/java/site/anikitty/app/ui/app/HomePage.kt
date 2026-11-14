@@ -48,6 +48,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.ui.theme.coverKey
+import site.anikitty.app.ui.theme.sharedCover
 
 private val Hairline = Color.White.copy(alpha = 0.14f)
 
@@ -125,7 +127,7 @@ private fun HomeBarIcon(
 @Composable
 internal fun HomeFeatured(
     items: List<AnimeSummary>,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, String) -> Unit,
 ) {
     val pages = items.take(5)
     if (pages.isEmpty()) return
@@ -149,16 +151,17 @@ internal fun HomeFeatured(
         ) {
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                 val anime = pages[page]
+                val key = coverKey("banner", anime.id, "featured")
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .spacePress { onOpen(anime) },
+                        .spacePress { onOpen(anime, key) },
                 ) {
                     AsyncImage(
                         model = anime.bannerImageUrl ?: anime.coverImageUrl,
                         contentDescription = anime.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.sharedCover(key).fillMaxSize(),
                     )
                     Box(
                         modifier = Modifier
@@ -281,7 +284,8 @@ internal fun HomeBlock(
 @Composable
 internal fun HomePosterGrid(
     items: List<AnimeSummary>,
-    onOpen: (AnimeSummary) -> Unit,
+    slot: String,
+    onOpen: (AnimeSummary, String) -> Unit,
 ) {
     if (items.isEmpty()) return
     Column(
@@ -293,6 +297,7 @@ internal fun HomePosterGrid(
                 row.forEach { anime ->
                     HomePosterCell(
                         anime = anime,
+                        slot = slot,
                         onOpen = onOpen,
                         modifier = Modifier.weight(1f),
                     )
@@ -308,7 +313,8 @@ internal fun HomePosterGrid(
 @Composable
 internal fun HomePosterRow(
     items: List<AnimeSummary>,
-    onOpen: (AnimeSummary) -> Unit,
+    slot: String,
+    onOpen: (AnimeSummary, String) -> Unit,
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -317,6 +323,7 @@ internal fun HomePosterRow(
         items(items, key = { it.id }) { anime ->
             HomePosterCell(
                 anime = anime,
+                slot = slot,
                 onOpen = onOpen,
                 modifier = Modifier.width(104.dp),
             )
@@ -327,15 +334,18 @@ internal fun HomePosterRow(
 @Composable
 private fun HomePosterCell(
     anime: AnimeSummary,
-    onOpen: (AnimeSummary) -> Unit,
+    slot: String,
+    onOpen: (AnimeSummary, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.spacePress { onOpen(anime) }) {
+    val key = coverKey("poster", anime.id, slot)
+    Column(modifier = modifier.spacePress { onOpen(anime, key) }) {
         AsyncImage(
             model = anime.coverImageUrl,
             contentDescription = anime.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
+                .sharedCover(key)
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(4.dp))
@@ -391,6 +401,7 @@ internal data class HomeContinueCard(
     val imageUrl: String?,
     val label: String,
     val progress: Float,
+    val coverKey: String,
     val onClick: () -> Unit,
 )
 
@@ -417,7 +428,7 @@ internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
                         model = card.imageUrl,
                         contentDescription = card.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier.sharedCover(card.coverKey).fillMaxSize(),
                     )
                     Box(
                         modifier = Modifier
@@ -475,6 +486,7 @@ internal data class HomeAiringCard(
     val imageUrl: String?,
     val whenLabel: String,
     val episodeLabel: String,
+    val coverKey: String,
     val onClick: () -> Unit,
 )
 
@@ -499,6 +511,7 @@ internal fun HomeAiringRow(cards: List<HomeAiringCard>) {
                     contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
+                        .sharedCover(card.coverKey)
                         .width(46.dp)
                         .fillMaxHeight()
                         .background(Color(0xFF141416)),
