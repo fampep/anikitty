@@ -9,8 +9,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import site.anikitty.app.data.skip.SkipInterval
-import site.anikitty.app.data.skip.SkipTimes
 import java.net.URLEncoder
 import java.util.Base64
 import java.util.concurrent.TimeUnit
@@ -81,7 +79,7 @@ class ReanimeServer(
         }
         val title = FlixCrypto.cleanTitle(titleHint)
         if (title.isBlank()) error("reanime needs a title to find this show.")
-        val query = URLEncoder.encode(title, Charsets.UTF_8)
+        val query = enc(title)
         val payload = getJson("/api/v1/search?q=$query&limit=20")
         val results = payload.optJSONArray("results") ?: JSONArray()
         for (i in 0 until results.length()) {
@@ -89,14 +87,14 @@ class ReanimeServer(
             val slug = item.optString("anime_id").ifBlank { item.optString("id") }
             if (slug.isBlank()) continue
             val listed = item.optInt("anilist_id")
-            val cover = coverText(item)
-            if (listed == anilistId || cover.contains("bx$anilistId")) {
-                val detail = anime(slug)
-                if (detail.anilistId == anilistId || listed == anilistId) {
-                    remember(anilistId, detail)
-                    return detail
-                }
-            }
+            val hinted = listed == anilistId || reanimeCoverListsAnilist(coverText(item), anilistId)
+            if (!hinted) continue
+            // A search row can name the right id while the detail says 0, or the
+            // other way around. Only the detail page is allowed to confirm it.
+            val detail = runCatching { anime(slug) }.getOrNull() ?: continue
+            if (detail.anilistId != anilistId) continue
+            remember(anilistId, detail)
+            return detail
         }
         // The right season is often a later result whose search row hides the id.
         for (i in 0 until results.length().coerceAtMost(8)) {
@@ -121,6 +119,7 @@ class ReanimeServer(
     }
 
     private fun flixServers(show: Show, episode: Int, mode: String): List<FlixCrypto.ServerLink> {
+        if (show.anilistId <= 0) error(MISSING)
         val mal = if (show.malId > 0) "?mal=${show.malId}" else ""
         val body = getJson("/api/flix/${show.anilistId}/$episode$mal")
         val rows = body.optJSONArray("servers") ?: JSONArray()
@@ -189,7 +188,6 @@ class ReanimeServer(
             label = fields.quality ?: "reanime",
             stripBytes = 0,
             subtitles = subtitles(data),
-            skip = skipTimes(data),
             quality = fields.quality,
             audio = fields.audio,
             flix = FlixUnwrap(
@@ -223,19 +221,6 @@ class ReanimeServer(
             if (out.size >= 12) break
         }
         return out.sortedBy { if (it.language == "en") 0 else 1 }
-    }
-
-    private fun skipTimes(data: JSONObject): SkipTimes = SkipTimes(
-        intro = interval(data.optJSONObject("intro_chapter")),
-        outro = interval(data.optJSONObject("outro_chapter")),
-    )
-
-    private fun interval(node: JSONObject?): SkipInterval? {
-        if (node == null) return null
-        val start = node.optDouble("start", -1.0)
-        val end = node.optDouble("end", -1.0)
-        if (start < 0 || end <= start) return null
-        return SkipInterval(start, end)
     }
 
     private fun cachedMask(html: String): ByteArray {
@@ -305,7 +290,8 @@ class ReanimeServer(
 
     private fun decode(text: String): ByteArray = Base64.getDecoder().decode(text)
 
-    private fun enc(value: String): String = URLEncoder.encode(value, Charsets.UTF_8)
+    @Suppress("DEPRECATION")
+    private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8")
 
     private data class Show(val slug: String, val anilistId: Int, val malId: Int)
     private data class Reply(val code: Int, val body: String, val challenged: Boolean)
@@ -327,6 +313,24 @@ class ReanimeServer(
             "Accept" to "*/*",
         )
     }
+}
+
+/**
+ * AniList cover URLs look like `bx195604-....jpg`. A shorter id must not match
+ * a longer one (`bx12` inside `bx12345`).
+ */
+internal fun reanimeCoverListsAnilist(cover: String, anilistId: Int): Boolean {
+    if (anilistId <= 0 || cover.isEmpty()) return false
+    val needle = "bx$anilistId"
+    var from = 0
+    while (from < cover.length) {
+        val at = cover.indexOf(needle, from)
+        if (at < 0) return false
+        val next = at + needle.length
+        if (next >= cover.length || !cover[next].isDigit()) return true
+        from = next
+    }
+    return false
 }
 
 internal fun reanimeHttpFailure(code: Int, body: String): String {

@@ -100,6 +100,16 @@ class ReanimePlaybackTest {
     }
 
     @Test
+    fun coverIdDoesNotMatchALongerNumber() {
+        val cover = "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx195604-abc.jpg"
+        assertTrue(reanimeCoverListsAnilist(cover, 195604))
+        assertFalse(reanimeCoverListsAnilist(cover, 19560))
+        assertFalse(reanimeCoverListsAnilist(cover, 1956041))
+        assertFalse(reanimeCoverListsAnilist(cover, 0))
+        assertFalse(reanimeCoverListsAnilist("bx12", 1))
+    }
+
+    @Test
     fun headersPointAtTheEmbedAndNotAtTheOldSource() {
         val headers = ReanimeServer.playbackHeaders()
         assertEquals("https://flixcloud.cc/", headers.getValue("Referer"))
