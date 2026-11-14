@@ -15,8 +15,9 @@ fun friendlyFailure(raw: String?): String {
             "failed to connect" in lower || "unable to resolve" in lower ||
             "network" in lower || "connection reset" in lower ->
             "No connection. Check the network and try again."
-        "http 403" in lower || " 403" in lower ->
-            "That request was blocked. Try again in a moment."
+        "is blocked by the site" in lower -> msg.take(180)
+        "http 403" in lower || "response code: 403" in lower || " 403" in lower ->
+            "This source is blocked by the site. Try another source."
         "http 404" in lower || " 404" in lower ->
             "That page was not found."
         else -> msg.take(160)
