@@ -26,6 +26,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -1357,7 +1358,7 @@ private fun LookSettings(onExport: () -> Unit) {
         var fanartKey by remember { mutableStateOf(keyPrefs.getString("fanart", "") ?: "") }
         Text("Backdrop keys", color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         Text(
-            "Optional. Wider home and title art uses them. Empty keys skip that source.",
+            "Optional. A key built into the app is used when a field is empty. An entry here replaces it.",
             color = palette.muted,
             fontSize = 12.sp,
         )
@@ -1397,11 +1398,7 @@ private fun LookSettings(onExport: () -> Unit) {
                 unfocusedLabelColor = palette.muted,
             ),
         )
-        Text(
-            "This product uses the TMDB API but is not endorsed or certified by TMDB. Backdrop art may also come from fanart.tv.",
-            color = palette.muted,
-            fontSize = 12.sp,
-        )
+        TmdbCredit()
     }
 }
 
@@ -2260,17 +2257,43 @@ internal fun SettingsFeed(
                     item { AppBuildsRow(onClick = onOpenBuilds) }
                     item { LookSettings(onExportProgress) }
                     item {
-                        Text(
-                            "Copyright 2026 fampep. Apache License 2.0.",
-                            color = palette.text.copy(alpha = 0.45f),
-                            fontSize = 13.sp,
+                        Column(
                             modifier = Modifier.padding(horizontal = 20.dp),
-                        )
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Text(
+                                "Copyright 2026 fampep. Apache License 2.0.",
+                                color = palette.text.copy(alpha = 0.45f),
+                                fontSize = 13.sp,
+                            )
+                            TmdbCredit()
+                        }
                     }
                 }
             }
         }
         }
+    }
+}
+
+@Composable
+private fun TmdbCredit() {
+    val palette = LocalKittyPalette.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = androidx.compose.ui.res.painterResource(site.anikitty.app.R.drawable.tmdb_logo),
+            contentDescription = "The Movie Database",
+            modifier = Modifier
+                .height(16.dp)
+                .width(22.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+            color = palette.muted,
+            fontSize = 12.sp,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
