@@ -23,3 +23,5 @@ Required store fields:
 | `manifestPath` | If the manifest is not at repo root |
 
 You keep ownership of your resolver. A listing is a link, not fampep control. See [../DISCLAIMER.md](../DISCLAIMER.md).
+
+Protocol 1.1: each source may include optional `quality`, `audio`, and `qualityRating`. Leave a field out when the stream does not state it. See [../spec/PROTOCOL.md](../spec/PROTOCOL.md).

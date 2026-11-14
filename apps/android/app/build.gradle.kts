@@ -55,6 +55,10 @@ android {
         // Public AniList client id. Sign-in is the implicit grant, so the APK has no secret.
         val anilistClientId = configValue("anilistClientId", "ANILIST_CLIENT_ID", "56768")
         buildConfigField("String", "ANILIST_CLIENT_ID", "\"$anilistClientId\"")
+        val tmdbApiKey = configValue("tmdbApiKey", "TMDB_API_KEY")
+        val fanartApiKey = configValue("fanartApiKey", "FANART_API_KEY")
+        buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
+        buildConfigField("String", "FANART_API_KEY", "\"$fanartApiKey\"")
     }
 
     signingConfigs {
@@ -152,6 +156,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+
+    testImplementation("junit:junit:4.13.2")
     implementation("androidx.browser:browser:1.8.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

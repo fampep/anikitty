@@ -79,6 +79,7 @@ import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
 import site.anikitty.app.ui.theme.KittyDarkPalette
+import site.anikitty.app.ui.theme.KittyHaptics
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.LookState
 import androidx.compose.material3.CircularProgressIndicator
@@ -286,6 +287,7 @@ fun PlayerScreen(
     }
     var autoNext by remember { mutableStateOf(playerPrefs.getBoolean("auto_next", true)) }
     var holdBoost by remember { mutableStateOf(false) }
+    var gestureHud by remember { mutableStateOf<Pair<String, Float>?>(null) }
     var controlsLocked by remember { mutableStateOf(false) }
     var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
     var isCasting by remember { mutableStateOf(false) }
@@ -941,21 +943,47 @@ fun PlayerScreen(
             }
             .pointerInput(controlsLocked) {
                 awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                     if (controlsLocked) return@awaitEachGesture
+                    val start = down.position
+                    val slideLevel = start.x < size.width / 2f
+                    var dragged = false
                     val releasedEarly = withTimeoutOrNull(280L) {
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
-                            if (event.changes.none { it.pressed }) return@withTimeoutOrNull true
+                            val change = event.changes.firstOrNull() ?: return@withTimeoutOrNull true
+                            if (!change.pressed) return@withTimeoutOrNull true
+                            val dx = kotlin.math.abs(change.position.x - start.x)
+                            val dy = kotlin.math.abs(change.position.y - start.y)
+                            if (dy > 28f && dy > dx) {
+                                dragged = true
+                                return@withTimeoutOrNull false
+                            }
                         }
                     }
-                    if (releasedEarly == null) {
+                    if (!dragged && releasedEarly == null) {
                         holdBoost = true
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
                             if (event.changes.none { it.pressed }) break
                         }
                         holdBoost = false
+                    } else if (dragged) {
+                        var previous = start.y
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            val change = event.changes.firstOrNull { it.pressed }
+                            if (change == null) break
+                            val delta = (previous - change.position.y) / size.height
+                            previous = change.position.y
+                            change.consume()
+                            if (slideLevel) {
+                                gestureHud = "Brightness" to nudgeBrightness(context, view, delta)
+                            } else {
+                                gestureHud = "Volume" to nudgeVolume(context, view, delta)
+                            }
+                        }
+                        gestureHud = null
                     }
                 }
             },
@@ -1070,7 +1098,42 @@ fun PlayerScreen(
             }
         }
 
+        gestureHud?.let { (label, level) ->
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .width(8.dp)
+                        .height(96.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color.White.copy(alpha = 0.18f)),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .fillMaxHeight(level.coerceIn(0f, 1f))
+                            .background(Color.White),
+                    )
+                }
+            }
+        }
+
         if (!ready && error == null && !isCasting) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f)),
+            )
             Column(
                 modifier = Modifier.align(Alignment.Center),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -1283,6 +1346,11 @@ fun PlayerScreen(
                                 PlayerMetaPill(formatDurationMinutes(durationMs))
                             }
                             PlayerMetaPill(shortQuality(qualityLabel), emphasized = true)
+                            source?.quality?.takeIf { it.isNotBlank() && !qualityLabel.contains(it, true) }?.let {
+                                PlayerMetaPill(it)
+                            }
+                            source?.qualityRating?.takeIf { it.isNotBlank() }?.let { PlayerMetaPill(it) }
+                            source?.audio?.takeIf { it.isNotBlank() }?.let { PlayerMetaPill(it) }
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
@@ -1764,6 +1832,7 @@ fun PlayerScreen(
                     playerPrefs.edit().putBoolean("auto_next", autoNext).apply()
                 },
                 episodeSlides = episodeSlides,
+                anilistId = anilistId,
                 fallbackArt = fallbackArt,
                 minutesLeft = if (durationMs > 30_000L) {
                     ((durationMs - positionMs).coerceAtLeast(0L) / 60_000L).toInt()
@@ -1906,6 +1975,7 @@ private fun PlayerEpisodeShelf(
     onPickAudio: (String) -> Unit,
     onToggleAutoNext: () -> Unit,
     episodeSlides: List<EpisodeSlide>,
+    anilistId: Int = 0,
     fallbackArt: String?,
     minutesLeft: Int?,
     onToggleWatched: ((Int) -> Unit)?,
@@ -2080,6 +2150,7 @@ private fun PlayerEpisodeShelf(
                 onDark = true,
                 minutesLeft = minutesLeft,
                 onToggleWatched = onToggleWatched,
+                anilistId = anilistId,
             )
             val upcoming = slides.filter { it.number > episode }.take(3)
             if (upcoming.isNotEmpty()) {
@@ -3099,6 +3170,36 @@ private const val SUB_SIZE_SP_MAX = 24f
 private const val DEFAULT_SUB_BOTTOM_PAD = 0.13f
 private const val SUB_BOTTOM_MIN = 0.03f
 private const val SUB_BOTTOM_MAX = 0.30f
+
+private fun nudgeBrightness(context: android.content.Context, view: android.view.View, delta: Float): Float {
+    val activity = context as? Activity ?: return 0.5f
+    val current = activity.window.attributes.screenBrightness
+    val base = if (current < 0f) 0.5f else current
+    val next = (base + delta).coerceIn(0.01f, 1f)
+    if (base <= 0.02f && next <= 0.02f || base >= 0.99f && next >= 0.99f) {
+        KittyHaptics.perform(view, KittyHaptics.Kind.Tick)
+    }
+    activity.window.attributes = activity.window.attributes.apply { screenBrightness = next }
+    return next
+}
+
+private fun nudgeVolume(context: android.content.Context, view: android.view.View, delta: Float): Float {
+    val audio = context.getSystemService(android.media.AudioManager::class.java) ?: return 0f
+    val stream = android.media.AudioManager.STREAM_MUSIC
+    val max = audio.getStreamMaxVolume(stream).coerceAtLeast(1)
+    val current = audio.getStreamVolume(stream)
+    val steps = when {
+        delta > 0.012f -> 1
+        delta < -0.012f -> -1
+        else -> 0
+    }
+    val next = (current + steps).coerceIn(0, max)
+    if (steps != 0 && (next == 0 || next == max) && next != current) {
+        KittyHaptics.perform(view, KittyHaptics.Kind.Tick)
+    }
+    if (next != current) audio.setStreamVolume(stream, next, 0)
+    return next / max.toFloat()
+}
 
 private fun shortQuality(label: String): String {
     val m = Regex("""(\d{3,4}p)""", RegexOption.IGNORE_CASE).find(label)

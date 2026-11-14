@@ -41,7 +41,7 @@ class AniListClient(
         idMal
         title { romaji english native }
         synonyms
-        coverImage { large }
+        coverImage { extraLarge large }
         bannerImage
         episodes
         format
@@ -85,7 +85,7 @@ class AniListClient(
               id
               type
               title { romaji english }
-              coverImage { large }
+              coverImage { extraLarge large }
               format
               episodes
               averageScore
@@ -98,7 +98,7 @@ class AniListClient(
             node {
               id
               title { romaji english }
-              coverImage { large }
+              coverImage { extraLarge large }
               format
               type
               episodes
@@ -624,7 +624,7 @@ class AniListClient(
                       id
                       type
                       title { romaji english }
-                      coverImage { large }
+                      coverImage { extraLarge large }
                       bannerImage
                       genres
                       format
@@ -824,7 +824,9 @@ class AniListClient(
                     AnimeRelation(
                         id = node.getInt("id"),
                         title = relTitle,
-                        coverImageUrl = node.optJSONObject("coverImage")?.nullableString("large"),
+                        coverImageUrl = node.optJSONObject("coverImage")?.let { cover ->
+                            cover.nullableString("extraLarge") ?: cover.nullableString("large")
+                        },
                         relationType = edge.optString("relationType", "RELATED")
                             .replace('_', ' ')
                             .lowercase()
@@ -912,7 +914,9 @@ class AniListClient(
         return AnimeSummary(
             id = item.getInt("id"),
             title = title,
-            coverImageUrl = item.optJSONObject("coverImage")?.nullableString("large"),
+            coverImageUrl = item.optJSONObject("coverImage")?.let { cover ->
+                cover.nullableString("extraLarge") ?: cover.nullableString("large")
+            },
             bannerImageUrl = item.nullableString("bannerImage"),
             episodes = item.nullableInt("episodes"),
             format = item.nullableString("format"),

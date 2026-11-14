@@ -81,13 +81,18 @@ class AnikotoServer(
                         listOf(resolved.file to "Stream")
                     }) {
                         if (!url.startsWith("http") || !seen.add(url)) continue
+                        val shown = qualityLabel(label, quality)
+                        val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.anikoto(shown, mode)
                         out += PlayableSource(
                             url = url,
                             headers = streamHeaders(resolved.origin),
-                            label = qualityLabel(label, quality),
+                            label = shown,
                             stripBytes = strip,
                             subtitles = resolved.subtitles,
                             skip = skip,
+                            quality = fields.quality,
+                            audio = fields.audio,
+                            qualityRating = fields.qualityRating,
                         )
                     }
                 }

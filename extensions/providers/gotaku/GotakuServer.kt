@@ -75,21 +75,26 @@ class GotakuServer(
         val variants = parseVariants(masterText)
         val out = ArrayList<PlayableSource>()
         if (variants.isEmpty()) {
+            val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.gotaku("", mode)
             out += PlayableSource(
                 url = source,
                 headers = headers,
                 label = "Gotaku",
                 stripBytes = 0,
                 gotakuObf = obf,
+                audio = fields.audio,
             )
         } else {
-            for ((_, url, height) in variants.sortedByDescending { it.height }) {
+            for (variant in variants.sortedByDescending { it.height }) {
+                val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.gotaku(variant.inf, mode)
                 out += PlayableSource(
-                    url = url,
+                    url = variant.url,
                     headers = headers,
-                    label = if (height > 0) "${height}p" else "Gotaku",
+                    label = fields.quality ?: "Gotaku",
                     stripBytes = 0,
                     gotakuObf = obf,
+                    quality = fields.quality,
+                    audio = fields.audio,
                 )
             }
         }
@@ -279,7 +284,7 @@ class GotakuServer(
                     ?.toIntOrNull() ?: 0
                 val next = lines.getOrNull(i + 1)?.trim().orEmpty()
                 if (next.startsWith("http")) {
-                    out += Variant(bw, next, height)
+                    out += Variant(bw, next, height, line)
                     i += 2
                     continue
                 }
@@ -359,7 +364,7 @@ class GotakuServer(
     private data class TitleHit(val id: String, val name: String, val poster: String)
     private data class TitleInfo(val anilistId: Int, val latestSub: Int, val listedTotal: Int)
     private data class EpisodeHit(val id: String, val number: Int, val sub: Boolean, val dub: Boolean)
-    private data class Variant(val bandwidth: Int, val url: String, val height: Int)
+    private data class Variant(val bandwidth: Int, val url: String, val height: Int, val inf: String = "")
 
     companion object {
         const val ID = "gotaku"

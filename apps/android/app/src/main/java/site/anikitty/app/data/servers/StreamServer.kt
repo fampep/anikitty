@@ -40,6 +40,12 @@ data class PlayableSource(
     val gotakuObf: GotakuObf? = null,
     /** Intro / credits from the anime site that supplied this source. Empty when unknown. */
     val skip: SkipTimes = SkipTimes(),
+    /** Resolver-reported picture size, e.g. "1080p" or "4K". Null when unknown. */
+    val quality: String? = null,
+    /** Resolver-reported audio, e.g. "AAC 2.0 · SUB". Null when unknown. */
+    val audio: String? = null,
+    /** Resolver-reported grade, e.g. "HD". Null when the source did not give one. */
+    val qualityRating: String? = null,
 )
 
 interface StreamResolver {

@@ -101,6 +101,7 @@ class AniPmServer(
         val masterText = runCatching { httpText(master, headers = headers) }.getOrNull().orEmpty()
         val variants = parseVariants(masterText, master)
         val out = ArrayList<PlayableSource>()
+        val autoFields = site.anikitty.app.data.servers.BuiltInSourceMeta.anipm("", channel)
         // Prefer the master so Media3 can ABR; variants stay available in the quality sheet.
         out += PlayableSource(
             url = master,
@@ -108,14 +109,18 @@ class AniPmServer(
             label = "Auto · ${channel.uppercase()}",
             stripBytes = 0,
             subtitles = subs,
+            audio = autoFields.audio,
         )
-        for ((url, height) in variants.sortedByDescending { it.second }) {
-            if (url == master) continue
+        for (variant in variants.sortedByDescending { it.height }) {
+            if (variant.url == master) continue
+            val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.anipm(variant.inf, channel)
             out += PlayableSource(
-                url = url,
+                url = variant.url,
                 headers = headers,
-                label = if (height > 0) "${height}p" else "Ani.pm",
+                label = fields.quality ?: "Ani.pm",
                 stripBytes = 0,
+                quality = fields.quality,
+                audio = fields.audio,
             )
         }
         out
@@ -232,10 +237,12 @@ class AniPmServer(
         return out
     }
 
-    private fun parseVariants(master: String, masterUrl: String): List<Pair<String, Int>> {
+    private data class HlsVariant(val url: String, val inf: String, val height: Int)
+
+    private fun parseVariants(master: String, masterUrl: String): List<HlsVariant> {
         if (master.isBlank()) return emptyList()
         val lines = master.lines()
-        val out = ArrayList<Pair<String, Int>>()
+        val out = ArrayList<HlsVariant>()
         var i = 0
         while (i < lines.size) {
             val line = lines[i].trim()
@@ -245,7 +252,7 @@ class AniPmServer(
                 val next = lines.getOrNull(i + 1)?.trim().orEmpty()
                 if (next.isNotEmpty() && !next.startsWith("#")) {
                     val abs = absolutize(masterUrl, next)
-                    if (abs.startsWith("http")) out += abs to height
+                    if (abs.startsWith("http")) out += HlsVariant(abs, line, height)
                     i += 2
                     continue
                 }

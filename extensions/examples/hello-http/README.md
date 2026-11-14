@@ -17,6 +17,9 @@ app.post('/v1/resolve', async (req, res) => {
       url: 'https://cdn.example.com/master.m3u8',
       headers: { Referer: 'https://watch.example.com/' },
       label: '1080p',
+      quality: '1080p',
+      audio: 'AAC 2.0 · SUB',
+      qualityRating: 'FHD',
     }],
   });
 });

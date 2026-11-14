@@ -10,6 +10,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import site.anikitty.app.data.servers.BuiltInSourceMeta
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.StreamResolver
 import site.anikitty.app.data.servers.StreamServer
@@ -134,12 +135,20 @@ class HttpExtensionResolver(
                     }
                 }
             }
+            val fields = BuiltInSourceMeta.fromExtension(
+                quality = s.optString("quality").takeIf { it.isNotBlank() },
+                audio = s.optString("audio").takeIf { it.isNotBlank() },
+                qualityRating = s.optString("qualityRating").takeIf { it.isNotBlank() },
+            )
             out += PlayableSource(
                 url = url,
                 headers = headers,
                 label = s.optString("label", "Stream").ifBlank { "Stream" },
                 stripBytes = s.optInt("stripBytes", 0).coerceAtLeast(0),
                 subtitles = subs,
+                quality = fields.quality,
+                audio = fields.audio,
+                qualityRating = fields.qualityRating,
             )
         }
         return out
