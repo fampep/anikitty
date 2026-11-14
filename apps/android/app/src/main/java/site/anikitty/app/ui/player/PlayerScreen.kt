@@ -146,6 +146,7 @@ import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.text.Cue
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
@@ -380,7 +381,14 @@ fun PlayerScreen(
                 else -> SegmentStripDataSource.DEFAULT_STRIP_BYTES
             },
         )
-        val factory = SegmentStripDataSource.Factory(gotakuFactory, stripBytes = stripBytes)
+        val localFile = source.url.startsWith("file:") ||
+            source.url.startsWith("android.resource:") ||
+            source.url.startsWith("content:")
+        val factory = if (localFile) {
+            DefaultDataSource.Factory(context)
+        } else {
+            SegmentStripDataSource.Factory(gotakuFactory, stripBytes = stripBytes)
+        }
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(2_500, 40_000, 1_500, 2_000)
             .build()
@@ -1099,12 +1107,13 @@ fun PlayerScreen(
         }
 
         gestureHud?.let { (label, level) ->
+            val hudShape = RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.lg)
             Column(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.Black.copy(alpha = 0.72f))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
+                    .clip(hudShape)
+                    .background(Color.Black.copy(alpha = 0.78f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.35f), hudShape)
                     .padding(horizontal = 18.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -1818,6 +1827,11 @@ fun PlayerScreen(
         }
         if (!theater) {
             PlayerEpisodeShelf(
+                marks = listOfNotNull(
+                    source?.quality?.takeIf { it.isNotBlank() },
+                    source?.qualityRating?.takeIf { it.isNotBlank() },
+                    source?.audio?.takeIf { it.isNotBlank() },
+                ),
                 episode = episode,
                 totalEpisodes = totalEpisodes.coerceAtLeast(1),
                 watchedThrough = watchedThrough,
@@ -1964,6 +1978,7 @@ private fun PlayerPageBar(
 
 @Composable
 private fun PlayerEpisodeShelf(
+    marks: List<String> = emptyList(),
     episode: Int,
     totalEpisodes: Int,
     watchedThrough: Int,
@@ -1991,6 +2006,11 @@ private fun PlayerEpisodeShelf(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (marks.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                marks.forEach { PlayerMetaPill(it) }
+            }
+        }
         if (showGrid) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

@@ -136,6 +136,7 @@ private data class ActiveSearchChip(val label: String, val clear: () -> Unit)
 @Composable
 fun SearchFeed(
     aniList: AniListClient,
+    demo: Boolean = false,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary) -> Unit,
     requestedGenre: String? = null,
@@ -182,6 +183,20 @@ fun SearchFeed(
         val nextPage = if (more) page + 1 else 1
         searchJob?.cancel()
         searchJob = scope.launch {
+            if (demo) {
+                val base = if (q.length >= 2) {
+                    site.anikitty.app.data.demo.DemoLibrary.search(q)
+                } else {
+                    site.anikitty.app.data.demo.DemoLibrary.catalog
+                }
+                val genres = filters.genres
+                items = if (genres.isEmpty()) base else base.filter { anime -> genres.all { it in anime.genres } }
+                page = 1
+                end = true
+                loading = false
+                error = null
+                return@launch
+            }
             if (!more) delay(280)
             loading = true
             if (!more) error = null
@@ -219,6 +234,10 @@ fun SearchFeed(
     }
 
     LaunchedEffect(Unit) {
+        if (demo) {
+            discover = site.anikitty.app.data.demo.DemoLibrary.catalog
+            return@LaunchedEffect
+        }
         runCatching { aniList.trending(perPage = 12) }.onSuccess { discover = it }
     }
     LaunchedEffect(requestedGenre) {

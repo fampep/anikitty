@@ -69,6 +69,7 @@ import java.util.Locale
 @Composable
 fun ScheduleFeed(
     aniList: AniListClient,
+    demo: Boolean = false,
     onBack: () -> Unit,
     onOpen: (AnimeSummary) -> Unit,
     showBack: Boolean = true,
@@ -85,6 +86,12 @@ fun ScheduleFeed(
     var reloadTick by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(reloadTick) {
+        if (demo) {
+            slots = site.anikitty.app.data.demo.DemoLibrary.airing(System.currentTimeMillis() / 1000L)
+            loading = false
+            error = null
+            return@LaunchedEffect
+        }
         loading = true
         error = null
         runCatching {

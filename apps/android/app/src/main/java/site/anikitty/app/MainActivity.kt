@@ -19,10 +19,12 @@ import site.anikitty.app.ui.theme.AniKittyTheme
 class MainActivity : AppCompatActivity() {
     private var oauthToken by mutableStateOf<String?>(null)
     private var oauthError by mutableStateOf<String?>(null)
+    private var requestDemo by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestDemo = intent?.getBooleanExtra(EXTRA_DEMO, false) == true
         consumeOAuthIntent(intent)
         val app = application as AnikittyApp
         setContent {
@@ -41,6 +43,7 @@ class MainActivity : AppCompatActivity() {
                         oauthToken = null
                         oauthError = null
                     },
+                    requestDemo = requestDemo,
                 )
             }
         }
@@ -49,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.getBooleanExtra(EXTRA_DEMO, false)) requestDemo = true
         consumeOAuthIntent(intent)
     }
 
@@ -71,5 +75,9 @@ class MainActivity : AppCompatActivity() {
             oauthError = e.message ?: "AniList link failed"
         }
         intent?.data = null
+    }
+
+    companion object {
+        const val EXTRA_DEMO = "demo"
     }
 }

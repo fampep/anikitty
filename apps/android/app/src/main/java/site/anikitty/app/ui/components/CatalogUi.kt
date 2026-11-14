@@ -84,6 +84,7 @@ import site.anikitty.app.ui.theme.KittyGlass
 import site.anikitty.app.ui.theme.KittyGlassShape
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittyOutlineSoft
@@ -231,7 +232,7 @@ fun KittySectionHeading(
                 title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White,
+                color = LocalKittyPalette.current.text,
                 letterSpacing = (-0.3).sp,
             )
             if (!subtitle.isNullOrBlank()) {
@@ -239,7 +240,7 @@ fun KittySectionHeading(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = LocalKittyPalette.current.muted,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -247,7 +248,7 @@ fun KittySectionHeading(
         if (onMore != null) {
             Text(
                 "See all",
-                color = Color.White.copy(alpha = 0.7f),
+                color = LocalKittyPalette.current.text.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.spacePress(onMore).padding(horizontal = 4.dp, vertical = 6.dp),

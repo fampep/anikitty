@@ -23,7 +23,7 @@ A stream does not ship with the app. Media3 plays a URL after a resolver returns
 
 Sideload the stable APK. Package `site.anikitty.app`. Android 8 or newer.
 
-**[anikitty-1.2.4.apk](https://github.com/fampep/anikitty/releases/download/v1.2.4/anikitty-1.2.4.apk)**
+**[anikitty-1.2.5.apk](https://github.com/fampep/anikitty/releases/download/v1.2.5/anikitty-1.2.5.apk)**
 
 Allow installs from the browser, then open the file. If Android refuses an update because the signature does not match, uninstall the old app first.
 
@@ -31,10 +31,12 @@ Pushes to `main` also publish a signed **dev prerelease**. Those builds are newe
 
 ## Screenshots
 
+These are the demo library (sample posters, not a signed-in AniList account). How to launch that mode and take the shots again is in [docs/screenshots/README.md](docs/screenshots/README.md).
+
 <table>
   <tr>
     <td><img src="docs/screenshots/home.png" alt="Home" width="220"></td>
-    <td><img src="docs/screenshots/home-continue.png" alt="Continue where you left off" width="220"></td>
+    <td><img src="docs/screenshots/home-continue.png" alt="Continue and the rows under the hero" width="220"></td>
     <td><img src="docs/screenshots/title.png" alt="Title" width="220"></td>
   </tr>
   <tr>
@@ -44,19 +46,23 @@ Pushes to `main` also publish a signed **dev prerelease**. Those builds are newe
   </tr>
   <tr>
     <td><img src="docs/screenshots/title-episodes.png" alt="Episode shelf" width="220"></td>
+    <td><img src="docs/screenshots/player.png" alt="Player" width="220"></td>
     <td><img src="docs/screenshots/search.png" alt="Search" width="220"></td>
-    <td><img src="docs/screenshots/myspace.png" alt="My Space" width="220"></td>
   </tr>
   <tr>
     <td align="center">Episodes</td>
+    <td align="center">Player</td>
     <td align="center">Search</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/myspace.png" alt="My Space" width="220"></td>
+    <td><img src="docs/screenshots/settings.png" alt="Settings" width="220"></td>
+    <td><img src="docs/screenshots/menu.png" alt="Home menu" width="220"></td>
+  </tr>
+  <tr>
     <td align="center">My Space</td>
-  </tr>
-  <tr>
-    <td colspan="3" align="center"><img src="docs/screenshots/player.png" alt="Player" width="220"></td>
-  </tr>
-  <tr>
-    <td colspan="3" align="center">Player</td>
+    <td align="center">Settings</td>
+    <td align="center">Menu</td>
   </tr>
 </table>
 

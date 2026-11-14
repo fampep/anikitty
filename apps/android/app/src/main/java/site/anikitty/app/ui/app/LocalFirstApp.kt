@@ -219,6 +219,7 @@ fun LocalFirstApp(
     onConsumedAniListToken: () -> Unit = {},
     onAniListReady: () -> Unit = {},
     onSignOut: () -> Unit,
+    demo: Boolean = false,
 ) {
     val context = LocalContext.current
     val homeLayout = remember { HomeLayoutStore(context) }
@@ -232,7 +233,9 @@ fun LocalFirstApp(
     var libraryFilter by rememberSaveable { mutableStateOf("all") }
     /** Prior detail frames when drilling into related / other seasons. */
     var detailBackStack by remember { mutableStateOf<List<Screen.Detail>>(emptyList()) }
-    val history by historyDao.observeAll().collectAsState(initial = emptyList())
+    val storedHistory by historyDao.observeAll().collectAsState(initial = emptyList())
+    val history = if (demo) site.anikitty.app.data.demo.DemoLibrary.history else storedHistory
+    fun isolated(id: Int) = demo || site.anikitty.app.data.demo.DemoLibrary.find(id) != null
     val listMarks = remember(history) {
         history.associate { entry ->
             entry.anilistId to (listStatusBadge(entry.listStatus) ?: "On list")
@@ -399,12 +402,31 @@ fun LocalFirstApp(
                         .apply()
                     playerAudio = nextAudio
                     runCatching {
-                        val resolved = streamServers.resolveWithFailover(
-                            anilistId = current.anime.id,
-                            episode = nextEpisode,
-                            audio = nextAudio,
-                            titleHint = current.anime.streamTitleHint(),
-                        )
+                        val demoClip = if (demo) {
+                            site.anikitty.app.data.demo.DemoLibrary.clip(context, current.anime.id)
+                        } else {
+                            null
+                        }
+                        val resolved = if (demoClip != null) {
+                            site.anikitty.app.data.servers.ResolveFailoverResult(
+                                sources = listOf(demoClip),
+                                server = streamServers.resolvers.value.firstOrNull()?.server
+                                    ?: site.anikitty.app.data.servers.StreamServer(
+                                        id = "demo",
+                                        name = "Demo",
+                                        description = "Sample clip",
+                                    ),
+                                usedFallback = false,
+                            )
+                        } else {
+                            streamServers.resolveWithFailover(
+                                anilistId = current.anime.id,
+                                episode = nextEpisode,
+                                audio = nextAudio,
+                                titleHint = current.anime.streamTitleHint(),
+                            )
+                        }
+                        if (!isolated(current.anime.id)) {
                         val existing = historyDao.get(current.anime.id)
                         historyDao.upsert(
                             WatchHistoryEntity(
@@ -419,7 +441,8 @@ fun LocalFirstApp(
                                 malId = current.anime.malId ?: existing?.malId,
                             ),
                         )
-                        if (aniListAuth.isLinked) {
+                        }
+                        if (aniListAuth.isLinked && !demo) {
                             aniListSync.pushProgress(
                                 anilistId = current.anime.id,
                                 episode = nextEpisode,
@@ -437,16 +460,25 @@ fun LocalFirstApp(
                 }
             }
             LaunchedEffect(current.anime.id, current.episode) {
-                val entry = historyDao.get(current.anime.id)
+                val entry = if (demo) {
+                    null
+                } else {
+                    historyDao.get(current.anime.id)
+                }
                 if (entry != null && entry.episode == current.episode && entry.positionMs > 2_000L) {
                     resumeMs = entry.positionMs
                 }
+                val sample = if (demo) {
+                    site.anikitty.app.data.demo.DemoLibrary.history
+                        .firstOrNull { it.anilistId == current.anime.id }
+                } else {
+                    null
+                }
                 watchedThrough = maxOf(
                     current.anime.listState?.progress ?: 0,
-                    (entry?.episode ?: 1) - 1,
+                    ((sample?.episode ?: entry?.episode ?: 1) - 1),
                 ).coerceAtLeast(0)
-                // Push episode progress to AniList when opening / advancing.
-                if (aniListAuth.isLinked) {
+                if (aniListAuth.isLinked && !demo) {
                     aniListSync.pushProgress(
                         anilistId = current.anime.id,
                         episode = current.episode,
@@ -468,7 +500,7 @@ fun LocalFirstApp(
                 },
                 onDismiss = { screen = Screen.Tabs },
                 onToggleWatched = { number ->
-                    scope.launch {
+                    if (!isolated(current.anime.id)) scope.launch {
                         historyDao.markEpisode(current.anime, number)
                         val entry = historyDao.get(current.anime.id)
                         watchedThrough = maxOf(
@@ -478,7 +510,7 @@ fun LocalFirstApp(
                     }
                 },
                 onProgress = { pos, dur ->
-                    scope.launch {
+                    if (!isolated(current.anime.id)) scope.launch {
                         val existing = historyDao.get(current.anime.id)
                         historyDao.upsert(
                             WatchHistoryEntity(
@@ -636,6 +668,7 @@ fun LocalFirstApp(
                 "home" -> HomeFeed(
                     aniList = aniList,
                     aniListAuth = aniListAuth,
+                    demo = demo,
                     history = history,
                     historyDao = historyDao,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
@@ -653,6 +686,7 @@ fun LocalFirstApp(
                 )
                 "schedule" -> ScheduleFeed(
                     aniList = aniList,
+                    demo = demo,
                     onBack = { tab = "home" },
                     onOpen = { openDetail(it) },
                     showBack = false,
@@ -661,6 +695,7 @@ fun LocalFirstApp(
                 )
                 "search" -> SearchFeed(
                     aniList = aniList,
+                    demo = demo,
                     historyDao = historyDao,
                     requestedGenre = searchGenre,
                     onRequestedGenreConsumed = { searchGenre = null },
@@ -672,8 +707,9 @@ fun LocalFirstApp(
                     history = history,
                     historyDao = historyDao,
                     aniList = aniList,
-                    aniListLinked = aniListAuth.isLinked,
-                    accessToken = aniListAuth.accessToken,
+                    demo = demo,
+                    aniListLinked = aniListAuth.isLinked && !demo,
+                    accessToken = if (demo) null else aniListAuth.accessToken,
                     accountLabel = accountLabel,
                     syncLabel = syncLabel,
                     libraryFilter = libraryFilter,
@@ -693,6 +729,7 @@ fun LocalFirstApp(
                     avatarUrl = aniListAuth.avatarUrl,
                 )
                 "settings" -> SettingsFeed(
+                    demo = demo,
                     catalog = streamServers,
                     aniList = aniList,
                     aniListAuth = aniListAuth,
@@ -763,6 +800,7 @@ private fun DockOverlay(
 private fun HomeFeed(
     aniList: AniListClient,
     aniListAuth: AniListAuthStore,
+    demo: Boolean = false,
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary, Int?) -> Unit,
@@ -772,6 +810,7 @@ private fun HomeFeed(
     onOpenAccount: () -> Unit,
     homeLayout: HomeLayoutStore,
 ) {
+    val context = LocalContext.current
     var loading by remember { mutableStateOf(true) }
     var refreshing by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -785,6 +824,7 @@ private fun HomeFeed(
         java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
     }
     LaunchedEffect(Unit) {
+        if (demo) return@LaunchedEffect
         val start = java.util.Calendar.getInstance().apply {
             set(java.util.Calendar.HOUR_OF_DAY, 0)
             set(java.util.Calendar.MINUTE, 0)
@@ -810,6 +850,12 @@ private fun HomeFeed(
     var forYouFrom by remember { mutableStateOf<String?>(null) }
     val spotlightId = continueWatching.firstOrNull()?.anilistId
     LaunchedEffect(spotlightId) {
+        if (demo) {
+            val spot = site.anikitty.app.data.demo.DemoLibrary.harbor
+            forYouFrom = spot.title
+            forYou = spot.recommendations.filter { it.id != spot.id }
+            return@LaunchedEffect
+        }
         val id = spotlightId
         if (id == null) {
             forYou = emptyList()
@@ -822,6 +868,27 @@ private fun HomeFeed(
     }
 
     fun reload(fromPull: Boolean = false) {
+        if (demo) {
+            trending = site.anikitty.app.data.demo.DemoLibrary.featured
+            seasonal = site.anikitty.app.data.demo.DemoLibrary.seasonal
+            airingToday = site.anikitty.app.data.demo.DemoLibrary.airing(System.currentTimeMillis() / 1000L)
+            site.anikitty.app.data.demo.DemoLibrary.catalog.forEach { anime ->
+                val clip = site.anikitty.app.data.demo.DemoLibrary.clip(context, anime.id) ?: return@forEach
+                site.anikitty.app.data.servers.SourceBadgeCache.remember(context, anime.id, 0, listOf(clip))
+                anime.episodeItems().forEach { item ->
+                    site.anikitty.app.data.servers.SourceBadgeCache.remember(
+                        context,
+                        anime.id,
+                        item.number,
+                        listOf(clip),
+                    )
+                }
+            }
+            loading = false
+            refreshing = false
+            error = null
+            return
+        }
         if (catalogJob?.isActive == true) return
         catalogJob = scope.launch {
             if (fromPull) refreshing = true else loading = true
@@ -843,8 +910,11 @@ private fun HomeFeed(
     LaunchedEffect(Unit) { reload() }
 
     val openCatalog: (AnimeSummary) -> Unit = { anime ->
-        scope.launch { historyDao.touchFromCatalog(anime) }
-        onOpen(anime, null)
+        val known = site.anikitty.app.data.demo.DemoLibrary.find(anime.id)
+        if (!demo && known == null) {
+            scope.launch { historyDao.touchFromCatalog(anime) }
+        }
+        onOpen(known ?: anime, null)
     }
 
     val pageColor = LocalKittyPalette.current.page
@@ -936,7 +1006,7 @@ private fun HomeFeed(
                                     }
                                 }
                                 if (continueWatching.isNotEmpty()) item {
-                                HomeBlock(title = "Continue") {
+                                HomeBlock(title = "Continue", subtitle = "Where you left off") {
                                     HomeContinueRow(
                                         continueWatching.map { entry ->
                                             val target = playbackTarget(entry)
@@ -962,7 +1032,8 @@ private fun HomeFeed(
                                                 progress = fraction,
                                                 onClick = {
                                                     scope.launch {
-                                                        val detail = aniList.media(entry.anilistId)
+                                                        val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
+                                                            ?: aniList.media(entry.anilistId)
                                                             ?: AnimeSummary(
                                                                 id = entry.anilistId,
                                                                 title = entry.title,
@@ -1016,6 +1087,7 @@ private fun HomeFeed(
                             "season" -> if (seasonal.isNotEmpty()) item {
                                 HomeBlock(
                                     title = "This season",
+                                    subtitle = "New this season",
                                     onMore = onOpenSchedule,
                                 ) {
                                     HomePosterGrid(items = seasonal.take(9), onOpen = openCatalog)
@@ -1045,7 +1117,8 @@ private fun HomeFeed(
                                         },
                                         onOpen = { anime ->
                                             scope.launch {
-                                                onOpen(aniList.media(anime.id) ?: anime, null)
+                                                val known = site.anikitty.app.data.demo.DemoLibrary.find(anime.id)
+                                                onOpen(known ?: aniList.media(anime.id) ?: anime, null)
                                             }
                                         },
                                     )
@@ -1611,7 +1684,8 @@ private fun HistoryRow(
         }.ifBlank { null },
         onClick = {
             scope.launch {
-                val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
+                val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
+                    ?: aniList.media(entry.anilistId) ?: AnimeSummary(
                     id = entry.anilistId,
                     title = entry.title,
                     coverImageUrl = entry.coverImageUrl,
@@ -1805,6 +1879,7 @@ private fun androidx.compose.foundation.layout.RowScope.ProfileStat(
 
 @Composable
 internal fun SettingsFeed(
+    demo: Boolean = false,
     catalog: ServerCatalog,
     aniList: AniListClient,
     aniListAuth: AniListAuthStore,
@@ -1869,7 +1944,11 @@ internal fun SettingsFeed(
                     item {
                         SpacePageHeader(
                             title = "Settings",
-                            subtitle = "Account, home, sources, and the app.",
+                            subtitle = if (demo) {
+                                "Sample library. Not your AniList account."
+                            } else {
+                                "Account, home, sources, and the app."
+                            },
                         )
                     }
                     item {
@@ -1878,11 +1957,11 @@ internal fun SettingsFeed(
                                 SettingsHubRow(
                                     icon = FluentuiSystemIconsPersonOutline,
                                     title = "Account",
-                                    detail = if (isLinked) {
-                                        aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
+                                    detail = when {
+                                        demo -> "Demo library"
+                                        isLinked -> aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
                                             ?: accountLabel.ifBlank { "Signed in" }
-                                    } else {
-                                        "Not signed in"
+                                        else -> "Not signed in"
                                     },
                                     avatarUrl = linkTick.let { aniListAuth.avatarUrl },
                                     useAvatar = true,
@@ -1924,11 +2003,31 @@ internal fun SettingsFeed(
                     item {
                         SpacePageHeader(
                             title = "Account",
-                            subtitle = if (isLinked) "Your AniList profile." else "Sign in to load your lists.",
+                            subtitle = when {
+                                demo -> "Sample library. Not your AniList account."
+                                isLinked -> "Your AniList profile."
+                                else -> "Sign in to load your lists."
+                            },
                             onBack = { page = "hub" },
                         )
                     }
-                    if (isLinked) {
+                    if (demo) {
+                        item {
+                            SpaceCard(onClick = onSignOut) {
+                                Text(
+                                    "Leave demo",
+                                    color = palette.text,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                )
+                                Text(
+                                    "Returns to sign-in. Your AniList account, if you have one, stays untouched.",
+                                    color = palette.text.copy(alpha = 0.5f),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                            }
+                        }
+                    } else if (isLinked) {
                         item {
                             AniListProfileCard(
                                 auth = aniListAuth,
@@ -2153,9 +2252,9 @@ private fun SettingsGroup(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.lg))
                 .background(palette.surface)
-                .border(0.5.dp, palette.hairline, RoundedCornerShape(16.dp)),
+                .border(0.5.dp, palette.hairline, RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.lg)),
             content = { content() },
         )
     }
@@ -2243,7 +2342,9 @@ private fun TitleDetailScreen(
             ?: resolvers.firstOrNull()?.server
     }
     // Keyed by anime.id so related/season navigation never reuses prior episode/audio/comments.
-    var detail by remember(anime.id) { mutableStateOf(anime) }
+    var detail by remember(anime.id) {
+        mutableStateOf(site.anikitty.app.data.demo.DemoLibrary.find(anime.id) ?: anime)
+    }
     var episode by remember(anime.id) { mutableIntStateOf(initialEpisode ?: 1) }
     var epJump by remember(anime.id) { mutableStateOf("") }
     val watchPrefs = remember {
@@ -2288,7 +2389,9 @@ private fun TitleDetailScreen(
         resolving = false
         status = null
         synopsisExpanded = false
-        val history = historyDao.get(anime.id)
+        val sampleHistory = site.anikitty.app.data.demo.DemoLibrary.history
+            .firstOrNull { it.anilistId == anime.id }
+        val history = sampleHistory ?: historyDao.get(anime.id)
         lastWatchedEp = history?.episode ?: 0
         resumeAtMs = history?.positionMs ?: 0L
         resumeEpisode = history?.episode ?: 0
@@ -2301,7 +2404,9 @@ private fun TitleDetailScreen(
         listStatus = history?.listStatus
         listBadge = listStatusBadge(history?.listStatus)
         favourite = anime.isFavourite
-        if (!anime.detailLoaded || aniListAuth.isLinked) {
+        if (sampleHistory != null) {
+            detailLoading = false
+        } else if (!anime.detailLoaded || aniListAuth.isLinked) {
             runCatching { aniList.media(anime.id, aniListAuth.accessToken) }
                 .onSuccess { full ->
                     if (full != null) {
@@ -2323,6 +2428,7 @@ private fun TitleDetailScreen(
     }
 
     fun rememberListLocally(status: String, progress: Int) {
+        if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) != null) return
         scope.launch {
             val existing = historyDao.get(detail.id)
             val now = System.currentTimeMillis()
@@ -2409,6 +2515,19 @@ private fun TitleDetailScreen(
         scope.launch {
             resolving = true
             status = "Getting stream…"
+            val sample = site.anikitty.app.data.demo.DemoLibrary.clip(context, detail.id)
+            if (sample != null) {
+                site.anikitty.app.data.servers.SourceBadgeCache.remember(
+                    context,
+                    detail.id,
+                    episode,
+                    listOf(sample),
+                )
+                onPlay(episode, listOf(sample), detail)
+                status = null
+                resolving = false
+                return@launch
+            }
             runCatching {
                 historyDao.touchFromCatalog(detail)
                 val resolved = streamServers.resolveWithFailover(
@@ -2536,11 +2655,6 @@ private fun TitleDetailScreen(
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
                                 )
-                                site.anikitty.app.ui.components.QualityMarks(
-                                    badge = site.anikitty.app.data.servers.SourceBadgeCache.title(context, detail.id),
-                                    onDark = palette.dark,
-                                    modifier = Modifier.padding(start = 8.dp),
-                                )
                                 if (aniListAuth.isLinked) {
                                     Icon(
                                         if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -2586,6 +2700,11 @@ private fun TitleDetailScreen(
                                     },
                                 )
                             }
+                            site.anikitty.app.ui.components.QualityMarks(
+                                badge = site.anikitty.app.data.servers.SourceBadgeCache.title(context, detail.id),
+                                onDark = palette.dark,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
                             val altTitle = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
                                 .distinct()
                                 .joinToString("  ·  ")
@@ -3272,9 +3391,11 @@ private fun TitleDetailScreen(
                         onPick = { episode = it },
                         anilistId = detail.id,
                         onToggleWatched = { number ->
-                            scope.launch {
-                                historyDao.markEpisode(detail, number)
-                                lastWatchedEp = historyDao.get(detail.id)?.episode ?: lastWatchedEp
+                            if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) == null) {
+                                scope.launch {
+                                    historyDao.markEpisode(detail, number)
+                                    lastWatchedEp = historyDao.get(detail.id)?.episode ?: lastWatchedEp
+                                }
                             }
                         },
                         modifier = Modifier.padding(horizontal = 0.dp),
@@ -3832,31 +3953,5 @@ private fun formatAiring(epochSec: Long): String {
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val background by animateColorAsState(
-        if (selected) Color.White else Color.White.copy(alpha = 0.05f),
-        tween(180),
-        label = "chipBg",
-    )
-    val stroke by animateColorAsState(
-        if (selected) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.08f),
-        tween(180),
-        label = "chipStroke",
-    )
-    val text by animateColorAsState(
-        if (selected) Color.Black else Color.White.copy(alpha = 0.75f),
-        tween(180),
-        label = "chipText",
-    )
-    Text(
-        label,
-        color = text,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(background)
-            .border(1.dp, stroke, RoundedCornerShape(16.dp))
-            .spacePress(onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    )
+    site.anikitty.app.ui.components.KittyChip(label = label, selected = selected, onClick = onClick)
 }
