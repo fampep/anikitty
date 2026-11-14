@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -54,6 +57,7 @@ import site.anikitty.app.data.local.continueCue
 import site.anikitty.app.data.local.continueQueue
 import site.anikitty.app.data.tmdb.EpisodeFrame
 import site.anikitty.app.data.tmdb.TmdbCatalog
+import site.anikitty.app.data.tmdb.transparentLogo
 import site.anikitty.app.ui.components.KittyImage
 import site.anikitty.app.ui.components.KittyMenu
 import site.anikitty.app.ui.components.KittyMenuEntry
@@ -135,7 +139,8 @@ fun ContinueAllPage(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(palette.page),
+            .background(palette.page)
+            .windowInsetsPadding(WindowInsets.statusBars),
     ) {
         SpacePageHeader(
             title = "Continue watching",
@@ -290,7 +295,7 @@ fun ContinueWatchCard(
                     .align(Alignment.BottomStart)
                     .padding(start = 10.dp, end = 10.dp, bottom = 10.dp),
             ) {
-                val logo = frame?.logoUrl
+                val logo = transparentLogo(frame?.logoUrl)
                 if (!logo.isNullOrBlank()) {
                     KittyImage(
                         url = logo,

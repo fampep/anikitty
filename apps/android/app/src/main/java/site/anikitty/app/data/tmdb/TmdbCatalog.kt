@@ -122,7 +122,7 @@ class TmdbCatalog(context: Context) {
         val blank = EpisodeFrame(null, null, null, null, null)
         val apiKey = apiKey()
         if (apiKey.isBlank() || anilistId <= 0 || episode <= 0) return blank
-        val cacheKey = "frame2$anilistId-$episode"
+        val cacheKey = "frame3$anilistId-$episode"
         prefs.getString(cacheKey, null)?.let { raw ->
             val parts = raw.split("\t")
             if (parts.size >= 5) {
@@ -399,7 +399,7 @@ class TmdbCatalog(context: Context) {
             ?: return null
         val json = JSONObject(body)
         val images = json.optJSONObject("images")
-        val logoGallery = gallery(images?.optJSONArray("logos"), "w500", 4)
+        val logoGallery = gallery(images?.optJSONArray("logos"), "w500", 4, pngOnly = true)
         val logo = logoGallery.firstOrNull()
         val rating = if (movie) movieRating(json) else pickRating(tvRatings(json))
         val runtime = if (movie) {
@@ -572,16 +572,16 @@ class TmdbCatalog(context: Context) {
     }
 
     private fun cached(anilistId: Int): TitleArt? {
-        val raw = prefs.getString("art3$anilistId", null) ?: return null
-        val age = System.currentTimeMillis() - prefs.getLong("art3At$anilistId", 0L)
+        val raw = prefs.getString("art4$anilistId", null) ?: return null
+        val age = System.currentTimeMillis() - prefs.getLong("art4At$anilistId", 0L)
         if (age > TimeUnit.DAYS.toMillis(7)) return null
         return runCatching { decode(raw) }.getOrNull()
     }
 
     private fun remember(anilistId: Int, art: TitleArt) {
         prefs.edit()
-            .putString("art3$anilistId", encode(art))
-            .putLong("art3At$anilistId", System.currentTimeMillis())
+            .putString("art4$anilistId", encode(art))
+            .putLong("art4At$anilistId", System.currentTimeMillis())
             .apply()
     }
 
@@ -676,10 +676,15 @@ private fun videoClips(results: JSONArray?): List<VideoClip> {
         if (!item.optString("site").equals("YouTube", true)) continue
         val key = item.optString("key").takeIf { it.isNotBlank() } ?: continue
         val type = item.optString("type")
-        if (type != "Trailer" && type != "Teaser") continue
         val name = item.optString("name").ifBlank { type }
-        out += VideoClip(name, key)
-        if (out.size >= 4) break
+        val kind = when {
+            Regex("""(?i)\bPV\b""").containsMatchIn(name) -> "PV"
+            type == "Trailer" -> "Trailer"
+            type == "Teaser" -> "Teaser"
+            else -> null
+        } ?: continue
+        out += VideoClip(name, key, kind)
+        if (out.size >= 8) break
     }
     return out
 }
@@ -830,7 +835,7 @@ private fun crewCredits(list: JSONArray?): List<CrewCredit> {
     return out.values.toList()
 }
 
-private fun gallery(list: JSONArray?, size: String, limit: Int): List<String> {
+private fun gallery(list: JSONArray?, size: String, limit: Int, pngOnly: Boolean = false): List<String> {
     if (list == null) return emptyList()
     val images = buildList {
         for (i in 0 until list.length()) {
@@ -846,7 +851,8 @@ private fun gallery(list: JSONArray?, size: String, limit: Int): List<String> {
             )
         }
     }
-    return rankImages(images).take(limit).mapNotNull { imageUrl(it.path, size) }
+    val usable = if (pngOnly) images.filter { it.path.endsWith(".png", ignoreCase = true) } else images
+    return rankImages(usable).take(limit).mapNotNull { imageUrl(it.path, size) }
 }
 
 private fun watchOffers(providers: JSONObject?): Pair<List<WatchOffer>, String?> {
@@ -1102,7 +1108,7 @@ private fun encode(art: TitleArt): String {
         .put("kitsu", art.kitsuId)
         .put("clips", JSONArray().apply {
             art.clips.forEach { clip ->
-                put(JSONObject().put("name", clip.name).put("id", clip.youtubeId))
+                put(JSONObject().put("name", clip.name).put("id", clip.youtubeId).put("type", clip.type))
             }
         })
         .put("tagline", art.tagline ?: "")
@@ -1252,7 +1258,13 @@ private fun decode(raw: String): TitleArt {
                 val item = list.optJSONObject(i) ?: continue
                 val id = item.optString("id")
                 if (id.isBlank()) continue
-                add(VideoClip(item.optString("name").ifBlank { "Trailer" }, id))
+                add(
+                    VideoClip(
+                        item.optString("name").ifBlank { "Trailer" },
+                        id,
+                        item.optString("type").ifBlank { "Trailer" },
+                    ),
+                )
             }
         },
         tagline = json.optString("tagline").takeIf { it.isNotBlank() },

@@ -42,7 +42,7 @@ data class TitleArt(
     val collectionItems: List<Suggestion> = emptyList(),
 )
 
-data class VideoClip(val name: String, val youtubeId: String)
+data class VideoClip(val name: String, val youtubeId: String, val type: String = "Trailer")
 
 data class BrandMark(val name: String, val logoUrl: String?, val id: Int = 0)
 
@@ -212,8 +212,42 @@ fun languageRank(language: String?): Int = when (language) {
     else -> 0
 }
 
-/** Title art prefers an English logo, then a textless one, then Japanese. */
-fun pickLogo(logos: List<TmdbImage>): String? = rankImages(logos).firstOrNull()?.path
+/**
+ * Title art prefers an English PNG, then a textless PNG, then Japanese.
+ * Vector logos are skipped. They decode as a solid black box.
+ */
+fun pickLogo(logos: List<TmdbImage>): String? {
+    val png = logos.filter { it.path.endsWith(".png", ignoreCase = true) }
+    return rankImages(png).firstOrNull()?.path
+}
+
+/** A logo URL that can sit on the hero without a black matte. */
+fun transparentLogo(url: String?): String? {
+    return url?.takeIf { it.contains(".png", ignoreCase = true) }
+}
+
+/**
+ * Season control label. The number is always present.
+ * A short real name is kept, as in "Season 2 · Culling Game".
+ */
+fun seasonSelectorLabel(number: Int, name: String?): String {
+    if (number <= 0) {
+        val extra = name?.trim()?.takeIf { it.isNotEmpty() && !it.equals("Specials", ignoreCase = true) }
+        return if (extra == null) "Specials" else "Specials · $extra"
+    }
+    val raw = name?.trim().orEmpty()
+    if (raw.isEmpty()) return "Season $number"
+    val stripped = raw.replace(Regex("""(?i)^season\s*$number\b\s*[:·\-–]?\s*"""), "").trim()
+    val part = Regex("""(?i)\b((?:part|cour)\s*\d+)\b""").find(raw)?.groupValues?.get(1)
+        ?.replaceFirstChar { it.titlecase() }
+    val subtitle = when {
+        stripped.isNotEmpty() && stripped != raw -> stripped
+        part != null -> part
+        !raw.contains(Regex("""(?i)season|part|cour|\d+(?:st|nd|rd|th)\b""")) && raw.length <= 32 -> raw
+        else -> ""
+    }
+    return if (subtitle.isEmpty()) "Season $number" else "Season $number · $subtitle"
+}
 
 fun rankImages(images: List<TmdbImage>): List<TmdbImage> {
     return images

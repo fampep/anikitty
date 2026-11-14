@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Extension
@@ -87,11 +88,16 @@ import site.anikitty.app.data.tmdb.TmdbCatalog
 import site.anikitty.app.data.tmdb.tmdbEpisodeNumber
 import site.anikitty.app.data.tmdb.preferEpisodeTitle
 import site.anikitty.app.data.tmdb.preferStill
+import site.anikitty.app.data.tmdb.seasonNumberFromTitle
+import site.anikitty.app.data.tmdb.seasonSelectorLabel
+import site.anikitty.app.data.tmdb.transparentLogo
+import site.anikitty.app.data.tmdb.VideoClip
 import site.anikitty.app.data.servers.StreamServer
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import site.anikitty.app.ui.components.EpisodeCarousel
+import site.anikitty.app.ui.components.EpisodeCardRow
+import site.anikitty.app.ui.components.EpisodeCardSkeletonRow
 import site.anikitty.app.ui.components.EpisodeSlide
 import site.anikitty.app.ui.components.HeroBanner
 import site.anikitty.app.ui.components.rememberDockScroll
@@ -206,6 +212,7 @@ internal fun TitleStage(
                     imageUrl = episode.stillUrl,
                     airLabel = episode.airLabel,
                     overview = episode.overview,
+                    runtimeMinutes = episode.runtimeMinutes,
                 )
             }
         } else {
@@ -220,6 +227,7 @@ internal fun TitleStage(
                         imageUrl = preferStill(slide.imageUrl, episodeArt?.stillUrl),
                         airLabel = episodeArt?.airLabel ?: slide.airLabel,
                         overview = episodeArt?.overview,
+                        runtimeMinutes = episodeArt?.runtimeMinutes ?: slide.runtimeMinutes,
                     )
                 }
             }
@@ -330,7 +338,7 @@ internal fun TitleStage(
                             .padding(horizontal = KittySpace.md)
                             .padding(bottom = 108.dp),
                     ) {
-                        val logo = art?.logoUrl
+                        val logo = transparentLogo(art?.logoUrl)
                         if (logo != null) {
                             AsyncImage(
                                 model = logo,
@@ -554,13 +562,10 @@ internal fun TitleStage(
             }
             item(key = "episodes", contentType = "episodes") {
                 if (detailLoading && episodeSlides.size <= 1 && detail.streamingEpisodes.isEmpty()) {
-                    Column(Modifier.padding(horizontal = KittySpace.md)) {
-                        ShimmerBox(
-                            Modifier
-                                .fillMaxWidth()
-                                .height(96.dp)
-                                .clip(RoundedCornerShape(KittyRadius.sm)),
-                        )
+                    Column {
+                        KittySectionHeading(title = "Episodes")
+                        Spacer(Modifier.height(KittySpace.sm))
+                        EpisodeCardSkeletonRow()
                     }
                 } else {
                     EpisodeBlock(
@@ -589,7 +594,16 @@ internal fun TitleStage(
                         onSeason = { shelfSeason = it },
                         episodeNote = slides.firstOrNull { it.number == episode }?.overview,
                         onInspect = { episodeSheet = it },
+                        fallbackArt = art?.backdrops?.firstOrNull()
+                            ?: detail.bannerImageUrl
+                            ?: detail.coverImageUrl,
+                        homeSeason = art?.seasonNumber,
                     )
+                }
+            }
+            if (!art?.clips.isNullOrEmpty()) {
+                item(key = "trailers", contentType = "trailers") {
+                    TrailerRow(art?.clips.orEmpty(), onOpenUrl)
                 }
             }
             val tmdbCast = art?.castList.orEmpty()
@@ -792,17 +806,24 @@ internal fun TitleStage(
 
     episodeSheet?.let { slide ->
         val shown = episodeDetail?.takeIf { it.number == slide.number || it.title == slide.title } ?: null
-        KittyBottomSheet(title = slide.title.ifBlank { "Episode ${slide.number}" }, onDismiss = { episodeSheet = null }) {
+        val sheetTitle = slide.title.trim().let { title ->
+            if (title.isEmpty() || title.equals("Episode ${slide.number}", ignoreCase = true)) {
+                "E${slide.number}"
+            } else {
+                "E${slide.number} · $title"
+            }
+        }
+        KittyBottomSheet(title = sheetTitle, onDismiss = { episodeSheet = null }) {
             val still = shown?.stillUrl ?: slide.imageUrl
             if (!still.isNullOrBlank()) {
                 AsyncImage(
                     model = still,
-                    contentDescription = slide.title,
+                    contentDescription = sheetTitle,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
-                        .clip(RoundedCornerShape(12.dp)),
+                        .aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(KittyRadius.md)),
                 )
                 Spacer(Modifier.height(KittySpace.sm))
             }
@@ -1091,6 +1112,164 @@ private fun Synopsis(text: String) {
     }
 }
 
+private data class SeasonChoice(
+    val label: String,
+    val selected: Boolean,
+    val relation: AnimeRelation? = null,
+    val tmdbSeason: Int? = null,
+)
+
+private fun seasonChoices(
+    detail: AnimeSummary,
+    seasonTabs: List<AnimeRelation>,
+    tmdbSeasons: List<SeasonChip>,
+    selectedSeason: Int?,
+    homeSeason: Int?,
+): List<SeasonChoice> {
+    val currentNumber = seasonNumberFromTitle(detail.title) ?: homeSeason?.takeIf { it > 0 } ?: 1
+    if (seasonTabs.size > 1) {
+        val numbered = seasonTabs.map { tab ->
+            val number = if (tab.id == detail.id) {
+                currentNumber
+            } else {
+                seasonNumberFromTitle(tab.title) ?: 0
+            }
+            tab to number
+        }
+        val used = numbered.map { it.second }.filter { it > 0 }.toMutableSet()
+        var next = 1
+        val rows = numbered.map { (tab, raw) ->
+            val number = if (raw > 0) {
+                raw
+            } else {
+                while (next in used) next += 1
+                val assigned = next
+                used += assigned
+                next += 1
+                assigned
+            }
+            val tmdbName = if (tab.id == detail.id) {
+                tmdbSeasons.firstOrNull { it.number == number }?.name
+            } else {
+                null
+            }
+            SeasonChoice(
+                label = seasonSelectorLabel(number, tmdbName ?: tab.title),
+                selected = tab.id == detail.id,
+                relation = tab.takeIf { it.id != detail.id },
+                tmdbSeason = if (tab.id == detail.id) number else null,
+            )
+        }.toMutableList()
+        tmdbSeasons.firstOrNull { it.number <= 0 }?.let { specials ->
+            rows += SeasonChoice(
+                label = seasonSelectorLabel(0, specials.name),
+                selected = false,
+                tmdbSeason = specials.number,
+            )
+        }
+        val viewingSpecials = selectedSeason != null && selectedSeason <= 0
+        return rows
+            .map { choice ->
+                choice.copy(
+                    selected = if (viewingSpecials) choice.tmdbSeason != null && choice.tmdbSeason <= 0 else choice.selected,
+                )
+            }
+            .sortedBy { choice ->
+                when {
+                    choice.tmdbSeason != null && choice.tmdbSeason <= 0 -> 100
+                    else -> seasonNumberFromTitle(choice.label) ?: 50
+                }
+            }
+    }
+    if (tmdbSeasons.size > 1) {
+        val active = selectedSeason ?: homeSeason
+        return tmdbSeasons.map { season ->
+            SeasonChoice(
+                label = seasonSelectorLabel(season.number, season.name),
+                selected = season.number == active,
+                tmdbSeason = season.number,
+            )
+        }
+    }
+    return listOf(
+        SeasonChoice(
+            label = seasonSelectorLabel(currentNumber, detail.title),
+            selected = true,
+            tmdbSeason = currentNumber,
+        ),
+    )
+}
+
+@Composable
+private fun TrailerRow(clips: List<VideoClip>, onOpenUrl: (String) -> Unit) {
+    if (clips.isEmpty()) return
+    val palette = LocalKittyPalette.current
+    Column {
+        KittySectionHeading(title = "Trailers")
+        Spacer(Modifier.height(KittySpace.sm))
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = KittySpace.md),
+            horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
+        ) {
+            items(clips, key = { it.youtubeId }) { clip ->
+                Column(
+                    modifier = Modifier
+                        .width(232.dp)
+                        .spacePress { onOpenUrl("https://www.youtube.com/watch?v=${clip.youtubeId}") },
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(KittyRadius.md))
+                            .background(Color(0xFF141416)),
+                    ) {
+                        AsyncImage(
+                            model = "https://i.ytimg.com/vi/${clip.youtubeId}/hqdefault.jpg",
+                            contentDescription = clip.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color.White),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                Icons.Filled.PlayArrow,
+                                contentDescription = null,
+                                tint = Color.Black,
+                                modifier = Modifier.size(22.dp),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(KittySpace.sm))
+                    Text(
+                        clip.name,
+                        color = palette.text,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        clip.type,
+                        color = palette.muted,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun EpisodeBlock(
     detail: AnimeSummary,
@@ -1118,47 +1297,71 @@ private fun EpisodeBlock(
     onSeason: (Int) -> Unit = {},
     episodeNote: String? = null,
     onInspect: (EpisodeSlide) -> Unit = {},
+    fallbackArt: String? = null,
+    homeSeason: Int? = null,
 ) {
     val palette = LocalKittyPalette.current
+    val choices = remember(detail.id, seasonTabs, tmdbSeasons, selectedSeason, homeSeason) {
+        seasonChoices(detail, seasonTabs, tmdbSeasons, selectedSeason, homeSeason)
+    }
+    val currentLabel = choices.firstOrNull { it.selected }?.label
+        ?: choices.firstOrNull()?.label
+    var seasonOpen by remember(detail.id) { mutableStateOf(false) }
     Column {
-        Row(
-            modifier = Modifier.padding(horizontal = KittySpace.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            KittySectionHeading(title = "Episodes", subtitle = "$maxEp", padded = false)
-        }
-        if (tmdbSeasons.size > 1) {
+        KittySectionHeading(
+            title = "Episodes",
+            subtitle = when {
+                choices.size <= 1 && !currentLabel.isNullOrBlank() -> "$currentLabel · $maxEp"
+                else -> "$maxEp"
+            },
+        )
+        if (choices.size > 1 && !currentLabel.isNullOrBlank()) {
             Spacer(Modifier.height(KittySpace.sm))
             Row(
                 modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = KittySpace.md),
-                horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
+                    .padding(horizontal = KittySpace.md)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(KittyRadius.md))
+                    .background(palette.surface)
+                    .spacePress { seasonOpen = true }
+                    .padding(horizontal = KittySpace.md, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                tmdbSeasons.forEach { season ->
-                    KittyChip(
-                        label = season.name,
-                        selected = season.number == selectedSeason,
-                        onClick = { onSeason(season.number) },
-                    )
-                }
+                Text(
+                    currentLabel,
+                    color = palette.text,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.Filled.KeyboardArrowDown,
+                    contentDescription = "Choose a season",
+                    tint = palette.text,
+                )
             }
         }
-        if (seasonTabs.size > 1) {
-            Spacer(Modifier.height(KittySpace.sm))
-            Row(
-                modifier = Modifier
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = KittySpace.md),
-                horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
-            ) {
-                seasonTabs.forEach { season ->
-                    val label = season.seasonLabel()
-                        ?: if (season.relationType.equals("Current", true)) "This season" else season.relationType
-                    KittyChip(
-                        label = label,
-                        selected = season.id == detail.id,
-                        onClick = { if (season.id != detail.id) onOpenRelation(season) },
+        if (seasonOpen) {
+            KittyBottomSheet(title = "Season", onDismiss = { seasonOpen = false }) {
+                choices.forEach { choice ->
+                    Text(
+                        choice.label,
+                        color = palette.text,
+                        fontWeight = if (choice.selected) FontWeight.SemiBold else FontWeight.Medium,
+                        fontSize = 16.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp)
+                            .spacePress {
+                                seasonOpen = false
+                                when {
+                                    choice.relation != null -> onOpenRelation(choice.relation)
+                                    choice.tmdbSeason != null -> onSeason(choice.tmdbSeason)
+                                }
+                            },
                     )
                 }
             }
@@ -1208,19 +1411,20 @@ private fun EpisodeBlock(
             )
         }
         Spacer(Modifier.height(KittySpace.sm))
-        EpisodeCarousel(
-            slides = slides,
-            current = episode,
-            watchedThrough = watchedThrough,
-            currentProgress = episodeFraction,
-            fallbackArt = detail.bannerImageUrl ?: detail.coverImageUrl,
-            onPick = { number ->
-                onPickEpisode(number)
-                slides.firstOrNull { it.number == number }?.let(onInspect)
-            },
-            anilistId = detail.id,
-            onToggleWatched = onToggleWatched,
-        )
+        if (slides.isNotEmpty()) {
+            EpisodeCardRow(
+                slides = slides,
+                current = episode,
+                watchedThrough = watchedThrough,
+                currentProgress = episodeFraction,
+                fallbackArt = fallbackArt ?: detail.bannerImageUrl ?: detail.coverImageUrl,
+                onPick = { number ->
+                    onPickEpisode(number)
+                    slides.firstOrNull { it.number == number }?.let(onInspect)
+                },
+                onToggleWatched = onToggleWatched,
+            )
+        }
         if (!episodeNote.isNullOrBlank()) {
             Text(
                 episodeNote,
@@ -1583,11 +1787,6 @@ private fun LinkRow(detail: AnimeSummary, art: TitleArt?, onOpenUrl: (String) ->
         art?.kitsuId?.takeIf { it > 0 }?.let { id ->
             KittyChip(label = "Kitsu", selected = false, onClick = {
                 onOpenUrl("https://kitsu.io/anime/$id")
-            })
-        }
-        art?.clips.orEmpty().forEach { clip ->
-            KittyChip(label = clip.name, selected = false, onClick = {
-                onOpenUrl("https://www.youtube.com/watch?v=${clip.youtubeId}")
             })
         }
         detail.externalLinks

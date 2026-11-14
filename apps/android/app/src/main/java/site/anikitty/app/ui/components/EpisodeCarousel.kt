@@ -14,6 +14,8 @@ import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -67,6 +69,7 @@ data class EpisodeSlide(
     val marker: String? = null,
     val airLabel: String? = null,
     val overview: String? = null,
+    val runtimeMinutes: Int? = null,
 )
 
 /**
@@ -393,6 +396,194 @@ private fun EpisodeThumb(
                 maxLines = 1,
             )
         }
+    }
+}
+
+private val EpisodeCardWidth = 232.dp
+
+@Composable
+fun EpisodeCardRow(
+    slides: List<EpisodeSlide>,
+    current: Int,
+    watchedThrough: Int,
+    currentProgress: Float,
+    fallbackArt: String?,
+    onPick: (Int) -> Unit,
+    onToggleWatched: ((Int) -> Unit)? = null,
+) {
+    if (slides.isEmpty()) return
+    val palette = LocalKittyPalette.current
+    val state = rememberLazyListState()
+    LaunchedEffect(current, slides.size) {
+        val index = slides.indexOfFirst { it.number == current }
+        if (index > 0) state.scrollToItem(index)
+    }
+    LazyRow(
+        state = state,
+        contentPadding = PaddingValues(horizontal = site.anikitty.app.ui.theme.KittySpace.md),
+        horizontalArrangement = Arrangement.spacedBy(site.anikitty.app.ui.theme.KittySpace.sm),
+    ) {
+        itemsIndexed(slides, key = { _, slide -> slide.number }, contentType = { _, _ -> "episode" }) { _, slide ->
+            val watched = watchedThrough > 0 && slide.number < current && slide.number <= watchedThrough
+            val progress = when {
+                slide.number == current -> currentProgress.coerceIn(0f, 1f)
+                watchedThrough > 0 && slide.number <= watchedThrough -> 1f
+                else -> 0f
+            }
+            EpisodeStillCard(
+                slide = slide,
+                progress = progress,
+                watched = watched || (watchedThrough > 0 && slide.number <= watchedThrough && slide.number != current),
+                fallbackArt = fallbackArt,
+                ink = palette.text,
+                mute = palette.muted,
+                onClick = { onPick(slide.number) },
+                onToggleWatched = onToggleWatched,
+            )
+        }
+    }
+}
+
+@Composable
+fun EpisodeCardSkeletonRow() {
+    Row(
+        modifier = Modifier.padding(horizontal = site.anikitty.app.ui.theme.KittySpace.md),
+        horizontalArrangement = Arrangement.spacedBy(site.anikitty.app.ui.theme.KittySpace.sm),
+    ) {
+        repeat(2) {
+            Column(modifier = Modifier.width(EpisodeCardWidth)) {
+                ShimmerBox(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(16f / 9f)
+                        .clip(RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.md)),
+                )
+                Spacer(modifier = Modifier.height(site.anikitty.app.ui.theme.KittySpace.sm))
+                ShimmerBox(
+                    modifier = Modifier
+                        .fillMaxWidth(0.84f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                ShimmerBox(
+                    modifier = Modifier
+                        .fillMaxWidth(0.46f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp)),
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun EpisodeStillCard(
+    slide: EpisodeSlide,
+    progress: Float,
+    watched: Boolean,
+    fallbackArt: String?,
+    ink: Color,
+    mute: Color,
+    onClick: () -> Unit,
+    onToggleWatched: ((Int) -> Unit)?,
+) {
+    var menu by remember { mutableStateOf(false) }
+    val view = LocalView.current
+    val shape = RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.md)
+    val art = slide.imageUrl?.takeIf { it.isNotBlank() } ?: fallbackArt
+    val title = slide.title.trim()
+    val line = if (title.isEmpty() || title.equals("Episode ${slide.number}", ignoreCase = true)) {
+        "E${slide.number}"
+    } else {
+        "E${slide.number} · $title"
+    }
+    val meta = buildList {
+        if (watched && progress >= 1f) add("Watched")
+        slide.runtimeMinutes?.takeIf { it > 0 }?.let { add("$it min") }
+        slide.airLabel?.takeIf { it.isNotBlank() }?.let { add(it) }
+    }.joinToString(" · ").ifBlank { " " }
+    Column(
+        modifier = Modifier
+            .width(EpisodeCardWidth)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    KittyHaptics.perform(view, KittyHaptics.Kind.Tick)
+                    menu = true
+                },
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(shape)
+                .background(Color(0xFF141416)),
+        ) {
+            if (art != null) {
+                SubcomposeAsyncImage(
+                    model = art,
+                    contentDescription = line,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                    loading = { ShimmerBox(Modifier.fillMaxSize()) },
+                    error = { ThumbFallback(slide.number, Color.White, Color(0xFF141416)) },
+                )
+            } else {
+                ShimmerBox(Modifier.fillMaxSize())
+            }
+            KittyMenu(
+                expanded = menu,
+                onDismiss = { menu = false },
+                entries = buildList {
+                    add(KittyMenuEntry("Play", onClick))
+                    if (onToggleWatched != null) {
+                        add(
+                            KittyMenuEntry(if (watched) "Mark unwatched" else "Mark watched") {
+                                onToggleWatched(slide.number)
+                            },
+                        )
+                    }
+                },
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(Color.White.copy(alpha = 0.22f)),
+            ) {
+                if (progress > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(progress.coerceIn(0f, 1f))
+                            .background(Color.White),
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(site.anikitty.app.ui.theme.KittySpace.sm))
+        Text(
+            line,
+            color = ink,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            meta,
+            color = mute,
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(top = 2.dp),
+        )
     }
 }
 
