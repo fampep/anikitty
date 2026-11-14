@@ -136,6 +136,12 @@ fun KittyEmptyState(
             .padding(horizontal = 18.dp, vertical = 26.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        KittyFace(
+            modifier = Modifier.size(72.dp),
+            waving = true,
+            contentDescription = title,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         Text(
             title,
             color = KittyText,

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="apps/android/app/src/main/res/drawable/anikitty_logo.png" alt="AniKitty" width="120" height="120">
+  <img src="docs/brand/anikitty-icon-512.png" alt="AniKitty" width="120" height="120">
 
   <h1>AniKitty</h1>
 

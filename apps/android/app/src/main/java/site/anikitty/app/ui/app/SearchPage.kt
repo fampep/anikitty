@@ -320,6 +320,12 @@ fun SearchFeed(
                                 .padding(horizontal = 8.dp, vertical = 28.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
+                            site.anikitty.app.ui.components.KittyFace(
+                                modifier = Modifier.size(64.dp),
+                                waving = true,
+                                contentDescription = "Nothing matches that yet",
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
                             Text(
                                 "Nothing matches that yet",
                                 color = palette.text,

@@ -115,4 +115,5 @@ jobs:
             --title "${{ steps.ver.outputs.name }}" \
             --prerelease \
             --notes-file notes.md \
-            "anikitty-${{ steps.ver.outputs.name }}.apk"
+            "anikitty-${{ steps.ver.outputs.name }}.apk" \
+            docs/brand/anikitty-icon-512.png

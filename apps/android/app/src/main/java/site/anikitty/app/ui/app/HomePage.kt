@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
@@ -70,6 +71,11 @@ internal fun HomeBar(
             .padding(start = 16.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        site.anikitty.app.ui.components.KittyFace(
+            modifier = Modifier
+                .padding(end = 8.dp)
+                .size(28.dp),
+        )
         Text(
             "anikitty.",
             color = ink,
@@ -88,10 +94,10 @@ internal fun HomeBar(
         }
         HomeBarIcon(onClick = onRefresh) {
             if (refreshBusy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.height(16.dp).width(16.dp),
-                    strokeWidth = 2.dp,
-                    color = ink,
+                site.anikitty.app.ui.components.KittyFace(
+                    modifier = Modifier.size(18.dp),
+                    waving = true,
+                    contentDescription = "Refreshing",
                 )
             } else {
                 Icon(

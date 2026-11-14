@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.Dp
 import coil.compose.AsyncImage
 import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonOutline
 import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.components.KittyAttention
+import site.anikitty.app.ui.theme.KittyHaptics
 import site.anikitty.app.ui.theme.prefersReducedMotion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -71,11 +73,9 @@ fun ProfileMark(
                 contentScale = ContentScale.Crop,
             )
         } else {
-            Icon(
-                FluentuiSystemIconsPersonOutline,
+            site.anikitty.app.ui.components.KittyFace(
+                modifier = Modifier.size(size * 0.82f),
                 contentDescription = "Profile",
-                tint = Color.White.copy(alpha = 0.75f),
-                modifier = Modifier.size(size * 0.55f),
             )
         }
     }
@@ -91,18 +91,23 @@ fun Modifier.spacePress(onClick: () -> Unit): Modifier = composed {
     val scale by animateFloatAsState(
         targetValue = if (!reduced && pressed) 0.96f else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
+            dampingRatio = Spring.DampingRatioNoBouncy,
             stiffness = Spring.StiffnessMedium,
         ),
         label = "press",
     )
+    val view = androidx.compose.ui.platform.LocalView.current
     graphicsLayer {
         scaleX = scale
         scaleY = scale
     }.clickable(
         interactionSource = interaction,
         indication = null,
-        onClick = onClick,
+        onClick = {
+            KittyHaptics.perform(view, KittyHaptics.Kind.Confirm)
+            KittyAttention.nudge(0.25f, 0f)
+            onClick()
+        },
     )
 }
 
@@ -138,14 +143,21 @@ fun SpacePageHeader(
                 )
             }
         }
-        Text(
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            site.anikitty.app.ui.components.KittyFace(
+                modifier = Modifier
+                    .padding(end = 10.dp)
+                    .size(36.dp),
+            )
+            Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.5).sp,
             ),
             color = Color.White,
-        )
+            )
+        }
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodySmall,
