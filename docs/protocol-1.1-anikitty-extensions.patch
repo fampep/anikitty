@@ -1,0 +1,716 @@
+From 311f476908eed11eedf40100683dcc4d190a8ce8 Mon Sep 17 00:00:00 2001
+From: fampep <284697984+fampep@users.noreply.github.com>
+Date: Sat, 14 Nov 2026 14:14:09 +0000
+Subject: [PATCH] Document extension protocol 1.1.
+
+Optional quality, audio, and qualityRating are specified, shown in the hello-http example, and filled by the built-in resolvers only when the playlist or provider label states them. Manifest apiVersion stays 1.
+---
+ GUIDE.md                                    |  25 ++++-
+ README.md                                   |   8 +-
+ examples/hello-http/README.md               |   3 +
+ examples/hello-http/anikitty-extension.json |   2 +-
+ providers/README.md                         |   4 +-
+ providers/anikoto/AnikotoServer.kt          | 103 +++++++++++++++++---
+ providers/anikoto/README.md                 |   4 +-
+ providers/anipm/AniPmServer.kt              |  28 ++++--
+ providers/anipm/README.md                   |   4 +-
+ providers/gotaku/GotakuServer.kt            |  21 ++--
+ providers/gotaku/README.md                  |   4 +-
+ spec/PROTOCOL.md                            |  91 ++++++++++++++++-
+ store/SUBMIT.md                             |   2 +
+ store/index.json                            |  10 +-
+ 14 files changed, 261 insertions(+), 48 deletions(-)
+
+diff --git a/GUIDE.md b/GUIDE.md
+index dfb8bcb..6063f5b 100644
+--- a/GUIDE.md
++++ b/GUIDE.md
+@@ -26,7 +26,7 @@ Create `anikitty-extension.json` at the **root** of a public GitHub repository:
+ Rules:
+ 
+ - `id` — reverse-DNS, stable forever (changing it installs a *new* extension).
+-- `apiVersion` — must be `1` for current AniKitty builds.
++- `apiVersion` — must be `1`. Protocol 1.1 adds optional source fields without a new manifest version.
+ - `baseUrl` — HTTPS origin of your resolver (no trailing slash).
+ - `resolvePath` — path joined to `baseUrl` (default `/v1/resolve`).
+ - **`iconUrl` — required.** Must be the **brand/favicon of the site you scrape or front** (HTTPS). The Store shows this icon next to Anikoto and every listing. Install fails without it.
+@@ -68,6 +68,9 @@ Success `200` JSON:
+         "User-Agent": "Mozilla/5.0"
+       },
+       "label": "1080p",
++      "quality": "1080p",
++      "audio": "AAC 2.0 · SUB",
++      "qualityRating": "FHD",
+       "stripBytes": 0,
+       "subtitles": [
+         {
+@@ -82,7 +85,25 @@ Success `200` JSON:
+ }
+ ```
+ 
+-Errors: non-2xx with `{ "error": "human message" }` (optional). AniKitty surfaces the message in the UI.
++### Source fields
++
++| Field | Type | Required | When omitted | Examples |
++|---|---|---|---|---|
++| `url` | string | yes | source is dropped | `https://cdn.example.com/a.m3u8` |
++| `label` | string | no | `"Stream"` | `"1080p"`, `"Auto · SUB"` |
++| `quality` | string | no | no picture badge | `"720p"`, `"1080p"`, `"4K"` |
++| `audio` | string | no | no audio badge | `"SUB"`, `"AAC 2.0 · DUB"`, `"AC3 5.1 · SUB"` |
++| `qualityRating` | string | no | no grade badge | `"SD"`, `"HD"`, `"FHD"`, `"UHD"` |
++| `headers` | object | no | none | `{ "Referer": "https://watch.example.com/" }` |
++| `referer` / `origin` | string | no | not copied | shorthand for those headers |
++| `stripBytes` | number | no | `0` | leading bytes to drop on segments |
++| `subtitles` | array | no | none | `{ url, label, language?, mimeType? }` |
++
++`quality` is the size the stream or site stated. `qualityRating` is a grade the site stated. Do not derive one from the other. A response with only `url` is still protocol 1.0 and still plays.
++
++Errors: non-2xx with `{ "error": "human message" }` (optional). AniKitty surfaces the message. An empty `sources` array is a failure. A dropped connection is tried once. An HTTP error is not retried.
++
++Built-in resolvers are compiled into the app and are not installed from this JSON. They write the same three optional fields when a playlist attribute or a provider label actually contains them. Your extension does that by sending the fields.
+ 
+ See [spec/PROTOCOL.md](./spec/PROTOCOL.md) for full field semantics (`stripBytes`, subtitle MIME, caching expectations).
+ 
+diff --git a/README.md b/README.md
+index e67e90a..0a5a114 100644
+--- a/README.md
++++ b/README.md
+@@ -11,16 +11,16 @@
+ | Repo | Role |
+ |---|---|
+ | [`fampep/anikitty`](https://github.com/fampep/anikitty) | Android app. Compiles [providers](./providers) and plays streams on the phone. |
+-| [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) | This tree: spec, store, examples, and provider source. MIT. |
++| [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions) | This tree: spec, store, examples, and provider source. Owned by fampep. |
+ 
+ The in-app store loads  
+ `https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`  
+ and fills any missing listing from the copy in this monorepo. The newer `updatedAt` wins.  
+-Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup.md).
++Maintainer notes: [public GitHub setup](https://github.com/fampep/anikitty/blob/main/docs/public-github-setup.md).
+ 
+ ## License & ownership
+ 
+-- **Copyright fampep** — [MIT License](./LICENSE)
++- **Copyright 2026 fampep.** [Apache License 2.0](./LICENSE)
+ - Fork, modify, and contribute. See [DISCLAIMER.md](./DISCLAIMER.md) · [NOTICE](./NOTICE)
+ - Community extension *backends* stay owned by their authors — gladly linked, not controlled by fampep
+ 
+@@ -29,7 +29,7 @@ Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup
+ | Doc | Purpose |
+ |---|---|
+ | [GUIDE.md](./GUIDE.md) | Author an extension |
+-| [spec/PROTOCOL.md](./spec/PROTOCOL.md) | HTTP resolve protocol |
++| [spec/PROTOCOL.md](./spec/PROTOCOL.md) | HTTP resolve protocol 1.1 (`apiVersion` stays 1) |
+ | [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json) | Manifest schema |
+ | [store/index.json](./store/index.json) | Curated GitHub links for the in-app store |
+ | [examples/hello-http](./examples/hello-http) | Minimal template |
+diff --git a/examples/hello-http/README.md b/examples/hello-http/README.md
+index f1c7eb4..ed95d4b 100644
+--- a/examples/hello-http/README.md
++++ b/examples/hello-http/README.md
+@@ -17,6 +17,9 @@ app.post('/v1/resolve', async (req, res) => {
+       url: 'https://cdn.example.com/master.m3u8',
+       headers: { Referer: 'https://watch.example.com/' },
+       label: '1080p',
++      quality: '1080p',
++      audio: 'AAC 2.0 · SUB',
++      qualityRating: 'FHD',
+     }],
+   });
+ });
+diff --git a/examples/hello-http/anikitty-extension.json b/examples/hello-http/anikitty-extension.json
+index b402d22..c491a02 100644
+--- a/examples/hello-http/anikitty-extension.json
++++ b/examples/hello-http/anikitty-extension.json
+@@ -2,7 +2,7 @@
+   "apiVersion": 1,
+   "id": "site.anikitty.example.hello",
+   "name": "Hello HTTP",
+-  "version": "1.0.1",
++  "version": "1.1.0",
+   "description": "Minimal BYO resolve example — replace baseUrl/iconUrl with your service + site icon.",
+   "author": "fampep",
+   "homepage": "https://github.com/fampep/anikitty",
+diff --git a/providers/README.md b/providers/README.md
+index 39a2f2c..7208b37 100644
+--- a/providers/README.md
++++ b/providers/README.md
+@@ -9,4 +9,6 @@ Playback stays on the phone. This repository is where the extension version of e
+ | [gotaku](./gotaku) | Gotaku HLS unwrap |
+ | [anipm](./anipm) | ani.pm → Settlar |
+ 
+-Copyright 2026 fampep. [MIT License](../LICENSE).
++Each resolver sets optional `quality`, `audio`, and `qualityRating` on `PlayableSource` only from data it parsed (HLS `RESOLUTION` / `CODECS` / `CHANNELS`, or the site’s own label). A missing fact stays null.
++
++Copyright 2026 fampep. [Apache License 2.0](../LICENSE).
+diff --git a/providers/anikoto/AnikotoServer.kt b/providers/anikoto/AnikotoServer.kt
+index 0a23151..06df4eb 100644
+--- a/providers/anikoto/AnikotoServer.kt
++++ b/providers/anikoto/AnikotoServer.kt
+@@ -1,3 +1,6 @@
++// Copyright 2026 fampep
++// Licensed under the Apache License, Version 2.0. See the LICENSE file.
++
+ package site.anikitty.app.data.servers
+ 
+ import kotlinx.coroutines.Dispatchers
+@@ -48,8 +51,8 @@ class AnikotoServer(
+         require(anilistId > 0) { "anilistId required" }
+         require(episode > 0) { "episode required" }
+         val mode = if (audio.equals("dub", ignoreCase = true)) "dub" else "sub"
+-        val titles = buildTitleQueries(titleHint)
+-        val mapped = mapWatchPage(anilistId, titles)
++        val (titles, malId) = hintParts(titleHint)
++        val mapped = mapWatchPage(anilistId, titles, malId)
+         val episodes = fetchEpisodes(mapped.siteId, mapped.watchUrl)
+         val ep = episodes.firstOrNull { it.number == episode }
+             ?: error("Episode $episode not found")
+@@ -78,13 +81,18 @@ class AnikotoServer(
+                         listOf(resolved.file to "Stream")
+                     }) {
+                         if (!url.startsWith("http") || !seen.add(url)) continue
++                        val shown = qualityLabel(label, quality)
++                        val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.anikoto(shown, mode)
+                         out += PlayableSource(
+                             url = url,
+                             headers = streamHeaders(resolved.origin),
+-                            label = qualityLabel(label, quality),
++                            label = shown,
+                             stripBytes = strip,
+                             subtitles = resolved.subtitles,
+                             skip = skip,
++                            quality = fields.quality,
++                            audio = fields.audio,
++                            qualityRating = fields.qualityRating,
+                         )
+                     }
+                 }
+@@ -112,7 +120,8 @@ class AnikotoServer(
+         val key = skipKey(anilistId, episode)
+         skipMemory[key]?.let { return@withContext it }
+         val found = try {
+-            val mapped = mapWatchPage(anilistId, buildTitleQueries(titleHint))
++            val (titles, malId) = hintParts(titleHint)
++            val mapped = mapWatchPage(anilistId, titles, malId)
+             val ep = fetchEpisodes(mapped.siteId, mapped.watchUrl)
+                 .firstOrNull { it.number == episode }
+                 ?: return@withContext SkipTimes()
+@@ -158,15 +167,19 @@ class AnikotoServer(
+         val subtitles: List<SubtitleTrack>,
+     )
+ 
+-    private fun mapWatchPage(anilistId: Int, titles: List<String>): MappedShow {
++    private fun mapWatchPage(anilistId: Int, titles: List<String>, malId: Int?): MappedShow {
+         cache?.getShow(ID, anilistId)?.let { hit ->
+-            // Trust the cache for rematches; fall through if the page is gone.
++            // A stored page is only reused when it still belongs to this AniList
++            // entry. A same-named film (2.0, The New Movie) used to stick forever.
+             val html = runCatching { fetchText(hit.watchUrl, ANIKOTO_BASE) }.getOrNull()
+-            if (html != null && parseWatchId(html) == hit.siteId) {
++            if (html != null &&
++                parseWatchId(html) == hit.siteId &&
++                pageMatchesAnilist(html, anilistId, titles) &&
++                malAgrees(hit.siteId, hit.watchUrl, malId)
++            ) {
+                 return MappedShow(hit.siteId, hit.watchUrl)
+             }
+         }
+-        val seen = LinkedHashSet<String>()
+         val ranked = ArrayList<Pair<String, Int>>() // url to score
+         for (q in titles.take(8)) {
+             val slug = titleSlug(q)
+@@ -177,17 +190,25 @@ class AnikotoServer(
+                 val html = data.optJSONObject("result")?.optString("html")
+                     ?: data.optString("result")
+                 parseSearchCandidates(html).forEach { (url, name) ->
+-                    val score = if (searchNameMatches(name, titles)) 10 else 2
++                    val score = when {
++                        titlesIdentifySameWork(name, titles) -> 100
++                        searchNameMatches(name, titles) -> 10
++                        else -> 2
++                    }
+                     ranked += url to score
+                 }
+             }
+         }
+-        for ((url, _) in ranked.sortedByDescending { it.second }.take(10)) {
+-            if (!seen.add(url)) continue
++        val best = LinkedHashMap<String, Int>()
++        for ((url, score) in ranked.sortedByDescending { it.second }) {
++            if (url !in best) best[url] = score
++        }
++        for (url in best.keys.take(8)) {
+             val abs = absoluteUrl(url)
+             val html = runCatching { fetchText(abs, ANIKOTO_BASE) }.getOrNull() ?: continue
+             if (!pageMatchesAnilist(html, anilistId, titles)) continue
+             val siteId = parseWatchId(html) ?: continue
++            if (!malAgrees(siteId, abs, malId)) continue
+             val mapped = MappedShow(siteId, abs)
+             cache?.putShow(ID, anilistId, mapped.siteId, mapped.watchUrl)
+             return mapped
+@@ -195,6 +216,24 @@ class AnikotoServer(
+         error("No watch page for AniList $anilistId")
+     }
+ 
++    /**
++     * Episode `data-mal` is the MyAnimeList id. When AniList gave us one, a page
++     * whose episodes belong to a different MAL id is a different work.
++     * A failed fetch does not reject the page.
++     */
++    private fun malAgrees(siteId: String, watchUrl: String, malId: Int?): Boolean {
++        if (malId == null || malId <= 0) return true
++        val found = runCatching { episodeMalIds(siteId, watchUrl) }.getOrNull() ?: return true
++        if (found.isEmpty()) return true
++        return malId in found
++    }
++
++    private fun episodeMalIds(siteId: String, watchUrl: String): Set<Int> {
++        val data = fetchJson("$ANIKOTO_BASE/ajax/episode/list/$siteId?style=multi", watchUrl)
++        val html = data.optString("result")
++        return DATA_MAL.findAll(html).mapNotNull { it.groupValues[1].toIntOrNull() }.toSet()
++    }
++
+     private fun fetchEpisodes(siteId: String, watchUrl: String): List<SiteEpisode> {
+         cache?.getEpisodes(ID, siteId)?.let { cached ->
+             return cached.map {
+@@ -507,6 +546,8 @@ class AnikotoServer(
+         private val EPISODE = Regex(
+             """(?is)<a\b[^>]*\bdata-num=["'](\d+)["'][^>]*\bdata-sub=["']([^"']*)["'][^>]*\bdata-dub=["']([^"']*)["'][^>]*\bdata-ids=["']([^"']+)["'][^>]*>""",
+         )
++        private val DATA_MAL = Regex("""(?i)\bdata-mal=["'](\d+)["']""")
++        private val MAL_HINT = Regex("""(?i)\bmal:(\d+)\b""")
+         private val SERVER_LI = Regex(
+             """(?is)<li\b[^>]*\bdata-link-id=["']([^"']+)["'][^>]*>(.*?)</li>""",
+         )
+@@ -575,12 +616,37 @@ class AnikotoServer(
+             return sb.trim().toString()
+         }
+ 
++        /**
++         * Same work, not a longer sibling. "Ghost in the Shell" matches itself
++         * and a year suffix, and does not match "2.0", "The New Movie", or
++         * "The Ghost in the Shell".
++         */
++        private fun identityKey(title: String): String {
++            val stripped = normalizeTitleKey(title)
++                .replace(Regex("""\b(?:19|20)\d{2}\b"""), " ")
++                .replace(Regex("""\s+"""), " ")
++                .trim()
++            return stripped.split(' ')
++                .filter { it.length > 1 || it.all(Char::isDigit) }
++                .joinToString(" ")
++        }
++
++        private fun titlesIdentifySameWork(pageTitle: String, expected: List<String>): Boolean {
++            val page = identityKey(pageTitle)
++            if (page.isEmpty()) return false
++            return expected.any { identityKey(it) == page }
++        }
++
+         private fun titlesLooselyMatch(a: String, b: String): Boolean {
+             val na = normalizeTitleKey(a)
+             val nb = normalizeTitleKey(b)
+             if (na.isEmpty() || nb.isEmpty()) return false
+             if (na == nb) return true
+-            if (na.contains(nb) || nb.contains(na)) return true
++            val shorter = minOf(na.length, nb.length)
++            val longer = maxOf(na.length, nb.length)
++            if ((na.contains(nb) || nb.contains(na)) && shorter >= 8 && shorter * 10 >= longer * 8) {
++                return true
++            }
+             val ta = na.split(' ').filter { it.length > 2 }.toSet()
+             val tb = nb.split(' ').filter { it.length > 2 }.toSet()
+             if (ta.isEmpty() || tb.isEmpty()) return false
+@@ -589,6 +655,17 @@ class AnikotoServer(
+             return inter.size >= need
+         }
+ 
++        /** Split a resolver hint into search titles and an optional MAL id (`mal:43`). */
++        private fun hintParts(titleHint: String?): Pair<List<String>, Int?> {
++            val raw = titleHint?.trim().orEmpty()
++            val mal = MAL_HINT.find(raw)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
++            val cleaned = raw.replace(MAL_HINT, " ").replace(Regex("""\s*\|\|\s*"""), " || ")
++                .trim()
++                .trim('|')
++                .trim()
++            return buildTitleQueries(cleaned.ifBlank { null }) to mal
++        }
++
+         private fun buildTitleQueries(hint: String?): List<String> {
+             val raw = hint?.trim().orEmpty()
+             if (raw.isEmpty()) return emptyList()
+@@ -650,7 +727,7 @@ class AnikotoServer(
+         private fun pageMatchesAnilist(html: String, anilistId: Int, expectedTitles: List<String>): Boolean {
+             pageAnilistId(html)?.let { return it == anilistId }
+             val pageTitle = parsePageTitle(html) ?: return false
+-            return expectedTitles.any { titlesLooselyMatch(it, pageTitle) }
++            return titlesIdentifySameWork(pageTitle, expectedTitles)
+         }
+ 
+         private fun searchNameMatches(candidateName: String, expectedTitles: List<String>): Boolean =
+diff --git a/providers/anikoto/README.md b/providers/anikoto/README.md
+index 8b3ba91..88b8c69 100644
+--- a/providers/anikoto/README.md
++++ b/providers/anikoto/README.md
+@@ -1,9 +1,11 @@
+ # Anikoto
+ 
++`quality` comes from a resolution in the embed label (`1080p`, `4K`). `qualityRating` is set only when that label contains HD, FHD, UHD, SD, or HQ. `audio` is `SUB` or `DUB` from the track that was resolved.
++
+ On-device resolver compiled into the AniKitty app from this folder.
+ 
+ `AnikotoServer.kt` maps an AniList id to an Anikoto watch page, then returns MegaPlay URLs and headers. `MegaPlayCrypto.kt` reads the player key at runtime. Skip times from this provider are what the app uses for every stream.
+ 
+ The extension version of Anikoto is built here. The phone still plays the stream itself.
+ 
+-Copyright 2026 fampep. [MIT License](../../LICENSE).
++Copyright 2026 fampep. [Apache License 2.0](../../LICENSE).
+diff --git a/providers/anipm/AniPmServer.kt b/providers/anipm/AniPmServer.kt
+index 5798661..33b72b4 100644
+--- a/providers/anipm/AniPmServer.kt
++++ b/providers/anipm/AniPmServer.kt
+@@ -1,3 +1,6 @@
++// Copyright 2026 fampep
++// Licensed under the Apache License, Version 2.0. See the LICENSE file.
++
+ package site.anikitty.app.data.servers
+ 
+ import kotlinx.coroutines.Dispatchers
+@@ -98,6 +101,7 @@ class AniPmServer(
+         val masterText = runCatching { httpText(master, headers = headers) }.getOrNull().orEmpty()
+         val variants = parseVariants(masterText, master)
+         val out = ArrayList<PlayableSource>()
++        val autoFields = site.anikitty.app.data.servers.BuiltInSourceMeta.anipm("", channel)
+         // Prefer the master so Media3 can ABR; variants stay available in the quality sheet.
+         out += PlayableSource(
+             url = master,
+@@ -105,14 +109,18 @@ class AniPmServer(
+             label = "Auto · ${channel.uppercase()}",
+             stripBytes = 0,
+             subtitles = subs,
++            audio = autoFields.audio,
+         )
+-        for ((url, height) in variants.sortedByDescending { it.second }) {
+-            if (url == master) continue
++        for (variant in variants.sortedByDescending { it.height }) {
++            if (variant.url == master) continue
++            val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.anipm(variant.inf, channel)
+             out += PlayableSource(
+-                url = url,
++                url = variant.url,
+                 headers = headers,
+-                label = if (height > 0) "${height}p" else "Ani.pm",
++                label = fields.quality ?: "Ani.pm",
+                 stripBytes = 0,
++                quality = fields.quality,
++                audio = fields.audio,
+             )
+         }
+         out
+@@ -125,7 +133,9 @@ class AniPmServer(
+             cache?.putShow(ID, anilistId, fromPartner, "$SITE_URL/anime/$fromPartner")
+             return fromPartner
+         }
+-        val q = titleHint?.trim().orEmpty()
++        val q = titleHint?.replace(Regex("""(?i)\s*\|\|\s*mal:\d+\b"""), "")
++            ?.replace(Regex("""(?i)\bmal:\d+\b"""), "")
++            ?.trim().orEmpty()
+         if (q.length >= 2) {
+             val fromSearch = runCatching { siteIdFromTitleSearch(q, anilistId) }.getOrNull()
+             if (!fromSearch.isNullOrBlank()) {
+@@ -227,10 +237,12 @@ class AniPmServer(
+         return out
+     }
+ 
+-    private fun parseVariants(master: String, masterUrl: String): List<Pair<String, Int>> {
++    private data class HlsVariant(val url: String, val inf: String, val height: Int)
++
++    private fun parseVariants(master: String, masterUrl: String): List<HlsVariant> {
+         if (master.isBlank()) return emptyList()
+         val lines = master.lines()
+-        val out = ArrayList<Pair<String, Int>>()
++        val out = ArrayList<HlsVariant>()
+         var i = 0
+         while (i < lines.size) {
+             val line = lines[i].trim()
+@@ -240,7 +252,7 @@ class AniPmServer(
+                 val next = lines.getOrNull(i + 1)?.trim().orEmpty()
+                 if (next.isNotEmpty() && !next.startsWith("#")) {
+                     val abs = absolutize(masterUrl, next)
+-                    if (abs.startsWith("http")) out += abs to height
++                    if (abs.startsWith("http")) out += HlsVariant(abs, line, height)
+                     i += 2
+                     continue
+                 }
+diff --git a/providers/anipm/README.md b/providers/anipm/README.md
+index 2d3d317..6fee2e8 100644
+--- a/providers/anipm/README.md
++++ b/providers/anipm/README.md
+@@ -4,6 +4,8 @@ On-device resolver compiled into the AniKitty app from this folder.
+ 
+ `AniPmServer.kt` maps an AniList id to ani.pm, then to a Settlar HLS master and captions. The app plays that master directly.
+ 
++Variant rows set `quality` from `RESOLUTION` and `audio` from `CODECS` / `CHANNELS` plus sub or dub. The Auto master row only sets `audio` to `SUB` or `DUB`.
++
+ The extension version of Ani.pm is built here. The phone still plays the stream itself.
+ 
+-Copyright 2026 fampep. [MIT License](../../LICENSE).
++Copyright 2026 fampep. [Apache License 2.0](../../LICENSE).
+diff --git a/providers/gotaku/GotakuServer.kt b/providers/gotaku/GotakuServer.kt
+index 36fc97e..d4a3d84 100644
+--- a/providers/gotaku/GotakuServer.kt
++++ b/providers/gotaku/GotakuServer.kt
+@@ -1,3 +1,6 @@
++// Copyright 2026 fampep
++// Licensed under the Apache License, Version 2.0. See the LICENSE file.
++
+ package site.anikitty.app.data.servers
+ 
+ import kotlinx.coroutines.Dispatchers
+@@ -72,21 +75,26 @@ class GotakuServer(
+         val variants = parseVariants(masterText)
+         val out = ArrayList<PlayableSource>()
+         if (variants.isEmpty()) {
++            val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.gotaku("", mode)
+             out += PlayableSource(
+                 url = source,
+                 headers = headers,
+                 label = "Gotaku",
+                 stripBytes = 0,
+                 gotakuObf = obf,
++                audio = fields.audio,
+             )
+         } else {
+-            for ((_, url, height) in variants.sortedByDescending { it.height }) {
++            for (variant in variants.sortedByDescending { it.height }) {
++                val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.gotaku(variant.inf, mode)
+                 out += PlayableSource(
+-                    url = url,
++                    url = variant.url,
+                     headers = headers,
+-                    label = if (height > 0) "${height}p" else "Gotaku",
++                    label = fields.quality ?: "Gotaku",
+                     stripBytes = 0,
+                     gotakuObf = obf,
++                    quality = fields.quality,
++                    audio = fields.audio,
+                 )
+             }
+         }
+@@ -276,7 +284,7 @@ class GotakuServer(
+                     ?.toIntOrNull() ?: 0
+                 val next = lines.getOrNull(i + 1)?.trim().orEmpty()
+                 if (next.startsWith("http")) {
+-                    out += Variant(bw, next, height)
++                    out += Variant(bw, next, height, line)
+                     i += 2
+                     continue
+                 }
+@@ -333,7 +341,8 @@ class GotakuServer(
+         val out = LinkedHashSet<String>()
+         // Callers pass "Romaji || English || Native". Searching that whole string
+         // ranks spin-offs ahead of the series (One Piece films, other "Monster" shows).
+-        val parts = raw.split("||").map { it.trim() }.filter { it.length >= 2 }
++        val parts = raw.split("||").map { it.trim() }
++            .filter { it.length >= 2 && !it.matches(Regex("""(?i)mal:\d+""")) }
+         val seeds = if (parts.isEmpty()) listOf(raw) else parts
+         for (full in seeds) {
+             out += full
+@@ -355,7 +364,7 @@ class GotakuServer(
+     private data class TitleHit(val id: String, val name: String, val poster: String)
+     private data class TitleInfo(val anilistId: Int, val latestSub: Int, val listedTotal: Int)
+     private data class EpisodeHit(val id: String, val number: Int, val sub: Boolean, val dub: Boolean)
+-    private data class Variant(val bandwidth: Int, val url: String, val height: Int)
++    private data class Variant(val bandwidth: Int, val url: String, val height: Int, val inf: String = "")
+ 
+     companion object {
+         const val ID = "gotaku"
+diff --git a/providers/gotaku/README.md b/providers/gotaku/README.md
+index dc3a1a8..0382b67 100644
+--- a/providers/gotaku/README.md
++++ b/providers/gotaku/README.md
+@@ -4,6 +4,8 @@ On-device resolver compiled into the AniKitty app from this folder.
+ 
+ `GotakuServer.kt` finds the title and episode. `GotakuCrypto.kt` unwraps the sealed API and the HLS playlist. The app’s player uses that same crypto while it reads bytes.
+ 
++Each variant sets `quality` from `RESOLUTION` (`720p`, `1080p`, `4K`) and `audio` from `CODECS`, `CHANNELS`, and the sub/dub track. No grade is invented.
++
+ The extension version of Gotaku is built here. The phone still plays the stream itself.
+ 
+-Copyright 2026 fampep. [MIT License](../../LICENSE).
++Copyright 2026 fampep. [Apache License 2.0](../../LICENSE).
+diff --git a/spec/PROTOCOL.md b/spec/PROTOCOL.md
+index b6eac60..71ee4d5 100644
+--- a/spec/PROTOCOL.md
++++ b/spec/PROTOCOL.md
+@@ -1,4 +1,18 @@
+-# AniKitty extension protocol — apiVersion 1
++# AniKitty extension protocol — 1.1
++
++Manifest `apiVersion` stays **1**. Protocol 1.1 only adds optional source fields. Clients that speak 1.0 ignore unknown JSON keys. Servers that omit the new fields keep working.
++
++## Changelog
++
++### 1.1
++
++- Optional per-source `quality`, `audio`, and `qualityRating`.
++- Omitted fields mean “unknown”. The app shows no badge for a missing field.
++- Built-in resolvers (Anikoto, Gotaku, Ani.pm) fill the same fields when the playlist or provider label actually states them. They do not invent a grade from height.
++
++### 1.0
++
++- Manifest, `POST /v1/resolve`, headers, subtitles, `stripBytes`.
+ 
+ ## Roles
+ 
+@@ -47,7 +61,10 @@ Optional: `description`, `author`, `homepage`, `resolvePath`, `siteUrl`, `nsfw`.
+     headers?: Record<string, string>;     // request headers for Media3
+     referer?: string;                     // shorthand for headers.Referer
+     origin?: string;                      // shorthand for headers.Origin
+-    label?: string;                       // quality / source name, e.g. "1080p"
++    label?: string;                       // display name in the quality sheet, e.g. "1080p"
++    quality?: string;                     // picture size the source stated, e.g. "1080p" or "4K"
++    audio?: string;                       // audio the source stated, e.g. "AAC 2.0 · SUB"
++    qualityRating?: string;               // provider grade, e.g. "HD". Not computed by the app
+     stripBytes?: number;                  // leading bytes to strip (MegaPlay-style); 0 = none
+     subtitles?: Array<{
+       url: string;
+@@ -68,6 +85,48 @@ Constraints:
+ - The client keeps the first copy of a repeated `url`, and plays the highest labeled quality first (`1080p` before `720p`).
+ - A dropped connection is tried once more. An HTTP error is not retried.
+ - Empty `sources` → client treats as failure.
++- `quality`, `audio`, and `qualityRating` are optional strings. Trimmed blank values are treated as omitted.
++- There is no enum. Examples that the app will show as-is: `quality` `"480p"` `"720p"` `"1080p"` `"4K"`; `audio` `"SUB"` `"DUB"` `"AAC 2.0 · SUB"` `"AC3 5.1 · DUB"`; `qualityRating` `"SD"` `"HD"` `"FHD"` `"UHD"`.
++- Do not send a grade you did not read from the stream or the site. The app will not fill one in.
++- `label` is still the sheet name. It is not copied into `quality`.
++
++### Minimal example
++
++Request:
++
++```json
++{ "anilistId": 21, "episode": 1, "audio": "sub", "titleHint": "One Piece" }
++```
++
++Response:
++
++```json
++{
++  "sources": [
++    {
++      "url": "https://cdn.example.com/ep1/1080/index.m3u8",
++      "referer": "https://watch.example.com/",
++      "label": "1080p",
++      "quality": "1080p",
++      "audio": "AAC 2.0 · SUB",
++      "qualityRating": "FHD"
++    }
++  ]
++}
++```
++
++A 1.0 server that returns only `url` and `label` is still valid. The phone plays it and shows no quality badge.
++
++### Built-in and user-added
++
++| | Built-in (Anikoto, Gotaku, Ani.pm) | User-added HTTP extension |
++|---|---|---|
++| Where it runs | Compiled into the APK | Your HTTPS `POST` |
++| How metadata arrives | The resolver reads playlist `RESOLUTION` / `CODECS` / `CHANNELS`, or the site’s own quality label | You set `quality`, `audio`, `qualityRating` on each source |
++| When a field is unknown | The field is left out | Leave the field out |
++| Install | Always present | Extension Store, from `anikitty-extension.json` |
++
++Both paths use the same source model in the app. Badges appear only for fields that are present.
+ 
+ ### Errors
+ 
+@@ -85,6 +144,28 @@ Typical AniKitty client budgets:
+ 
+ ## Versioning
+ 
+-- `apiVersion` is the **protocol** version (integer). Incompatible changes bump it.
+-- `version` is the **extension** semver string for humans / store UI.
+-- Clients reject manifests with unknown / unsupported `apiVersion`.
++- Manifest `apiVersion` stays the integer **1**. Clients reject a manifest whose `apiVersion` they do not know. Protocol 1.1 does not change it, so a 1.0 client still installs a 1.1 extension.
++- This document’s version is **1.1**. Additive optional response fields bump the document minor version and are listed in the changelog. A breaking request or response change bumps `apiVersion` and the document major version together.
++- `version` in the manifest is the extension’s own semver, shown in the store. It is not the protocol version.
++
++## Field reference
++
++| Field | Type | Allowed values | Default when omitted |
++|---|---|---|---|
++| `anilistId` | number | integer > 0 | required |
++| `episode` | number | integer > 0 | required |
++| `audio` | string | `"sub"` or `"dub"` | required |
++| `titleHint` | string or null | free text | omitted |
++| `sources` | array | one or more objects | empty array is an error |
++| `sources[].url` | string | absolute `http` or `https` | required; entry dropped if blank |
++| `sources[].headers` | object of strings | any header name | none |
++| `sources[].referer` | string | absolute URL | not set |
++| `sources[].origin` | string | absolute URL | not set |
++| `sources[].label` | string | sheet name, often `"1080p"` or `"Auto · SUB"` | `"Stream"` |
++| `sources[].quality` | string | size the source stated: `"480p"`, `"720p"`, `"1080p"`, `"4K"`, or another short label | no picture badge |
++| `sources[].audio` | string | what the source stated: `"SUB"`, `"DUB"`, `"AAC 2.0 · SUB"`, `"AC3 5.1 · DUB"` | no audio badge |
++| `sources[].qualityRating` | string | grade the source stated: `"SD"`, `"HD"`, `"FHD"`, `"UHD"`, `"HQ"` | no grade badge |
++| `sources[].stripBytes` | number | `0` or a positive byte count | `0` |
++| `sources[].subtitles` | array | `{ url, label, language?, mimeType? }` | none |
++
++Backward compatibility: a 1.0 body with only `url` and `label` is valid. Unknown keys are ignored. Blank strings are treated as omitted. The app never copies `label` into `quality` and never invents `qualityRating` from height.
+diff --git a/store/SUBMIT.md b/store/SUBMIT.md
+index bf6027b..a7bd033 100644
+--- a/store/SUBMIT.md
++++ b/store/SUBMIT.md
+@@ -23,3 +23,5 @@ Required store fields:
+ | `manifestPath` | If the manifest is not at repo root |
+ 
+ You keep ownership of your resolver. A listing is a link, not fampep control. See [../DISCLAIMER.md](../DISCLAIMER.md).
++
++Protocol 1.1: each source may include optional `quality`, `audio`, and `qualityRating`. Leave a field out when the stream does not state it. See [../spec/PROTOCOL.md](../spec/PROTOCOL.md).
+diff --git a/store/index.json b/store/index.json
+index 57b8343..e8ef5a7 100644
+--- a/store/index.json
++++ b/store/index.json
+@@ -1,11 +1,11 @@
+ {
+   "apiVersion": 1,
+-  "updatedAt": "2026-11-13",
++  "updatedAt": "2026-11-14",
+   "extensions": [
+     {
+       "id": "anikoto",
+       "name": "Anikoto",
+-      "description": "Bundled Anikoto resolver. Skip times come from Anikoto for every provider. If a title is missing, playback tries the others and keeps your choice.",
++      "description": "Bundled Anikoto resolver. Skip times come from Anikoto for every provider. Quality and sub/dub come from the embed label when it states them. If a title is missing, playback tries the others and keeps your choice.",
+       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/anikoto",
+       "author": "fampep",
+       "featured": true,
+@@ -15,7 +15,7 @@
+     {
+       "id": "gotaku",
+       "name": "Gotaku",
+-      "description": "Bundled Gotaku resolver. The HLS playlist is unwrapped on device before playback.",
++      "description": "Bundled Gotaku resolver. The HLS playlist is unwrapped on device. Variant resolution, codec, and sub/dub are reported when the playlist states them.",
+       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/gotaku",
+       "author": "fampep",
+       "featured": true,
+@@ -25,7 +25,7 @@
+     {
+       "id": "anipm",
+       "name": "Ani.pm",
+-      "description": "Bundled ani.pm resolver. Streams play in the app, with no web player.",
++      "description": "Bundled ani.pm resolver. Streams play in the app. Variant rows report resolution and audio from the HLS playlist; the Auto row reports sub or dub only.",
+       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/anipm",
+       "author": "fampep",
+       "featured": true,
+@@ -35,7 +35,7 @@
+     {
+       "id": "site.anikitty.example.hello",
+       "name": "Hello HTTP",
+-      "description": "Minimal BYO resolve example (template — not a live CDN). Copy this when authoring a community HTTP extension.",
++      "description": "Minimal BYO resolve example (template — not a live CDN). Shows optional quality, audio, and qualityRating on protocol 1.1.",
+       "github": "https://github.com/fampep/anikitty-extensions/tree/main/examples/hello-http",
+       "author": "fampep",
+       "featured": false,
+-- 
+2.43.0
+
