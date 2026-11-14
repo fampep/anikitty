@@ -731,13 +731,13 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, coverKey: String,
             Text(anime.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val meta = listOfNotNull(formatLabel(anime.format ?: ""), anime.seasonYear?.toString(), anime.episodes?.let { "$it eps" })
                 .filter { it.isNotBlank() }
-                .joinToString(" \u00b7 ")
+                .joinToString(" · ")
             if (meta.isNotEmpty()) {
                 Text(meta, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, maxLines = 1)
             }
             if (anime.genres.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Text(anime.genres.take(3).joinToString("  \u00b7  "), color = Color.White.copy(alpha = 0.45f), fontSize = 10.sp, maxLines = 1)
+                Text(anime.genres.take(3).joinToString("  ·  "), color = Color.White.copy(alpha = 0.45f), fontSize = 10.sp, maxLines = 1)
             }
             badge?.let {
                 Text(it, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
