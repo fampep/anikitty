@@ -48,6 +48,13 @@ class TmdbMapTest {
             ),
         )
         assertEquals("/en.png", path)
+        val textless = pickLogo(
+            listOf(
+                TmdbImage("/ja.png", "ja", 40.0),
+                TmdbImage("/none.png", null, 4.0),
+            ),
+        )
+        assertEquals("/none.png", textless)
     }
 
     @Test

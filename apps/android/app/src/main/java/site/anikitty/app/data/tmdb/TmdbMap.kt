@@ -26,11 +26,67 @@ data class TitleArt(
     val tvdbId: Int = 0,
     val kitsuId: Int = 0,
     val clips: List<VideoClip> = emptyList(),
+    val tagline: String? = null,
+    val originalLanguage: String? = null,
+    val originCountry: String? = null,
+    val status: String? = null,
+    val firstAir: String? = null,
+    val lastAir: String? = null,
+    val nextAir: String? = null,
+    val posters: List<String> = emptyList(),
+    val logoGallery: List<String> = emptyList(),
+    val providers: List<WatchOffer> = emptyList(),
+    val providerLink: String? = null,
+    val castList: List<CastCredit> = emptyList(),
+    val collectionName: String? = null,
+    val collectionItems: List<Suggestion> = emptyList(),
 )
 
 data class VideoClip(val name: String, val youtubeId: String)
 
-data class BrandMark(val name: String, val logoUrl: String?)
+data class BrandMark(val name: String, val logoUrl: String?, val id: Int = 0)
+
+data class CastCredit(
+    val personId: Int,
+    val name: String,
+    val role: String,
+    val photoUrl: String?,
+)
+
+data class WatchOffer(
+    val name: String,
+    val logoUrl: String?,
+)
+
+data class PersonProfile(
+    val id: Int,
+    val name: String,
+    val bio: String?,
+    val photoUrl: String?,
+    val knownFor: List<Suggestion>,
+)
+
+data class EpisodeDetail(
+    val number: Int,
+    val title: String,
+    val stillUrl: String?,
+    val airLabel: String?,
+    val overview: String?,
+    val runtimeMinutes: Int?,
+    val guests: List<CastCredit>,
+    val crew: List<CrewCredit>,
+)
+
+data class DatedTitle(
+    val anilistId: Int,
+    val dateLabel: String,
+)
+
+data class NetworkShelf(
+    val name: String,
+    val logoUrl: String?,
+    val anilistIds: List<Int>,
+)
 
 data class TmdbEpisode(
     val title: String,
@@ -56,6 +112,7 @@ data class CrewCredit(
     val name: String,
     val job: String,
     val photoUrl: String?,
+    val personId: Int = 0,
 )
 
 /** One AniList title in the Fribb anime-lists index. */
@@ -147,20 +204,21 @@ fun pickSearchHit(hits: List<TmdbSearchHit>, title: String, year: Int?): TmdbSea
     return scored.maxByOrNull { it.first }?.second
 }
 
-/** Title art prefers an English logo, then Japanese, then a textless one. */
-fun pickLogo(logos: List<TmdbImage>): String? {
-    val usable = logos.filter { it.path.startsWith("/") }
-    if (usable.isEmpty()) return null
-    return usable.maxWithOrNull(
-        compareBy<TmdbImage> {
-            when (it.language) {
-                "en" -> 3
-                "ja" -> 2
-                null, "" -> 1
-                else -> 0
-            }
-        }.thenBy { it.vote },
-    )?.path
+/** English, then a textless image, then Japanese. */
+fun languageRank(language: String?): Int = when (language) {
+    "en" -> 3
+    null, "" -> 2
+    "ja" -> 1
+    else -> 0
+}
+
+/** Title art prefers an English logo, then a textless one, then Japanese. */
+fun pickLogo(logos: List<TmdbImage>): String? = rankImages(logos).firstOrNull()?.path
+
+fun rankImages(images: List<TmdbImage>): List<TmdbImage> {
+    return images
+        .filter { it.path.startsWith("/") }
+        .sortedWith(compareByDescending<TmdbImage> { languageRank(it.language) }.thenByDescending { it.vote })
 }
 
 fun pickRating(entries: List<Pair<String, String>>): String? {

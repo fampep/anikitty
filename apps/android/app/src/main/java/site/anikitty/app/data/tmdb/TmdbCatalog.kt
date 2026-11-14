@@ -136,6 +136,146 @@ class TmdbCatalog(context: Context) {
         return runCatching { AnimeListIndex(app).collectionFor(anilistId) }.getOrNull()
     }
 
+    /** Shows that have not premiered yet, with the TMDB date. */
+    fun upcomingTitles(limit: Int = 12): List<DatedTitle> {
+        val today = java.time.LocalDate.now().toString()
+        return mappedDiscover(
+            movie = false,
+            query = listOf(
+                "with_genres" to "16",
+                "with_origin_country" to "JP",
+                "with_original_language" to "ja",
+                "sort_by" to "first_air_date.asc",
+                "first_air_date.gte" to today,
+            ),
+            limit = limit,
+        ).map { (id, item) ->
+            DatedTitle(id, shortAirDate(item.optString("first_air_date")) ?: "Soon")
+        }
+    }
+
+    /** Recent Japanese animation with enough votes, not the all-time classics. */
+    fun topRatedIds(limit: Int = 12): List<Int> {
+        val since = java.time.LocalDate.now().minusMonths(18).toString()
+        return mappedDiscover(
+            movie = false,
+            query = listOf(
+                "with_genres" to "16",
+                "with_origin_country" to "JP",
+                "with_original_language" to "ja",
+                "sort_by" to "vote_average.desc",
+                "vote_count.gte" to "40",
+                "first_air_date.gte" to since,
+            ),
+            limit = limit,
+        ).map { it.first }
+    }
+
+    fun becauseYouWatched(anilistId: Int, limit: Int = 12): List<Int> {
+        val key = apiKey()
+        if (key.isBlank() || anilistId <= 0) return emptyList()
+        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull() ?: return emptyList()
+        val kind = if (mapped.movie) "movie" else "tv"
+        val body = get(api("$kind/${mapped.tmdbId}/recommendations", key)) ?: return emptyList()
+        return suggestionIds(JSONObject(body), mapped.movie, AnimeListIndex(app), limit)
+            .filter { it != anilistId }
+    }
+
+    fun networkShelf(anilistId: Int): NetworkShelf? {
+        val key = apiKey()
+        if (key.isBlank() || anilistId <= 0) return null
+        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull() ?: return null
+        if (mapped.movie) return null
+        val body = get(api("tv/${mapped.tmdbId}", key)) ?: return null
+        val networks = JSONObject(body).optJSONArray("networks") ?: return null
+        val network = (0 until networks.length()).firstNotNullOfOrNull { index ->
+            networks.optJSONObject(index)?.takeIf { it.optInt("id") > 0 && it.optString("name").isNotBlank() }
+        } ?: return null
+        val ids = mappedDiscover(
+            movie = false,
+            query = listOf(
+                "with_networks" to network.optInt("id").toString(),
+                "with_genres" to "16",
+                "sort_by" to "popularity.desc",
+                "first_air_date.gte" to java.time.LocalDate.now().minusYears(3).toString(),
+            ),
+            limit = 12,
+        ).map { it.first }.filter { it != anilistId }
+        if (ids.isEmpty()) return null
+        return NetworkShelf(
+            name = network.optString("name"),
+            logoUrl = imageUrl(network.optString("logo_path"), "w154"),
+            anilistIds = ids,
+        )
+    }
+
+    fun episodeDetail(tmdbId: Int, season: Int, episode: Int): EpisodeDetail? {
+        val key = apiKey()
+        if (key.isBlank() || tmdbId <= 0 || episode <= 0) return null
+        val cacheKey = "ep$tmdbId-$season-$episode"
+        prefs.getString(cacheKey, null)?.let { raw ->
+            decodeEpisode(raw)?.let { return it }
+        }
+        val body = get(api("tv/$tmdbId/season/$season/episode/$episode", key)) ?: return null
+        val item = JSONObject(body)
+        val detail = EpisodeDetail(
+            number = item.optInt("episode_number"),
+            title = item.optString("name").trim(),
+            stillUrl = imageUrl(item.optString("still_path"), "w780"),
+            airLabel = shortAirDate(item.optString("air_date")),
+            overview = item.optString("overview").trim().takeIf { it.isNotEmpty() },
+            runtimeMinutes = item.optInt("runtime").takeIf { it > 0 },
+            guests = castCredits(item.optJSONArray("guest_stars")).take(6),
+            crew = crewCredits(item.optJSONArray("crew")).take(4),
+        )
+        prefs.edit().putString(cacheKey, encodeEpisode(detail)).apply()
+        return detail
+    }
+
+    fun person(id: Int): PersonProfile? {
+        val key = apiKey()
+        if (key.isBlank() || id <= 0) return null
+        val cacheKey = "person$id"
+        prefs.getString(cacheKey, null)?.let { raw ->
+            decodePerson(raw)?.let { return it }
+        }
+        val body = get(api("person/$id", key, "append_to_response" to "combined_credits")) ?: return null
+        val json = JSONObject(body)
+        val name = json.optString("name").trim()
+        if (name.isEmpty()) return null
+        val profile = PersonProfile(
+            id = id,
+            name = name,
+            bio = json.optString("biography").trim().take(700).takeIf { it.isNotEmpty() },
+            photoUrl = imageUrl(json.optString("profile_path"), "w185"),
+            knownFor = knownFor(json.optJSONObject("combined_credits"), AnimeListIndex(app)),
+        )
+        prefs.edit().putString(cacheKey, encodePerson(profile)).apply()
+        return profile
+    }
+
+    private fun mappedDiscover(
+        movie: Boolean,
+        query: List<Pair<String, String>>,
+        limit: Int,
+    ): List<Pair<Int, JSONObject>> {
+        val key = apiKey()
+        if (key.isBlank()) return emptyList()
+        val index = AnimeListIndex(app)
+        val path = if (movie) "discover/movie" else "discover/tv"
+        val body = get(api(path, key, *query.toTypedArray())) ?: return emptyList()
+        val list = JSONObject(body).optJSONArray("results") ?: return emptyList()
+        return buildList {
+            for (i in 0 until list.length()) {
+                val item = list.optJSONObject(i) ?: continue
+                val anilist = index.anilistForTmdb(item.optInt("id"), movie) ?: continue
+                if (any { it.first == anilist }) continue
+                add(anilist to item)
+                if (size >= limit) break
+            }
+        }
+    }
+
     fun photoFor(person: AnimePerson, art: TitleArt?): String? {
         if (!person.imageUrl.isNullOrBlank()) return person.imageUrl
         val photos = art?.castPhotos ?: return null
@@ -151,15 +291,16 @@ class TmdbCatalog(context: Context) {
             ?: return null
         val kind = if (movie) "movie" else "tv"
         val extra = if (movie) {
-            "images,release_dates,videos,credits,keywords,recommendations"
+            "images,release_dates,videos,credits,keywords,recommendations,watch/providers"
         } else {
-            "images,content_ratings,videos,credits,keywords,recommendations"
+            "images,content_ratings,videos,credits,keywords,recommendations,watch/providers"
         }
         val body = get(api("$kind/$id", key, "append_to_response" to extra, "include_image_language" to "en,ja,null"))
             ?: return null
         val json = JSONObject(body)
         val images = json.optJSONObject("images")
-        val logo = imageUrl(pickLogo(images.logos()), "w500")
+        val logoGallery = gallery(images?.optJSONArray("logos"), "w500", 4)
+        val logo = logoGallery.firstOrNull()
         val rating = if (movie) movieRating(json) else pickRating(tvRatings(json))
         val runtime = if (movie) {
             json.optInt("runtime").takeIf { it > 0 }
@@ -186,7 +327,30 @@ class TmdbCatalog(context: Context) {
         }
         val backdrops = backdropUrls(images?.optJSONArray("backdrops"))
         val keywords = keywordNames(json.optJSONObject("keywords"), movie)
-        val suggestions = suggestions(json.optJSONObject("recommendations"), movie, AnimeListIndex(app))
+        val index = AnimeListIndex(app)
+        val suggestions = suggestions(json.optJSONObject("recommendations"), movie, index)
+        val posters = gallery(images?.optJSONArray("posters"), "w342", 8)
+        val offers = watchOffers(json.optJSONObject("watch/providers"))
+        val collection = if (movie) {
+            val owned = json.optJSONObject("belongs_to_collection")
+            val collectionId = owned?.optInt("id") ?: 0
+            val collectionBody = if (collectionId > 0) get(api("collection/$collectionId", key)) else null
+            movieCollection(owned, collectionBody, index)
+        } else {
+            null
+        }
+        val next = json.optJSONObject("next_episode_to_air")
+        val nextAir = next?.let { episode ->
+            listOfNotNull(
+                shortAirDate(episode.optString("air_date")),
+                episode.optString("name").trim().takeIf { it.isNotEmpty() },
+            ).joinToString(" · ").takeIf { it.isNotEmpty() }
+        }
+        val countryCode = if (movie) {
+            json.optJSONArray("production_countries")?.optJSONObject(0)?.optString("iso_3166_1")
+        } else {
+            json.optJSONArray("origin_country")?.optString(0)
+        }
         if (
             logo == null && rating == null && overview == null && episodes.isEmpty() &&
             networks.isEmpty() && backdrops.isEmpty()
@@ -215,6 +379,20 @@ class TmdbCatalog(context: Context) {
             tvdbId = mapped?.tvdbId ?: 0,
             kitsuId = mapped?.kitsuId ?: 0,
             clips = clips,
+            tagline = json.optString("tagline").trim().takeIf { it.isNotEmpty() },
+            originalLanguage = languageLabel(json.optString("original_language")),
+            originCountry = countryLabel(countryCode),
+            status = json.optString("status").trim().takeIf { it.isNotEmpty() },
+            firstAir = shortAirDate(if (movie) json.optString("release_date") else json.optString("first_air_date")),
+            lastAir = if (movie) null else shortAirDate(json.optString("last_air_date")),
+            nextAir = nextAir,
+            posters = posters,
+            logoGallery = logoGallery,
+            providers = offers.first,
+            providerLink = offers.second,
+            castList = castCredits(json.optJSONObject("credits")?.optJSONArray("cast")),
+            collectionName = collection?.first,
+            collectionItems = collection?.second.orEmpty(),
         )
     }
 
@@ -294,16 +472,16 @@ class TmdbCatalog(context: Context) {
     }
 
     private fun cached(anilistId: Int): TitleArt? {
-        val raw = prefs.getString("art2$anilistId", null) ?: return null
-        val age = System.currentTimeMillis() - prefs.getLong("art2At$anilistId", 0L)
+        val raw = prefs.getString("art3$anilistId", null) ?: return null
+        val age = System.currentTimeMillis() - prefs.getLong("art3At$anilistId", 0L)
         if (age > TimeUnit.DAYS.toMillis(7)) return null
         return runCatching { decode(raw) }.getOrNull()
     }
 
     private fun remember(anilistId: Int, art: TitleArt) {
         prefs.edit()
-            .putString("art2$anilistId", encode(art))
-            .putLong("art2At$anilistId", System.currentTimeMillis())
+            .putString("art3$anilistId", encode(art))
+            .putLong("art3At$anilistId", System.currentTimeMillis())
             .apply()
     }
 
@@ -428,7 +606,7 @@ private fun brands(list: JSONArray?): List<BrandMark> {
             val item = list.optJSONObject(i) ?: continue
             val name = item.optString("name").trim()
             if (name.isEmpty()) continue
-            add(BrandMark(name, imageUrl(item.optString("logo_path"), "w154")))
+            add(BrandMark(name, imageUrl(item.optString("logo_path"), "w154"), item.optInt("id")))
         }
     }
 }
@@ -546,10 +724,241 @@ private fun crewCredits(list: JSONArray?): List<CrewCredit> {
         if (job !in wanted) continue
         val name = item.optString("name").trim()
         if (name.isEmpty() || name in out) continue
-        out[name] = CrewCredit(name, job, imageUrl(item.optString("profile_path"), "w185"))
+        out[name] = CrewCredit(name, job, imageUrl(item.optString("profile_path"), "w185"), item.optInt("id"))
         if (out.size >= 8) break
     }
     return out.values.toList()
+}
+
+private fun gallery(list: JSONArray?, size: String, limit: Int): List<String> {
+    if (list == null) return emptyList()
+    val images = buildList {
+        for (i in 0 until list.length()) {
+            val item = list.optJSONObject(i) ?: continue
+            val path = item.optString("file_path")
+            if (!path.startsWith("/")) continue
+            add(
+                TmdbImage(
+                    path = path,
+                    language = item.optString("iso_639_1").takeIf { it.isNotBlank() && it != "null" },
+                    vote = item.optDouble("vote_average"),
+                ),
+            )
+        }
+    }
+    return rankImages(images).take(limit).mapNotNull { imageUrl(it.path, size) }
+}
+
+private fun watchOffers(providers: JSONObject?): Pair<List<WatchOffer>, String?> {
+    val results = providers?.optJSONObject("results") ?: return emptyList<WatchOffer>() to null
+    val region = java.util.Locale.getDefault().country.uppercase()
+    val block = results.optJSONObject(region)
+        ?: results.optJSONObject("US")
+        ?: results.optJSONObject("JP")
+        ?: return emptyList<WatchOffer>() to null
+    val link = block.optString("link").takeIf { it.startsWith("http") }
+    val seen = HashSet<String>()
+    val offers = buildList {
+        for (bucket in listOf("flatrate", "free", "ads")) {
+            val list = block.optJSONArray(bucket) ?: continue
+            for (i in 0 until list.length()) {
+                val item = list.optJSONObject(i) ?: continue
+                val name = item.optString("provider_name").trim()
+                if (name.isEmpty() || !seen.add(name.lowercase())) continue
+                add(WatchOffer(name, imageUrl(item.optString("logo_path"), "w92")))
+                if (size >= 8) return@buildList
+            }
+        }
+    }
+    return offers to link
+}
+
+private fun movieCollection(
+    collection: JSONObject?,
+    body: String?,
+    index: AnimeListIndex,
+): Pair<String, List<Suggestion>>? {
+    if (collection == null) return null
+    val name = collection.optString("name").trim()
+    if (collection.optInt("id") <= 0 || name.isEmpty()) return null
+    if (body == null) return name to emptyList()
+    val parts = JSONObject(body).optJSONArray("parts") ?: return name to emptyList()
+    val items = buildList {
+        for (i in 0 until parts.length()) {
+            val item = parts.optJSONObject(i) ?: continue
+            val anilist = index.anilistForTmdb(item.optInt("id"), movie = true) ?: continue
+            val title = item.optString("title").ifBlank { item.optString("name") }.trim()
+            if (title.isEmpty()) continue
+            add(Suggestion(anilist, title, imageUrl(item.optString("poster_path"), "w342")))
+            if (size >= 12) break
+        }
+    }
+    return name to items
+}
+
+private fun suggestionIds(body: JSONObject, movie: Boolean, index: AnimeListIndex, limit: Int): List<Int> {
+    val list = body.optJSONArray("results") ?: return emptyList()
+    return buildList {
+        for (i in 0 until list.length()) {
+            val item = list.optJSONObject(i) ?: continue
+            val anilist = index.anilistForTmdb(item.optInt("id"), movie) ?: continue
+            if (anilist in this) continue
+            add(anilist)
+            if (size >= limit) break
+        }
+    }
+}
+
+private fun knownFor(credits: JSONObject?, index: AnimeListIndex): List<Suggestion> {
+    val cast = credits?.optJSONArray("cast") ?: return emptyList()
+    val ranked = buildList {
+        for (i in 0 until cast.length().coerceAtMost(40)) {
+            cast.optJSONObject(i)?.let { add(it) }
+        }
+    }.sortedByDescending { it.optDouble("popularity") }
+    return buildList {
+        for (item in ranked) {
+            val movie = item.optString("media_type") == "movie"
+            val anilist = index.anilistForTmdb(item.optInt("id"), movie) ?: continue
+            val title = (if (movie) item.optString("title") else item.optString("name")).trim()
+            if (title.isEmpty() || any { it.anilistId == anilist }) continue
+            add(Suggestion(anilist, title, imageUrl(item.optString("poster_path"), "w185")))
+            if (size >= 8) break
+        }
+    }
+}
+
+private fun castCredits(list: JSONArray?): List<CastCredit> {
+    if (list == null) return emptyList()
+    return buildList {
+        for (i in 0 until list.length()) {
+            val item = list.optJSONObject(i) ?: continue
+            val name = item.optString("name").trim()
+            if (name.isEmpty()) continue
+            val role = item.optString("character").ifBlank { item.optString("job") }
+            add(CastCredit(item.optInt("id"), name, role, imageUrl(item.optString("profile_path"), "w185")))
+            if (size >= 16) break
+        }
+    }
+}
+
+private fun languageLabel(code: String?): String? = when (code?.lowercase()) {
+    "ja" -> "Japanese"
+    "en" -> "English"
+    "ko" -> "Korean"
+    "zh" -> "Chinese"
+    "fr" -> "French"
+    null, "" -> null
+    else -> code.uppercase()
+}
+
+private fun countryLabel(code: String?): String? = when (code?.uppercase()) {
+    "JP" -> "Japan"
+    "US" -> "United States"
+    "KR" -> "Korea"
+    "CN" -> "China"
+    "GB" -> "United Kingdom"
+    "FR" -> "France"
+    null, "" -> null
+    else -> code.uppercase()
+}
+
+private fun encodeEpisode(detail: EpisodeDetail): String {
+    return JSONObject()
+        .put("n", detail.number)
+        .put("title", detail.title)
+        .put("still", detail.stillUrl ?: "")
+        .put("air", detail.airLabel ?: "")
+        .put("overview", detail.overview ?: "")
+        .put("runtime", detail.runtimeMinutes ?: 0)
+        .put("guests", JSONArray().apply {
+            detail.guests.forEach { person ->
+                put(JSONObject().put("id", person.personId).put("name", person.name).put("role", person.role).put("photo", person.photoUrl ?: ""))
+            }
+        })
+        .put("crew", JSONArray().apply {
+            detail.crew.forEach { person ->
+                put(JSONObject().put("id", person.personId).put("name", person.name).put("job", person.job).put("photo", person.photoUrl ?: ""))
+            }
+        })
+        .toString()
+}
+
+private fun decodeEpisode(raw: String): EpisodeDetail? {
+    val json = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+    return EpisodeDetail(
+        number = json.optInt("n"),
+        title = json.optString("title"),
+        stillUrl = json.optString("still").takeIf { it.startsWith("http") },
+        airLabel = json.optString("air").takeIf { it.isNotBlank() },
+        overview = json.optString("overview").takeIf { it.isNotBlank() },
+        runtimeMinutes = json.optInt("runtime").takeIf { it > 0 },
+        guests = castFrom(json.optJSONArray("guests")),
+        crew = crewFrom(json.optJSONArray("crew")),
+    )
+}
+
+private fun encodePerson(profile: PersonProfile): String {
+    return JSONObject()
+        .put("id", profile.id)
+        .put("name", profile.name)
+        .put("bio", profile.bio ?: "")
+        .put("photo", profile.photoUrl ?: "")
+        .put("known", JSONArray().apply {
+            profile.knownFor.forEach { item ->
+                put(JSONObject().put("id", item.anilistId).put("title", item.title).put("poster", item.posterUrl ?: ""))
+            }
+        })
+        .toString()
+}
+
+private fun decodePerson(raw: String): PersonProfile? {
+    val json = runCatching { JSONObject(raw) }.getOrNull() ?: return null
+    val name = json.optString("name")
+    if (name.isBlank()) return null
+    return PersonProfile(
+        id = json.optInt("id"),
+        name = name,
+        bio = json.optString("bio").takeIf { it.isNotBlank() },
+        photoUrl = json.optString("photo").takeIf { it.startsWith("http") },
+        knownFor = suggestionsFrom(json.optJSONArray("known")),
+    )
+}
+
+private fun castFrom(list: JSONArray?): List<CastCredit> {
+    if (list == null) return emptyList()
+    return buildList {
+        for (i in 0 until list.length()) {
+            val item = list.optJSONObject(i) ?: continue
+            val name = item.optString("name")
+            if (name.isBlank()) continue
+            add(CastCredit(item.optInt("id"), name, item.optString("role"), item.optString("photo").takeIf { it.startsWith("http") }))
+        }
+    }
+}
+
+private fun crewFrom(list: JSONArray?): List<CrewCredit> {
+    if (list == null) return emptyList()
+    return buildList {
+        for (i in 0 until list.length()) {
+            val item = list.optJSONObject(i) ?: continue
+            val name = item.optString("name")
+            if (name.isBlank()) continue
+            add(CrewCredit(name, item.optString("job"), item.optString("photo").takeIf { it.startsWith("http") }, item.optInt("id")))
+        }
+    }
+}
+
+private fun suggestionsFrom(list: JSONArray?): List<Suggestion> {
+    if (list == null) return emptyList()
+    return buildList {
+        for (i in 0 until list.length()) {
+            val item = list.optJSONObject(i) ?: continue
+            val title = item.optString("title")
+            if (title.isBlank()) continue
+            add(Suggestion(item.optInt("id"), title, item.optString("poster").takeIf { it.startsWith("http") }))
+        }
+    }
 }
 
 private fun encode(art: TitleArt): String {
@@ -596,6 +1005,32 @@ private fun encode(art: TitleArt): String {
                 put(JSONObject().put("name", clip.name).put("id", clip.youtubeId))
             }
         })
+        .put("tagline", art.tagline ?: "")
+        .put("language", art.originalLanguage ?: "")
+        .put("country", art.originCountry ?: "")
+        .put("statusLabel", art.status ?: "")
+        .put("firstAir", art.firstAir ?: "")
+        .put("lastAir", art.lastAir ?: "")
+        .put("nextAir", art.nextAir ?: "")
+        .put("posters", JSONArray(art.posters))
+        .put("logoGallery", JSONArray(art.logoGallery))
+        .put("providerLink", art.providerLink ?: "")
+        .put("collection", art.collectionName ?: "")
+        .put("providers", JSONArray().apply {
+            art.providers.forEach { offer ->
+                put(JSONObject().put("name", offer.name).put("logo", offer.logoUrl ?: ""))
+            }
+        })
+        .put("castList", JSONArray().apply {
+            art.castList.forEach { person ->
+                put(JSONObject().put("id", person.personId).put("name", person.name).put("role", person.role).put("photo", person.photoUrl ?: ""))
+            }
+        })
+        .put("collectionItems", JSONArray().apply {
+            art.collectionItems.forEach { item ->
+                put(JSONObject().put("id", item.anilistId).put("title", item.title).put("poster", item.posterUrl ?: ""))
+            }
+        })
         .put("suggestions", JSONArray().apply {
             art.suggestions.forEach { item ->
                 put(JSONObject().put("id", item.anilistId).put("title", item.title).put("poster", item.posterUrl ?: ""))
@@ -608,7 +1043,7 @@ private fun encode(art: TitleArt): String {
         })
         .put("crew", JSONArray().apply {
             art.crew.forEach { person ->
-                put(JSONObject().put("name", person.name).put("job", person.job).put("photo", person.photoUrl ?: ""))
+                put(JSONObject().put("id", person.personId).put("name", person.name).put("job", person.job).put("photo", person.photoUrl ?: ""))
             }
         })
         .toString()
@@ -687,7 +1122,7 @@ private fun decode(raw: String): TitleArt {
             val item = list.optJSONObject(i) ?: continue
             val name = item.optString("name")
             if (name.isBlank()) continue
-            add(CrewCredit(name, item.optString("job"), item.optString("photo").takeIf { it.startsWith("http") }))
+            add(CrewCredit(name, item.optString("job"), item.optString("photo").takeIf { it.startsWith("http") }, item.optInt("id")))
         }
     }
     return TitleArt(
@@ -720,5 +1155,37 @@ private fun decode(raw: String): TitleArt {
                 add(VideoClip(item.optString("name").ifBlank { "Trailer" }, id))
             }
         },
+        tagline = json.optString("tagline").takeIf { it.isNotBlank() },
+        originalLanguage = json.optString("language").takeIf { it.isNotBlank() },
+        originCountry = json.optString("country").takeIf { it.isNotBlank() },
+        status = json.optString("statusLabel").takeIf { it.isNotBlank() },
+        firstAir = json.optString("firstAir").takeIf { it.isNotBlank() },
+        lastAir = json.optString("lastAir").takeIf { it.isNotBlank() },
+        nextAir = json.optString("nextAir").takeIf { it.isNotBlank() },
+        posters = stringList(json.optJSONArray("posters")),
+        logoGallery = stringList(json.optJSONArray("logoGallery")),
+        providers = buildList {
+            val list = json.optJSONArray("providers") ?: return@buildList
+            for (i in 0 until list.length()) {
+                val item = list.optJSONObject(i) ?: continue
+                val name = item.optString("name")
+                if (name.isBlank()) continue
+                add(WatchOffer(name, item.optString("logo").takeIf { it.startsWith("http") }))
+            }
+        },
+        providerLink = json.optString("providerLink").takeIf { it.startsWith("http") },
+        castList = castFrom(json.optJSONArray("castList")),
+        collectionName = json.optString("collection").takeIf { it.isNotBlank() },
+        collectionItems = suggestionsFrom(json.optJSONArray("collectionItems")),
     )
+}
+
+private fun stringList(list: JSONArray?): List<String> {
+    if (list == null) return emptyList()
+    return buildList {
+        for (i in 0 until list.length()) {
+            val url = list.optString(i)
+            if (url.startsWith("http")) add(url)
+        }
+    }
 }
