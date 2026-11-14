@@ -3,6 +3,9 @@ name: Dev release
 # Every push to main publishes the next dev prerelease.
 # The version commit message contains [skip ci], and GitHub does not
 # start a new run from the workflow token, so this does not loop.
+# README version badges read the GitHub releases API. This workflow
+# does not edit the README. A floating "dev" release is replaced in
+# place; numbered tags are never deleted.
 on:
   push:
     branches: [main]
@@ -142,17 +145,42 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+          version="${{ steps.ver.outputs.name }}"
+          repo="${{ github.repository }}"
+          sha="${{ steps.commit.outputs.sha }}"
           cp apps/android/app/build/outputs/apk/release/app-release.apk \
-            "anikitty-${{ steps.ver.outputs.name }}.apk"
+            "anikitty-${version}.apk"
+          # Rolling download at /releases/download/dev/anikitty-dev.apk.
+          # Recreate it before the numbered release so the numbered tag
+          # stays the newest prerelease (the README dev badge). This
+          # replaces only the floating "dev" tag.
+          if [ "${{ steps.ver.outputs.stable }}" != "true" ]; then
+            cp "anikitty-${version}.apk" anikitty-dev.apk
+            if ! {
+              if gh release view dev --repo "$repo" >/dev/null 2>&1; then
+                gh release delete dev --repo "$repo" --yes --cleanup-tag
+              fi
+              gh release create dev \
+                --repo "$repo" \
+                --target "$sha" \
+                --prerelease \
+                --title "dev" \
+                --notes "Rolling dev build. This tag moves. Numbered prereleases stay on their own tags." \
+                anikitty-dev.apk
+            }; then
+              echo "Rolling dev release was not updated. The numbered release still publishes."
+            fi
+          fi
           flags=()
           if [ "${{ steps.ver.outputs.stable }}" != "true" ]; then
             flags+=(--prerelease)
           fi
-          gh release create "v${{ steps.ver.outputs.name }}" \
-            --repo "${{ github.repository }}" \
-            --target "${{ steps.commit.outputs.sha }}" \
-            --title "${{ steps.ver.outputs.name }}" \
+          gh release create "v${version}" \
+            --repo "$repo" \
+            --target "$sha" \
+            --title "$version" \
             ${flags[@]+"${flags[@]}"} \
             --notes-file notes.md \
-            "anikitty-${{ steps.ver.outputs.name }}.apk" \
+            "anikitty-${version}.apk" \
             docs/brand/anikitty-icon-512.png
