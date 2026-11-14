@@ -747,10 +747,7 @@ private fun HomeFeed(
                                 HomeFeatured(items = trending, onOpen = openCatalog)
                             }
                             "continue" -> if (continueWatching.isNotEmpty()) item {
-                                HomeBlock(
-                                    title = "Continue watching",
-                                    subtitle = "Pick up where you left off",
-                                ) {
+                                HomeBlock(title = "Continue") {
                                     HomeContinueRow(
                                         continueWatching.map { entry ->
                                             val target = playbackTarget(entry)
@@ -803,10 +800,9 @@ private fun HomeFeed(
                             "airing" -> if (airingToday.isNotEmpty()) item {
                                 val now = System.currentTimeMillis() / 1000L
                                 val upcoming = airingToday.filter { it.airingAtEpochSec >= now - 20 * 60 }
-                                val shown = (if (upcoming.isNotEmpty()) upcoming else airingToday).take(12)
+                                val shown = (if (upcoming.isNotEmpty()) upcoming else airingToday).take(5)
                                 HomeBlock(
                                     title = "Airing today",
-                                    subtitle = "What comes on next",
                                     onMore = onOpenSchedule,
                                 ) {
                                     HomeAiringRow(
@@ -830,26 +826,21 @@ private fun HomeFeed(
                             "season" -> if (seasonal.isNotEmpty()) item {
                                 HomeBlock(
                                     title = "This season",
-                                    subtitle = "Airing now",
                                     onMore = onOpenSchedule,
                                 ) {
-                                    HomePosterRow(items = seasonal, onOpen = openCatalog)
+                                    HomePosterGrid(items = seasonal.take(9), onOpen = openCatalog)
                                 }
                             }
                             "foryou" -> if (forYou.isNotEmpty()) item {
                                 HomeBlock(
                                     title = "For you",
-                                    subtitle = forYouFrom?.let { "Because you watch $it" }
-                                        ?: "From what you have been watching",
+                                    subtitle = forYouFrom?.let { "Because you watch $it" },
                                 ) {
                                     HomePosterRow(items = forYou, onOpen = openCatalog)
                                 }
                             }
                             "plan" -> if (planToWatch.isNotEmpty()) item {
-                                HomeBlock(
-                                    title = "Plan to watch",
-                                    subtitle = "Saved for later",
-                                ) {
+                                HomeBlock(title = "Plan to watch") {
                                     HomePosterRow(
                                         items = planToWatch.map { entry ->
                                             AnimeSummary(
@@ -871,10 +862,7 @@ private fun HomeFeed(
                                 }
                             }
                             "genres" -> item {
-                                HomeBlock(
-                                    title = "Genres",
-                                    subtitle = "Open a shelf in search",
-                                ) {
+                                HomeBlock(title = "Genres") {
                                     HomeGenreRow(
                                         names = listOf(
                                             "Action",
