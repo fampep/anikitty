@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import site.anikitty.app.ui.theme.LocalKittyPalette
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -59,6 +60,7 @@ fun SplashScreen(onFinished: () -> Unit) {
         label = "sweep",
     )
 
+    val ink = LocalKittyPalette.current.text
     val fillAlphaAnim by animateFloatAsState(
         targetValue = if (sweepAnim > 0.6f) 1f else 0f,
         animationSpec = tween(1000, easing = LinearEasing),
@@ -75,13 +77,13 @@ fun SplashScreen(onFinished: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(LocalKittyPalette.current.page)
             .drawBehind {
                 val radius = size.minDimension * (0.22f + 0.28f * progress)
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.14f * progress),
+                            ink.copy(alpha = 0.14f * progress),
                             Color.Transparent,
                         ),
                         center = center,
@@ -99,9 +101,9 @@ fun SplashScreen(onFinished: () -> Unit) {
             colors = listOf(
                 Color.Transparent,
                 Color.Transparent,
-                Color.White.copy(alpha = 0.8f),
-                Color.White,
-                Color.White.copy(alpha = 0.8f),
+                ink.copy(alpha = 0.8f),
+                ink,
+                ink.copy(alpha = 0.8f),
                 Color.Transparent,
                 Color.Transparent,
             ),
@@ -134,7 +136,7 @@ fun SplashScreen(onFinished: () -> Unit) {
                             cap = StrokeCap.Round,
                         ),
                     ),
-                    color = Color.White.copy(alpha = 0.1f),
+                    color = ink.copy(alpha = 0.1f),
                 )
                 Text(
                     text = "AniKitty",
@@ -157,7 +159,7 @@ fun SplashScreen(onFinished: () -> Unit) {
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-1.5).sp,
                     ),
-                    color = Color.White.copy(alpha = fillAlphaAnim),
+                    color = ink.copy(alpha = fillAlphaAnim),
                 )
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -165,12 +167,12 @@ fun SplashScreen(onFinished: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth(0.34f * fillAlphaAnim.coerceIn(0.001f, 1f))
                     .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.72f * fillAlphaAnim)),
+                    .background(ink.copy(alpha = 0.72f * fillAlphaAnim)),
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Your lists. Your next episode.",
-                color = Color.White.copy(alpha = 0.46f * fillAlphaAnim),
+                color = ink.copy(alpha = 0.46f * fillAlphaAnim),
                 fontSize = 13.sp,
                 letterSpacing = 0.3.sp,
                 fontWeight = FontWeight.Medium,

@@ -75,6 +75,7 @@ import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.LocalKittyPalette
 import java.io.File
 import java.time.OffsetDateTime
 import java.time.ZoneId
@@ -84,11 +85,11 @@ import java.util.Locale
 @Composable
 fun AppBuildsRow(onClick: () -> Unit) {
     SpaceCard(onClick = onClick) {
-        Text("App builds", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text("App builds", color = LocalKittyPalette.current.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             "Choose dev or stable, and read the pull requests in each.",
-            color = Color.White.copy(alpha = 0.5f),
+            color = LocalKittyPalette.current.muted,
             fontSize = 13.sp,
         )
     }

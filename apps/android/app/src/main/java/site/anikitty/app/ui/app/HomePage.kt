@@ -40,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +49,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.theme.prefersReducedMotion
 
 private val Hairline = Color.White.copy(alpha = 0.14f)
 
@@ -59,6 +62,7 @@ internal fun HomeBar(
     onOpenAccount: () -> Unit,
     avatarUrl: String?,
 ) {
+    val ink = LocalKittyPalette.current.text
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -68,7 +72,7 @@ internal fun HomeBar(
     ) {
         Text(
             "anikitty.",
-            color = Color.White,
+            color = ink,
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             letterSpacing = (-0.5).sp,
@@ -129,6 +133,7 @@ internal fun HomeFeatured(
 ) {
     val pages = items.take(5)
     if (pages.isEmpty()) return
+    val reducedMotion = prefersReducedMotion()
     val pagerState = rememberPagerState(pageCount = { pages.size })
     LaunchedEffect(pages.size) {
         if (pages.size < 2) return@LaunchedEffect
@@ -149,6 +154,11 @@ internal fun HomeFeatured(
         ) {
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                 val anime = pages[page]
+                val drift = if (reducedMotion) {
+                    0f
+                } else {
+                    ((pagerState.currentPage - page) + pagerState.currentPageOffsetFraction) * -32f
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -158,7 +168,13 @@ internal fun HomeFeatured(
                         model = anime.bannerImageUrl ?: anime.coverImageUrl,
                         contentDescription = anime.title,
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                translationX = drift
+                                scaleX = 1.12f
+                                scaleY = 1.12f
+                            },
                     )
                     Box(
                         modifier = Modifier
@@ -237,6 +253,7 @@ internal fun HomeBlock(
     onMore: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     Column(modifier = Modifier.padding(top = 26.dp)) {
         Row(
             modifier = Modifier
@@ -247,7 +264,7 @@ internal fun HomeBlock(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
-                    color = Color.White,
+                    color = palette.text,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
                     letterSpacing = (-0.2).sp,
@@ -255,7 +272,7 @@ internal fun HomeBlock(
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         subtitle,
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = palette.muted,
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -330,6 +347,7 @@ private fun HomePosterCell(
     onOpen: (AnimeSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalKittyPalette.current
     Column(modifier = modifier.spacePress { onOpen(anime) }) {
         AsyncImage(
             model = anime.coverImageUrl,
@@ -339,11 +357,11 @@ private fun HomePosterCell(
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(4.dp))
-                .background(Color(0xFF141416)),
+                .background(palette.surface),
         )
         Text(
             anime.title,
-            color = Color.White,
+            color = palette.text,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
             lineHeight = 15.sp,
@@ -363,7 +381,7 @@ private fun HomePosterCell(
                 if (meta.isNotEmpty()) {
                     Text(
                         meta,
-                        color = Color.White.copy(alpha = 0.4f),
+                        color = palette.muted,
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -377,7 +395,7 @@ private fun HomePosterCell(
                             .height(5.dp)
                             .width(5.dp)
                             .clip(CircleShape)
-                            .background(Color.White),
+                            .background(palette.text),
                     )
                 }
             }
