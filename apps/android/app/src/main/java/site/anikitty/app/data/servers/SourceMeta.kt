@@ -29,7 +29,7 @@ object BuiltInSourceMeta {
         )
     }
 
-    fun anipm(streamInf: String, audioMode: String, audioMedia: String? = null): SourceFields =
+    fun reanime(streamInf: String, audioMode: String, audioMedia: String? = null): SourceFields =
         fromHls(streamInf, audioMode, audioMedia)
 
     fun gotaku(streamInf: String, audioMode: String, audioMedia: String? = null): SourceFields =

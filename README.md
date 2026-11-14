@@ -29,7 +29,7 @@
 - The catalog is AniList. Search, the season, and a title page all use it.
 - The player is Media3, on the phone.
 - Watch progress stays on the device. Sign in when you want that progress on your AniList list.
-- **Anikoto**, **Gotaku**, and **Ani.pm** are compiled in, so a fresh install can play.
+- **Anikoto**, **Gotaku**, and **reanime** are compiled in, so a fresh install can play.
 - Anything else is an extension you add. The app does not preload a community extension.
 
 ## Download
@@ -115,7 +115,7 @@ The APK is `apps/android/app/build/outputs/apk/release/`. The version comes from
 | App | Kotlin, Jetpack Compose, Media3, Room |
 | Catalog | AniList GraphQL |
 | Sources | `extensions/` — guide, protocol, and store index |
-| Bundled resolvers | Anikoto, Gotaku, Ani.pm |
+| Bundled resolvers | Anikoto, Gotaku, reanime |
 
 ## FAQ
 
@@ -166,13 +166,13 @@ You can use, copy, change, and share this project, including in a product. Keep 
 ## Disclaimer
 
 > [!WARNING]
-> ⚠️ AniKitty is a client and a player. It is not a streaming service, a studio, or a file host. The phone asks AniList for the catalog, and it asks a resolver for a playback URL. The app then plays that URL. It does not upload episodes, it does not keep a copy of an episode on a server of its own, and it does not ship a video library inside the APK. **Anikoto**, **Gotaku**, and **Ani.pm** are compiled in, so a fresh install can try to play. Any other source is an extension you install yourself. Those community extensions are not part of this repository, and this project does not operate the sites a resolver calls. You choose the source. You are responsible for whether that use is lawful where you are.
+> ⚠️ AniKitty is a client and a player. It is not a streaming service, a studio, or a file host. The phone asks AniList for the catalog, and it asks a resolver for a playback URL. The app then plays that URL. It does not upload episodes, it does not keep a copy of an episode on a server of its own, and it does not ship a video library inside the APK. **Anikoto**, **Gotaku**, and **reanime** are compiled in, so a fresh install can try to play. Any other source is an extension you install yourself. Those community extensions are not part of this repository, and this project does not operate the sites a resolver calls. You choose the source. You are responsible for whether that use is lawful where you are.
 
 | | |
 |---|---|
 | What this repository is | The app, the extension protocol, and the guides |
 | What it hosts | No video files, and no copy of an episode |
-| Built-in resolvers | Anikoto, Gotaku, and Ani.pm. They return a URL. They are not a video library, and this repository does not operate the sites they call |
+| Built-in resolvers | Anikoto, Gotaku, and reanime. They return a URL. They are not a video library, and this repository does not operate the sites they call |
 | Community extensions | Installed by you, from a repository you add. A listing does not make the maintainers the operator of that service |
 | Who chooses the source | You do, and you have to follow the law that applies to you |
 

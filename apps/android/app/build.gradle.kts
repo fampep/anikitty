@@ -132,7 +132,7 @@ android {
             // folder is the place to build the extension version.
             java.srcDir("../../../extensions/providers/anikoto")
             java.srcDir("../../../extensions/providers/gotaku")
-            java.srcDir("../../../extensions/providers/anipm")
+            java.srcDir("../../../extensions/providers/reanime")
         }
     }
 }
@@ -153,6 +153,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.media3:media3-datasource-okhttp:1.5.0")
     implementation("androidx.media3:media3-exoplayer:1.5.0")
     implementation("androidx.media3:media3-exoplayer-hls:1.5.0")
     implementation("androidx.media3:media3-ui:1.5.0")

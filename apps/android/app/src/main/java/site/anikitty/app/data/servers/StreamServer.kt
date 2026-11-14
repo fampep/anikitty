@@ -48,6 +48,15 @@ data class PlayableSource(
     val audio: String? = null,
     /** Resolver-reported grade, e.g. "HD". Null when the source did not give one. */
     val qualityRating: String? = null,
+    /** FlixCloud playlist key and segment mask. Null for every other source. */
+    val flix: FlixUnwrap? = null,
+)
+
+/** Keys Media3 needs to turn a FlixCloud response into a normal HLS stream. */
+data class FlixUnwrap(
+    val playlistKey: String,
+    val segmentMask: String,
+    val englishAudio: Boolean,
 )
 
 interface StreamResolver {

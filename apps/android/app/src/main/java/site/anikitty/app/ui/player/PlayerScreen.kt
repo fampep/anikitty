@@ -155,7 +155,6 @@ import androidx.media3.common.Tracks
 import androidx.media3.common.text.Cue
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
-import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -168,6 +167,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.servers.GotakuObfDataSource
+import site.anikitty.app.data.servers.FlixUnwrapDataSource
+import site.anikitty.app.data.servers.PlaybackHttp
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
 import site.anikitty.app.data.servers.SubtitleTrack
@@ -373,19 +374,21 @@ fun PlayerScreen(
     // remembered shared instance would be detached after the first quality switch.
     val playerBundle = remember(source?.url, source?.subtitles, source?.gotakuObf, playAttempt) {
         if (source == null) return@remember null
-        val httpFactory = DefaultHttpDataSource.Factory()
-            .setUserAgent(source.headers["User-Agent"] ?: DEFAULT_UA)
-            .setDefaultRequestProperties(source.headers)
-            .setAllowCrossProtocolRedirects(true)
-            .setConnectTimeoutMs(12_000)
-            .setReadTimeoutMs(20_000)
+        val httpFactory = PlaybackHttp.factory(
+            headers = source.headers,
+            userAgent = source.headers["User-Agent"] ?: DEFAULT_UA,
+        )
         val gotakuFactory = GotakuObfDataSource.Factory(httpFactory).also {
             it.updateObf(source.gotakuObf)
         }
-        // Gotaku sources must not inherit MegaPlay's default PNG strip.
+        val flixFactory = FlixUnwrapDataSource.Factory(
+            gotakuFactory,
+            java.util.concurrent.atomic.AtomicReference(source.flix),
+        )
+        // Gotaku and reanime must not inherit MegaPlay's default PNG strip.
         stripBytes.set(
             when {
-                source.gotakuObf != null -> source.stripBytes.coerceAtLeast(0)
+                source.gotakuObf != null || source.flix != null -> source.stripBytes.coerceAtLeast(0)
                 source.stripBytes > 0 -> source.stripBytes
                 else -> SegmentStripDataSource.DEFAULT_STRIP_BYTES
             },
@@ -396,7 +399,7 @@ fun PlayerScreen(
         val factory = if (localFile) {
             DefaultDataSource.Factory(context)
         } else {
-            SegmentStripDataSource.Factory(gotakuFactory, stripBytes = stripBytes)
+            SegmentStripDataSource.Factory(flixFactory, stripBytes = stripBytes)
         }
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(2_500, 40_000, 1_500, 2_000)

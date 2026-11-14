@@ -23,14 +23,14 @@
       "siteUrl": "https://gotaku.to"
     },
     {
-      "id": "anipm",
-      "name": "Ani.pm",
-      "description": "Bundled ani.pm resolver. Streams play in the app. Variant rows report resolution and audio from the HLS playlist; the Auto row reports sub or dub only.",
-      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/anipm",
+      "id": "reanime",
+      "name": "reanime",
+      "description": "Bundled reanime.cz resolver. Streams play in the app. The playlist reports resolution and sub or dub when it states them.",
+      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/reanime",
       "author": "fampep",
       "featured": true,
-      "iconUrl": "https://www.google.com/s2/favicons?domain=ani.pm&sz=128",
-      "siteUrl": "https://ani.pm"
+      "iconUrl": "https://www.google.com/s2/favicons?domain=reanime.cz&sz=128",
+      "siteUrl": "https://reanime.cz"
     },
     {
       "id": "site.anikitty.example.hello",
