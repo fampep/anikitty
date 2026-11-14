@@ -26,21 +26,9 @@ fun QualityMarks(
     onDark: Boolean = true,
 ) {
     if (badge == null || !badge.visible) return
-    val ink = if (onDark) Color.White else Color.Black
-    val plate = if (onDark) Color.Black.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.88f)
     Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         listOfNotNull(badge.quality, badge.qualityRating, badge.audio).distinct().forEach { label ->
-            Text(
-                label,
-                color = ink,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
-                modifier = Modifier
-                    .background(plate, RoundedCornerShape(6.dp))
-                    .border(0.5.dp, ink.copy(alpha = 0.28f), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 5.dp, vertical = 2.dp),
-            )
+            KittyBadge(label = label, onDark = onDark)
         }
     }
 }

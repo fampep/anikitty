@@ -24,7 +24,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,6 +65,7 @@ import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.LocalDemoMode
 
 /**
  * AniList sign-in is the account. Lists, progress, and profile come from AniList.
@@ -78,10 +82,15 @@ fun AppRoot(
     pendingAniListToken: String? = null,
     pendingAniListError: String? = null,
     onConsumedAniListToken: () -> Unit = {},
+    requestDemo: Boolean = false,
 ) {
     var signedIn by remember { mutableStateOf(aniListAuth.isLinked) }
+    var demo by rememberSaveable { mutableStateOf(false) }
     var showSplash by rememberSaveable { mutableStateOf(true) }
-    val showApp = signedIn || !pendingAniListToken.isNullOrBlank()
+    LaunchedEffect(requestDemo) {
+        if (requestDemo) demo = true
+    }
+    val showApp = signedIn || demo || !pendingAniListToken.isNullOrBlank()
 
     if (showSplash) {
         SplashScreen(onFinished = { showSplash = false })
@@ -90,11 +99,13 @@ fun AppRoot(
 
     val context = LocalContext.current
     LookState.ensure(context)
+    CompositionLocalProvider(LocalDemoMode provides demo) {
     Box(modifier = Modifier.fillMaxSize()) {
     if (!showApp) {
         LoginScreen(
             statusMessage = pendingAniListError,
             onClearStatus = onConsumedAniListToken,
+            onTryDemo = { demo = true },
         )
     } else {
         LocalFirstApp(
@@ -103,16 +114,24 @@ fun AppRoot(
             aniListSync = aniListSync,
             historyDao = historyDao,
             streamServers = streamServers,
-            accountLabel = aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
-                ?: "@anilist",
-            pendingAniListToken = pendingAniListToken,
-            pendingAniListError = pendingAniListError,
+            accountLabel = if (demo && !signedIn) {
+                "Demo library"
+            } else {
+                aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "@anilist"
+            },
+            pendingAniListToken = if (demo) null else pendingAniListToken,
+            pendingAniListError = if (demo) null else pendingAniListError,
             onConsumedAniListToken = onConsumedAniListToken,
             onAniListReady = { signedIn = true },
+            demo = demo,
             onSignOut = {
-                session.clear()
-                aniListAuth.clear()
-                signedIn = false
+                if (demo) {
+                    demo = false
+                } else {
+                    session.clear()
+                    aniListAuth.clear()
+                    signedIn = false
+                }
             },
         )
     }
@@ -120,12 +139,14 @@ fun AppRoot(
             WelcomeOverlay(onDismiss = { LookState.setWelcomed(context) })
         }
     }
+    }
 }
 
 @Composable
 private fun LoginScreen(
     statusMessage: String?,
     onClearStatus: () -> Unit,
+    onTryDemo: () -> Unit,
 ) {
     val context = LocalContext.current
     Box(modifier = Modifier.fillMaxSize()) {
@@ -195,6 +216,24 @@ private fun LoginScreen(
                 ) {
                     Text("Sign in with AniList", fontWeight = FontWeight.Bold)
                 }
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = onTryDemo,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, KittyOutlineSoft),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyText),
+                ) {
+                    Text("Try demo", fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Sample library. Not your AniList account. Nothing is saved to your lists.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = KittyMuted,
+                )
             }
             if (!statusMessage.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(20.dp))

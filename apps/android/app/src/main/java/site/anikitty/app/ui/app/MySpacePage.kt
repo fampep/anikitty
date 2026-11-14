@@ -90,6 +90,7 @@ fun MySpaceFeed(
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
     aniList: AniListClient,
+    demo: Boolean = false,
     aniListLinked: Boolean,
     accessToken: String?,
     accountLabel: String,
@@ -137,6 +138,7 @@ fun MySpaceFeed(
     }
 
     fun markSelected(watched: Boolean) {
+        if (demo) return
         val ids = selectedIds.toList()
         if (ids.isEmpty() || bulkBusy) return
         bulkBusy = true
@@ -413,6 +415,7 @@ fun MySpaceFeed(
 
             item {
                 CloudSyncBlock(
+                    demo = demo,
                     linked = aniListLinked && !accessToken.isNullOrBlank(),
                     viewer = viewer,
                     accountLabel = accountLabel,
@@ -439,6 +442,10 @@ fun MySpaceFeed(
                     selection = selection,
                     onBrowse = onBrowse,
                     onClear = {
+                        if (demo) {
+                            confirmClear = false
+                            return@ContinueBlock
+                        }
                         if (confirmClear) {
                             confirmClear = false
                             scope.launch { historyDao.clear() }
@@ -448,7 +455,8 @@ fun MySpaceFeed(
                     },
                     onOpen = { entry ->
                         scope.launch {
-                            val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
+                            val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
+                                ?: aniList.media(entry.anilistId) ?: AnimeSummary(
                                 id = entry.anilistId,
                                 title = entry.title,
                                 coverImageUrl = entry.coverImageUrl,
@@ -495,6 +503,7 @@ fun MySpaceFeed(
 
 @Composable
 private fun CloudSyncBlock(
+    demo: Boolean = false,
     linked: Boolean,
     viewer: AniListViewer?,
     accountLabel: String,
@@ -581,14 +590,15 @@ private fun CloudSyncBlock(
                     .clip(RoundedCornerShape(12.dp))
                     .background(palette.surface)
                     .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                    .clickable(onClick = onConnect)
+                    .clickable(enabled = !demo, onClick = onConnect)
                     .padding(16.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "Connect AniList",
+                    text = if (demo) "Demo library. Not your AniList account." else "Connect AniList",
                     color = palette.text,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
             }
         } else if (loading && viewer == null) {

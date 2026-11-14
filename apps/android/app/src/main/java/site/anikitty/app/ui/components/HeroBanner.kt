@@ -34,6 +34,21 @@ fun HeroBanner(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
 ) {
+    val localArt = bannerUrl?.startsWith("android.resource://") == true ||
+        coverUrl?.startsWith("android.resource://") == true
+    if (localArt) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(bannerUrl ?: coverUrl)
+                .size(Size(1280, 720))
+                .crossfade(false)
+                .build(),
+            contentDescription = contentDescription,
+            contentScale = contentScale,
+            modifier = modifier,
+        )
+        return
+    }
     val context = LocalContext.current
     val repo = remember { BannerRepository(context) }
     var choice by remember(anilistId, bannerUrl, coverUrl) {

@@ -51,8 +51,13 @@ import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.ui.components.HeroBanner
+import site.anikitty.app.ui.components.KittyBadge
 import site.anikitty.app.ui.components.KittyMenuEntry
 import site.anikitty.app.ui.components.KittyOverflow
+import site.anikitty.app.ui.components.KittySectionHeading
+import site.anikitty.app.ui.theme.KittyRadius
+import site.anikitty.app.ui.theme.KittySpace
+import site.anikitty.app.ui.theme.LocalDemoMode
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.prefersReducedMotion
 
@@ -85,8 +90,15 @@ internal fun HomeBar(
             fontWeight = FontWeight.SemiBold,
             fontSize = 20.sp,
             letterSpacing = (-0.5).sp,
-            modifier = Modifier.weight(1f),
         )
+        if (LocalDemoMode.current) {
+            KittyBadge(
+                label = "Demo",
+                onDark = LocalKittyPalette.current.dark,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+        Spacer(modifier = Modifier.weight(1f))
         HomeBarIcon(onClick = onOpenSearch) {
             Icon(
                 Icons.Filled.Search,
@@ -168,8 +180,8 @@ internal fun HomeFeatured(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .height(210.dp)
-                .clip(RoundedCornerShape(8.dp)),
+                .height(228.dp)
+                .clip(RoundedCornerShape(KittyRadius.lg)),
         ) {
             HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
                 val anime = pages[page]
@@ -273,44 +285,9 @@ internal fun HomeBlock(
     onMore: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val palette = LocalKittyPalette.current
-    Column(modifier = Modifier.padding(top = 26.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    title,
-                    color = palette.text,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    letterSpacing = (-0.2).sp,
-                )
-                if (!subtitle.isNullOrBlank()) {
-                    Text(
-                        subtitle,
-                        color = palette.muted,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(top = 1.dp),
-                    )
-                }
-            }
-            if (onMore != null) {
-                Text(
-                    "See all",
-                    color = Color.White.copy(alpha = 0.55f),
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
-                    modifier = Modifier.spacePress(onMore),
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(10.dp))
+    Column(modifier = Modifier.padding(top = KittySpace.lg)) {
+        KittySectionHeading(title = title, subtitle = subtitle, onMore = onMore)
+        Spacer(modifier = Modifier.height(KittySpace.sm))
         content()
     }
 }
@@ -445,14 +422,7 @@ internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
                 .fillMaxWidth()
                 .spacePress(lead.onClick),
         ) {
-            Text(
-                "Continue where you left off",
-                color = palette.muted,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 8.dp),
-            )
-            ContinueArt(lead, height = 180.dp, radius = 12.dp, titleSize = 18.sp)
+            ContinueArt(lead, height = 188.dp, radius = KittyRadius.md, titleSize = 18.sp)
         }
         if (rest.isNotEmpty()) {
             LazyRow(
