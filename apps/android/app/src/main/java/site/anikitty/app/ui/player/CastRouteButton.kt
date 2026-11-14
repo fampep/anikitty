@@ -29,6 +29,6 @@ fun CastRouteButton(modifier: Modifier = Modifier) {
                 }
             }
         },
-        modifier = modifier.size(40.dp),
+        modifier = modifier.size(48.dp),
     )
 }

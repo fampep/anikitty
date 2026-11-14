@@ -4,7 +4,11 @@
 package site.anikitty.app.ui.player
 
 import android.app.Activity
+import android.app.PictureInPictureParams
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
+import android.os.Build
+import android.util.Rational
 import android.widget.Toast
 import android.graphics.Color as AndroidColor
 import android.graphics.Typeface
@@ -37,10 +41,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -61,20 +68,16 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Forward10
-import androidx.compose.material.icons.rounded.Hd
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.PictureInPicture
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SkipNext
-import androidx.compose.material.icons.rounded.Bedtime
-import androidx.compose.material.icons.rounded.Speed
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.ui.components.EpisodeCarousel
@@ -105,6 +108,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -194,6 +201,8 @@ private data class SubStyle(
     val color: Int = AndroidColor.WHITE,
     val bgMode: SubBgMode = SubBgMode.Soft,
     val edgeType: Int = CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
+    val bold: Boolean = false,
+    val bgAlpha: Float = 0.55f,
 )
 
 private data class TextOption(
@@ -311,7 +320,6 @@ fun PlayerScreen(
     val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
 
     var theater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
-    var downloadNote by remember { mutableStateOf(false) }
 
     fun closePanelOrExit() {
         if (panel != Panel.None) {
@@ -698,6 +706,8 @@ fun PlayerScreen(
             .putString("sub_bg_mode", subStyle.bgMode.name)
             .putBoolean("sub_bg", subStyle.bgMode != SubBgMode.None)
             .putInt("sub_edge", subStyle.edgeType)
+            .putBoolean("sub_bold", subStyle.bold)
+            .putFloat("sub_bg_alpha", subStyle.bgAlpha)
             .apply()
     }
 
@@ -878,6 +888,94 @@ fun PlayerScreen(
         !subsEnabled -> "Off"
         selectedTextId == "auto" -> "Auto"
         else -> textOptions.firstOrNull { it.id == selectedTextId }?.label ?: "Subs"
+    }
+    val audioLabel = if (audio == "dub") "Dub" else "Sub"
+    val episodeLine = if (isMovie) "Film · $audioLabel" else "E$episode · $audioLabel"
+
+    fun enterPip() {
+        val host = activity ?: return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        if (!host.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
+        val params = PictureInPictureParams.Builder()
+            .setAspectRatio(Rational(16, 9))
+            .build()
+        val entered = try {
+            host.enterPictureInPictureMode(params)
+        } catch (_: IllegalStateException) {
+            false
+        }
+        if (entered) {
+            panel = Panel.None
+            controlsVisible = false
+        }
+    }
+
+    @Composable
+    fun PanelContents() {
+        when (panel) {
+            Panel.Quality -> QualitySheet(
+                videoOptions = videoOptions,
+                selectedVideoId = selectedVideoId,
+                onPickVideo = {
+                    selectedVideoId = it
+                    panel = Panel.None
+                    controlsVisible = true
+                },
+                sources = sources,
+                selectedSource = sourceIndex,
+                onPickSource = ::pickQuality,
+            )
+            Panel.Subs -> SubsSheet(
+                enabled = subsEnabled,
+                options = textOptions,
+                selectedId = selectedTextId,
+                onToggle = {
+                    subsEnabled = it
+                    if (!it) selectedTextId = "off"
+                    else if (selectedTextId == "off") selectedTextId = "auto"
+                },
+                onPick = {
+                    selectedTextId = it
+                    subsEnabled = it != "off"
+                },
+                onOpenStyle = { panel = Panel.Style },
+                audio = audio,
+                onPickAudio = onPickAudio,
+            )
+            Panel.Style -> StyleSheet(
+                style = subStyle,
+                onChange = { subStyle = it },
+                onBack = { panel = Panel.Subs },
+            )
+            Panel.Display -> DisplaySheet(
+                resizeMode = resizeMode,
+                immersive = immersive,
+                onResize = { resizeMode = it },
+                onImmersive = { immersive = it },
+                onSleep = { panel = Panel.Sleep },
+                onLock = {
+                    controlsLocked = true
+                    panel = Panel.None
+                    controlsVisible = false
+                },
+            )
+            Panel.Speed -> SpeedSheet(
+                speed = playbackSpeed,
+                onPick = {
+                    playbackSpeed = it
+                    panel = Panel.None
+                },
+            )
+            Panel.Sleep -> SleepSheet(
+                choice = sleepChoice,
+                onPick = {
+                    sleepNote = null
+                    sleepChoice = it
+                    panel = Panel.None
+                },
+            )
+            Panel.None -> Unit
+        }
     }
 
     @Composable
@@ -1357,85 +1455,86 @@ fun PlayerScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.Top,
+                        .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                    ChromeDisc(onClick = onClose, size = 48.dp) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Close",
+                            tint = PlayerChrome.Paper,
+                        )
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 10.dp),
+                    ) {
                         Text(
                             title,
                             color = PlayerChrome.Paper,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 17.sp,
+                            letterSpacing = (-0.3).sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            PlayerMetaPill("E$episode")
-                            if (sleepChoice != 0) {
-                                val sleepText = if (sleepChoice == -1) {
-                                    "Sleep at end"
-                                } else {
-                                    val elapsed = (System.currentTimeMillis() - sleepArmedAt).coerceAtLeast(0L)
-                                    val leftMin = (
-                                        (sleepChoice * 60_000L - elapsed) / 60_000L
-                                        ).toInt().coerceAtLeast(1)
-                                    if (sleepTick < 0) "" else "Sleep ${leftMin}m"
-                                }
-                                PlayerMetaPill(sleepText, emphasized = true)
+                        Text(
+                            episodeLine,
+                            color = PlayerChrome.Graphite,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                        )
+                        if (sleepChoice != 0) {
+                            val sleepText = if (sleepChoice == -1) {
+                                "Sleep at end"
+                            } else {
+                                val elapsed = (System.currentTimeMillis() - sleepArmedAt).coerceAtLeast(0L)
+                                val leftMin = (
+                                    (sleepChoice * 60_000L - elapsed) / 60_000L
+                                    ).toInt().coerceAtLeast(1)
+                                if (sleepTick < 0) "" else "Sleep ${leftMin}m"
                             }
-                            if (durationMs > 0L) {
-                                PlayerMetaPill(formatDurationMinutes(durationMs))
+                            if (sleepText.isNotBlank()) {
+                                Text(sleepText, color = PlayerChrome.Paper, fontSize = 12.sp)
                             }
-                            PlayerMetaPill(shortQuality(qualityLabel), emphasized = true)
-                            source?.quality?.takeIf { it.isNotBlank() && !qualityLabel.contains(it, true) }?.let {
-                                PlayerMetaPill(it)
-                            }
-                            source?.qualityRating?.takeIf { it.isNotBlank() }?.let { PlayerMetaPill(it) }
-                            source?.audio?.takeIf { it.isNotBlank() }?.let { PlayerMetaPill(it) }
                         }
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
                     if (castHelper != null) {
                         Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(PlayerChrome.Disc)
-                                .border(1.dp, PlayerChrome.DiscStroke, CircleShape),
+                            modifier = Modifier.size(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             CastRouteButton()
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    ChromeDisc(onClick = { enterPip() }, size = 48.dp) {
+                        Icon(
+                            Icons.Rounded.PictureInPicture,
+                            contentDescription = "Picture in picture",
+                            tint = PlayerChrome.Paper,
+                        )
                     }
                     ChromeDisc(onClick = {
                         controlsLocked = true
                         panel = Panel.None
                         controlsVisible = false
-                    }, size = 40.dp) {
+                    }, size = 48.dp) {
                         Icon(Icons.Rounded.Lock, contentDescription = "Lock controls", tint = PlayerChrome.Paper)
                     }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    if (onNextEpisode != null) {
-                        ChromeDisc(onClick = { goNextEpisode() }, size = 40.dp) {
-                            Icon(
-                                Icons.Rounded.SkipNext,
-                                contentDescription = "Next episode",
-                                tint = PlayerChrome.Paper,
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    ChromeDisc(onClick = onClose, size = 40.dp) {
+                    ChromeDisc(onClick = {
+                        panel = if (panel == Panel.Display) Panel.None else Panel.Display
+                        controlsVisible = true
+                    }, size = 48.dp) {
                         Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = "Close",
-                            tint = PlayerChrome.Paper,
+                            Icons.Rounded.Settings,
+                            contentDescription = "Settings",
+                            tint = if (panel == Panel.Display || panel == Panel.Sleep) {
+                                PlayerChrome.Progress
+                            } else {
+                                PlayerChrome.Paper
+                            },
                         )
                     }
                 }
@@ -1487,8 +1586,10 @@ fun PlayerScreen(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.navigationBars)
-                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                        .windowInsetsPadding(
+                            WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+                        )
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
                     LiveTimeline(
                         player = activePlayer,
@@ -1510,32 +1611,37 @@ fun PlayerScreen(
                         },
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
-                        modifier = Modifier
-                            .align(Alignment.End)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White.copy(alpha = 0.06f))
-                            .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
-                            .padding(4.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        ChromeDisc(
+                        PlayerTool(
+                            label = "Speed",
+                            value = speedLabel(playbackSpeed),
+                            selected = panel == Panel.Speed,
+                            onClick = {
+                                panel = if (panel == Panel.Speed) Panel.None else Panel.Speed
+                                controlsVisible = true
+                            },
+                            modifier = Modifier.weight(1f),
+                        )
+                        PlayerTool(
+                            label = "Quality",
+                            value = shortQuality(qualityLabel),
+                            selected = panel == Panel.Quality,
                             onClick = {
                                 panel = if (panel == Panel.Quality) Panel.None else Panel.Quality
                                 controlsVisible = true
                             },
-                            size = 40.dp,
-                        ) {
-                            Icon(
-                                Icons.Rounded.Hd,
-                                contentDescription = "Quality",
-                                tint = if (panel == Panel.Quality) PlayerChrome.Progress else PlayerChrome.Paper,
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ChromeDisc(
+                            modifier = Modifier.weight(1f),
+                        )
+                        PlayerTool(
+                            label = "Audio",
+                            value = audioLabel,
+                            selected = panel == Panel.Subs || panel == Panel.Style,
                             onClick = {
                                 panel = if (panel == Panel.Subs || panel == Panel.Style) {
                                     Panel.None
@@ -1544,146 +1650,37 @@ fun PlayerScreen(
                                 }
                                 controlsVisible = true
                             },
-                            size = 40.dp,
-                        ) {
-                            Icon(
-                                Icons.Rounded.ClosedCaption,
-                                contentDescription = "Subtitles",
-                                tint = if (panel == Panel.Subs || panel == Panel.Style) {
-                                    PlayerChrome.Progress
-                                } else {
-                                    PlayerChrome.Paper
-                                },
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ChromeDisc(
-                            onClick = {
-                                panel = if (panel == Panel.Speed) Panel.None else Panel.Speed
-                                controlsVisible = true
-                            },
-                            size = if (playbackSpeed == 1f) 40.dp else 48.dp,
-                        ) {
-                            if (playbackSpeed == 1f) {
-                                Icon(
-                                    Icons.Rounded.Speed,
-                                    contentDescription = "Speed",
-                                    tint = if (panel == Panel.Speed) PlayerChrome.Progress else PlayerChrome.Paper,
-                                )
-                            } else {
-                                Text(
-                                    speedLabel(playbackSpeed),
-                                    color = PlayerChrome.Paper,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 11.sp,
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ChromeDisc(
-                            onClick = {
-                                panel = if (panel == Panel.Sleep) Panel.None else Panel.Sleep
-                                controlsVisible = true
-                            },
-                            size = if (sleepChoice == 0) 40.dp else 48.dp,
-                        ) {
-                            if (sleepChoice == 0) {
-                                Icon(
-                                    Icons.Rounded.Bedtime,
-                                    contentDescription = "Sleep timer",
-                                    tint = if (panel == Panel.Sleep) PlayerChrome.Progress else PlayerChrome.Paper,
-                                )
-                            } else {
-                                Text(
-                                    if (sleepChoice == -1) "End" else "${sleepChoice}m",
-                                    color = PlayerChrome.Paper,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 11.sp,
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        ChromeDisc(
-                            onClick = {
-                                panel = if (panel == Panel.Display) Panel.None else Panel.Display
-                                controlsVisible = true
-                            },
-                            size = 40.dp,
-                        ) {
-                            Icon(
-                                Icons.Rounded.Settings,
-                                contentDescription = "Display",
-                                tint = if (panel == Panel.Display) PlayerChrome.Progress else PlayerChrome.Paper,
-                            )
-                        }
+                            modifier = Modifier.weight(1f),
+                        )
+                        PlayerTool(
+                            label = "Episodes",
+                            value = if (isMovie) "Film" else "E$episode",
+                            onClick = { theater = false },
+                            modifier = Modifier.weight(1f),
+                        )
+                        PlayerTool(
+                            label = "Next",
+                            value = if (onNextEpisode != null && episode < totalEpisodes) "E${episode + 1}" else "—",
+                            enabled = onNextEpisode != null && episode < totalEpisodes,
+                            onClick = { goNextEpisode() },
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
 
                 if (panel != Panel.None) {
                     PlayerSheet(
                         modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .fillMaxHeight()
-                            .widthIn(max = 320.dp)
-                            .padding(vertical = 12.dp, horizontal = 10.dp),
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .heightIn(max = 480.dp)
+                            .windowInsetsPadding(
+                                WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+                            ),
                         onDismiss = { panel = Panel.None },
+                        resetKey = panel,
                     ) {
-                        when (panel) {
-                            Panel.Quality -> QualitySheet(
-                                videoOptions = videoOptions,
-                                selectedVideoId = selectedVideoId,
-                                onPickVideo = {
-                                    selectedVideoId = it
-                                    panel = Panel.None
-                                    controlsVisible = true
-                                },
-                                sources = sources,
-                                selectedSource = sourceIndex,
-                                onPickSource = ::pickQuality,
-                            )
-                            Panel.Subs -> SubsSheet(
-                                enabled = subsEnabled,
-                                options = textOptions,
-                                selectedId = selectedTextId,
-                                onToggle = {
-                                    subsEnabled = it
-                                    if (!it) selectedTextId = "off"
-                                    else if (selectedTextId == "off") selectedTextId = "auto"
-                                },
-                                onPick = {
-                                    selectedTextId = it
-                                    subsEnabled = it != "off"
-                                },
-                                onOpenStyle = { panel = Panel.Style },
-                            )
-                            Panel.Style -> StyleSheet(
-                                style = subStyle,
-                                onChange = { subStyle = it },
-                                onBack = { panel = Panel.Subs },
-                            )
-                            Panel.Display -> DisplaySheet(
-                                resizeMode = resizeMode,
-                                immersive = immersive,
-                                onResize = { resizeMode = it },
-                                onImmersive = { immersive = it },
-                            )
-                            Panel.Speed -> SpeedSheet(
-                                speed = playbackSpeed,
-                                onPick = {
-                                    playbackSpeed = it
-                                    panel = Panel.None
-                                },
-                            )
-                            Panel.Sleep -> SleepSheet(
-                                choice = sleepChoice,
-                                onPick = {
-                                    sleepNote = null
-                                    sleepChoice = it
-                                    panel = Panel.None
-                                },
-                            )
-                            Panel.None -> Unit
-                        }
+                        PanelContents()
                     }
                 }
             }
@@ -1702,17 +1699,25 @@ fun PlayerScreen(
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .windowInsetsPadding(WindowInsets.navigationBars)
-                    .padding(end = 16.dp, bottom = 128.dp)
-                    .shadow(8.dp, RoundedCornerShape(999.dp))
-                    .clip(RoundedCornerShape(999.dp))
+                    .then(
+                        if (theater) {
+                            Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .padding(end = 12.dp, bottom = if (theater) 148.dp else 12.dp)
+                    .heightIn(min = 48.dp)
+                    .shadow(8.dp, RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(12.dp))
                     .background(PlayerChrome.Accent)
                     .border(
                         if (skipFocused) 3.dp else 0.dp,
                         Color.Black,
-                        RoundedCornerShape(999.dp),
+                        RoundedCornerShape(12.dp),
                     )
                     .onFocusChanged { skipFocused = it.isFocused }
+                    .clearAndSetSemantics { contentDescription = label }
                     .clickable { skipTo(iv.endMs) }
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1720,7 +1725,7 @@ fun PlayerScreen(
             ) {
                 Icon(
                     Icons.Rounded.SkipNext,
-                    contentDescription = label,
+                    contentDescription = null,
                     tint = PlayerChrome.Ink,
                     modifier = Modifier.size(18.dp),
                 )
@@ -1769,6 +1774,7 @@ fun PlayerScreen(
         onAccent = LookState.onAccent(),
     )
     CompositionLocalProvider(LocalKittyPalette provides playerPalette) {
+    Box(modifier = Modifier.fillMaxSize()) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1778,26 +1784,17 @@ fun PlayerScreen(
         if (!theater) {
             PlayerPageBar(
                 title = title,
-                episode = episode,
-                audio = audio,
-                isMovie = isMovie,
+                episodeLine = episodeLine,
                 onBack = onClose,
                 onExpand = { theater = true },
-                onDownload = { downloadNote = !downloadNote },
-                onCycleAudio = {
-                    onPickAudio?.invoke(if (audio == "dub") "sub" else "dub")
+                onSettings = {
+                    panel = if (panel == Panel.Display) Panel.None else Panel.Display
+                },
+                onPip = { enterPip() },
+                cast = {
+                    if (castHelper != null) CastRouteButton()
                 },
                 modifier = Modifier.dismissDrag(),
-            )
-        }
-        if (downloadNote && !theater) {
-            Text(
-                "Downloads aren't available. AniKitty streams this episode and does not keep a copy.",
-                color = Color.White.copy(alpha = 0.72f),
-                fontSize = 12.sp,
-                modifier = Modifier
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                    .clickable { downloadNote = false },
             )
         }
         val shelfFraction = if (durationMs > 0L && shelfMinutes >= 0) {
@@ -1852,9 +1849,41 @@ fun PlayerScreen(
                 fallbackArt = fallbackArt,
                 minutesLeft = shelfMinutes.takeIf { it >= 0 },
                 onToggleWatched = onToggleWatched,
+                speedLabel = speedLabel(playbackSpeed),
+                qualityLabel = shortQuality(qualityLabel),
+                onSpeed = { panel = if (panel == Panel.Speed) Panel.None else Panel.Speed },
+                onQuality = { panel = if (panel == Panel.Quality) Panel.None else Panel.Quality },
+                onAudio = {
+                    panel = if (panel == Panel.Subs || panel == Panel.Style) Panel.None else Panel.Subs
+                },
+                onNext = { goNextEpisode() },
+                nextEnabled = onNextEpisode != null && episode < totalEpisodes,
+                speedSelected = panel == Panel.Speed,
+                qualitySelected = panel == Panel.Quality,
+                audioSelected = panel == Panel.Subs || panel == Panel.Style,
                 modifier = Modifier.weight(1f).dismissDrag(),
             )
         }
+    }
+    if (!theater && panel != Panel.None) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.45f))
+                .clickable { panel = Panel.None },
+        )
+        PlayerSheet(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .heightIn(max = 560.dp)
+                .windowInsetsPadding(WindowInsets.navigationBars),
+            onDismiss = { panel = Panel.None },
+            resetKey = panel,
+        ) {
+            PanelContents()
+        }
+    }
     }
     }
 }
@@ -1862,48 +1891,33 @@ fun PlayerScreen(
 @Composable
 private fun PlayerPageBar(
     title: String,
-    episode: Int,
-    audio: String,
-    isMovie: Boolean,
+    episodeLine: String,
     onBack: () -> Unit,
     onExpand: () -> Unit,
-    onDownload: () -> Unit,
-    onCycleAudio: () -> Unit,
+    onSettings: () -> Unit,
+    onPip: () -> Unit,
+    cast: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .background(Color.Black)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+            .padding(horizontal = 4.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .spacePress(onBack)
-                .clip(CircleShape)
-                .background(Color(0xFF141416)),
-            contentAlignment = Alignment.Center,
-        ) {
+        ChromeDisc(onClick = onBack, size = 48.dp) {
             Icon(
                 Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = "Back",
                 tint = Color.White,
-                modifier = Modifier.size(18.dp),
             )
         }
-        site.anikitty.app.ui.components.KittyFace(
-            modifier = Modifier
-                .padding(start = 10.dp)
-                .size(28.dp),
-            contentDescription = title,
-        )
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 8.dp),
         ) {
             Text(
                 title,
@@ -1915,60 +1929,37 @@ private fun PlayerPageBar(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                if (isMovie) {
-                    "Film · ${audio.uppercase()}"
-                } else {
-                    "Episode $episode · ${audio.uppercase()}"
-                },
-                color = Color.White.copy(alpha = 0.45f),
-                fontSize = 12.sp,
+                episodeLine,
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 13.sp,
                 maxLines = 1,
             )
         }
         Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(Color(0xFF141416))
-                .spacePress(onCycleAudio)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        ) {
-            Text(
-                if (audio == "dub") "Dub" else "Sub",
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp,
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .spacePress(onDownload)
-                .clip(CircleShape)
-                .background(Color(0xFF141416)),
+            modifier = Modifier.size(48.dp),
             contentAlignment = Alignment.Center,
         ) {
+            cast()
+        }
+        ChromeDisc(onClick = onPip, size = 48.dp) {
             Icon(
-                Icons.Rounded.Download,
-                contentDescription = "Download, not available",
-                tint = Color.White.copy(alpha = 0.45f),
-                modifier = Modifier.size(18.dp),
+                Icons.Rounded.PictureInPicture,
+                contentDescription = "Picture in picture",
+                tint = Color.White,
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .spacePress(onExpand)
-                .clip(CircleShape)
-                .background(Color(0xFF141416)),
-            contentAlignment = Alignment.Center,
-        ) {
+        ChromeDisc(onClick = onSettings, size = 48.dp) {
+            Icon(
+                Icons.Rounded.Settings,
+                contentDescription = "Settings",
+                tint = Color.White,
+            )
+        }
+        ChromeDisc(onClick = onExpand, size = 48.dp) {
             Icon(
                 Icons.Rounded.Fullscreen,
                 contentDescription = "Full screen",
                 tint = Color.White,
-                modifier = Modifier.size(18.dp),
             )
         }
     }
@@ -1992,10 +1983,22 @@ private fun PlayerEpisodeShelf(
     fallbackArt: String?,
     minutesLeft: Int?,
     onToggleWatched: ((Int) -> Unit)?,
+    speedLabel: String = "1×",
+    qualityLabel: String = "Auto",
+    onSpeed: () -> Unit = {},
+    onQuality: () -> Unit = {},
+    onAudio: () -> Unit = {},
+    onNext: () -> Unit = {},
+    nextEnabled: Boolean = false,
+    speedSelected: Boolean = false,
+    qualitySelected: Boolean = false,
+    audioSelected: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val showGrid = !isMovie && totalEpisodes > 1
     var jump by remember { mutableStateOf("") }
+    val jumpFocus = remember { FocusRequester() }
+    val audioLabel = if (audio == "dub") "Dub" else "Sub"
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -2009,88 +2012,87 @@ private fun PlayerEpisodeShelf(
                 marks.forEach { PlayerMetaPill(it) }
             }
         }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            PlayerTool(
+                label = "Speed",
+                value = speedLabel,
+                selected = speedSelected,
+                onClick = onSpeed,
+                modifier = Modifier.weight(1f),
+            )
+            PlayerTool(
+                label = "Quality",
+                value = qualityLabel,
+                selected = qualitySelected,
+                onClick = onQuality,
+                modifier = Modifier.weight(1f),
+            )
+            PlayerTool(
+                label = "Audio",
+                value = audioLabel,
+                selected = audioSelected,
+                onClick = onAudio,
+                modifier = Modifier.weight(1f),
+            )
+            if (showGrid) {
+                PlayerTool(
+                    label = "Episodes",
+                    value = "E$episode",
+                    onClick = { runCatching { jumpFocus.requestFocus() } },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            PlayerTool(
+                label = "Next",
+                value = if (nextEnabled) "E${episode + 1}" else "—",
+                enabled = nextEnabled,
+                onClick = onNext,
+                modifier = Modifier.weight(1f),
+            )
+        }
         if (showGrid) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White.copy(alpha = 0.06f))
+                    .padding(horizontal = 14.dp),
+                contentAlignment = Alignment.CenterStart,
             ) {
-                Box(
+                BasicTextField(
+                    value = jump,
+                    onValueChange = { next -> if (next.all { it.isDigit() }) jump = next },
+                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Go,
+                    ),
+                    keyboardActions = KeyboardActions(onGo = {
+                        val picked = jump.toIntOrNull()
+                        if (picked != null && picked in 1..totalEpisodes) {
+                            onPickEpisode(picked)
+                            jump = ""
+                        }
+                    }),
+                    singleLine = true,
                     modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF0C0C10))
-                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.CenterStart,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("#", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        BasicTextField(
-                            value = jump,
-                            onValueChange = { next -> if (next.all { it.isDigit() }) jump = next },
-                            textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium),
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number,
-                                imeAction = ImeAction.Go,
-                            ),
-                            keyboardActions = KeyboardActions(onGo = {
-                                val picked = jump.toIntOrNull()
-                                if (picked != null && picked in 1..totalEpisodes) {
-                                    onPickEpisode(picked)
-                                    jump = ""
-                                }
-                            }),
-                            singleLine = true,
-                            decorationBox = { inner ->
-                                if (jump.isEmpty()) {
-                                    Text("Ep...", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp)
-                                }
-                                inner()
-                            },
-                        )
-                    }
-                }
-                ShelfAction(
-                    label = "Next",
-                    enabled = episode < totalEpisodes,
-                    icon = Icons.Rounded.PlayArrow,
-                    onClick = { onPickEpisode(episode + 1) },
+                        .fillMaxWidth()
+                        .focusRequester(jumpFocus),
+                    decorationBox = { inner ->
+                        if (jump.isEmpty()) {
+                            Text(
+                                "Jump to episode",
+                                color = Color.White.copy(alpha = 0.35f),
+                                fontSize = 14.sp,
+                            )
+                        }
+                        inner()
+                    },
                 )
-                ShelfAction(
-                    label = "Latest",
-                    enabled = episode != totalEpisodes,
-                    selected = episode == totalEpisodes,
-                    onClick = { onPickEpisode(totalEpisodes) },
-                )
-                val autoBg by animateColorAsState(
-                    if (autoNext) Color.White else Color(0xFF0C0C10),
-                    tween(180),
-                    label = "autoBg",
-                )
-                val autoColor by animateColorAsState(
-                    if (autoNext) Color.Black else Color.White.copy(alpha = 0.7f),
-                    tween(180),
-                    label = "autoText",
-                )
-                Box(
-                    modifier = Modifier
-                        .height(36.dp)
-                        .spacePress(onToggleAutoNext)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(autoBg)
-                        .border(
-                            0.5.dp,
-                            if (autoNext) Color.White else Color.White.copy(alpha = 0.08f),
-                            RoundedCornerShape(16.dp),
-                        )
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Auto", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = autoColor)
-                }
             }
         }
         Row(
@@ -2112,14 +2114,14 @@ private fun PlayerEpisodeShelf(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(36.dp)
+                        .heightIn(min = 48.dp)
                         .spacePress { onPickAudio(key) }
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(background)
                         .border(
                             0.5.dp,
                             if (selected) Color.White else Color.White.copy(alpha = 0.08f),
-                            RoundedCornerShape(16.dp),
+                            RoundedCornerShape(12.dp),
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2134,6 +2136,7 @@ private fun PlayerEpisodeShelf(
         }
         if (showGrid) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -2149,6 +2152,19 @@ private fun PlayerEpisodeShelf(
                     color = Color.White.copy(alpha = 0.45f),
                     fontWeight = FontWeight.Medium,
                     fontSize = 13.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    if (autoNext) "Auto on" else "Auto off",
+                    color = if (autoNext) Color.Black else Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (autoNext) Color.White else Color.White.copy(alpha = 0.06f))
+                        .clickable(onClick = onToggleAutoNext)
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
                 )
             }
             val slides = if (episodeSlides.isNotEmpty()) {
@@ -2278,13 +2294,14 @@ private fun LiveTimeline(
     ) {
         Text(
             formatClock(shown),
-            color = PlayerChrome.Graphite,
-            fontSize = 12.sp,
+            color = PlayerChrome.Paper,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
         )
         Text(
             "−${formatClock((durationMs - shown).coerceAtLeast(0L))}",
             color = PlayerChrome.Paper,
-            fontSize = 12.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
         )
     }
@@ -2482,10 +2499,13 @@ private fun NextEpisodePrompt(
 private fun PlayerSheet(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit,
+    resetKey: Any? = null,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     val focusManager = LocalFocusManager.current
+    val scroll = rememberScrollState()
+    LaunchedEffect(resetKey) { scroll.scrollTo(0) }
     Box(
         modifier = modifier
             .clip(shape)
@@ -2508,12 +2528,22 @@ private fun PlayerSheet(
             .pointerInput(Unit) { detectTapGestures { } }
             .padding(16.dp),
     ) {
-        Column(
-            modifier = Modifier
-                .focusProperties { canFocus = false }
-                .verticalScroll(rememberScrollState()),
-        ) {
-            content()
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 12.dp)
+                    .size(width = 36.dp, height = 4.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White.copy(alpha = 0.28f)),
+            )
+            Column(
+                modifier = Modifier
+                    .focusProperties { canFocus = false }
+                    .verticalScroll(scroll),
+            ) {
+                content()
+            }
         }
     }
 }
@@ -2622,8 +2652,24 @@ private fun SubsSheet(
     onToggle: (Boolean) -> Unit,
     onPick: (String) -> Unit,
     onOpenStyle: () -> Unit,
+    audio: String = "sub",
+    onPickAudio: ((String) -> Unit)? = null,
 ) {
     SheetTitle("Subtitles")
+    if (onPickAudio != null) {
+        Spacer(modifier = Modifier.height(8.dp))
+        SheetRow(
+            label = "Subtitled",
+            selected = audio != "dub",
+            onClick = { onPickAudio("sub") },
+        )
+        SheetRow(
+            label = "Dubbed",
+            selected = audio == "dub",
+            onClick = { onPickAudio("dub") },
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+    }
     Spacer(modifier = Modifier.height(10.dp))
     SheetRow(
         label = "Off",
@@ -2680,6 +2726,13 @@ private fun StyleSheet(
         onClick = onBack,
         initiallyFocused = true,
     )
+    CaptionPreview(style)
+    Text(
+        "A Chromecast uses the TV's own caption style.",
+        color = PlayerChrome.Faint,
+        fontSize = 11.sp,
+    )
+    Spacer(modifier = Modifier.height(8.dp))
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -2700,8 +2753,8 @@ private fun StyleSheet(
     ) {
         listOf(
             8f to "Tiny",
-            10f to "Small",
             DEFAULT_SUB_SIZE_SP to "Default",
+            12f to "Medium",
             14f to "Large",
             18f to "XL",
             22f to "Max",
@@ -2751,6 +2804,22 @@ private fun StyleSheet(
         modifier = Modifier.fillMaxWidth(),
     )
 
+    Spacer(modifier = Modifier.height(8.dp))
+    Text("Style", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+    Spacer(modifier = Modifier.height(6.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChoicePill(
+            label = "Regular",
+            selected = !style.bold,
+            onClick = { onChange(style.copy(bold = false)) },
+        )
+        ChoicePill(
+            label = "Bold",
+            selected = style.bold,
+            onClick = { onChange(style.copy(bold = true)) },
+        )
+    }
+
     Spacer(modifier = Modifier.height(10.dp))
     Text("Color", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     Spacer(modifier = Modifier.height(6.dp))
@@ -2794,6 +2863,31 @@ private fun StyleSheet(
             )
         }
     }
+    if (style.bgMode != SubBgMode.None) {
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("Box opacity", color = PlayerChrome.Graphite, fontSize = 12.sp)
+            Text(
+                "${(style.bgAlpha * 100).toInt()}%",
+                color = PlayerChrome.Faint,
+                fontSize = 11.sp,
+            )
+        }
+        Slider(
+            value = style.bgAlpha,
+            onValueChange = { onChange(style.copy(bgAlpha = it)) },
+            valueRange = 0.15f..1f,
+            colors = SliderDefaults.colors(
+                thumbColor = PlayerChrome.Accent,
+                activeTrackColor = PlayerChrome.Accent,
+                inactiveTrackColor = PlayerChrome.Faint,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
 
     Spacer(modifier = Modifier.height(14.dp))
     Text("Edge", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
@@ -2812,34 +2906,52 @@ private fun StyleSheet(
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
+}
+
+@Composable
+private fun CaptionPreview(style: SubStyle) {
     val previewBg = when (style.bgMode) {
         SubBgMode.None -> Color.Transparent
-        SubBgMode.Soft -> Color.Black.copy(alpha = 0.35f)
-        SubBgMode.Blur -> Color.Black.copy(alpha = 0.48f)
-        SubBgMode.Solid -> Color.Black.copy(alpha = 0.82f)
+        SubBgMode.Soft -> Color.Black.copy(alpha = style.bgAlpha.coerceIn(0.15f, 0.55f))
+        SubBgMode.Blur -> Color.Black.copy(alpha = style.bgAlpha.coerceIn(0.25f, 0.7f))
+        SubBgMode.Solid -> Color.Black.copy(alpha = style.bgAlpha)
+    }
+    val shadow = when (style.edgeType) {
+        CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW -> Shadow(
+            color = Color.Black.copy(alpha = 0.9f),
+            offset = Offset(0f, 1.5f),
+            blurRadius = 6f,
+        )
+        CaptionStyleCompat.EDGE_TYPE_OUTLINE -> Shadow(
+            color = Color.Black,
+            offset = Offset(0f, 0f),
+            blurRadius = 3f,
+        )
+        else -> null
     }
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .padding(vertical = 8.dp)
+            .clip(RoundedCornerShape(16.dp))
             .background(
                 Brush.verticalGradient(
                     listOf(Color(0xFF1A1A1E), Color(0xFF0A0A0C)),
                 ),
             )
-            .padding(18.dp),
+            .padding(vertical = 22.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             "Preview · 字幕サンプル",
             color = Color(style.color),
             fontSize = style.sizeSp.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = if (style.bold) FontWeight.Bold else FontWeight.Medium,
+            style = TextStyle(shadow = shadow),
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .background(previewBg)
-                .padding(horizontal = 10.dp, vertical = 5.dp),
+                .padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }
@@ -2850,6 +2962,8 @@ private fun DisplaySheet(
     immersive: Boolean,
     onResize: (Int) -> Unit,
     onImmersive: (Boolean) -> Unit,
+    onSleep: () -> Unit,
+    onLock: () -> Unit,
 ) {
     SheetTitle("Display")
     Spacer(modifier = Modifier.height(10.dp))
@@ -2874,6 +2988,14 @@ private fun DisplaySheet(
         label = if (immersive) "System bars hidden" else "Show system bars",
         selected = immersive,
         onClick = { onImmersive(!immersive) },
+    )
+    SheetRow(label = "Sleep timer", selected = false, onClick = onSleep)
+    SheetRow(label = "Lock controls", selected = false, onClick = onLock)
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        "Downloads aren't available. AniKitty streams this episode and does not keep a copy.",
+        color = PlayerChrome.Faint,
+        fontSize = 12.sp,
     )
 }
 
@@ -2920,7 +3042,8 @@ private fun SheetRow(
                 shape,
             )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 11.dp),
+            .heightIn(min = 48.dp)
+            .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -2947,6 +3070,7 @@ private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
     var focused by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
+            .heightIn(min = 48.dp)
             .clip(shape)
             .background(if (selected || focused) PlayerChrome.Accent else PlayerChrome.Disc)
             .border(
@@ -2956,13 +3080,53 @@ private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
             )
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
+            .padding(horizontal = 14.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             label,
             color = if (selected || focused) PlayerChrome.Ink else PlayerChrome.Paper,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun PlayerTool(
+    label: String,
+    value: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    enabled: Boolean = true,
+) {
+    Column(
+        modifier = modifier
+            .heightIn(min = 48.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (selected) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.06f),
+            )
+            .clearAndSetSemantics { contentDescription = "$label, $value" }
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            value,
+            color = if (enabled) Color.White else Color.White.copy(alpha = 0.35f),
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            label,
+            color = Color.White.copy(alpha = 0.5f),
+            fontSize = 10.sp,
+            maxLines = 1,
         )
     }
 }
@@ -3260,12 +3424,16 @@ private fun applyTextSelection(
 private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
     val view = playerView?.subtitleView ?: return
     view.visibility = android.view.View.VISIBLE
-    // Backdrop modes approximate Netflix-style caption plates on Media3 SubtitleView.
+    view.setApplyEmbeddedStyles(false)
+    view.setApplyEmbeddedFontSizes(false)
+    val alpha = (style.bgAlpha.coerceIn(0f, 1f) * 255).toInt().coerceIn(0, 255)
+    // Backdrop modes approximate caption plates on Media3 SubtitleView.
     val (bg, window) = when (style.bgMode) {
         SubBgMode.None -> AndroidColor.TRANSPARENT to AndroidColor.TRANSPARENT
-        SubBgMode.Soft -> AndroidColor.TRANSPARENT to AndroidColor.argb(100, 0, 0, 0)
-        SubBgMode.Blur -> AndroidColor.argb(80, 16, 16, 18) to AndroidColor.argb(140, 0, 0, 0)
-        SubBgMode.Solid -> AndroidColor.argb(200, 0, 0, 0) to AndroidColor.TRANSPARENT
+        SubBgMode.Soft -> AndroidColor.TRANSPARENT to AndroidColor.argb((alpha * 0.7f).toInt(), 0, 0, 0)
+        SubBgMode.Blur -> AndroidColor.argb((alpha * 0.45f).toInt(), 16, 16, 18) to
+            AndroidColor.argb(alpha, 0, 0, 0)
+        SubBgMode.Solid -> AndroidColor.argb(alpha, 0, 0, 0) to AndroidColor.TRANSPARENT
     }
     view.setStyle(
         CaptionStyleCompat(
@@ -3274,7 +3442,7 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
             window,
             style.edgeType,
             AndroidColor.BLACK,
-            Typeface.DEFAULT,
+            if (style.bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT,
         ),
     )
     val metrics = view.resources.displayMetrics
@@ -3294,13 +3462,17 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
         SubBgMode.Solid.name -> SubBgMode.Solid
         else -> if (prefs.getBoolean("sub_bg", true)) SubBgMode.Soft else SubBgMode.None
     }
-    // v3 resets prior oversized size defaults once; position keeps the full slider range.
+    val storedSize = if (prefs.contains("sub_size_sp")) {
+        prefs.getFloat("sub_size_sp", DEFAULT_SUB_SIZE_SP)
+    } else {
+        DEFAULT_SUB_SIZE_SP
+    }
+    // v4 replaces the old 10.5 default with a smaller one and leaves a custom size alone.
     val sizeSp = when {
-        version >= SUB_STYLE_VERSION && prefs.contains("sub_size_sp") ->
-            prefs.getFloat("sub_size_sp", DEFAULT_SUB_SIZE_SP)
-        prefs.contains("sub_size_sp") ->
-            prefs.getFloat("sub_size_sp", DEFAULT_SUB_SIZE_SP).coerceAtMost(14f)
-        else -> DEFAULT_SUB_SIZE_SP
+        version >= SUB_STYLE_VERSION && prefs.contains("sub_size_sp") -> storedSize
+        !prefs.contains("sub_size_sp") -> DEFAULT_SUB_SIZE_SP
+        kotlin.math.abs(storedSize - 10.5f) < 0.25f -> DEFAULT_SUB_SIZE_SP
+        else -> storedSize
     }
     // Persist Low→Top as saved. Only clamp to valid slider bounds — never rewrite Low up.
     val rawBottom = if (prefs.contains("sub_bottom")) {
@@ -3319,12 +3491,14 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
         color = prefs.getInt("sub_color", AndroidColor.WHITE),
         bgMode = bgMode,
         edgeType = prefs.getInt("sub_edge", CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW),
+        bold = prefs.getBoolean("sub_bold", false),
+        bgAlpha = prefs.getFloat("sub_bg_alpha", 0.55f).let { if (it.isFinite()) it.coerceIn(0.15f, 1f) else 0.55f },
     )
 }
 
-/** Compact Netflix-like default; full Tiny→Max range is user-controlled. */
-private const val SUB_STYLE_VERSION = 3
-private const val DEFAULT_SUB_SIZE_SP = 10.5f
+/** Smaller default than the previous 10.5sp. A saved custom size is kept. */
+private const val SUB_STYLE_VERSION = 4
+private const val DEFAULT_SUB_SIZE_SP = 9f
 private const val SUB_SIZE_SP_MIN = 8f
 private const val SUB_SIZE_SP_MAX = 24f
 /** Raised so captions clear the player chrome by default. */

@@ -303,6 +303,7 @@ fun ContinueWatchCard(
                         widthPx = 360,
                         heightPx = 80,
                         contentScale = ContentScale.Fit,
+                        placeholder = Color.Transparent,
                         modifier = Modifier
                             .height(28.dp)
                             .fillMaxWidth(0.72f),
