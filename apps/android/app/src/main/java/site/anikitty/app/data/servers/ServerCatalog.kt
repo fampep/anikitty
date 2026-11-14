@@ -37,15 +37,13 @@ class ServerCatalog(context: Context) {
     private val bundled: List<StreamResolver> = listOf(
         AnikotoServer(cache = resolveCache, crypto = megaPlayCrypto),
         GotakuServer(cache = resolveCache),
-        AniPmServer(cache = resolveCache),
+        ReanimeServer(cache = resolveCache),
     )
 
     private val _resolvers = MutableStateFlow(buildResolvers(extensions.installed.value))
     val resolvers: StateFlow<List<StreamResolver>> = _resolvers.asStateFlow()
 
-    private val _selectedId = MutableStateFlow(
-        prefs.getString(KEY_SELECTED, AnikotoServer.ID) ?: AnikotoServer.ID,
-    )
+    private val _selectedId = MutableStateFlow(readSelectedId())
     val selectedId: StateFlow<String> = _selectedId.asStateFlow()
 
     val servers: List<StreamServer> get() = _resolvers.value.map { it.server }
@@ -179,6 +177,13 @@ class ServerCatalog(context: Context) {
         val bundledIds = bundled.map { it.server.id }.toSet()
         val extras = fromExt.filterNot { it.server.id in bundledIds }
         return bundled + extras
+    }
+
+    private fun readSelectedId(): String {
+        val raw = prefs.getString(KEY_SELECTED, AnikotoServer.ID) ?: AnikotoServer.ID
+        val migrated = FlixCrypto.migrateServerId(raw) ?: AnikotoServer.ID
+        if (migrated != raw) prefs.edit().putString(KEY_SELECTED, migrated).apply()
+        return migrated
     }
 
     private fun ensureSelectionValid() {

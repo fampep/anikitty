@@ -33,13 +33,13 @@ class AnikotoSourceMetaTest {
     }
 }
 
-class AniPmSourceMetaTest {
+class ReanimeSourceMetaTest {
     @Test
     fun playlistResolutionCodecAndChannels() {
         val inf = "#EXT-X-STREAM-INF:BANDWIDTH=2500000,RESOLUTION=1920x1080," +
             "CODECS=\"avc1.640028,mp4a.40.2\",AUDIO=\"aac\""
         val media = "#EXT-X-MEDIA:TYPE=AUDIO,CHANNELS=\"2\",URI=\"audio.m3u8\""
-        val fields = BuiltInSourceMeta.anipm(inf, "sub", media)
+        val fields = BuiltInSourceMeta.reanime(inf, "sub", media)
         assertEquals("1080p", fields.quality)
         assertEquals("AAC · 2.0 · SUB", fields.audio)
         assertNull(fields.qualityRating)
@@ -48,14 +48,14 @@ class AniPmSourceMetaTest {
     @Test
     fun surroundAc3OnADubVariant() {
         val inf = "#EXT-X-STREAM-INF:RESOLUTION=1280x720,CODECS=\"avc1.4d401f,ac-3\",CHANNELS=6"
-        val fields = BuiltInSourceMeta.anipm(inf, "dub")
+        val fields = BuiltInSourceMeta.reanime(inf, "dub")
         assertEquals("720p", fields.quality)
         assertEquals("AC3 · 5.1 · DUB", fields.audio)
     }
 
     @Test
     fun masterRowHasModeOnly() {
-        val fields = BuiltInSourceMeta.anipm("", "sub")
+        val fields = BuiltInSourceMeta.reanime("", "sub")
         assertNull(fields.quality)
         assertEquals("SUB", fields.audio)
         assertNull(fields.qualityRating)

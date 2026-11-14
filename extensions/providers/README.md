@@ -7,7 +7,7 @@ Playback stays on the phone. This repository is where the extension version of e
 |---|---|
 | [anikoto](./anikoto) | Anikoto → MegaPlay, including skip times used for every provider |
 | [gotaku](./gotaku) | Gotaku HLS unwrap |
-| [anipm](./anipm) | ani.pm → Settlar |
+| [reanime](./reanime) | reanime.cz |
 
 Each resolver sets optional `quality`, `audio`, and `qualityRating` on `PlayableSource` only from data it parsed (HLS `RESOLUTION` / `CODECS` / `CHANNELS`, or the site’s own label). A missing fact stays null.
 

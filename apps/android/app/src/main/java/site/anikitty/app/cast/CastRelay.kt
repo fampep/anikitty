@@ -13,8 +13,11 @@ import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DataSpec
-import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import site.anikitty.app.data.servers.FlixUnwrap
+import site.anikitty.app.data.servers.FlixUnwrapDataSource
 import site.anikitty.app.data.servers.GotakuObfDataSource
+import site.anikitty.app.data.servers.PlaybackHttp
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
 import java.io.BufferedOutputStream
@@ -57,12 +60,12 @@ class CastRelay(context: Context) {
     private val appContext = context.applicationContext
     private val stripBytes = AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES)
     private val obf = AtomicReference(null as site.anikitty.app.data.servers.GotakuObf?)
-    private val httpFactory = DefaultHttpDataSource.Factory()
-        .setAllowCrossProtocolRedirects(true)
-        .setConnectTimeoutMs(12_000)
-        .setReadTimeoutMs(20_000)
+    private val httpFactory: OkHttpDataSource.Factory =
+        PlaybackHttp.factory(emptyMap(), DEFAULT_UA)
+    private val flix = AtomicReference(null as FlixUnwrap?)
     private val gotakuFactory = GotakuObfDataSource.Factory(httpFactory, obf)
-    private val factory = SegmentStripDataSource.Factory(gotakuFactory, stripBytes = stripBytes)
+    private val flixFactory = FlixUnwrapDataSource.Factory(gotakuFactory, flix)
+    private val factory = SegmentStripDataSource.Factory(flixFactory, stripBytes = stripBytes)
 
     private val allowLock = Any()
     /** URLs the receiver is playing now, plus the previous load so a switch does not 403. */
@@ -93,8 +96,10 @@ class CastRelay(context: Context) {
         httpFactory.setDefaultRequestProperties(next.headers)
         gotakuFactory.updateObf(next.gotakuObf)
         obf.set(next.gotakuObf)
+        flixFactory.update(next.flix)
+        flix.set(next.flix)
         val strip = when {
-            next.gotakuObf != null -> next.stripBytes.coerceAtLeast(0)
+            next.gotakuObf != null || next.flix != null -> next.stripBytes.coerceAtLeast(0)
             next.stripBytes > 0 -> next.stripBytes
             else -> SegmentStripDataSource.DEFAULT_STRIP_BYTES
         }

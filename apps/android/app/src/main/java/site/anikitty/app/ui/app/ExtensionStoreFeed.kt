@@ -67,7 +67,7 @@ import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.StoreListing
-import site.anikitty.app.data.servers.AniPmServer
+import site.anikitty.app.data.servers.ReanimeServer
 import site.anikitty.app.data.servers.AnikotoServer
 import site.anikitty.app.data.servers.GotakuServer
 import site.anikitty.app.data.servers.ServerCatalog
@@ -147,7 +147,7 @@ fun ExtensionStoreFeed(
     }
 
     val bundledIds = remember {
-        setOf(AnikotoServer.ID, GotakuServer.ID, AniPmServer.ID)
+        setOf(AnikotoServer.ID, GotakuServer.ID, ReanimeServer.ID)
     }
 
     // Always surface on-device resolvers even if the remote index is stale/offline.
@@ -696,6 +696,6 @@ private sealed interface StoreRow {
 private fun providerSource(id: String): String = when (id) {
     "anikoto" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/anikoto"
     "gotaku" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/gotaku"
-    "anipm" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/anipm"
+    "reanime" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/reanime"
     else -> "https://github.com/fampep/anikitty-extensions"
 }
