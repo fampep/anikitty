@@ -25,6 +25,8 @@
             android:exported="true"
             android:theme="@style/Theme.AniKitty"
             android:launchMode="singleTop"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

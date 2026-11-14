@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
@@ -32,6 +33,7 @@ fun KittyImage(
         Box(modifier.background(placeholder))
         return
     }
+    val matte = if (placeholder.alpha > 0f) ColorPainter(placeholder) else null
     AsyncImage(
         model = ImageRequest.Builder(context)
             .data(url)
@@ -42,6 +44,8 @@ fun KittyImage(
             .build(),
         contentDescription = contentDescription,
         contentScale = contentScale,
-        modifier = modifier.background(placeholder),
+        placeholder = matte,
+        error = matte,
+        modifier = modifier,
     )
 }
