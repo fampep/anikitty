@@ -80,6 +80,8 @@ import site.anikitty.app.data.anilist.AniListViewer
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
+import site.anikitty.app.ui.theme.coverKey
+import site.anikitty.app.ui.theme.sharedCover
 
 @Composable
 fun MySpaceFeed(
@@ -92,7 +94,7 @@ fun MySpaceFeed(
     syncLabel: String?,
     libraryFilter: String,
     onSync: () -> Unit,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, String) -> Unit,
     onOpenAccount: () -> Unit,
     onSignOut: () -> Unit,
     avatarUrl: String? = null,
@@ -370,7 +372,7 @@ fun MySpaceFeed(
                             confirmClear = true
                         }
                     },
-                    onOpen = { entry ->
+                    onOpen = { entry, key ->
                         scope.launch {
                             val detail = aniList.media(entry.anilistId) ?: AnimeSummary(
                                 id = entry.anilistId,
@@ -381,7 +383,7 @@ fun MySpaceFeed(
                                 averageScore = null,
                                 malId = entry.malId,
                             )
-                            onOpen(detail)
+                            onOpen(detail, key)
                         }
                     },
                 )
@@ -433,7 +435,7 @@ private fun CloudSyncBlock(
     onSync: () -> Unit,
     onConnect: () -> Unit,
     onSignOut: () -> Unit,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, String) -> Unit,
     selection: ShowSelection,
 ) {
     val spin = rememberInfiniteTransition(label = "sync")
@@ -584,16 +586,18 @@ private fun CloudSyncBlock(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     items(row, key = { "cloud-${it.key}" }) { card ->
+                        val key = coverKey("space", card.anime.id, "list")
                         SpacePoster(
                             title = card.title,
                             imageUrl = card.imageUrl,
                             subtitle = card.subtitle,
                             progress = card.progress,
+                            coverKey = key,
                             selected = card.anime.id in selection.ids,
                             selecting = selection.active,
                             onClick = {
                                 if (selection.active) selection.onToggle(card.anime.id)
-                                else onOpen(card.anime)
+                                else onOpen(card.anime, key)
                             },
                             onLongClick = { selection.onStart(card.anime.id) },
                         )
@@ -610,7 +614,7 @@ private fun ContinueBlock(
     confirmClear: Boolean,
     selection: ShowSelection,
     onClear: () -> Unit,
-    onOpen: (WatchHistoryEntity) -> Unit,
+    onOpen: (WatchHistoryEntity, String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
@@ -654,17 +658,19 @@ private fun ContinueBlock(
                     } else {
                         0f
                     }
+                    val key = coverKey("space", watch.anilistId, "continue")
                     SpacePoster(
                         title = watch.title,
                         imageUrl = watch.coverImageUrl,
                         subtitle = "EP ${watch.episode}",
                         progress = fraction,
                         wide = true,
+                        coverKey = key,
                         selected = watch.anilistId in selection.ids,
                         selecting = selection.active,
                         onClick = {
                             if (selection.active) selection.onToggle(watch.anilistId)
-                            else onOpen(watch)
+                            else onOpen(watch, key)
                         },
                         onLongClick = { selection.onStart(watch.anilistId) },
                     )
@@ -678,7 +684,7 @@ private fun ContinueBlock(
 private fun FavoritesBlock(
     favourites: List<AnimeSummary>,
     linked: Boolean,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, String) -> Unit,
     selection: ShowSelection,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -714,12 +720,14 @@ private fun FavoritesBlock(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 favourites.forEach { anime ->
+                    val key = coverKey("space", anime.id, "fav")
                     FavoriteRow(
                         anime = anime,
+                        coverKey = key,
                         selected = anime.id in selection.ids,
                         selecting = selection.active,
                         onClick = {
-                            if (selection.active) selection.onToggle(anime.id) else onOpen(anime)
+                            if (selection.active) selection.onToggle(anime.id) else onOpen(anime, key)
                         },
                         onLongClick = { selection.onStart(anime.id) },
                     )
@@ -771,6 +779,7 @@ private fun SpacePoster(
     subtitle: String,
     progress: Float,
     onClick: () -> Unit,
+    coverKey: String? = null,
     wide: Boolean = false,
     selected: Boolean = false,
     selecting: Boolean = false,
@@ -801,7 +810,7 @@ private fun SpacePoster(
                 model = imageUrl,
                 contentDescription = title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.sharedCover(coverKey).fillMaxSize(),
             )
             Box(
                 modifier = Modifier
@@ -864,6 +873,7 @@ private fun SpacePoster(
 @Composable
 private fun FavoriteRow(
     anime: AnimeSummary,
+    coverKey: String,
     onClick: () -> Unit,
     selected: Boolean = false,
     selecting: Boolean = false,
@@ -919,7 +929,7 @@ private fun FavoriteRow(
                     model = anime.coverImageUrl,
                     contentDescription = anime.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.sharedCover(coverKey).fillMaxSize(),
                 )
                 if (selecting) {
                     SelectMark(
