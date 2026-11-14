@@ -3,9 +3,13 @@
 
 package site.anikitty.app.ui.components
 
+import android.app.ActivityManager
 import android.graphics.Bitmap
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +54,9 @@ fun HeroBanner(
         return
     }
     val context = LocalContext.current
+    val lowRam = remember {
+        context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
+    }
     val repo = remember { BannerRepository(context) }
     var choice by remember(anilistId, bannerUrl, coverUrl) {
         mutableStateOf<BannerChoice?>(null)
@@ -66,7 +73,7 @@ fun HeroBanner(
         ImageRequest.Builder(context)
             .data(shown.url)
             .size(Size(1280, 720))
-            .apply { if (shown.blur) transformations(SoftCover) }
+            .apply { if (shown.blur && !lowRam) transformations(SoftCover) }
             .build()
     }
     Box(modifier) {
@@ -76,6 +83,18 @@ fun HeroBanner(
             modifier = Modifier.fillMaxSize(),
             contentScale = contentScale,
         )
+        if (shown?.blur == true && lowRam) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0f to Color.Black.copy(alpha = 0.15f),
+                            1f to Color.Black.copy(alpha = 0.72f),
+                        ),
+                    ),
+            )
+        }
     }
 }
 

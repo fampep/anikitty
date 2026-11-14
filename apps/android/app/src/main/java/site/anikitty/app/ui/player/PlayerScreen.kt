@@ -431,7 +431,8 @@ fun PlayerScreen(
     val latestSourceIndex by rememberUpdatedState(sourceIndex)
     val latestTitle by rememberUpdatedState(title)
     val latestEpisode by rememberUpdatedState(episode)
-    val latestPosition by rememberUpdatedState(positionMs)
+    val playhead = remember { Playhead() }
+    val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
 
     fun goNextEpisode() {
@@ -441,13 +442,9 @@ fun PlayerScreen(
         next()
     }
 
-    val remainingMs = (durationMs - positionMs).coerceAtLeast(0L)
-    val nearEndOffer = onNextEpisode != null &&
-        !playbackEnded &&
-        !nearEndDismissed &&
-        !nextTriggered &&
-        durationMs >= NEAR_END_MIN_DURATION_MS &&
-        remainingMs in 1L..NEAR_END_THRESHOLD_MS
+    var nearEndOffer by remember { mutableStateOf(false) }
+    var shownSkip by remember { mutableStateOf<Pair<String, site.anikitty.app.data.skip.SkipInterval>?>(null) }
+    var shelfMinutes by remember { mutableIntStateOf(-1) }
     val showEndAutoplay = autoNext &&
         onNextEpisode != null &&
         playbackEnded &&
@@ -474,7 +471,7 @@ fun PlayerScreen(
                 override fun onCastSessionAvailable() {
                     val src = latestSources.getOrNull(latestSourceIndex) ?: return
                     val local = latestPlayer
-                    val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition
+                    val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition.ms
                     local?.pause()
                     isCasting = true
                     castHint = null
@@ -500,7 +497,7 @@ fun PlayerScreen(
                 override fun onCastSessionUnavailable() {
                     val pos = runCatching {
                         helper.castPlayer.currentPosition.coerceAtLeast(0L)
-                    }.getOrDefault(latestPosition)
+                    }.getOrDefault(latestPosition.ms)
                     helper.stopCasting()
                     isCasting = false
                     val local = latestPlayer
@@ -527,7 +524,7 @@ fun PlayerScreen(
         val helper = castHelper ?: return@LaunchedEffect
         val src = source ?: return@LaunchedEffect
         val pos = helper.castPlayer.currentPosition.coerceAtLeast(0L)
-            .takeIf { it > 0L } ?: positionMs
+            .takeIf { it > 0L } ?: playhead.ms
         helper.load(
             source = src,
             title = title,
@@ -622,7 +619,7 @@ fun PlayerScreen(
 
             override fun onPlayerError(e: PlaybackException) {
                 if (sourceIndex + 1 < sources.size) {
-                    val pos = activePlayer?.currentPosition?.coerceAtLeast(0L) ?: positionMs
+                    val pos = activePlayer?.currentPosition?.coerceAtLeast(0L) ?: playhead.ms
                     // Prefer live position, then an in-flight quality resume target,
                     // and only then watch-history — never rewind a quality switch.
                     resumeAtMs = when {
@@ -700,34 +697,57 @@ fun PlayerScreen(
             .apply()
     }
 
-    LaunchedEffect(activePlayer, scrubbing, isCasting) {
-        var ticks = 0
+    LaunchedEffect(activePlayer, scrubbing, isCasting, nearEndDismissed, playbackEnded, nextTriggered) {
+        var lastProgressAt = 0L
+        var lastSkipKey: String? = null
+        var lastMinute = -2
         val p = activePlayer
         while (p != null) {
             if (!scrubbing) {
-                positionMs = p.currentPosition.coerceAtLeast(0L)
+                val pos = p.currentPosition.coerceAtLeast(0L)
+                playhead.ms = pos
                 val d = p.duration
-                if (d > 0) durationMs = d
-                playing = p.isPlaying
-                ready = p.playbackState == Player.STATE_READY ||
+                if (d > 0 && d != durationMs) durationMs = d
+                val nowPlaying = p.isPlaying
+                if (nowPlaying != playing) playing = nowPlaying
+                val nowReady = p.playbackState == Player.STATE_READY ||
                     p.playbackState == Player.STATE_BUFFERING ||
                     isCasting
-                val active = skipTimes.activeAt(positionMs)
+                if (nowReady != ready) ready = nowReady
+                val active = skipTimes.activeAt(pos)
+                val skipKey = if (active == null) null else "${active.first}:${active.second.endMs}"
+                if (skipKey != lastSkipKey) {
+                    lastSkipKey = skipKey
+                    shownSkip = active
+                }
                 if (active != null && !isCasting) {
                     val (kind, iv) = active
                     if (kind == "recap" && !autoSkippedRecap) {
                         autoSkippedRecap = true
                         p.seekTo(iv.endMs)
-                        positionMs = iv.endMs
+                        playhead.ms = iv.endMs
                     }
                 }
-                ticks++
-                if (ticks % 8 == 0) {
-                    // Don't clobber saved history with ~0 while waiting to resume.
+                val dur = if (d > 0) d else durationMs
+                val remaining = (dur - pos).coerceAtLeast(0L)
+                val offer = onNextEpisode != null &&
+                    !playbackEnded &&
+                    !nearEndDismissed &&
+                    !nextTriggered &&
+                    dur >= NEAR_END_MIN_DURATION_MS &&
+                    remaining in 1L..NEAR_END_THRESHOLD_MS
+                if (offer != nearEndOffer) nearEndOffer = offer
+                val mins = if (dur > 30_000L) (remaining / 60_000L).toInt() else -1
+                if (mins != lastMinute) {
+                    lastMinute = mins
+                    shelfMinutes = mins
+                }
+                if (pos - lastProgressAt >= 2_000L) {
+                    lastProgressAt = pos
                     val waitingHistory =
-                        !didSeekStart && startPositionMs > 2_000L && positionMs < startPositionMs - 1_000L
+                        !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
                     if (!waitingHistory) {
-                        onProgress?.invoke(positionMs, durationMs)
+                        onProgress?.invoke(pos, dur)
                     }
                 }
             }
@@ -746,7 +766,7 @@ fun PlayerScreen(
 
     DisposableEffect(Unit) {
         onDispose {
-            onProgress?.invoke(positionMs, durationMs)
+            onProgress?.invoke(playhead.ms, durationMs)
         }
     }
 
@@ -815,6 +835,7 @@ fun PlayerScreen(
         val target = (p.currentPosition + deltaMs).coerceIn(0L, p.duration.coerceAtLeast(0L))
         p.seekTo(target)
         positionMs = target
+        playhead.ms = target
         seekFlashDir = if (deltaMs < 0) -1 else 1
         if (!controlsLocked) controlsVisible = true
     }
@@ -823,12 +844,13 @@ fun PlayerScreen(
         val p = activePlayer ?: return
         p.seekTo(endMs.coerceIn(0L, p.duration.coerceAtLeast(0L)))
         positionMs = endMs
+        playhead.ms = endMs
         controlsVisible = true
     }
 
     fun pickQuality(index: Int) {
         if (index == sourceIndex || index !in sources.indices) return
-        resumeAtMs = activePlayer?.currentPosition?.coerceAtLeast(0L) ?: positionMs
+        resumeAtMs = activePlayer?.currentPosition?.coerceAtLeast(0L) ?: playhead.ms
         didSeekStart = false
         allowHistoryFallback = false
         // Keep the user's resolution lock across mirror switches when possible.
@@ -837,7 +859,7 @@ fun PlayerScreen(
         controlsVisible = true
     }
 
-    val activeSkip = skipTimes.activeAt(positionMs)
+    val activeSkip = shownSkip
     val qualityLabel = when {
         selectedVideoId != "auto" ->
             videoOptions.firstOrNull { it.id == selectedVideoId }?.label ?: selectedVideoId
@@ -1106,11 +1128,20 @@ fun PlayerScreen(
             }
         }
 
-        gestureHud?.let { (label, level) ->
+        val hud = gestureHud
+        var heldHud by remember { mutableStateOf<Pair<String, Float>?>(null) }
+        if (hud != null) heldHud = hud
+        val reducedHud = site.anikitty.app.ui.theme.prefersReducedMotion()
+        AnimatedVisibility(
+            visible = hud != null,
+            modifier = Modifier.align(Alignment.Center),
+            enter = fadeIn(tween(if (reducedHud) 0 else 140)),
+            exit = fadeOut(tween(if (reducedHud) 0 else 180)),
+        ) {
+            val (label, level) = heldHud ?: return@AnimatedVisibility
             val hudShape = RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.lg)
             Column(
                 modifier = Modifier
-                    .align(Alignment.Center)
                     .clip(hudShape)
                     .background(Color.Black.copy(alpha = 0.78f))
                     .border(0.5.dp, Color.White.copy(alpha = 0.35f), hudShape)
@@ -1208,6 +1239,8 @@ fun PlayerScreen(
                 nextEpisode = episode + 1,
                 ended = showEndAutoplay,
                 secondsLeft = autoplaySecLeft,
+                player = activePlayer,
+                durationMs = durationMs,
                 busy = nextTriggered,
                 onPlayNow = { goNextEpisode() },
                 onDismiss = {
@@ -1453,14 +1486,12 @@ fun PlayerScreen(
                         .windowInsetsPadding(WindowInsets.navigationBars)
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                 ) {
-                    val dur = durationMs.coerceAtLeast(1L).toFloat()
-                    val progress = if (scrubbing) scrubValue else (positionMs / dur).coerceIn(0f, 1f)
-                    val scrubMs = if (scrubbing) (scrubValue * durationMs).toLong() else positionMs
-
-                    GlassScrubber(
-                        progress = progress,
-                        durationMs = durationMs,
+                    LiveTimeline(
+                        player = activePlayer,
                         scrubbing = scrubbing,
+                        scrubValue = scrubValue,
+                        durationMs = durationMs,
+                        skipTimes = skipTimes,
                         onScrub = {
                             scrubbing = true
                             scrubValue = it
@@ -1469,29 +1500,11 @@ fun PlayerScreen(
                         onScrubFinished = { fraction ->
                             val target = (fraction * durationMs).toLong()
                             activePlayer?.seekTo(target)
+                            playhead.ms = target
                             positionMs = target
                             scrubbing = false
                         },
-                        formatClock = ::formatClock,
-                        skipTimes = skipTimes,
-                        modifier = Modifier.fillMaxWidth(),
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            formatClock(if (scrubbing) scrubMs else positionMs),
-                            color = PlayerChrome.Graphite,
-                            fontSize = 12.sp,
-                        )
-                        Text(
-                            "−${formatClock((durationMs - (if (scrubbing) scrubMs else positionMs)).coerceAtLeast(0L))}",
-                            color = PlayerChrome.Paper,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -1681,7 +1694,6 @@ fun PlayerScreen(
                 "preview" -> "Skip preview"
                 else -> "Skip"
             }
-            val remaining = ((iv.endMs - positionMs) / 1000L).coerceAtLeast(0L)
             var skipFocused by remember { mutableStateOf(false) }
             Row(
                 modifier = Modifier
@@ -1714,12 +1726,7 @@ fun PlayerScreen(
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                 )
-                Text(
-                    "${remaining}s",
-                    color = PlayerChrome.Ink.copy(alpha = 0.62f),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
-                )
+                LiveSkipSeconds(player = activePlayer, endMs = iv.endMs)
             }
         }
     }
@@ -1789,8 +1796,8 @@ fun PlayerScreen(
                     .clickable { downloadNote = false },
             )
         }
-        val watchFraction = if (durationMs > 0L) {
-            (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+        val shelfFraction = if (durationMs > 0L && shelfMinutes >= 0) {
+            (1f - (shelfMinutes * 60_000f / durationMs.toFloat())).coerceIn(0f, 1f)
         } else {
             0f
         }
@@ -1808,22 +1815,13 @@ fun PlayerScreen(
             ),
         )
         if (!theater && durationMs > 0L) {
-            Box(
+            LiveHairline(
+                player = activePlayer,
+                durationMs = durationMs,
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp)
-                    .fillMaxWidth()
-                    .height(2.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.12f)),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(watchFraction)
-                        .background(Color.White),
-                )
-            }
+                    .padding(top = 8.dp),
+            )
         }
         if (!theater) {
             PlayerEpisodeShelf(
@@ -1835,7 +1833,7 @@ fun PlayerScreen(
                 episode = episode,
                 totalEpisodes = totalEpisodes.coerceAtLeast(1),
                 watchedThrough = watchedThrough,
-                positionFraction = watchFraction,
+                positionFraction = shelfFraction,
                 audio = audio,
                 isMovie = isMovie,
                 autoNext = autoNext,
@@ -1848,11 +1846,7 @@ fun PlayerScreen(
                 episodeSlides = episodeSlides,
                 anilistId = anilistId,
                 fallbackArt = fallbackArt,
-                minutesLeft = if (durationMs > 30_000L) {
-                    ((durationMs - positionMs).coerceAtLeast(0L) / 60_000L).toInt()
-                } else {
-                    null
-                },
+                minutesLeft = shelfMinutes.takeIf { it >= 0 },
                 onToggleWatched = onToggleWatched,
                 modifier = Modifier.weight(1f).dismissDrag(),
             )
@@ -2237,16 +2231,139 @@ private fun ShelfAction(
     }
 }
 
+private class Playhead {
+    var ms: Long = 0L
+}
+
+@Composable
+private fun LiveTimeline(
+    player: Player?,
+    scrubbing: Boolean,
+    scrubValue: Float,
+    durationMs: Long,
+    skipTimes: SkipTimes,
+    onScrub: (Float) -> Unit,
+    onScrubFinished: (Float) -> Unit,
+) {
+    var liveMs by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(player, scrubbing) {
+        val p = player ?: return@LaunchedEffect
+        while (true) {
+            if (!scrubbing) {
+                val next = p.currentPosition.coerceAtLeast(0L)
+                if (next != liveMs) liveMs = next
+            }
+            delay(200)
+        }
+    }
+    val shown = if (scrubbing) (scrubValue * durationMs).toLong() else liveMs
+    val dur = durationMs.coerceAtLeast(1L).toFloat()
+    GlassScrubber(
+        progress = if (durationMs > 0L) (shown / dur).coerceIn(0f, 1f) else 0f,
+        durationMs = durationMs,
+        scrubbing = scrubbing,
+        onScrub = onScrub,
+        onScrubFinished = onScrubFinished,
+        formatClock = ::formatClock,
+        skipTimes = skipTimes,
+        modifier = Modifier.fillMaxWidth(),
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            formatClock(shown),
+            color = PlayerChrome.Graphite,
+            fontSize = 12.sp,
+        )
+        Text(
+            "−${formatClock((durationMs - shown).coerceAtLeast(0L))}",
+            color = PlayerChrome.Paper,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+@Composable
+private fun LiveHairline(
+    player: Player?,
+    durationMs: Long,
+    modifier: Modifier = Modifier,
+) {
+    var liveMs by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(player) {
+        val p = player ?: return@LaunchedEffect
+        while (true) {
+            val next = p.currentPosition.coerceAtLeast(0L)
+            if (next != liveMs) liveMs = next
+            delay(250)
+        }
+    }
+    val fraction = if (durationMs > 0L) {
+        (liveMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(2.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.White.copy(alpha = 0.12f)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(fraction)
+                .background(Color.White),
+        )
+    }
+}
+
+@Composable
+private fun LiveSkipSeconds(player: Player?, endMs: Long) {
+    var left by remember { mutableIntStateOf(0) }
+    LaunchedEffect(player, endMs) {
+        val p = player ?: return@LaunchedEffect
+        while (true) {
+            val sec = ((endMs - p.currentPosition.coerceAtLeast(0L)) / 1000L).toInt().coerceAtLeast(0)
+            if (sec != left) left = sec
+            delay(250)
+        }
+    }
+    Text(
+        "${left}s",
+        color = PlayerChrome.Ink.copy(alpha = 0.62f),
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp,
+    )
+}
+
 @Composable
 private fun NextEpisodePrompt(
     modifier: Modifier = Modifier,
     nextEpisode: Int,
     ended: Boolean,
     secondsLeft: Int,
+    player: Player? = null,
+    durationMs: Long = 0L,
     busy: Boolean,
     onPlayNow: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var remainSec by remember { mutableIntStateOf(secondsLeft) }
+    LaunchedEffect(player, ended, durationMs) {
+        if (ended) return@LaunchedEffect
+        val p = player ?: return@LaunchedEffect
+        while (true) {
+            val left = ((durationMs - p.currentPosition.coerceAtLeast(0L)) / 1000L).toInt().coerceAtLeast(0)
+            if (left != remainSec) remainSec = left
+            delay(250)
+        }
+    }
+    val countdown = if (ended) secondsLeft else remainSec
     val shape = RoundedCornerShape(16.dp)
     Column(
         modifier = modifier
@@ -2265,7 +2382,7 @@ private fun NextEpisodePrompt(
                 contentDescription = "Up next",
             )
             Text(
-                if (ended) "Up next" else "Almost done",
+                "Up next",
                 color = PlayerChrome.Faint,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -2284,11 +2401,31 @@ private fun NextEpisodePrompt(
             when {
                 busy -> "Loading next episode…"
                 ended -> "Starting automatically in ${secondsLeft}s"
-                else -> "Want to continue to the next episode?"
+                countdown > 0 -> "Episode ends in ${countdown}s"
+                else -> "Episode $nextEpisode is ready"
             },
             color = PlayerChrome.Graphite,
             fontSize = 13.sp,
         )
+        if (countdown > 0) {
+            val span = if (ended) AUTOPLAY_COUNTDOWN_SEC else (NEAR_END_THRESHOLD_MS / 1000L).toInt()
+            val fraction = (countdown.toFloat() / span.coerceAtLeast(1)).coerceIn(0f, 1f)
+            Spacer(modifier = Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.White.copy(alpha = 0.12f)),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction)
+                        .background(Color.White),
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             var playNowFocused by remember { mutableStateOf(false) }

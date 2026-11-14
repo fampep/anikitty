@@ -33,7 +33,7 @@ Walk the same screens the gallery uses:
 | File | Screen |
 | --- | --- |
 | `home.png` | Home, hero and the continue heading |
-| `home-continue.png` | Continue card, airing, and this season |
+| `home-continue.png` | Continue card with progress, Top 10, and airing |
 | `home-swipe.gif` | A short swipe across the hero |
 | `title.png` | A demo title, with picture and sound marks |
 | `title-episodes.png` | Episode shelf |

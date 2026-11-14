@@ -3,10 +3,12 @@
 
 package site.anikitty.app.data.local
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
 /** On-device watch history — optionally mirrored from / to AniList. */
+@Immutable
 @Entity(tableName = "watch_history")
 data class WatchHistoryEntity(
     @PrimaryKey val anilistId: Int,

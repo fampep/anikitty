@@ -3,6 +3,9 @@
 
 package site.anikitty.app.data.anilist
 
+import androidx.compose.runtime.Immutable
+
+@Immutable
 data class AnimeTrailer(
     val id: String,
     val site: String,
@@ -15,11 +18,13 @@ data class AnimeTrailer(
     }
 }
 
+@Immutable
 data class AnimeExternalLink(
     val site: String,
     val url: String,
 )
 
+@Immutable
 data class AnimeStreamingEpisode(
     val title: String,
     val thumbnailUrl: String? = null,
@@ -28,6 +33,7 @@ data class AnimeStreamingEpisode(
 )
 
 /** Resolved episode row for the Plex-style selector. */
+@Immutable
 data class AnimeEpisodeItem(
     val number: Int,
     val title: String,
@@ -35,6 +41,7 @@ data class AnimeEpisodeItem(
     val site: String? = null,
 )
 
+@Immutable
 data class AnimeRelation(
     val id: Int,
     val title: String,
@@ -57,6 +64,7 @@ data class AnimeRelation(
     }
 }
 
+@Immutable
 data class AnimePerson(
     val id: Int,
     val name: String,
@@ -64,24 +72,28 @@ data class AnimePerson(
     val role: String?,
 )
 
+@Immutable
 data class NextAiring(
     val episode: Int,
     val airingAtEpochSec: Long,
 )
 
 /** The signed-in viewer's AniList list row for one show. Score is 0–100. */
+@Immutable
 data class AnimeListState(
     val status: String,
     val progress: Int,
     val score: Int,
 )
 
+@Immutable
 data class AiringSlot(
     val anime: AnimeSummary,
     val episode: Int,
     val airingAtEpochSec: Long,
 )
 
+@Immutable
 data class AnimeSummary(
     val id: Int,
     val title: String,

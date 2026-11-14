@@ -298,11 +298,12 @@ fun KittyPosterCard(
                 .clip(shape)
                 .background(KittySurface),
         ) {
-            AsyncImage(
-                model = anime.coverImageUrl,
+            KittyImage(
+                url = anime.coverImageUrl,
                 contentDescription = anime.title,
+                widthPx = 360,
+                heightPx = 540,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
             )
             val badge = site.anikitty.app.data.servers.SourceBadgeCache.title(
                 androidx.compose.ui.platform.LocalContext.current,

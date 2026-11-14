@@ -36,7 +36,7 @@ These are the demo library (sample posters, not a signed-in AniList account). Ho
 <table>
   <tr>
     <td><img src="docs/screenshots/home.png" alt="Home" width="220"></td>
-    <td><img src="docs/screenshots/home-continue.png" alt="Continue and the rows under the hero" width="220"></td>
+    <td><img src="docs/screenshots/home-continue.png" alt="Continue, Top 10, and the rows under the hero" width="220"></td>
     <td><img src="docs/screenshots/title.png" alt="Title" width="220"></td>
   </tr>
   <tr>

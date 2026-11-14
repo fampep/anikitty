@@ -4,8 +4,13 @@
 package site.anikitty.app
 
 import android.app.Application
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import coil.ImageLoader
 import coil.ImageLoaderFactory
+import coil.disk.DiskCache
+import coil.memory.MemoryCache
 import com.google.android.gms.cast.framework.CastContext
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
@@ -39,13 +44,29 @@ class AnikittyApp : Application(), ImageLoaderFactory {
 
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
+            .memoryCache {
+                MemoryCache.Builder(this)
+                    .maxSizePercent(0.25)
+                    .build()
+            }
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(cacheDir.resolve("image_cache"))
+                    .maxSizePercent(0.04)
+                    .build()
+            }
+            .allowHardware(true)
             .crossfade(true)
             .crossfade(180)
             .build()
 
     override fun onCreate() {
         super.onCreate()
-        runCatching { CastContext.getSharedInstance(this) }
+        // Cast talks to Play services and is not needed for the first frame.
+        Handler(Looper.getMainLooper()).post {
+            runCatching { CastContext.getSharedInstance(this) }
+                .onFailure { Log.w(TAG, "CastContext init skipped", it) }
+        }
         database = AppDatabase.create(this)
         aniList = AniListClient(this)
         aniListAuth = AniListAuthStore(this)
@@ -58,5 +79,9 @@ class AnikittyApp : Application(), ImageLoaderFactory {
             baseUrlProvider = { serverConfig.baseUrl },
             tokenProvider = { session.token },
         )
+    }
+
+    private companion object {
+        const val TAG = "AnikittyApp"
     }
 }

@@ -884,6 +884,7 @@ private fun HomeFeed(
                     )
                 }
             }
+            prefetchCovers(context, trending)
             loading = false
             refreshing = false
             error = null
@@ -900,6 +901,7 @@ private fun HomeFeed(
                     val s = async { aniList.seasonal(forceRefresh = fromPull) }
                     trending = t.await()
                     seasonal = s.await()
+                    prefetchCovers(context, trending + seasonal)
                 }
             }.onFailure { error = friendlyFailure(it.message) }
             loading = false
@@ -974,7 +976,7 @@ private fun HomeFeed(
                     modifier = Modifier.nestedScroll(rememberDockScroll()),
                     contentPadding = PaddingValues(bottom = 110.dp),
                 ) {
-                    item {
+                    item(key = "bar", contentType = "bar") {
                         HomeBar(
                             onRefresh = { reload(fromPull = true) },
                             refreshBusy = catalogBusy,
@@ -987,7 +989,7 @@ private fun HomeFeed(
                     phoneSections.forEach { section ->
                         if (!section.enabled) return@forEach
                         when (section.id) {
-                            "featured" -> item {
+                            "featured" -> item(key = "featured", contentType = "hero") {
                                 HomeFeatured(items = trending, onOpen = openCatalog)
                             }
                             "continue" -> {
@@ -996,7 +998,7 @@ private fun HomeFeed(
                                         System.currentTimeMillis() - it.updatedAtEpochMs >
                                             14L * 24 * 60 * 60 * 1000
                                     }
-                                    if (stale != null) item {
+                                    if (stale != null) item(key = "stale", contentType = "note") {
                                         Text(
                                             "You left ${stale.title} a while ago. Episode ${stale.episode} is still here.",
                                             color = LocalKittyPalette.current.muted,
@@ -1005,7 +1007,7 @@ private fun HomeFeed(
                                         )
                                     }
                                 }
-                                if (continueWatching.isNotEmpty()) item {
+                                if (continueWatching.isNotEmpty()) item(key = "continue", contentType = "continue") {
                                 HomeBlock(title = "Continue", subtitle = "Where you left off") {
                                     HomeContinueRow(
                                         continueWatching.map { entry ->
@@ -1057,8 +1059,13 @@ private fun HomeFeed(
                                     )
                                 }
                             }
+                                if (trending.isNotEmpty()) item(key = "top10", contentType = "rank") {
+                                    HomeBlock(title = "Top 10", subtitle = "Trending this week") {
+                                        HomeRankRow(items = trending, onOpen = openCatalog)
+                                    }
+                                }
                             }
-                            "airing" -> if (airingToday.isNotEmpty()) item {
+                            "airing" -> if (airingToday.isNotEmpty()) item(key = "airing", contentType = "airing") {
                                 val now = System.currentTimeMillis() / 1000L
                                 val upcoming = airingToday.filter { it.airingAtEpochSec >= now - 20 * 60 }
                                 val shown = (if (upcoming.isNotEmpty()) upcoming else airingToday).take(5)
@@ -1084,7 +1091,7 @@ private fun HomeFeed(
                                     )
                                 }
                             }
-                            "season" -> if (seasonal.isNotEmpty()) item {
+                            "season" -> if (seasonal.isNotEmpty()) item(key = "season", contentType = "posters") {
                                 HomeBlock(
                                     title = "This season",
                                     subtitle = "New this season",
@@ -1093,7 +1100,7 @@ private fun HomeFeed(
                                     HomePosterGrid(items = seasonal.take(9), onOpen = openCatalog)
                                 }
                             }
-                            "foryou" -> if (forYou.isNotEmpty()) item {
+                            "foryou" -> if (forYou.isNotEmpty()) item(key = "foryou", contentType = "posters") {
                                 HomeBlock(
                                     title = "For you",
                                     subtitle = forYouFrom?.let { "Because you watch $it" },
@@ -1101,7 +1108,7 @@ private fun HomeFeed(
                                     HomePosterRow(items = forYou, onOpen = openCatalog)
                                 }
                             }
-                            "plan" -> if (planToWatch.isNotEmpty()) item {
+                            "plan" -> if (planToWatch.isNotEmpty()) item(key = "plan", contentType = "posters") {
                                 HomeBlock(title = "Plan to watch") {
                                     HomePosterRow(
                                         items = planToWatch.map { entry ->
@@ -1124,7 +1131,7 @@ private fun HomeFeed(
                                     )
                                 }
                             }
-                            "genres" -> item {
+                            "genres" -> item(key = "genres", contentType = "chips") {
                                 HomeBlock(title = "Genres") {
                                     HomeGenreRow(
                                         names = listOf(
@@ -1144,7 +1151,7 @@ private fun HomeFeed(
                         }
                     }
                     if (phoneSections.none { it.enabled }) {
-                        item {
+                        item(key = "empty-home", contentType = "note") {
                             Text(
                                 "Every home row is turned off. Turn them back on in Settings.",
                                 color = KittyMuted,
@@ -1156,6 +1163,20 @@ private fun HomeFeed(
                 }
             }
         }
+    }
+}
+
+private fun prefetchCovers(context: android.content.Context, animes: List<AnimeSummary>) {
+    val loader = coil.Coil.imageLoader(context)
+    animes.take(16).forEach { anime ->
+        val url = anime.coverImageUrl ?: return@forEach
+        loader.enqueue(
+            coil.request.ImageRequest.Builder(context)
+                .data(url)
+                .size(360, 540)
+                .memoryCacheKey("$url@360")
+                .build(),
+        )
     }
 }
 
@@ -2632,15 +2653,15 @@ private fun TitleDetailScreen(
                         verticalAlignment = Alignment.Top,
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
-                        AsyncImage(
-                            model = detail.coverImageUrl,
+                        site.anikitty.app.ui.components.KittyImage(
+                            url = detail.coverImageUrl,
                             contentDescription = detail.title,
-                            contentScale = ContentScale.Crop,
+                            widthPx = 280,
+                            heightPx = 420,
                             modifier = posterModifier
                                 .width(92.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(palette.surface),
+                                .clip(RoundedCornerShape(4.dp)),
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.Top) {
@@ -2826,10 +2847,25 @@ private fun TitleDetailScreen(
                         Spacer(modifier = Modifier.height(14.dp))
                     }
                     if (detailLoading) {
-                        Text(
-                            "Loading AniList…",
-                            color = palette.text.copy(alpha = 0.4f),
-                            fontSize = 12.sp,
+                        ShimmerBox(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ShimmerBox(
+                            modifier = Modifier
+                                .fillMaxWidth(0.72f)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ShimmerBox(
+                            modifier = Modifier
+                                .fillMaxWidth(0.4f)
+                                .height(14.dp)
+                                .clip(RoundedCornerShape(4.dp)),
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                     }

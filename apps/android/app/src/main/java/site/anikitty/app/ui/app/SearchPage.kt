@@ -361,7 +361,7 @@ fun SearchFeed(
                         }
                     }
                 }
-                gridItems(gridItems, key = { it.id }) { anime ->
+                gridItems(gridItems, key = { it.id }, contentType = { "poster" }) { anime ->
                     val open = {
                         scope.launch { historyDao.touchFromCatalog(anime) }
                         onOpen(anime)
@@ -371,9 +371,13 @@ fun SearchFeed(
                 }
                 if (loading && items.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = palette.text, modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
-                        }
+                        ShimmerBox(
+                            modifier = Modifier
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                                .fillMaxWidth()
+                                .height(72.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                        )
                     }
                 }
             }
