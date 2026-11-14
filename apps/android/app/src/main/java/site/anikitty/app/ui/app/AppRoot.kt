@@ -83,14 +83,19 @@ fun AppRoot(
     pendingAniListError: String? = null,
     onConsumedAniListToken: () -> Unit = {},
     requestDemo: Boolean = false,
+    requestBrowse: Boolean = false,
 ) {
     var signedIn by remember { mutableStateOf(aniListAuth.isLinked) }
     var demo by rememberSaveable { mutableStateOf(false) }
+    var browse by rememberSaveable { mutableStateOf(false) }
     var showSplash by rememberSaveable { mutableStateOf(true) }
     LaunchedEffect(requestDemo) {
         if (requestDemo) demo = true
     }
-    val showApp = signedIn || demo || !pendingAniListToken.isNullOrBlank()
+    LaunchedEffect(requestBrowse) {
+        if (requestBrowse) browse = true
+    }
+    val showApp = signedIn || demo || browse || !pendingAniListToken.isNullOrBlank()
 
     if (showSplash) {
         SplashScreen(onFinished = { showSplash = false })
@@ -114,10 +119,10 @@ fun AppRoot(
             aniListSync = aniListSync,
             historyDao = historyDao,
             streamServers = streamServers,
-            accountLabel = if (demo && !signedIn) {
-                "Demo library"
-            } else {
-                aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "@anilist"
+            accountLabel = when {
+                demo && !signedIn -> "Demo library"
+                !signedIn -> "Not signed in"
+                else -> aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" } ?: "@anilist"
             },
             pendingAniListToken = if (demo) null else pendingAniListToken,
             pendingAniListError = if (demo) null else pendingAniListError,
