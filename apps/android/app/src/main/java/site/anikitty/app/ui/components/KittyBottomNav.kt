@@ -115,8 +115,8 @@ fun KittyBottomNav(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .border(0.5.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(16.dp)),
+                        .background(Color.White.copy(alpha = 0.14f))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(16.dp)),
                 )
                 Box(
                     modifier = Modifier

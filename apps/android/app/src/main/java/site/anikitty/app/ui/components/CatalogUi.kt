@@ -13,9 +13,11 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -50,11 +52,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -68,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.ui.theme.KittyHaptics
 import site.anikitty.app.ui.app.spacePress
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
@@ -248,6 +256,7 @@ fun KittySectionHeading(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun KittyPosterCard(
     anime: AnimeSummary,
@@ -264,14 +273,21 @@ fun KittyPosterCard(
         animationSpec = tween(140, easing = FastOutSlowInEasing),
         label = "posterPress",
     )
+    var menu by remember { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
+    val view = LocalView.current
     Column(
         modifier = modifier
             .width(width)
             .scale(scale)
-            .clickable(
+            .combinedClickable(
                 interactionSource = interaction,
                 indication = null,
                 onClick = onClick,
+                onLongClick = {
+                    KittyHaptics.perform(view, KittyHaptics.Kind.Tick)
+                    menu = true
+                },
             ),
     ) {
         Box(
@@ -294,6 +310,16 @@ fun KittyPosterCard(
             QualityMarks(
                 badge = badge,
                 modifier = Modifier.align(Alignment.BottomStart).padding(6.dp),
+            )
+            KittyMenu(
+                expanded = menu,
+                onDismiss = { menu = false },
+                entries = listOf(
+                    KittyMenuEntry("Open", onClick),
+                    KittyMenuEntry("Copy title") {
+                        clipboard.setText(AnnotatedString(anime.title))
+                    },
+                ),
             )
             anime.scoreLabel()?.let { score ->
                 Row(

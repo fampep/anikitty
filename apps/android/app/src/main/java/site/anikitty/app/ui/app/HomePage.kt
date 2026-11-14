@@ -51,6 +51,8 @@ import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.ui.components.HeroBanner
+import site.anikitty.app.ui.components.KittyMenuEntry
+import site.anikitty.app.ui.components.KittyOverflow
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.prefersReducedMotion
 
@@ -113,6 +115,16 @@ internal fun HomeBar(
             imageUrl = avatarUrl,
             size = 32.dp,
             modifier = Modifier.padding(start = 4.dp).spacePress(onOpenAccount),
+        )
+        KittyOverflow(
+            contentDescription = "More",
+            tint = ink,
+            modifier = Modifier.padding(start = 4.dp),
+            entries = listOf(
+                KittyMenuEntry("Search", onOpenSearch),
+                KittyMenuEntry("Refresh", onRefresh),
+                KittyMenuEntry("Settings", onOpenAccount),
+            ),
         )
     }
 }

@@ -167,6 +167,8 @@ import site.anikitty.app.ui.components.KittyDock
 import site.anikitty.app.ui.components.rememberDockScroll
 import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
+import site.anikitty.app.ui.components.KittyMenuEntry
+import site.anikitty.app.ui.components.KittyOverflow
 import site.anikitty.app.ui.components.KittyMetaChips
 import site.anikitty.app.ui.components.KittyNavTab
 import site.anikitty.app.ui.components.KittyPageHeader
@@ -1871,43 +1873,51 @@ internal fun SettingsFeed(
                         )
                     }
                     item {
-                        SettingsHubRow(
-                            icon = FluentuiSystemIconsPersonOutline,
-                            title = "Account",
-                            detail = if (isLinked) {
-                                aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
-                                    ?: accountLabel.ifBlank { "Signed in" }
-                            } else {
-                                "Not signed in"
-                            },
-                            avatarUrl = linkTick.let { aniListAuth.avatarUrl },
-                            useAvatar = true,
-                            onClick = { page = "account" },
-                        )
-                    }
-                    item {
-                        SettingsHubRow(
-                            icon = FluentuiSystemIconsHomeOutline,
-                            title = "Home",
-                            detail = "$homeShown rows showing",
-                            onClick = { page = "home" },
-                        )
-                    }
-                    item {
-                        SettingsHubRow(
-                            icon = Icons.Outlined.Extension,
-                            title = "Sources",
-                            detail = selectedName,
-                            onClick = { page = "sources" },
-                        )
-                    }
-                    item {
-                        SettingsHubRow(
-                            icon = FluentuiSystemIconsSettingsOutline,
-                            title = "App",
-                            detail = "Version ${BuildConfig.VERSION_NAME}",
-                            onClick = { page = "app" },
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                            SettingsGroup(title = "You") {
+                                SettingsHubRow(
+                                    icon = FluentuiSystemIconsPersonOutline,
+                                    title = "Account",
+                                    detail = if (isLinked) {
+                                        aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
+                                            ?: accountLabel.ifBlank { "Signed in" }
+                                    } else {
+                                        "Not signed in"
+                                    },
+                                    avatarUrl = linkTick.let { aniListAuth.avatarUrl },
+                                    useAvatar = true,
+                                    plain = true,
+                                    onClick = { page = "account" },
+                                )
+                            }
+                            SettingsGroup(title = "Library") {
+                                SettingsHubRow(
+                                    icon = FluentuiSystemIconsHomeOutline,
+                                    title = "Home",
+                                    detail = "$homeShown rows showing",
+                                    plain = true,
+                                    onClick = { page = "home" },
+                                )
+                            }
+                            SettingsGroup(title = "Playback") {
+                                SettingsHubRow(
+                                    icon = Icons.Outlined.Extension,
+                                    title = "Sources",
+                                    detail = selectedName,
+                                    plain = true,
+                                    onClick = { page = "sources" },
+                                )
+                            }
+                            SettingsGroup(title = "App") {
+                                SettingsHubRow(
+                                    icon = FluentuiSystemIconsSettingsOutline,
+                                    title = "App",
+                                    detail = "Version ${BuildConfig.VERSION_NAME}",
+                                    plain = true,
+                                    onClick = { page = "app" },
+                                )
+                            }
+                        }
                     }
                 }
                 "account" -> {
@@ -2126,6 +2136,32 @@ internal fun SettingsFeed(
 }
 
 @Composable
+private fun SettingsGroup(
+    title: String,
+    content: @Composable () -> Unit,
+) {
+    val palette = LocalKittyPalette.current
+    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+        Text(
+            title,
+            color = palette.muted,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            letterSpacing = 0.6.sp,
+            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
+        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(palette.surface)
+                .border(0.5.dp, palette.hairline, RoundedCornerShape(16.dp)),
+            content = { content() },
+        )
+    }
+}
+
+@Composable
 private fun SettingsHubRow(
     icon: ImageVector,
     title: String,
@@ -2133,9 +2169,10 @@ private fun SettingsHubRow(
     onClick: () -> Unit,
     avatarUrl: String? = null,
     useAvatar: Boolean = false,
+    plain: Boolean = false,
 ) {
     val palette = LocalKittyPalette.current
-    SpaceCard(onClick = onClick) {
+    val row: @Composable () -> Unit = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (useAvatar) {
                 ProfileMark(imageUrl = avatarUrl, size = 36.dp)
@@ -2172,6 +2209,11 @@ private fun SettingsHubRow(
                 tint = palette.muted,
             )
         }
+    }
+    if (plain) {
+        Box(modifier = Modifier.fillMaxWidth().spacePress(onClick).padding(14.dp)) { row() }
+    } else {
+        SpaceCard(onClick = onClick) { row() }
     }
 }
 
@@ -2510,6 +2552,39 @@ private fun TitleDetailScreen(
                                             .spacePress { toggleFavourite() },
                                     )
                                 }
+                                KittyOverflow(
+                                    contentDescription = "Title actions",
+                                    tint = palette.text,
+                                    modifier = Modifier.padding(start = 4.dp),
+                                    entries = buildList {
+                                        add(KittyMenuEntry("Copy title") {
+                                            clipboard.setText(AnnotatedString(detail.title))
+                                            status = "Title copied"
+                                        })
+                                        add(KittyMenuEntry("Share") {
+                                            val send = Intent(Intent.ACTION_SEND).apply {
+                                                type = "text/plain"
+                                                putExtra(
+                                                    Intent.EXTRA_TEXT,
+                                                    "${detail.title}\nhttps://anilist.co/anime/${detail.id}",
+                                                )
+                                            }
+                                            context.startActivity(Intent.createChooser(send, detail.title))
+                                        })
+                                        add(KittyMenuEntry("AniList") {
+                                            openUrl("https://anilist.co/anime/${detail.id}")
+                                        })
+                                        detail.malId?.let { mal ->
+                                            add(KittyMenuEntry("MyAnimeList") {
+                                                openUrl("https://myanimelist.net/anime/$mal")
+                                            })
+                                        }
+                                        detail.trailer?.watchUrl()?.let { watch ->
+                                            add(KittyMenuEntry("Trailer") { openUrl(watch) })
+                                        }
+                                        add(KittyMenuEntry("Sources", onChangeSource))
+                                    },
+                                )
                             }
                             val altTitle = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
                                 .distinct()

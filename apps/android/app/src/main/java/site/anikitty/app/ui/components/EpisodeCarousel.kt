@@ -5,8 +5,10 @@ package site.anikitty.app.ui.components
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
@@ -161,6 +163,7 @@ fun EpisodeCarousel(
                 scale = scale,
                 minutesLeft = if (selected) minutesLeft else null,
                 peek = peekNumber == slide.number,
+                watched = watchedThrough > 0 && slide.number <= watchedThrough,
                 badge = if (anilistId > 0) {
                     site.anikitty.app.data.servers.SourceBadgeCache.episode(
                         androidx.compose.ui.platform.LocalContext.current,
@@ -182,6 +185,7 @@ fun EpisodeCarousel(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun EpisodeThumb(
     slide: EpisodeSlide,
@@ -194,10 +198,13 @@ private fun EpisodeThumb(
     scale: Float,
     minutesLeft: Int?,
     peek: Boolean,
+    watched: Boolean,
     badge: site.anikitty.app.data.servers.SourceBadgeCache.Badge?,
     onClick: () -> Unit,
     onSwipeWatched: (() -> Unit)?,
 ) {
+    var menu by remember { mutableStateOf(false) }
+    val view = LocalView.current
     val shape = RoundedCornerShape(8.dp)
     val border by animateDpAsState(
         if (selected) 1.5.dp else 0.dp,
@@ -240,7 +247,13 @@ private fun EpisodeThumb(
                     }
                 },
             )
-            .spacePress(onClick),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    KittyHaptics.perform(view, KittyHaptics.Kind.Tick)
+                    menu = true
+                },
+            ),
     ) {
         Box(
             modifier = Modifier
@@ -286,6 +299,20 @@ private fun EpisodeThumb(
             QualityMarks(
                 badge = badge,
                 modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp),
+            )
+            KittyMenu(
+                expanded = menu,
+                onDismiss = { menu = false },
+                entries = buildList {
+                    add(KittyMenuEntry("Play", onClick))
+                    if (onSwipeWatched != null) {
+                        add(
+                            KittyMenuEntry(if (watched) "Mark unwatched" else "Mark watched") {
+                                onSwipeWatched()
+                            },
+                        )
+                    }
+                },
             )
             if (peek && minutesLeft == null) {
                 KittyFace(
