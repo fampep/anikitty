@@ -165,21 +165,42 @@ You can use, copy, change, and share this project, including in a product. Keep 
 
 ## Disclaimer
 
-AniKitty does not host video. It does not store, provide, or ship episodes, and it does not keep a downloaded copy. Media3 plays a URL after a resolver returns one.
+> [!WARNING]
+> ⚠️ AniKitty is a client and a player. It hosts no video and stores no episodes on a server of its own. It does not ship a video library. Metadata comes from AniList. Extra art and episode detail can come from TMDB and similar services. Playback is a URL a resolver returns. **Anikoto**, **Gotaku**, and **Ani.pm** are compiled into the app, so a fresh install can play. Any other source is a third-party extension you install yourself. Those community extensions are not part of this repository. The app plays what the resolver returns.
 
-**Anikoto**, **Gotaku**, and **Ani.pm** are compiled into the app as resolvers, so a fresh install can play. They are not a video library, and this repository does not operate the sites they call. Any other source is a community extension you add. Those extensions are not maintained as content here. A listing in the store index does not make the maintainers the operator of that author's service. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
+| | |
+|---|---|
+| What this repository is | The app, the extension protocol, and the guides |
+| What it hosts | No video files, and no copy of an episode |
+| Built-in resolvers | Anikoto, Gotaku, and Ani.pm. They are not a video library, and this repository does not operate the sites they call |
+| Community extensions | Installed by you. A store listing does not make the maintainers the operator of that service |
+| Who chooses the source | You do, and you have to follow the law that applies to you |
 
-The maintainers do not control the media those sources point at, and they do not endorse it. You choose the source. You have to follow the law that applies to you.
+<details>
+<summary>Disclaimer</summary>
+
+The maintainers do not control the media a resolver points at, and they do not endorse it. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
 
 AniList, MyAnimeList, and the names of studios and streaming services are trademarks of their owners. The [Apache License 2.0](LICENSE) does not grant the AniKitty name as a trademark.
 
-The software is provided **as is**, without warranty of any kind, under the Apache License 2.0. Sections 7 and 8 of the [LICENSE](LICENSE) are the warranty disclaimer and the limitation of liability.
+The software is provided as is, without warranty of any kind, under the Apache License 2.0. Sections 7 and 8 of the [LICENSE](LICENSE) are the warranty disclaimer and the limitation of liability.
 
-## DMCA
+</details>
+
+<details>
+<summary>DMCA and takedown</summary>
 
 A takedown for a video goes to the provider that hosts that video. This repository does not host the file.
 
 A notice about this repository — the app source, the docs, or a link published here — belongs in [GitHub issues](https://github.com/fampep/anikitty/issues). The repository does not list a separate security email. Include the URL, the work you own, and the change you are asking for.
+
+</details>
+
+<p>
+  <a href="https://www.themoviedb.org/"><img src="docs/brand/tmdb-logo.svg" alt="The Movie Database" height="16"></a>
+</p>
+
+This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ## Privacy
 
@@ -189,4 +210,4 @@ Sign-in is optional. The token from AniList's implicit grant is stored encrypted
 
 A stream request sends the AniList id, episode number, audio mode, and title hint to the resolver you are using. It does not send the AniList token.
 
-Cover images load from the URLs AniList returns. If a TMDB or Fanart key is present, the app may also request backdrop art from those services. The update check reads the public releases of this repository and can download an APK from one of them.
+Cover images load from the URLs AniList returns. When a TMDB key is built into the app, or entered in Settings, the app also requests backdrop art, title art, and extra episode detail from TMDB. Fanart is used only when that key is present. The update check reads the public releases of this repository and can download an APK from one of them.

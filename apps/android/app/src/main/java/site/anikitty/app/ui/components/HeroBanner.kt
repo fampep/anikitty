@@ -39,6 +39,9 @@ fun HeroBanner(
     modifier: Modifier = Modifier,
     contentScale: ContentScale = ContentScale.Crop,
     alignment: Alignment = Alignment.Center,
+    title: String? = null,
+    year: Int? = null,
+    movie: Boolean = false,
 ) {
     val localArt = bannerUrl?.startsWith("android.resource://") == true ||
         coverUrl?.startsWith("android.resource://") == true
@@ -61,12 +64,12 @@ fun HeroBanner(
         context.getSystemService(ActivityManager::class.java)?.isLowRamDevice == true
     }
     val repo = remember { BannerRepository(context) }
-    var choice by remember(anilistId, bannerUrl, coverUrl) {
+    var choice by remember(anilistId, bannerUrl, coverUrl, title, year, movie) {
         mutableStateOf<BannerChoice?>(null)
     }
-    LaunchedEffect(anilistId, bannerUrl, coverUrl) {
+    LaunchedEffect(anilistId, bannerUrl, coverUrl, title, year, movie) {
         choice = withContext(Dispatchers.IO) {
-            repo.resolve(anilistId, bannerUrl, coverUrl)
+            repo.resolve(anilistId, bannerUrl, coverUrl, title, year, movie)
         }
     }
     val shown = choice

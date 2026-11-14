@@ -8,6 +8,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONObject
 import site.anikitty.app.BuildConfig
+import site.anikitty.app.data.tmdb.TmdbCatalog
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
@@ -23,14 +24,21 @@ class BannerRepository(context: Context) {
         .build()
     private val memory = ConcurrentHashMap<Int, BannerChoice>()
 
-    fun resolve(anilistId: Int, anilistBanner: String?, cover: String?): BannerChoice? {
+    fun resolve(
+        anilistId: Int,
+        anilistBanner: String?,
+        cover: String?,
+        title: String? = null,
+        year: Int? = null,
+        movie: Boolean = false,
+    ): BannerChoice? {
         if (anilistId <= 0) return local(anilistBanner, cover)
         memory[anilistId]?.let { return it }
         cached(anilistId)?.let {
             memory[anilistId] = it
             return it
         }
-        val choice = runCatching { fetch(anilistId, anilistBanner, cover) }.getOrNull()
+        val choice = runCatching { fetch(anilistId, anilistBanner, cover, title, year, movie) }.getOrNull()
             ?: local(anilistBanner, cover)
             ?: return null
         memory[anilistId] = choice
@@ -50,11 +58,19 @@ class BannerRepository(context: Context) {
         return BannerChoice(url, prefs.getBoolean("b$id", false), prefs.getString("s$id", "") ?: "")
     }
 
-    private fun fetch(id: Int, anilistBanner: String?, cover: String?): BannerChoice? {
+    private fun fetch(
+        id: Int,
+        anilistBanner: String?,
+        cover: String?,
+        title: String?,
+        year: Int?,
+        movie: Boolean,
+    ): BannerChoice? {
         val ids = arm(id)
         val tmdbKey = key("tmdb", BuildConfig.TMDB_API_KEY)
         val fanartKey = key("fanart", BuildConfig.FANART_API_KEY)
-        val tmdbPath = ids?.tmdb?.let { tmdbBackdrop(it, tmdbKey) }
+        val tmdbId = ids?.tmdb ?: TmdbCatalog(app).findId(id, title, year, movie)?.toString()
+        val tmdbPath = tmdbId?.let { tmdbBackdrop(it, tmdbKey) }
         val fanart = ids?.tvdb?.let { fanartBackground(it, fanartKey) }
         val kitsu = ids?.kitsu?.let { kitsuLarge(it) }
         return bannerChoices(

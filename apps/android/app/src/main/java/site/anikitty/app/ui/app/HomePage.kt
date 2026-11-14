@@ -222,6 +222,9 @@ internal fun HomeFeatured(
                         bannerUrl = anime.bannerImageUrl,
                         coverUrl = anime.coverImageUrl,
                         contentDescription = anime.title,
+                        title = anime.title,
+                        year = anime.seasonYear,
+                        movie = anime.format.equals("MOVIE", true),
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {

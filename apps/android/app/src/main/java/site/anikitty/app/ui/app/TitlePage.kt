@@ -50,6 +50,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -78,7 +79,14 @@ import site.anikitty.app.data.anilist.AnimePerson
 import site.anikitty.app.data.anilist.AnimeRelation
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.anilist.MediaRank
+import site.anikitty.app.data.tmdb.TitleArt
+import site.anikitty.app.data.tmdb.TmdbCatalog
+import site.anikitty.app.data.tmdb.preferEpisodeTitle
+import site.anikitty.app.data.tmdb.preferStill
 import site.anikitty.app.data.servers.StreamServer
+import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
 import site.anikitty.app.ui.components.HeroBanner
@@ -143,6 +151,37 @@ internal fun TitleStage(
 ) {
     val palette = LocalKittyPalette.current
     val reduced = prefersReducedMotion()
+    val context = LocalContext.current
+    val tmdb = remember { TmdbCatalog(context) }
+    var art by remember(detail.id) { mutableStateOf<TitleArt?>(null) }
+    LaunchedEffect(detail.id, detail.title, detail.seasonYear, detail.format, detail.detailLoaded) {
+        art = withContext(Dispatchers.IO) { tmdb.load(detail) }
+    }
+    val slides = remember(episodeSlides, art) {
+        val episodes = art?.episodes.orEmpty()
+        if (episodes.isEmpty()) {
+            episodeSlides
+        } else {
+            episodeSlides.map { slide ->
+                val episodeArt = episodes[slide.number]
+                slide.copy(
+                    title = preferEpisodeTitle(slide.title, slide.number, episodeArt?.title),
+                    imageUrl = preferStill(slide.imageUrl, episodeArt?.stillUrl),
+                    airLabel = episodeArt?.airLabel ?: slide.airLabel,
+                )
+            }
+        }
+    }
+    val cast = remember(detail.characters, art) {
+        detail.characters.map { person ->
+            val photo = tmdb.photoFor(person, art)
+            if (photo == person.imageUrl) person else person.copy(imageUrl = photo)
+        }
+    }
+    val synopsis = detail.description?.trim()?.takeIf { it.isNotEmpty() } ?: art?.overview
+    val trailerClick = onTrailer ?: art?.youtubeId?.let { id ->
+        { onOpenUrl("https://www.youtube.com/watch?v=$id") }
+    }
     val listState = rememberLazyListState()
     val stuck by remember {
         derivedStateOf {
@@ -199,6 +238,9 @@ internal fun TitleStage(
                         contentDescription = detail.title,
                         contentScale = ContentScale.Crop,
                         alignment = if (localArt) Alignment.TopCenter else Alignment.Center,
+                        title = detail.title,
+                        year = detail.seasonYear,
+                        movie = movie,
                         modifier = posterModifier
                             .fillMaxSize()
                             .graphicsLayer {
@@ -218,10 +260,10 @@ internal fun TitleStage(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.5f),
-                                    0.14f to Color.Black.copy(alpha = 0.12f),
-                                    0.28f to Color.Black.copy(alpha = 0.78f),
-                                    0.52f to Color.Black.copy(alpha = 0.9f),
+                                    0f to Color.Black.copy(alpha = 0.28f),
+                                    0.18f to Color.Black.copy(alpha = 0.05f),
+                                    0.46f to Color.Black.copy(alpha = 0.42f),
+                                    0.68f to Color.Black.copy(alpha = 0.82f),
                                     1f to Color.Black.copy(alpha = 0.96f),
                                 ),
                             ),
@@ -232,19 +274,32 @@ internal fun TitleStage(
                             .padding(horizontal = KittySpace.md)
                             .padding(bottom = 108.dp),
                     ) {
-                        Text(
-                            detail.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 34.sp,
-                            lineHeight = 38.sp,
-                            letterSpacing = (-0.8).sp,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                            style = TextStyle(
-                                shadow = Shadow(Color.Black, Offset(0f, 2f), 18f),
-                            ),
-                        )
+                        val logo = art?.logoUrl
+                        if (logo != null) {
+                            AsyncImage(
+                                model = logo,
+                                contentDescription = detail.title,
+                                contentScale = ContentScale.Fit,
+                                alignment = Alignment.CenterStart,
+                                modifier = Modifier
+                                    .fillMaxWidth(0.78f)
+                                    .height(72.dp),
+                            )
+                        } else {
+                            Text(
+                                detail.title,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 34.sp,
+                                lineHeight = 38.sp,
+                                letterSpacing = (-0.8).sp,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                                style = TextStyle(
+                                    shadow = Shadow(Color.Black, Offset(0f, 2f), 18f),
+                                ),
+                            )
+                        }
                         val alt = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
                             .distinct()
                             .joinToString("  ·  ")
@@ -259,7 +314,25 @@ internal fun TitleStage(
                             )
                         }
                         Spacer(Modifier.height(KittySpace.sm))
-                        MetaLine(detail, movie, total)
+                        MetaLine(detail, movie, total, art)
+                        val marks = art?.networks?.filter { !it.logoUrl.isNullOrBlank() }.orEmpty()
+                        if (marks.isNotEmpty()) {
+                            Spacer(Modifier.height(KittySpace.sm))
+                            Row(
+                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(KittySpace.md),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                marks.forEach { mark ->
+                                    AsyncImage(
+                                        model = mark.logoUrl,
+                                        contentDescription = mark.name,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.height(22.dp),
+                                    )
+                                }
+                            }
+                        }
                         if (detail.genres.isNotEmpty()) {
                             Spacer(Modifier.height(KittySpace.sm))
                             Row(
@@ -307,11 +380,11 @@ internal fun TitleStage(
                                 onClick = onShare,
                                 modifier = Modifier.weight(1f),
                             )
-                            if (onTrailer != null) {
+                            if (trailerClick != null) {
                                 TitleAction(
                                     icon = Icons.Rounded.PlayArrow,
                                     label = "Trailer",
-                                    onClick = onTrailer,
+                                    onClick = trailerClick,
                                     modifier = Modifier.weight(1f),
                                 )
                             }
@@ -395,8 +468,8 @@ internal fun TitleStage(
                             )
                         }
                     }
-                } else if (!detail.description.isNullOrBlank()) {
-                    Synopsis(detail.description!!)
+                } else if (!synopsis.isNullOrBlank()) {
+                    Synopsis(synopsis)
                 }
             }
             item(key = "episodes", contentType = "episodes") {
@@ -416,7 +489,7 @@ internal fun TitleStage(
                         maxEp = maxEp,
                         audio = audio,
                         onAudio = onAudio,
-                        slides = episodeSlides,
+                        slides = slides,
                         watchedThrough = watchedThrough,
                         episodeFraction = episodeFraction,
                         rangeCount = rangeCount,
@@ -434,9 +507,9 @@ internal fun TitleStage(
                     )
                 }
             }
-            if (!detailLoading && detail.characters.isNotEmpty()) {
+            if (!detailLoading && cast.isNotEmpty()) {
                 item(key = "cast", contentType = "people") {
-                    PeopleRow("Cast", detail.characters) { person = it to "character" }
+                    PeopleRow("Cast", cast) { person = it to "character" }
                 }
             }
             if (!detailLoading && detail.staff.isNotEmpty()) {
@@ -561,13 +634,16 @@ internal fun TitleStage(
 }
 
 @Composable
-private fun MetaLine(detail: AnimeSummary, movie: Boolean, total: Int) {
+private fun MetaLine(detail: AnimeSummary, movie: Boolean, total: Int, art: TitleArt?) {
     val season = detail.season?.lowercase()?.replaceFirstChar { it.titlecase() }
+    val runtime = detail.durationMinutes ?: art?.runtimeMinutes
     val bits = listOfNotNull(
+        art?.rating,
         detail.seasonYear?.toString(),
         season,
         formatName(detail.format),
-        if (movie) detail.durationMinutes?.let { "$it min" } else "$total eps",
+        if (movie) runtime?.let { "$it min" } else "$total eps",
+        if (!movie) runtime?.let { "$it min" } else null,
         detail.studios.firstOrNull(),
         detail.scoreLabel()?.let { "★ $it" },
     )

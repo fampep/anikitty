@@ -65,6 +65,7 @@ data class EpisodeSlide(
     val title: String,
     val imageUrl: String?,
     val marker: String? = null,
+    val airLabel: String? = null,
 )
 
 /**
@@ -383,6 +384,14 @@ private fun EpisodeThumb(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        slide.airLabel?.let { air ->
+            Text(
+                air,
+                color = mute,
+                fontSize = 11.sp,
+                maxLines = 1,
+            )
+        }
     }
 }
 
