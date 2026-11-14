@@ -61,6 +61,8 @@ import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.coverKey
+import site.anikitty.app.ui.theme.sharedCover
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -70,7 +72,7 @@ import java.util.Locale
 fun ScheduleFeed(
     aniList: AniListClient,
     onBack: () -> Unit,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, String) -> Unit,
     showBack: Boolean = true,
     bottomInset: Dp = 12.dp,
     followedEpisodes: Map<Int, Int> = emptyMap(),
@@ -289,12 +291,13 @@ private fun ScheduleRow(
     slot: AiringSlot,
     timeLabel: String,
     listLabel: String?,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, String) -> Unit,
 ) {
+    val key = coverKey("schedule", slot.anime.id, slot.episode.toString())
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .spacePress { onOpen(slot.anime) }
+            .spacePress { onOpen(slot.anime, key) }
             .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF0C0C10))
             .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
@@ -306,6 +309,7 @@ private fun ScheduleRow(
             contentDescription = slot.anime.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
+                .sharedCover(key)
                 .width(48.dp)
                 .height(68.dp)
                 .clip(RoundedCornerShape(10.dp))
