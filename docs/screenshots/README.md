@@ -1,52 +1,53 @@
 # Screenshots
 
-The pictures in this folder are the demo library. They are not a signed-in AniList account, and they are not captured from someone else's list.
+The pictures in the README are the public AniList catalog. They are not a signed-in account, and they are not the sample library.
 
-Demo mode ships in debug and release. The sign-in screen has a **Try demo** button labelled as a sample library. The same mode starts from an intent extra. Demo titles, continue-watching rows, and My Space lists live in memory. Playback is a short clip bundled in the app. Demo mode does not write the AniList token and does not write the on-device watch history, so a later real sign-in is left alone.
+`raw/` holds the unframed captures. The PNGs next to this file are the same shots composited onto Google's Pixel 8 device art, with a generated shadow. `hero.png` is the home shot, tilted, on the app's page black.
+
+Device art is for this README only. Google says it must not be used in Play Store listings. The bezel files are downloaded when the frame script runs. They are not stored in the repo.
 
 ## Launch
 
-```bash
-adb shell am start -n site.anikitty.app/.MainActivity --ez demo true
-```
-
-The shots here were taken in night mode on a 720×1280 emulator:
+Night mode, then the public catalog. The `browse` extra opens the app without signing in and without the sample library.
 
 ```bash
 adb shell cmd uimode night yes
+adb shell am start -n site.anikitty.app/.MainActivity --ez browse true
 ```
 
-On a fresh install the splash runs for a few seconds, then a one-time welcome card may ask for **Let's go**. Dismiss that before capturing.
+On a fresh install the splash runs for a few seconds, then a one-time welcome card may ask for **Let's go**. Dismiss that before capturing. Wait until poster art has painted. A shot taken too early is a black page.
 
-Leave demo from Settings → Account → Leave demo, or sign in. Leaving demo does not clear an AniList token.
+The captures here are 1080×2400 at 420 dpi, the Pixel 8 panel, in night mode.
 
-## Recapture
+## Status bar
 
-Install a build, launch with the command above, then:
+This is Android's status-bar demo, not the app's sample library. Set it before each capture, and leave it when you are done.
 
 ```bash
-adb exec-out screencap -p > docs/screenshots/home.png
+adb shell settings put global sysui_demo_allowed 1
+adb shell am broadcast -a com.android.systemui.demo -e command enter
+adb shell am broadcast -a com.android.systemui.demo -e command clock -e hhmm 1200
+adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false
+adb shell am broadcast -a com.android.systemui.demo -e command battery -e level 100 -e plugged false
+adb shell am broadcast -a com.android.systemui.demo -e command network -e wifi show -e level 4 -e mobile hide
+adb exec-out screencap -p > docs/screenshots/raw/home.png
+adb shell am broadcast -a com.android.systemui.demo -e command exit
 ```
 
-Walk the same screens the gallery uses:
+## Frame
+
+```bash
+python3 scripts/frame_screenshots.py
+```
+
+The script fetches the Pixel 8 `layout`, `back.webp`, and `mask.webp` from the Android Studio device-art resources into `~/.cache/anikitty-device-art/pixel_8/`, then writes transparent framed PNGs and `hero.png`.
 
 | File | Screen |
 | --- | --- |
-| `home.png` | Home, hero and the continue heading |
-| `home-continue.png` | Continue card with progress, Top 10, and airing |
-| `home-swipe.gif` | A short swipe across the hero |
-| `title.png` | Title page: backdrop, resume, and actions |
-| `title-episodes.png` | Episodes, season picker, and quality marks |
-| `player.png` | Player for the bundled clip |
-| `search.png` | Search, showing the demo catalog |
-| `myspace.png` | My Space |
-| `settings.png` | Settings groups |
-| `menu.png` | Home overflow (Search, Refresh, Settings) |
-
-For the gif, record a few seconds while swiping the hero, then scale it down:
-
-```bash
-adb shell screenrecord --time-limit 4 /sdcard/home-swipe.mp4
-adb pull /sdcard/home-swipe.mp4
-ffmpeg -i home-swipe.mp4 -vf "fps=12,scale=220:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=64[p];[s1][p]paletteuse" -loop 0 docs/screenshots/home-swipe.gif
-```
+| `raw/home.png` | Home: featured title, Top 10, airing today |
+| `raw/search.png` | Search grid of the public catalog |
+| `raw/title.png` | Title page |
+| `raw/title-episodes.png` | Episodes, season chips, and cast |
+| `raw/player.png` | Player during playback |
+| `raw/myspace.png` | My Space before sign-in, with on-device continue |
+| `raw/settings.png` | Settings, account reads "Not signed in" |

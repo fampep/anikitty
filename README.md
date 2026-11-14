@@ -31,44 +31,34 @@ Pushes to `main` also publish a signed **dev prerelease**. Those builds are newe
 
 ## Screenshots
 
-These are the demo library (sample posters, not a signed-in AniList account). How to launch that mode and take the shots again is in [docs/screenshots/README.md](docs/screenshots/README.md).
+Public AniList catalog, night theme, on a Pixel-sized screen. Not a signed-in account, and not the sample library. How to take them again is in [docs/screenshots/README.md](docs/screenshots/README.md). The frames are Google's Pixel 8 device art. Do not use those framed files in a Play listing.
+
+<p align="center">
+  <img src="docs/screenshots/hero.png" alt="AniKitty on a Pixel" width="820">
+</p>
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/home.png" alt="Home" width="220"></td>
-    <td><img src="docs/screenshots/home-continue.png" alt="Continue, Top 10, and the rows under the hero" width="220"></td>
-    <td><img src="docs/screenshots/title.png" alt="Title page" width="220"></td>
+    <td><img src="docs/screenshots/home.png" alt="Home" width="200"></td>
+    <td><img src="docs/screenshots/search.png" alt="Search" width="200"></td>
+    <td><img src="docs/screenshots/title.png" alt="Title page" width="200"></td>
   </tr>
   <tr>
     <td align="center">Home</td>
-    <td align="center">Continue</td>
+    <td align="center">Search</td>
     <td align="center">Title</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/title-episodes.png" alt="Episodes" width="220"></td>
-    <td><img src="docs/screenshots/player.png" alt="Player" width="220"></td>
-    <td><img src="docs/screenshots/search.png" alt="Search" width="220"></td>
+    <td><img src="docs/screenshots/title-episodes.png" alt="Episodes and cast" width="200"></td>
+    <td><img src="docs/screenshots/player.png" alt="Player" width="200"></td>
+    <td><img src="docs/screenshots/myspace.png" alt="My Space, not signed in" width="200"></td>
   </tr>
   <tr>
     <td align="center">Episodes</td>
     <td align="center">Player</td>
-    <td align="center">Search</td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/myspace.png" alt="My Space" width="220"></td>
-    <td><img src="docs/screenshots/settings.png" alt="Settings" width="220"></td>
-    <td><img src="docs/screenshots/menu.png" alt="Home menu" width="220"></td>
-  </tr>
-  <tr>
     <td align="center">My Space</td>
-    <td align="center">Settings</td>
-    <td align="center">Menu</td>
   </tr>
 </table>
-
-<p align="center">
-  <img src="docs/screenshots/home-swipe.gif" alt="Swiping the home hero" width="220">
-</p>
 
 ## What you can do
 

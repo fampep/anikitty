@@ -20,11 +20,13 @@ class MainActivity : AppCompatActivity() {
     private var oauthToken by mutableStateOf<String?>(null)
     private var oauthError by mutableStateOf<String?>(null)
     private var requestDemo by mutableStateOf(false)
+    private var requestBrowse by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         requestDemo = intent?.getBooleanExtra(EXTRA_DEMO, false) == true
+        requestBrowse = intent?.getBooleanExtra(EXTRA_BROWSE, false) == true
         consumeOAuthIntent(intent)
         val app = application as AnikittyApp
         setContent {
@@ -44,6 +46,7 @@ class MainActivity : AppCompatActivity() {
                         oauthError = null
                     },
                     requestDemo = requestDemo,
+                    requestBrowse = requestBrowse,
                 )
             }
         }
@@ -53,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.getBooleanExtra(EXTRA_DEMO, false)) requestDemo = true
+        if (intent.getBooleanExtra(EXTRA_BROWSE, false)) requestBrowse = true
         consumeOAuthIntent(intent)
     }
 
@@ -79,5 +83,7 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_DEMO = "demo"
+        /** Public AniList catalog. Does not sign in and does not load the sample library. */
+        const val EXTRA_BROWSE = "browse"
     }
 }
