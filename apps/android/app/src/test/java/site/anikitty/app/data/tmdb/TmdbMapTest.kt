@@ -55,6 +55,26 @@ class TmdbMapTest {
             ),
         )
         assertEquals("/none.png", textless)
+        assertEquals(
+            "/en.png",
+            pickLogo(
+                listOf(
+                    TmdbImage("/en.svg", "en", 80.0),
+                    TmdbImage("/en.png", "en", 4.0),
+                ),
+            ),
+        )
+        assertNull(pickLogo(listOf(TmdbImage("/en.svg", "en", 9.0))))
+    }
+
+    @Test
+    fun seasonLabelKeepsTheNumber() {
+        assertEquals("Season 2 · Culling Game", seasonSelectorLabel(2, "Culling Game"))
+        assertEquals("Season 2", seasonSelectorLabel(2, "Season 2"))
+        assertEquals("Season 2 · Culling Game", seasonSelectorLabel(2, "Season 2: Culling Game"))
+        assertEquals("Season 3", seasonSelectorLabel(3, "The Apothecary Diaries Season 3"))
+        assertEquals("Season 3 · Part 2", seasonSelectorLabel(3, "Kusuriya no Hitorigoto 3rd Season Part 2"))
+        assertEquals("Specials", seasonSelectorLabel(0, "Specials"))
     }
 
     @Test
