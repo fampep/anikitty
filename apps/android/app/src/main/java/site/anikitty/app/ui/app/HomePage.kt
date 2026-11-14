@@ -463,56 +463,40 @@ internal data class HomeContinueCard(
 @Composable
 internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
     if (cards.isEmpty()) return
-    val lead = cards.first()
-    val rest = cards.drop(1)
     val palette = LocalKittyPalette.current
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
-                .spacePress(lead.onClick),
-        ) {
-            ContinueArt(lead, height = 188.dp, radius = KittyRadius.md, titleSize = 18.sp)
-        }
-        if (rest.isNotEmpty()) {
-            LazyRow(
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = KittySpace.md),
+        horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
+    ) {
+        items(cards, key = { it.id }, contentType = { "still" }) { card ->
+            Column(
+                modifier = Modifier
+                    .width(232.dp)
+                    .spacePress(card.onClick),
             ) {
-                items(rest, key = { it.id }, contentType = { "continue" }) { card ->
-                    Column(
-                        modifier = Modifier
-                            .width(196.dp)
-                            .spacePress(card.onClick),
-                    ) {
-                        ContinueArt(card, height = 110.dp, radius = 6.dp, titleSize = 13.sp)
-                        Text(
-                            card.label,
-                            color = palette.muted,
-                            fontSize = 12.sp,
-                            maxLines = 1,
-                            modifier = Modifier.padding(top = 6.dp, start = 2.dp),
-                        )
-                    }
-                }
+                ContinueArt(card)
+                Text(
+                    card.label,
+                    color = palette.muted,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = KittySpace.sm),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ContinueArt(
-    card: HomeContinueCard,
-    height: androidx.compose.ui.unit.Dp,
-    radius: androidx.compose.ui.unit.Dp,
-    titleSize: androidx.compose.ui.unit.TextUnit,
-) {
+private fun ContinueArt(card: HomeContinueCard) {
+    val shape = RoundedCornerShape(KittyRadius.md)
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(height)
-            .clip(RoundedCornerShape(radius))
+            .aspectRatio(16f / 9f)
+            .clip(shape)
             .background(Color(0xFF141416)),
     ) {
         KittyImage(
@@ -527,41 +511,29 @@ private fun ContinueArt(
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
-                        0.4f to Color.Transparent,
-                        1f to Color.Black.copy(alpha = 0.82f),
+                        0.45f to Color.Transparent,
+                        1f to Color.Black.copy(alpha = 0.78f),
                     ),
                 ),
         )
-        Column(
+        Text(
+            card.title,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
-        ) {
-            Text(
-                card.title,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = titleSize,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (height > 140.dp) {
-                Text(
-                    card.label,
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-        }
+                .padding(horizontal = 10.dp, vertical = 10.dp),
+        )
         if (card.progress > 0f) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
                     .height(2.dp)
-                    .background(Color.White.copy(alpha = 0.2f)),
+                    .background(Color.White.copy(alpha = 0.22f)),
             ) {
                 Box(
                     modifier = Modifier

@@ -144,14 +144,16 @@ import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.airingLabel
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.friendlyFailure
-import site.anikitty.app.data.minutesLeft
-import site.anikitty.app.data.watchedAgo
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeEpisodeItem
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.data.local.ContinueHidden
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
+import site.anikitty.app.data.local.continueCue
+import site.anikitty.app.data.local.continueQueue
+import site.anikitty.app.data.local.markEpisode
 import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ServerCatalog
@@ -174,7 +176,6 @@ import site.anikitty.app.ui.components.PosterFlight
 import site.anikitty.app.ui.components.PosterMotion
 import site.anikitty.app.ui.components.KittyDock
 import site.anikitty.app.ui.components.rememberDockScroll
-import site.anikitty.app.ui.components.KittyContinueCard
 import site.anikitty.app.ui.components.KittyEmptyState
 import site.anikitty.app.ui.components.KittyMenuEntry
 import site.anikitty.app.ui.components.KittyOverflow
@@ -198,6 +199,7 @@ import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittyOutlineSoft
 import site.anikitty.app.ui.theme.KittyPage
+import site.anikitty.app.ui.theme.KittySpace
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
 import site.anikitty.app.ui.theme.KittyText
@@ -212,6 +214,7 @@ private sealed class Screen {
     ) : Screen()
     data object Schedule : Screen()
     data object Builds : Screen()
+    data object Continue : Screen()
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -231,6 +234,7 @@ fun LocalFirstApp(
     demo: Boolean = false,
 ) {
     val context = LocalContext.current
+    ContinueHidden.install(context)
     val homeLayout = remember { HomeLayoutStore(context) }
     // Tab survives recreation; detail/player stack relies on configChanges in the manifest
     // so landscape lock in PlayerScreen does not wipe navigation.
@@ -346,6 +350,19 @@ fun LocalFirstApp(
         )
     }
 
+    suspend fun openHistory(entry: WatchHistoryEntity, episode: Int?) {
+        val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
+            ?: aniList.media(entry.anilistId)
+            ?: summaryFrom(entry)
+        val total = detail.releasedEpisodeCount().takeIf { it > 0 }
+        val play = when {
+            episode == null -> null
+            total != null -> episode.coerceAtMost(total)
+            else -> episode
+        }
+        openDetail(detail, play)
+    }
+
     when (screen) {
         Screen.Schedule -> {
             Box(modifier = Modifier.fillMaxSize()) {
@@ -364,6 +381,24 @@ fun LocalFirstApp(
                         tab = id
                     },
                     modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+            return
+        }
+        Screen.Continue -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                ContinueAllPage(
+                    history = history,
+                    onBack = { screen = Screen.Tabs },
+                    onOpen = { entry, episode ->
+                        scope.launch { openHistory(entry, episode) }
+                    },
+                    onRemove = { entry -> ContinueHidden.hide(context, entry.anilistId) },
+                    onMarkWatched = { entry, episode ->
+                        scope.launch {
+                            historyDao.markEpisode(summaryFrom(entry), episode)
+                        }
+                    },
                 )
             }
             return
@@ -420,6 +455,7 @@ fun LocalFirstApp(
                         tab = "schedule"
                     },
                     onOpenAccount = { tab = "settings" },
+                    onSeeAllContinue = { screen = Screen.Continue },
                     homeLayout = homeLayout,
                 )
                 "schedule" -> ScheduleFeed(
@@ -462,6 +498,7 @@ fun LocalFirstApp(
                     },
                     onOpen = { openDetail(it) },
                     onOpenAccount = { tab = "settings" },
+                    onSeeAllContinue = { screen = Screen.Continue },
                     onBrowse = { tab = "search" },
                     onSignOut = onSignOut,
                     avatarUrl = aniListAuth.avatarUrl,
@@ -698,6 +735,7 @@ fun LocalFirstApp(
                                 malId = current.anime.malId ?: existing?.malId,
                             ),
                         )
+                        ContinueHidden.reveal(context, current.anime.id)
                     }
                 },
                 onNextEpisode = run {
@@ -831,6 +869,7 @@ private fun HomeFeed(
     onOpenGenre: (String) -> Unit,
     onOpenSchedule: () -> Unit,
     onOpenAccount: () -> Unit,
+    onSeeAllContinue: () -> Unit,
     homeLayout: HomeLayoutStore,
 ) {
     val context = LocalContext.current
@@ -859,12 +898,9 @@ private fun HomeFeed(
             aniList.airingSchedule(from, from + 24 * 60 * 60)
         }.getOrDefault(emptyList())
     }
-    val continueWatching = remember(history) {
-        history.filter { entry ->
-            val status = entry.listStatus?.uppercase()
-            val watching = status == null || status == "CURRENT" || status == "REPEATING"
-            watching && (entry.episodesFinished() > 0 || entry.positionMs > 0L)
-        }.take(12)
+    val hiddenContinue = ContinueHidden.ids
+    val continueWatching = remember(history, hiddenContinue) {
+        continueQueue(history, hiddenContinue).take(12)
     }
     val planToWatch = remember(history) {
         history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(12)
@@ -1054,19 +1090,8 @@ private fun HomeFeed(
                             .height(210.dp)
                             .clip(RoundedCornerShape(8.dp)),
                     )
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        repeat(3) {
-                            ShimmerBox(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(2f / 3f)
-                                    .clip(RoundedCornerShape(4.dp)),
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(KittySpace.lg))
+                    ContinueSkeletonRow()
                 }
             }
             error != null && trending.isEmpty() -> {
@@ -1109,14 +1134,15 @@ private fun HomeFeed(
                                 HomeFeatured(items = trending, onOpen = openCatalog, logos = heroLogos)
                             }
                             "continue" -> {
-                                if (LookState.abandonedReminders) {
+                                if (continueWatching.isNotEmpty() && LookState.abandonedReminders) {
                                     val stale = continueWatching.firstOrNull {
                                         System.currentTimeMillis() - it.updatedAtEpochMs >
                                             14L * 24 * 60 * 60 * 1000
                                     }
                                     if (stale != null) item(key = "stale", contentType = "note") {
+                                        val episode = continueCue(stale)?.episode ?: stale.episode
                                         Text(
-                                            "You left ${stale.title} a while ago. Episode ${stale.episode} is still here.",
+                                            "You left ${stale.title} a while ago. Episode $episode is still here.",
                                             color = LocalKittyPalette.current.muted,
                                             fontSize = 13.sp,
                                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
@@ -1124,58 +1150,38 @@ private fun HomeFeed(
                                     }
                                 }
                                 if (continueWatching.isNotEmpty()) item(key = "continue", contentType = "continue") {
-                                HomeBlock(title = "Continue", subtitle = "Where you left off") {
-                                    HomeContinueRow(
-                                        continueWatching.map { entry ->
-                                            val target = playbackTarget(entry)
-                                            val still = stills["${entry.anilistId}-$target"]
-                                            val resume = target == entry.episode.coerceAtLeast(1)
-                                            val fraction = if (resume && entry.durationMs > 0L) {
-                                                (entry.positionMs.toFloat() / entry.durationMs.toFloat()).coerceIn(0f, 1f)
-                                            } else {
-                                                0f
-                                            }
-                                            val left = if (resume) {
-                                                minutesLeft(entry.positionMs, entry.durationMs)
-                                            } else {
-                                                null
-                                            }
-                                            HomeContinueCard(
-                                                id = entry.anilistId,
-                                                title = entry.title,
-                                                imageUrl = still ?: entry.coverImageUrl,
-                                                label = buildString {
-                                                    append("Episode $target")
-                                                    if (left != null) append(" · $left min left")
-                                                },
-                                                progress = fraction,
-                                                onClick = {
-                                                    scope.launch {
-                                                        val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
-                                                            ?: aniList.media(entry.anilistId)
-                                                            ?: AnimeSummary(
-                                                                id = entry.anilistId,
-                                                                title = entry.title,
-                                                                coverImageUrl = entry.coverImageUrl,
-                                                                episodes = null,
-                                                                format = null,
-                                                                averageScore = null,
-                                                                malId = entry.malId,
-                                                            )
-                                                        val total = detail.releasedEpisodeCount().takeIf { it > 0 }
-                                                        val play = if (total != null) {
-                                                            target.coerceAtMost(total)
-                                                        } else {
-                                                            target
-                                                        }
-                                                        onOpen(detail, play)
+                                    HomeBlock(
+                                        title = "Continue watching",
+                                        subtitle = "Where you left off",
+                                        onMore = onSeeAllContinue,
+                                    ) {
+                                        ContinueWatchRow(
+                                            entries = continueWatching,
+                                            onOpen = { entry, episode ->
+                                                scope.launch {
+                                                    val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
+                                                        ?: aniList.media(entry.anilistId)
+                                                        ?: summaryFrom(entry)
+                                                    val total = detail.releasedEpisodeCount().takeIf { it > 0 }
+                                                    val play = if (total != null) {
+                                                        episode.coerceAtMost(total)
+                                                    } else {
+                                                        episode
                                                     }
-                                                },
-                                            )
-                                        },
-                                    )
+                                                    onOpen(detail, play)
+                                                }
+                                            },
+                                            onRemove = { entry ->
+                                                ContinueHidden.hide(context, entry.anilistId)
+                                            },
+                                            onMarkWatched = { entry, episode ->
+                                                scope.launch {
+                                                    historyDao.markEpisode(summaryFrom(entry), episode)
+                                                }
+                                            },
+                                        )
+                                    }
                                 }
-                            }
                                 val ranked = topTen.ifEmpty { trending }
                                 if (ranked.isNotEmpty()) item(key = "top10", contentType = "rank") {
                                     HomeBlock(title = "Top 10", subtitle = "Trending this season") {
@@ -1358,42 +1364,18 @@ private fun prefetchCovers(context: android.content.Context, animes: List<AnimeS
 }
 
 /** Resume the episode still in progress; otherwise play the one after the last finished. */
-private fun playbackTarget(entry: WatchHistoryEntity): Int {
-    val stored = entry.episode.coerceAtLeast(1)
-    val hasDuration = entry.durationMs > 30_000L
-    val ratio = if (hasDuration) entry.positionMs.toFloat() / entry.durationMs.toFloat() else 0f
-    val inProgress = hasDuration && entry.positionMs >= 15_000L && ratio < 0.9f
-    return if (inProgress) stored else stored + 1
-}
+private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
+    id = entry.anilistId,
+    title = entry.title,
+    coverImageUrl = entry.coverImageUrl,
+    episodes = null,
+    format = null,
+    averageScore = null,
+    malId = entry.malId,
+)
 
-private suspend fun WatchHistoryDao.markEpisode(anime: AnimeSummary, number: Int) {
-    val existing = get(anime.id)
-    val frontier = existing?.episode ?: 0
-    val finishedThrough = (frontier - 1).coerceAtLeast(0)
-    val already = existing != null && existing.episodesFinished() > 0 && number <= finishedThrough
-    val nextEpisode: Int
-    val nextPosition: Long
-    if (already) {
-        if (number != finishedThrough) return
-        nextEpisode = number.coerceAtLeast(1)
-        nextPosition = 0L
-    } else {
-        nextEpisode = maxOf(frontier, number + 1)
-        nextPosition = if (number + 1 > frontier) 0L else existing?.positionMs ?: 0L
-    }
-    upsert(
-        WatchHistoryEntity(
-            anilistId = anime.id,
-            title = anime.title,
-            coverImageUrl = anime.coverImageUrl ?: existing?.coverImageUrl,
-            episode = nextEpisode,
-            positionMs = nextPosition,
-            durationMs = if (nextPosition == 0L) 0L else existing?.durationMs ?: 0L,
-            updatedAtEpochMs = System.currentTimeMillis(),
-            listStatus = existing?.listStatus ?: "CURRENT",
-            malId = anime.malId ?: existing?.malId,
-        ),
-    )
+private fun playbackTarget(entry: WatchHistoryEntity): Int {
+    return continueCue(entry)?.episode ?: entry.episode.coerceAtLeast(1)
 }
 
 @Composable
@@ -1840,7 +1822,7 @@ private fun HistoryFeed(
                     )
                 }
                 lazyItems(rows, key = { "$prefix-${it.anilistId}" }) { entry ->
-                    HistoryRow(entry, aniList, onOpen)
+                    HistoryRow(entry, aniList, historyDao, onOpen)
                 }
             }
             historySections.forEach { (title, rows, prefix) ->
@@ -1854,42 +1836,25 @@ private fun HistoryFeed(
 private fun HistoryRow(
     entry: WatchHistoryEntity,
     aniList: AniListClient,
+    historyDao: WatchHistoryDao,
     onOpen: (AnimeSummary) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    KittyContinueCard(
-        title = entry.title,
-        coverUrl = entry.coverImageUrl,
-        episode = entry.episode,
-        positionMs = entry.positionMs,
-        durationMs = entry.durationMs,
-        wide = false,
-        badge = buildString {
-            listStatusBadge(entry.listStatus)?.let { append(it) }
-            minutesLeft(entry.positionMs, entry.durationMs)?.let { left ->
-                if (isNotEmpty()) append(" · ")
-                append(left)
-                append(" min left")
-            }
-            watchedAgo(entry.updatedAtEpochMs).takeIf { it.isNotEmpty() }?.let { ago ->
-                if (isNotEmpty()) append(" · ")
-                append(ago)
-            }
-        }.ifBlank { null },
-        onClick = {
+    ContinueWatchCard(
+        entry = entry,
+        fillWidth = true,
+        showWithoutCue = true,
+        onOpen = {
             scope.launch {
-                val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
-                    ?: aniList.media(entry.anilistId) ?: AnimeSummary(
-                    id = entry.anilistId,
-                    title = entry.title,
-                    coverImageUrl = entry.coverImageUrl,
-                    episodes = null,
-                    format = null,
-                    averageScore = null,
-                    malId = entry.malId,
+                onOpen(
+                    site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
+                        ?: aniList.media(entry.anilistId)
+                        ?: summaryFrom(entry),
                 )
-                onOpen(detail)
             }
+        },
+        onMarkWatched = { episode ->
+            scope.launch { historyDao.markEpisode(summaryFrom(entry), episode) }
         },
     )
 }
@@ -2609,13 +2574,20 @@ private fun TitleDetailScreen(
         val sampleHistory = site.anikitty.app.data.demo.DemoLibrary.history
             .firstOrNull { it.anilistId == anime.id }
         val history = sampleHistory ?: historyDao.get(anime.id)
+        val cue = history?.let { continueCue(it) }
         lastWatchedEp = history?.episode ?: 0
-        resumeAtMs = history?.positionMs ?: 0L
-        resumeEpisode = history?.episode ?: 0
-        resumeDurationMs = history?.durationMs ?: 0L
+        if (history != null && cue != null && !cue.next) {
+            resumeAtMs = history.positionMs
+            resumeEpisode = cue.episode
+            resumeDurationMs = history.durationMs
+        } else {
+            resumeAtMs = 0L
+            resumeEpisode = 0
+            resumeDurationMs = 0L
+        }
         episode = when {
             initialEpisode != null -> initialEpisode.coerceAtLeast(1)
-            history?.episode != null -> history.episode.coerceAtLeast(1)
+            cue != null -> cue.episode
             else -> 1
         }
         audio = watchPrefs.getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub"

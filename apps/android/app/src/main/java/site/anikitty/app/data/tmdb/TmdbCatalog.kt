@@ -14,6 +14,15 @@ import site.anikitty.app.data.anilist.AnimeSummary
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
+/** Still, then backdrop and logo, for one Continue watching card. */
+data class EpisodeFrame(
+    val stillUrl: String?,
+    val episodeTitle: String?,
+    val season: Int?,
+    val backdropUrl: String?,
+    val logoUrl: String?,
+)
+
 /**
  * Extra title detail from TMDB. AniList stays the catalog. Results are cached
  * on the phone. The key is the built-in one, unless Settings overrides it.
@@ -103,6 +112,97 @@ class TmdbCatalog(context: Context) {
         val still = imageUrl(JSONObject(body).optString("still_path"), "w780")
         prefs.edit().putString("still$anilistId-$episode", still ?: "none").apply()
         return still
+    }
+
+    /**
+     * Episode still, title, and season, with a backdrop and logo when the still is missing.
+     * Cached per series and episode. A failed lookup is not cached.
+     */
+    fun episodeFrame(anilistId: Int, episode: Int): EpisodeFrame {
+        val blank = EpisodeFrame(null, null, null, null, null)
+        val apiKey = apiKey()
+        if (apiKey.isBlank() || anilistId <= 0 || episode <= 0) return blank
+        val cacheKey = "frame2$anilistId-$episode"
+        prefs.getString(cacheKey, null)?.let { raw ->
+            val parts = raw.split("\t")
+            if (parts.size >= 5) {
+                return EpisodeFrame(
+                    stillUrl = parts[1].takeIf { it.startsWith("http") },
+                    episodeTitle = parts[0].takeIf { it.isNotBlank() && it != "-" },
+                    season = parts[4].toIntOrNull(),
+                    backdropUrl = parts[2].takeIf { it.startsWith("http") },
+                    logoUrl = parts[3].takeIf { it.startsWith("http") },
+                )
+            }
+        }
+        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull() ?: return blank
+        val art = cached(anilistId)
+        val season = mapped.season ?: art?.seasonNumber
+        var still: String? = null
+        var title: String? = null
+        var lookedUp = mapped.movie
+        if (!mapped.movie) {
+            val number = tmdbEpisodeNumber(episode, mapped.episodeOffset)
+            val seasonNumber = season ?: 1
+            val body = get(api("tv/${mapped.tmdbId}/season/$seasonNumber/episode/$number", apiKey))
+            lookedUp = body != null
+            if (body != null) {
+                val obj = JSONObject(body)
+                title = obj.optString("name").takeIf { it.isNotBlank() }
+                still = imageUrl(obj.optString("still_path"), "w780")
+            }
+        }
+        var backdrop = art?.backdrops?.firstOrNull()
+        var logo = art?.logoUrl
+        if (backdrop == null || logo == null) {
+            val kind = if (mapped.movie) "movie" else "tv"
+            val body = get(
+                api(
+                    "$kind/${mapped.tmdbId}/images",
+                    apiKey,
+                    "include_image_language" to "en,null,ja",
+                ),
+            )
+            if (body != null) {
+                lookedUp = true
+                val json = JSONObject(body)
+                if (backdrop == null) {
+                    val path = json.optJSONArray("backdrops")?.optJSONObject(0)?.optString("file_path")
+                    backdrop = imageUrl(path, "w780")
+                }
+                if (logo == null) {
+                    logo = imageUrl(logoPath(json.optJSONArray("logos")), "w500")
+                }
+            }
+        }
+        if (lookedUp) {
+            val packed = listOf(
+                title ?: "-",
+                still.orEmpty(),
+                backdrop.orEmpty(),
+                logo.orEmpty(),
+                season?.toString().orEmpty(),
+            ).joinToString("\t")
+            prefs.edit().putString(cacheKey, packed).apply()
+        }
+        if (still != null) {
+            prefs.edit().putString("still$anilistId-$episode", still).apply()
+        }
+        return EpisodeFrame(still, title, season, backdrop, logo)
+    }
+
+    private fun logoPath(logos: JSONArray?): String? {
+        if (logos == null || logos.length() == 0) return null
+        val images = buildList {
+            for (i in 0 until logos.length()) {
+                val obj = logos.optJSONObject(i) ?: continue
+                val path = obj.optString("file_path")
+                if (!path.startsWith("/")) continue
+                val language = obj.optString("iso_639_1").takeIf { it.isNotBlank() }
+                add(TmdbImage(path, language, obj.optDouble("vote_average", 0.0)))
+            }
+        }
+        return pickLogo(images)
     }
 
     /** Logo and wide backdrop for home hero pages. Empty when there is no key. */

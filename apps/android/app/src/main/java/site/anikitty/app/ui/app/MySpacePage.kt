@@ -81,8 +81,11 @@ import site.anikitty.app.data.anilist.AniListMediaListEntry
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListViewer
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.data.local.ContinueHidden
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
+import site.anikitty.app.data.local.continueQueue
+import site.anikitty.app.data.local.markEpisode
 import site.anikitty.app.ui.theme.LocalKittyPalette
 
 @Composable
@@ -100,6 +103,7 @@ fun MySpaceFeed(
     onOpen: (AnimeSummary) -> Unit,
     onOpenAccount: () -> Unit,
     onSignOut: () -> Unit,
+    onSeeAllContinue: () -> Unit = {},
     onBrowse: () -> Unit = {},
     avatarUrl: String? = null,
 ) {
@@ -113,7 +117,6 @@ fun MySpaceFeed(
     var selectedTab by remember(libraryFilter) {
         mutableStateOf(tabForLibraryFilter(libraryFilter))
     }
-    var confirmClear by remember { mutableStateOf(false) }
     var selecting by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<Int>()) }
     var bulkBusy by remember { mutableStateOf(false) }
@@ -264,14 +267,14 @@ fun MySpaceFeed(
     }
 
     var librarySort by rememberSaveable { mutableStateOf("newest") }
-    val continueWatching = remember(history, librarySort) {
-        val base = history.filter { it.episodesFinished() > 0 || it.positionMs > 0L }
-        val sorted = when (librarySort) {
-            "alpha" -> base.sortedBy { it.title.lowercase() }
-            "watched" -> base.sortedByDescending { it.episodesFinished() }
-            else -> base.sortedByDescending { it.updatedAtEpochMs }
+    val hiddenContinue = ContinueHidden.ids
+    val continueWatching = remember(history, hiddenContinue, librarySort) {
+        val queue = continueQueue(history, hiddenContinue)
+        when (librarySort) {
+            "alpha" -> queue.sortedBy { it.title.lowercase() }
+            "watched" -> queue.sortedByDescending { it.episodesFinished() }
+            else -> queue
         }
-        sorted.take(24)
     }
     val weekAgo = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
     val weekMinutes = history
@@ -435,24 +438,11 @@ fun MySpaceFeed(
                 )
             }
 
-            item {
+            if (continueWatching.isNotEmpty()) item {
                 ContinueBlock(
-                    rows = continueWatching,
-                    confirmClear = confirmClear,
+                    rows = continueWatching.take(12),
                     selection = selection,
-                    onBrowse = onBrowse,
-                    onClear = {
-                        if (demo) {
-                            confirmClear = false
-                            return@ContinueBlock
-                        }
-                        if (confirmClear) {
-                            confirmClear = false
-                            scope.launch { historyDao.clear() }
-                        } else {
-                            confirmClear = true
-                        }
-                    },
+                    onSeeAll = onSeeAllContinue,
                     onOpen = { entry ->
                         scope.launch {
                             val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
@@ -468,9 +458,12 @@ fun MySpaceFeed(
                             onOpen(detail)
                         }
                     },
+                    onRemove = { entry -> ContinueHidden.hide(context, entry.anilistId) },
+                    onMarkWatched = { entry, episode ->
+                        scope.launch { historyDao.markEpisode(summaryFor(entry), episode) }
+                    },
                 )
             }
-
             item {
                 FavoritesBlock(
                     favourites = favourites,
@@ -697,12 +690,13 @@ private fun CloudSyncBlock(
 @Composable
 private fun ContinueBlock(
     rows: List<WatchHistoryEntity>,
-    confirmClear: Boolean,
     selection: ShowSelection,
-    onBrowse: () -> Unit,
-    onClear: () -> Unit,
+    onSeeAll: () -> Unit,
     onOpen: (WatchHistoryEntity) -> Unit,
+    onRemove: (WatchHistoryEntity) -> Unit,
+    onMarkWatched: (WatchHistoryEntity, Int) -> Unit,
 ) {
+    if (rows.isEmpty()) return
     val palette = LocalKittyPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
@@ -720,59 +714,57 @@ private fun ContinueBlock(
                 ),
                 color = palette.text.copy(alpha = 0.6f),
             )
-            if (rows.isNotEmpty()) {
-                Text(
-                    text = if (confirmClear) "Confirm" else "Clear history",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = palette.text.copy(alpha = 0.7f),
-                    modifier = Modifier.clickable(onClick = onClear),
-                )
-            }
-        }
-        if (rows.isEmpty()) {
-            EmptyPanel(
-                icon = {
-                    site.anikitty.app.ui.components.KittyFace(
-                        modifier = Modifier.size(72.dp),
-                        waving = true,
-                        contentDescription = "Nothing in progress",
-                    )
-                },
-                title = "Nothing in progress",
-                body = "Start a show and it will wait for you here.",
-                action = "Browse",
-                onAction = onBrowse,
+            Text(
+                text = "See all",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                color = palette.text.copy(alpha = 0.7f),
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.spacePress(onSeeAll),
             )
-        } else {
+        }
+        if (selection.active) {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 20.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(rows, key = { "cw-${it.anilistId}" }, contentType = { "continue" }) { watch ->
-                    val fraction = if (watch.durationMs > 0L) {
-                        (watch.positionMs.toFloat() / watch.durationMs.toFloat()).coerceIn(0f, 1f)
-                    } else {
-                        0f
-                    }
                     SpacePoster(
                         title = watch.title,
                         imageUrl = watch.coverImageUrl,
                         subtitle = "EP ${watch.episode}",
-                        progress = fraction,
+                        progress = if (watch.durationMs > 0L) {
+                            (watch.positionMs.toFloat() / watch.durationMs.toFloat()).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        },
                         wide = true,
                         selected = watch.anilistId in selection.ids,
-                        selecting = selection.active,
-                        onClick = {
-                            if (selection.active) selection.onToggle(watch.anilistId)
-                            else onOpen(watch)
-                        },
+                        selecting = true,
+                        onClick = { selection.onToggle(watch.anilistId) },
                         onLongClick = { selection.onStart(watch.anilistId) },
                     )
                 }
             }
+        } else {
+            ContinueWatchRow(
+                entries = rows,
+                onOpen = { entry, _ -> onOpen(entry) },
+                onRemove = onRemove,
+                onMarkWatched = onMarkWatched,
+            )
         }
     }
 }
+
+private fun summaryFor(entry: WatchHistoryEntity) = AnimeSummary(
+    id = entry.anilistId,
+    title = entry.title,
+    coverImageUrl = entry.coverImageUrl,
+    episodes = null,
+    format = null,
+    averageScore = null,
+    malId = entry.malId,
+)
 
 @Composable
 private fun FavoritesBlock(
