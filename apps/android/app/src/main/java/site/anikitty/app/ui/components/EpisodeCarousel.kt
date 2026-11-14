@@ -80,6 +80,7 @@ fun EpisodeCarousel(
     onDark: Boolean = false,
     minutesLeft: Int? = null,
     onToggleWatched: ((Int) -> Unit)? = null,
+    anilistId: Int = 0,
 ) {
     if (slides.isEmpty()) return
     val palette = LocalKittyPalette.current
@@ -160,6 +161,15 @@ fun EpisodeCarousel(
                 scale = scale,
                 minutesLeft = if (selected) minutesLeft else null,
                 peek = peekNumber == slide.number,
+                badge = if (anilistId > 0) {
+                    site.anikitty.app.data.servers.SourceBadgeCache.episode(
+                        androidx.compose.ui.platform.LocalContext.current,
+                        anilistId,
+                        slide.number,
+                    )
+                } else {
+                    null
+                },
                 onClick = { onPick(slide.number) },
                 onSwipeWatched = onToggleWatched?.let { toggle ->
                     {
@@ -184,6 +194,7 @@ private fun EpisodeThumb(
     scale: Float,
     minutesLeft: Int?,
     peek: Boolean,
+    badge: site.anikitty.app.data.servers.SourceBadgeCache.Badge?,
     onClick: () -> Unit,
     onSwipeWatched: (() -> Unit)?,
 ) {
@@ -271,6 +282,10 @@ private fun EpisodeThumb(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(start = 8.dp, bottom = if (progress > 0f) 8.dp else 6.dp),
+            )
+            QualityMarks(
+                badge = badge,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(6.dp),
             )
             if (peek && minutesLeft == null) {
                 KittyFace(

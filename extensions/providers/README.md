@@ -9,4 +9,6 @@ Playback stays on the phone. This repository is where the extension version of e
 | [gotaku](./gotaku) | Gotaku HLS unwrap |
 | [anipm](./anipm) | ani.pm → Settlar |
 
+Each resolver sets optional `quality`, `audio`, and `qualityRating` on `PlayableSource` only from data it parsed (HLS `RESOLUTION` / `CODECS` / `CHANNELS`, or the site’s own label). A missing fact stays null.
+
 Copyright 2026 fampep. [Apache License 2.0](../LICENSE).

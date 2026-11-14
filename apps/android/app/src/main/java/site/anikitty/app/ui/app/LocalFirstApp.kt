@@ -424,6 +424,12 @@ fun LocalFirstApp(
                                 totalEpisodes = current.anime.episodes,
                             )
                         }
+                        site.anikitty.app.data.servers.SourceBadgeCache.remember(
+                            context,
+                            current.anime.id,
+                            nextEpisode,
+                            resolved.sources,
+                        )
                         screen = Screen.Player(current.anime, nextEpisode, resolved.sources)
                     }
                 }
@@ -1231,6 +1237,56 @@ private fun LookSettings(onExport: () -> Unit) {
         ) {
             Text("Export watch progress", fontWeight = FontWeight.Bold)
         }
+        val keyPrefs = remember { context.getSharedPreferences("anikitty_keys", 0) }
+        var tmdbKey by remember { mutableStateOf(keyPrefs.getString("tmdb", "") ?: "") }
+        var fanartKey by remember { mutableStateOf(keyPrefs.getString("fanart", "") ?: "") }
+        Text("Backdrop keys", color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text(
+            "Optional. Wider home and title art uses them. Empty keys skip that source.",
+            color = palette.muted,
+            fontSize = 12.sp,
+        )
+        OutlinedTextField(
+            value = tmdbKey,
+            onValueChange = {
+                tmdbKey = it
+                keyPrefs.edit().putString("tmdb", it.trim()).apply()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("TMDB API key") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = palette.text,
+                unfocusedTextColor = palette.text,
+                focusedBorderColor = palette.accent,
+                unfocusedBorderColor = palette.hairline,
+                focusedLabelColor = palette.muted,
+                unfocusedLabelColor = palette.muted,
+            ),
+        )
+        OutlinedTextField(
+            value = fanartKey,
+            onValueChange = {
+                fanartKey = it
+                keyPrefs.edit().putString("fanart", it.trim()).apply()
+            },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            label = { Text("fanart.tv API key") },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = palette.text,
+                unfocusedTextColor = palette.text,
+                focusedBorderColor = palette.accent,
+                unfocusedBorderColor = palette.hairline,
+                focusedLabelColor = palette.muted,
+                unfocusedLabelColor = palette.muted,
+            ),
+        )
+        Text(
+            "This product uses the TMDB API but is not endorsed or certified by TMDB. Backdrop art may also come from fanart.tv.",
+            color = palette.muted,
+            fontSize = 12.sp,
+        )
     }
 }
 
@@ -2335,6 +2391,12 @@ private fun TitleDetailScreen(
                     )
                 }
                 lastWatchedEp = episode
+                site.anikitty.app.data.servers.SourceBadgeCache.remember(
+                    context,
+                    detail.id,
+                    episode,
+                    resolved.sources,
+                )
                 onPlay(episode, resolved.sources, detail)
                 status = if (resolved.usedFallback) {
                     "Playing via ${resolved.server.name}"
@@ -2379,8 +2441,10 @@ private fun TitleDetailScreen(
                             .height(168.dp)
                             .clip(RoundedCornerShape(8.dp)),
                     ) {
-                        AsyncImage(
-                            model = detail.bannerImageUrl ?: detail.coverImageUrl,
+                        site.anikitty.app.ui.components.HeroBanner(
+                            anilistId = detail.id,
+                            bannerUrl = detail.bannerImageUrl,
+                            coverUrl = detail.coverImageUrl,
                             contentDescription = null,
                             modifier = Modifier
                                 .fillMaxSize()
@@ -2389,7 +2453,6 @@ private fun TitleDetailScreen(
                                     scaleX = 1.08f
                                     scaleY = 1.08f
                                 },
-                            contentScale = ContentScale.Crop,
                         )
                         Box(
                             modifier = Modifier
@@ -2430,6 +2493,11 @@ private fun TitleDetailScreen(
                                     maxLines = 3,
                                     overflow = TextOverflow.Ellipsis,
                                     modifier = Modifier.weight(1f),
+                                )
+                                site.anikitty.app.ui.components.QualityMarks(
+                                    badge = site.anikitty.app.data.servers.SourceBadgeCache.title(context, detail.id),
+                                    onDark = palette.dark,
+                                    modifier = Modifier.padding(start = 8.dp),
                                 )
                                 if (aniListAuth.isLinked) {
                                     Icon(
@@ -3127,6 +3195,7 @@ private fun TitleDetailScreen(
                         currentProgress = 0f,
                         fallbackArt = detail.bannerImageUrl ?: detail.coverImageUrl,
                         onPick = { episode = it },
+                        anilistId = detail.id,
                         onToggleWatched = { number ->
                             scope.launch {
                                 historyDao.markEpisode(detail, number)

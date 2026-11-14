@@ -1,5 +1,7 @@
 # Anikoto
 
+`quality` comes from a resolution in the embed label (`1080p`, `4K`). `qualityRating` is set only when that label contains HD, FHD, UHD, SD, or HQ. `audio` is `SUB` or `DUB` from the track that was resolved.
+
 On-device resolver compiled into the AniKitty app from this folder.
 
 `AnikotoServer.kt` maps an AniList id to an Anikoto watch page, then returns MegaPlay URLs and headers. `MegaPlayCrypto.kt` reads the player key at runtime. Skip times from this provider are what the app uses for every stream.

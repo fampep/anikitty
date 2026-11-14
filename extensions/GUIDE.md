@@ -26,7 +26,7 @@ Create `anikitty-extension.json` at the **root** of a public GitHub repository:
 Rules:
 
 - `id` — reverse-DNS, stable forever (changing it installs a *new* extension).
-- `apiVersion` — must be `1` for current AniKitty builds.
+- `apiVersion` — must be `1`. Protocol 1.1 adds optional source fields without a new manifest version.
 - `baseUrl` — HTTPS origin of your resolver (no trailing slash).
 - `resolvePath` — path joined to `baseUrl` (default `/v1/resolve`).
 - **`iconUrl` — required.** Must be the **brand/favicon of the site you scrape or front** (HTTPS). The Store shows this icon next to Anikoto and every listing. Install fails without it.
@@ -68,6 +68,9 @@ Success `200` JSON:
         "User-Agent": "Mozilla/5.0"
       },
       "label": "1080p",
+      "quality": "1080p",
+      "audio": "AAC 2.0 · SUB",
+      "qualityRating": "FHD",
       "stripBytes": 0,
       "subtitles": [
         {
@@ -82,7 +85,25 @@ Success `200` JSON:
 }
 ```
 
-Errors: non-2xx with `{ "error": "human message" }` (optional). AniKitty surfaces the message in the UI.
+### Source fields
+
+| Field | Type | Required | When omitted | Examples |
+|---|---|---|---|---|
+| `url` | string | yes | source is dropped | `https://cdn.example.com/a.m3u8` |
+| `label` | string | no | `"Stream"` | `"1080p"`, `"Auto · SUB"` |
+| `quality` | string | no | no picture badge | `"720p"`, `"1080p"`, `"4K"` |
+| `audio` | string | no | no audio badge | `"SUB"`, `"AAC 2.0 · DUB"`, `"AC3 5.1 · SUB"` |
+| `qualityRating` | string | no | no grade badge | `"SD"`, `"HD"`, `"FHD"`, `"UHD"` |
+| `headers` | object | no | none | `{ "Referer": "https://watch.example.com/" }` |
+| `referer` / `origin` | string | no | not copied | shorthand for those headers |
+| `stripBytes` | number | no | `0` | leading bytes to drop on segments |
+| `subtitles` | array | no | none | `{ url, label, language?, mimeType? }` |
+
+`quality` is the size the stream or site stated. `qualityRating` is a grade the site stated. Do not derive one from the other. A response with only `url` is still protocol 1.0 and still plays.
+
+Errors: non-2xx with `{ "error": "human message" }` (optional). AniKitty surfaces the message. An empty `sources` array is a failure. A dropped connection is tried once. An HTTP error is not retried.
+
+Built-in resolvers are compiled into the app and are not installed from this JSON. They write the same three optional fields when a playlist attribute or a provider label actually contains them. Your extension does that by sending the fields.
 
 See [spec/PROTOCOL.md](./spec/PROTOCOL.md) for full field semantics (`stripBytes`, subtitle MIME, caching expectations).
 

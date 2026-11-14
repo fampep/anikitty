@@ -4,7 +4,9 @@
 package site.anikitty.app.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +14,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -47,7 +51,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalView
 import site.anikitty.app.ui.theme.KittyAccent
+import site.anikitty.app.ui.theme.KittyHaptics
+import site.anikitty.app.ui.theme.prefersReducedMotion
 import site.anikitty.app.ui.theme.KittyNavPillContent
 import site.anikitty.app.ui.theme.KittyNavPillSurface
 import site.anikitty.app.ui.theme.KittyOnAccent
@@ -87,6 +94,39 @@ fun KittyBottomNav(
             .height(50.dp),
         contentAlignment = Alignment.Center,
     ) {
+        val view = LocalView.current
+        val reduced = prefersReducedMotion()
+        val index = tabs.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val slot = if (tabs.isEmpty()) maxWidth else maxWidth / tabs.size
+            val slide by animateDpAsState(
+                targetValue = slot * index,
+                animationSpec = if (reduced) snap() else tween(220),
+                label = "dockPill",
+            )
+            Box(
+                modifier = Modifier
+                    .offset(x = slide)
+                    .width(slot)
+                    .fillMaxHeight()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.08f))
+                        .border(0.5.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(16.dp)),
+                )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset(y = (-1).dp)
+                        .size(width = 10.dp, height = 4.dp)
+                        .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp))
+                        .background(Color.White.copy(alpha = 0.85f)),
+                )
+            }
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
@@ -111,7 +151,10 @@ fun KittyBottomNav(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
-                            onClick = { onSelect(tab.id) },
+                            onClick = {
+                                KittyHaptics.perform(view, KittyHaptics.Kind.Tick)
+                                onSelect(tab.id)
+                            },
                         ),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
@@ -218,6 +261,7 @@ fun KittySideNav(
                     maxLines = 1,
                 )
             }
+        }
         }
     }
 }

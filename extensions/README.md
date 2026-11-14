@@ -16,7 +16,7 @@
 The in-app store loads  
 `https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`  
 and fills any missing listing from the copy in this monorepo. The newer `updatedAt` wins.  
-Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup.md).
+Maintainer notes: [public GitHub setup](https://github.com/fampep/anikitty/blob/main/docs/public-github-setup.md).
 
 ## License & ownership
 
@@ -29,7 +29,7 @@ Maintainer notes: [`../docs/public-github-setup.md`](../docs/public-github-setup
 | Doc | Purpose |
 |---|---|
 | [GUIDE.md](./GUIDE.md) | Author an extension |
-| [spec/PROTOCOL.md](./spec/PROTOCOL.md) | HTTP resolve protocol |
+| [spec/PROTOCOL.md](./spec/PROTOCOL.md) | HTTP resolve protocol 1.1 (`apiVersion` stays 1) |
 | [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json) | Manifest schema |
 | [store/index.json](./store/index.json) | Curated GitHub links for the in-app store |
 | [examples/hello-http](./examples/hello-http) | Minimal template |

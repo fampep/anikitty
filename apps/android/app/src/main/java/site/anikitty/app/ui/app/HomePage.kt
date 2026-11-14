@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.ui.components.HeroBanner
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.prefersReducedMotion
 
@@ -170,10 +171,11 @@ internal fun HomeFeatured(
                         .fillMaxSize()
                         .spacePress { onOpen(anime) },
                 ) {
-                    AsyncImage(
-                        model = anime.bannerImageUrl ?: anime.coverImageUrl,
+                    HeroBanner(
+                        anilistId = anime.id,
+                        bannerUrl = anime.bannerImageUrl,
+                        coverUrl = anime.coverImageUrl,
                         contentDescription = anime.title,
-                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {

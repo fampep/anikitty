@@ -287,6 +287,14 @@ fun KittyPosterCard(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
             )
+            val badge = site.anikitty.app.data.servers.SourceBadgeCache.title(
+                androidx.compose.ui.platform.LocalContext.current,
+                anime.id,
+            )
+            QualityMarks(
+                badge = badge,
+                modifier = Modifier.align(Alignment.BottomStart).padding(6.dp),
+            )
             anime.scoreLabel()?.let { score ->
                 Row(
                     modifier = Modifier

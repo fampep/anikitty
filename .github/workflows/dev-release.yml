@@ -79,6 +79,9 @@ jobs:
 
       - name: Build release APK
         working-directory: apps/android
+        env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          FANART_API_KEY: ${{ secrets.FANART_API_KEY }}
         run: chmod +x ./gradlew && ./gradlew :app:assembleRelease --stacktrace
 
       - name: Commit version
