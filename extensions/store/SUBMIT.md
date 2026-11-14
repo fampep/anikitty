@@ -17,6 +17,8 @@ Required store fields:
 |---|---|
 | `id` | Same as manifest `id` |
 | `name` / `description` / `author` | Short, honest |
+| `version` | Same semver as the manifest. Bump it when installed users should update |
+| `protocol` | Protocol document version, currently `1.1` (`apiVersion` stays 1) |
 | `github` | Your repo or tree URL |
 | `iconUrl` | **Required** — site brand icon HTTPS URL |
 | `siteUrl` | Recommended scraped-site origin |

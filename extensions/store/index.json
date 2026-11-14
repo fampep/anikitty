@@ -1,10 +1,13 @@
 {
   "apiVersion": 1,
-  "updatedAt": "2026-11-14",
+  "protocol": "1.1",
+  "updatedAt": "2026-11-15",
   "extensions": [
     {
       "id": "anikoto",
       "name": "Anikoto",
+      "version": "1.1.1",
+      "protocol": "1.1",
       "description": "Bundled Anikoto resolver. Skip times come from Anikoto for every provider. Quality and sub/dub come from the embed label when it states them. If a title is missing, playback tries the others and keeps your choice.",
       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/anikoto",
       "author": "fampep",
@@ -15,6 +18,8 @@
     {
       "id": "gotaku",
       "name": "Gotaku",
+      "version": "1.1.1",
+      "protocol": "1.1",
       "description": "Bundled Gotaku resolver. The HLS playlist is unwrapped on device. Variant resolution, codec, and sub/dub are reported when the playlist states them.",
       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/gotaku",
       "author": "fampep",
@@ -25,6 +30,8 @@
     {
       "id": "reanime",
       "name": "reanime",
+      "version": "1.0.0",
+      "protocol": "1.1",
       "description": "Bundled reanime.cz resolver. Streams play in the app. The playlist reports resolution and sub or dub when it states them.",
       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/reanime",
       "author": "fampep",
@@ -35,6 +42,8 @@
     {
       "id": "site.anikitty.example.hello",
       "name": "Hello HTTP",
+      "version": "1.1.1",
+      "protocol": "1.1",
       "description": "Minimal BYO resolve example (template — not a live CDN). Shows optional quality, audio, and qualityRating on protocol 1.1.",
       "github": "https://github.com/fampep/anikitty-extensions/tree/main/examples/hello-http",
       "author": "fampep",

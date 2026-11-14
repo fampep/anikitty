@@ -27,7 +27,7 @@ Run this as **fampep** (laptop or self-hosted worker) after merging store/provid
 #   git push https://github.com/fampep/anikitty-extensions.git extensions-publish:main
 ```
 
-Confirm raw store index loads and includes **Gotaku** + updated Anikoto copy:
+Confirm the raw store index loads, lists **reanime** (name, icon, version, protocol 1.1), and does not list Ani.pm:
 
 `https://raw.githubusercontent.com/fampep/anikitty-extensions/main/store/index.json`
 
