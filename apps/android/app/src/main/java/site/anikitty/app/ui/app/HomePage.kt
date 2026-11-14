@@ -59,6 +59,7 @@ import kotlinx.coroutines.delay
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.ui.components.HeroBanner
 import site.anikitty.app.ui.components.KittyImage
+import site.anikitty.app.ui.components.sharedPoster
 import site.anikitty.app.ui.components.KittyBadge
 import site.anikitty.app.ui.components.KittyMenuEntry
 import site.anikitty.app.ui.components.KittyOverflow
@@ -380,6 +381,7 @@ private fun HomePosterCell(
             widthPx = 360,
             heightPx = 540,
             modifier = Modifier
+                .sharedPoster(anime.id)
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(4.dp)),
@@ -497,7 +499,7 @@ private fun ContinueArt(
             contentDescription = card.title,
             widthPx = 640,
             heightPx = 360,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().sharedPoster(card.id),
         )
         Box(
             modifier = Modifier
@@ -664,6 +666,7 @@ internal fun HomeRankRow(
                         heightPx = 480,
                         modifier = Modifier
                             .padding(start = 18.dp)
+                            .sharedPoster(anime.id)
                             .fillMaxWidth()
                             .aspectRatio(2f / 3f)
                             .clip(RoundedCornerShape(4.dp)),

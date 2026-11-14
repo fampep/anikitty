@@ -96,6 +96,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -163,6 +164,10 @@ import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsSettingsOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsSearchSparkleOutline
 import site.anikitty.app.ui.components.KittyBottomNav
+import site.anikitty.app.ui.components.LocalPosterFlight
+import site.anikitty.app.ui.components.LocalPosterMotion
+import site.anikitty.app.ui.components.PosterFlight
+import site.anikitty.app.ui.components.PosterMotion
 import site.anikitty.app.ui.components.KittyDock
 import site.anikitty.app.ui.components.rememberDockScroll
 import site.anikitty.app.ui.components.KittyContinueCard
@@ -337,19 +342,168 @@ fun LocalFirstApp(
         )
     }
 
-    if (screen is Screen.Detail || screen is Screen.Player) {
-        val reducedMotion = prefersReducedMotion()
-        val bounds = BoundsTransform { _, _ ->
-            if (reducedMotion) {
-                snap()
-            } else {
-                spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMediumLow,
+    when (screen) {
+        Screen.Schedule -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                ScheduleFeed(
+                    aniList = aniList,
+                    onBack = { screen = Screen.Tabs },
+                    onOpen = { openDetail(it) },
+                    followedEpisodes = followedEpisodes,
+                )
+                DockOverlay(
+                    tabs = tabs,
+                    selectedId = "schedule",
+                    profileImageUrl = aniListAuth.avatarUrl,
+                    onSelect = { id ->
+                        screen = Screen.Tabs
+                        tab = id
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+            return
+        }
+        Screen.Builds -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                BuildChannelPage(onBack = { screen = Screen.Tabs })
+                DockOverlay(
+                    tabs = tabs,
+                    selectedId = if (tab == "settings" || tab == "store") "history" else tab,
+                    profileImageUrl = aniListAuth.avatarUrl,
+                    onSelect = { id ->
+                        screen = Screen.Tabs
+                        tab = id
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+            return
+        }
+        else -> Unit
+    }
+
+    @Composable
+    fun PhoneTabs(modifier: Modifier) {
+        AnimatedContent(
+            targetState = tab,
+            transitionSpec = {
+                val order = listOf("home", "search", "schedule", "history", "settings", "store")
+                val forward = order.indexOf(targetState).coerceAtLeast(0) >=
+                    order.indexOf(initialState).coerceAtLeast(0)
+                val dir = if (forward) 1 else -1
+                (slideInHorizontally(tween(280)) { it / 8 * dir } + fadeIn(tween(220))) togetherWith
+                    (slideOutHorizontally(tween(200)) { -it / 10 * dir } + fadeOut(tween(160)))
+            },
+            label = "tabFade",
+            modifier = modifier,
+        ) { currentTab ->
+            when (currentTab) {
+                "home" -> HomeFeed(
+                    aniList = aniList,
+                    aniListAuth = aniListAuth,
+                    demo = demo,
+                    history = history,
+                    historyDao = historyDao,
+                    onOpen = { anime, ep -> openDetail(anime, ep) },
+                    onOpenSearch = { tab = "search" },
+                    onOpenGenre = { genre ->
+                        searchGenre = genre
+                        tab = "search"
+                    },
+                    onOpenSchedule = {
+                        screen = Screen.Tabs
+                        tab = "schedule"
+                    },
+                    onOpenAccount = { tab = "settings" },
+                    homeLayout = homeLayout,
+                )
+                "schedule" -> ScheduleFeed(
+                    aniList = aniList,
+                    demo = demo,
+                    onBack = { tab = "home" },
+                    onOpen = { openDetail(it) },
+                    showBack = false,
+                    bottomInset = 100.dp,
+                    followedEpisodes = followedEpisodes,
+                )
+                "search" -> SearchFeed(
+                    aniList = aniList,
+                    demo = demo,
+                    historyDao = historyDao,
+                    requestedGenre = searchGenre,
+                    onRequestedGenreConsumed = { searchGenre = null },
+                    listMarks = listMarks,
+                    onOpen = { openDetail(it) },
+                )
+                "store" -> ExtensionStoreFeed(catalog = streamServers)
+                "history" -> MySpaceFeed(
+                    history = history,
+                    historyDao = historyDao,
+                    aniList = aniList,
+                    demo = demo,
+                    aniListLinked = aniListAuth.isLinked && !demo,
+                    accessToken = if (demo) null else aniListAuth.accessToken,
+                    accountLabel = accountLabel,
+                    syncLabel = syncLabel,
+                    libraryFilter = libraryFilter,
+                    onSync = {
+                        scope.launch {
+                            syncLabel = "Syncing…"
+                            syncLabel = runCatching {
+                                val result = aniListSync.pull()
+                                "Synced ${result.imported} from AniList"
+                            }.getOrElse { e -> e.message }
+                        }
+                    },
+                    onOpen = { openDetail(it) },
+                    onOpenAccount = { tab = "settings" },
+                    onBrowse = { tab = "search" },
+                    onSignOut = onSignOut,
+                    avatarUrl = aniListAuth.avatarUrl,
+                )
+                "settings" -> SettingsFeed(
+                    demo = demo,
+                    catalog = streamServers,
+                    aniList = aniList,
+                    aniListAuth = aniListAuth,
+                    aniListSync = aniListSync,
+                    accountLabel = accountLabel,
+                    syncLabel = syncLabel,
+                    onSyncLabel = { syncLabel = it },
+                    linkStatus = aniLinkStatus,
+                    onLinkStatus = { aniLinkStatus = it },
+                    linkTick = aniLinkTick,
+                    onLinkTick = { aniLinkTick++ },
+                    onAccountReady = onAniListReady,
+                    onSignOut = onSignOut,
+                    onOpenStore = { tab = "store" },
+                    onOpenBuilds = { screen = Screen.Builds },
+                    openAccountTick = openAccountTick,
+                    onOpenLibrary = { filter ->
+                        libraryFilter = filter
+                        screen = Screen.Tabs
+                        tab = "history"
+                    },
+                    homeLayout = homeLayout,
+                    onExportProgress = { shareWatchProgress(context, history) },
                 )
             }
         }
-        Box(modifier = Modifier.fillMaxSize()) {
+    }
+
+    val reducedMotion = prefersReducedMotion()
+    val bounds = BoundsTransform { _, _ ->
+        if (reducedMotion) {
+            snap()
+        } else {
+            spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            )
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
         SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
             val shared = this
             AnimatedContent(
@@ -358,7 +512,7 @@ fun LocalFirstApp(
                     when (state) {
                         is Screen.Player -> "player-${state.anime.id}-${state.episode}"
                         is Screen.Detail -> "detail-${state.anime.id}"
-                        else -> state.toString()
+                        else -> "tabs"
                     }
                 },
                 transitionSpec = {
@@ -375,14 +529,28 @@ fun LocalFirstApp(
                     is Screen.Detail -> current.anime.id
                     else -> 0
                 }
-                val artModifier = with(shared) {
-                    Modifier.sharedElement(
-                        rememberSharedContentState(key = "art-$animeId"),
-                        animatedVisibilityScope = this@AnimatedContent,
-                        boundsTransform = bounds,
-                    )
+                val artModifier = if (animeId == 0) {
+                    Modifier
+                } else {
+                    with(shared) {
+                        Modifier.sharedElement(
+                            rememberSharedContentState(key = "art-$animeId"),
+                            animatedVisibilityScope = this@AnimatedContent,
+                            boundsTransform = bounds,
+                        )
+                    }
                 }
-                when (current) {
+                val posterFlight = remember { PosterFlight() }
+                posterFlight.claimed.clear()
+                CompositionLocalProvider(
+                    LocalPosterMotion provides PosterMotion(
+                        scope = shared,
+                        visibility = this@AnimatedContent,
+                        bounds = bounds,
+                    ),
+                    LocalPosterFlight provides posterFlight,
+                ) {
+                    when (current) {
         is Screen.Player -> {
             var resumeMs by remember(current.anime.id, current.episode) { mutableStateOf(0L) }
             var watchedThrough by remember(current.anime.id) {
@@ -552,6 +720,7 @@ fun LocalFirstApp(
                         imageUrl = item.thumbnailUrl?.takeIf { url ->
                             url.isNotBlank() && url != current.anime.coverImageUrl
                         },
+                        marker = item.marker,
                     )
                 },
                 fallbackArt = current.anime.bannerImageUrl ?: current.anime.coverImageUrl,
@@ -587,188 +756,38 @@ fun LocalFirstApp(
                 posterModifier = artModifier,
             )
         }
-        else -> Unit
+        else -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                KittyAtmosphere()
+                PhoneTabs(Modifier.fillMaxSize())
+                val profileAvatar = aniLinkTick.let { aniListAuth.avatarUrl }
+                DockOverlay(
+                    tabs = tabs,
+                    selectedId = if (tab == "settings" || tab == "store") "history" else tab,
+                    profileImageUrl = profileAvatar,
+                    onSelect = { tab = it },
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
+        }
+                }
+
                 }
             }
         }
-            if (screen is Screen.Detail) {
-                DockOverlay(
-                    tabs = tabs,
-                    selectedId = if (tab == "settings" || tab == "store") "history" else tab,
-                    profileImageUrl = aniListAuth.avatarUrl,
-                    onSelect = { id ->
-                        detailBackStack = emptyList()
-                        screen = Screen.Tabs
-                        tab = id
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
-            }
+        if (screen is Screen.Detail) {
+            DockOverlay(
+                tabs = tabs,
+                selectedId = if (tab == "settings" || tab == "store") "history" else tab,
+                profileImageUrl = aniListAuth.avatarUrl,
+                onSelect = { id ->
+                    detailBackStack = emptyList()
+                    screen = Screen.Tabs
+                    tab = id
+                },
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
         }
-        return
-    }
-
-    when (screen) {
-        Screen.Schedule -> {
-            Box(modifier = Modifier.fillMaxSize()) {
-                ScheduleFeed(
-                    aniList = aniList,
-                    onBack = { screen = Screen.Tabs },
-                    onOpen = { openDetail(it) },
-                    followedEpisodes = followedEpisodes,
-                )
-                DockOverlay(
-                    tabs = tabs,
-                    selectedId = "schedule",
-                    profileImageUrl = aniListAuth.avatarUrl,
-                    onSelect = { id ->
-                        screen = Screen.Tabs
-                        tab = id
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
-            }
-            return
-        }
-        Screen.Builds -> {
-            Box(modifier = Modifier.fillMaxSize()) {
-                BuildChannelPage(onBack = { screen = Screen.Tabs })
-                DockOverlay(
-                    tabs = tabs,
-                    selectedId = if (tab == "settings" || tab == "store") "history" else tab,
-                    profileImageUrl = aniListAuth.avatarUrl,
-                    onSelect = { id ->
-                        screen = Screen.Tabs
-                        tab = id
-                    },
-                    modifier = Modifier.align(Alignment.BottomCenter),
-                )
-            }
-            return
-        }
-        else -> Unit
-    }
-
-    @Composable
-    fun PhoneTabs(modifier: Modifier) {
-        AnimatedContent(
-            targetState = tab,
-            transitionSpec = {
-                val order = listOf("home", "search", "schedule", "history", "settings", "store")
-                val forward = order.indexOf(targetState).coerceAtLeast(0) >=
-                    order.indexOf(initialState).coerceAtLeast(0)
-                val dir = if (forward) 1 else -1
-                (slideInHorizontally(tween(280)) { it / 8 * dir } + fadeIn(tween(220))) togetherWith
-                    (slideOutHorizontally(tween(200)) { -it / 10 * dir } + fadeOut(tween(160)))
-            },
-            label = "tabFade",
-            modifier = modifier,
-        ) { currentTab ->
-            when (currentTab) {
-                "home" -> HomeFeed(
-                    aniList = aniList,
-                    aniListAuth = aniListAuth,
-                    demo = demo,
-                    history = history,
-                    historyDao = historyDao,
-                    onOpen = { anime, ep -> openDetail(anime, ep) },
-                    onOpenSearch = { tab = "search" },
-                    onOpenGenre = { genre ->
-                        searchGenre = genre
-                        tab = "search"
-                    },
-                    onOpenSchedule = {
-                        screen = Screen.Tabs
-                        tab = "schedule"
-                    },
-                    onOpenAccount = { tab = "settings" },
-                    homeLayout = homeLayout,
-                )
-                "schedule" -> ScheduleFeed(
-                    aniList = aniList,
-                    demo = demo,
-                    onBack = { tab = "home" },
-                    onOpen = { openDetail(it) },
-                    showBack = false,
-                    bottomInset = 100.dp,
-                    followedEpisodes = followedEpisodes,
-                )
-                "search" -> SearchFeed(
-                    aniList = aniList,
-                    demo = demo,
-                    historyDao = historyDao,
-                    requestedGenre = searchGenre,
-                    onRequestedGenreConsumed = { searchGenre = null },
-                    listMarks = listMarks,
-                    onOpen = { openDetail(it) },
-                )
-                "store" -> ExtensionStoreFeed(catalog = streamServers)
-                "history" -> MySpaceFeed(
-                    history = history,
-                    historyDao = historyDao,
-                    aniList = aniList,
-                    demo = demo,
-                    aniListLinked = aniListAuth.isLinked && !demo,
-                    accessToken = if (demo) null else aniListAuth.accessToken,
-                    accountLabel = accountLabel,
-                    syncLabel = syncLabel,
-                    libraryFilter = libraryFilter,
-                    onSync = {
-                        scope.launch {
-                            syncLabel = "Syncing…"
-                            syncLabel = runCatching {
-                                val result = aniListSync.pull()
-                                "Synced ${result.imported} from AniList"
-                            }.getOrElse { e -> e.message }
-                        }
-                    },
-                    onOpen = { openDetail(it) },
-                    onOpenAccount = { tab = "settings" },
-                    onBrowse = { tab = "search" },
-                    onSignOut = onSignOut,
-                    avatarUrl = aniListAuth.avatarUrl,
-                )
-                "settings" -> SettingsFeed(
-                    demo = demo,
-                    catalog = streamServers,
-                    aniList = aniList,
-                    aniListAuth = aniListAuth,
-                    aniListSync = aniListSync,
-                    accountLabel = accountLabel,
-                    syncLabel = syncLabel,
-                    onSyncLabel = { syncLabel = it },
-                    linkStatus = aniLinkStatus,
-                    onLinkStatus = { aniLinkStatus = it },
-                    linkTick = aniLinkTick,
-                    onLinkTick = { aniLinkTick++ },
-                    onAccountReady = onAniListReady,
-                    onSignOut = onSignOut,
-                    onOpenStore = { tab = "store" },
-                    onOpenBuilds = { screen = Screen.Builds },
-                    openAccountTick = openAccountTick,
-                    onOpenLibrary = { filter ->
-                        libraryFilter = filter
-                        screen = Screen.Tabs
-                        tab = "history"
-                    },
-                    homeLayout = homeLayout,
-                    onExportProgress = { shareWatchProgress(context, history) },
-                )
-            }
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        KittyAtmosphere()
-        PhoneTabs(Modifier.fillMaxSize())
-        val profileAvatar = aniLinkTick.let { aniListAuth.avatarUrl }
-        DockOverlay(
-            tabs = tabs,
-            selectedId = if (tab == "settings" || tab == "store") "history" else tab,
-            profileImageUrl = profileAvatar,
-            onSelect = { tab = it },
-            modifier = Modifier.align(Alignment.BottomCenter),
-        )
     }
 }
 
@@ -2352,10 +2371,8 @@ private fun TitleDetailScreen(
     onPlay: (episode: Int, sources: List<PlayableSource>, anime: AnimeSummary) -> Unit,
     posterModifier: Modifier = Modifier,
 ) {
-    val palette = LocalKittyPalette.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
     val selectedId by streamServers.selectedId.collectAsState()
     val resolvers by streamServers.resolvers.collectAsState()
     val activeServer = remember(selectedId, resolvers) {
@@ -2384,7 +2401,7 @@ private fun TitleDetailScreen(
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
     var resumeAtMs by remember(anime.id) { mutableLongStateOf(0L) }
     var resumeEpisode by remember(anime.id) { mutableIntStateOf(0) }
-    var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
+    var resumeDurationMs by remember(anime.id) { mutableLongStateOf(0L) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
     var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
     val maxEp = episodeList.maxOfOrNull { it.number }?.coerceAtLeast(1) ?: 1
@@ -2409,13 +2426,13 @@ private fun TitleDetailScreen(
         detailLoading = !anime.detailLoaded
         resolving = false
         status = null
-        synopsisExpanded = false
         val sampleHistory = site.anikitty.app.data.demo.DemoLibrary.history
             .firstOrNull { it.anilistId == anime.id }
         val history = sampleHistory ?: historyDao.get(anime.id)
         lastWatchedEp = history?.episode ?: 0
         resumeAtMs = history?.positionMs ?: 0L
         resumeEpisode = history?.episode ?: 0
+        resumeDurationMs = history?.durationMs ?: 0L
         episode = when {
             initialEpisode != null -> initialEpisode.coerceAtLeast(1)
             history?.episode != null -> history.episode.coerceAtLeast(1)
@@ -2481,7 +2498,20 @@ private fun TitleDetailScreen(
     }
 
     fun applyListStatus(next: String) {
-        val token = aniListAuth.accessToken ?: return
+        if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) != null) {
+            if (listStatus.equals(next, ignoreCase = true)) {
+                listStatus = null
+                listBadge = null
+            } else {
+                listStatus = next
+                listBadge = listStatusBadge(next)
+            }
+            return
+        }
+        val token = aniListAuth.accessToken ?: run {
+            status = "Sign in to save this to a list"
+            return
+        }
         if (listBusy) return
         val previous = listStatus
         listBusy = true
@@ -2506,7 +2536,14 @@ private fun TitleDetailScreen(
     }
 
     fun applyScore(point: Int) {
-        val token = aniListAuth.accessToken ?: return
+        if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) != null) {
+            listScore = if (listScore / 10 == point) 0 else point * 10
+            return
+        }
+        val token = aniListAuth.accessToken ?: run {
+            status = "Sign in to save a score"
+            return
+        }
         if (listBusy) return
         val nextScore = if (listScore / 10 == point) 0 else point * 10
         val previous = listScore
@@ -2523,6 +2560,10 @@ private fun TitleDetailScreen(
     }
 
     fun toggleFavourite() {
+        if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) != null) {
+            favourite = !favourite
+            return
+        }
         val token = aniListAuth.accessToken ?: return
         val next = !favourite
         favourite = next
@@ -2598,1017 +2639,120 @@ private fun TitleDetailScreen(
         }
     }
 
-    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-    val reducedMotion = prefersReducedMotion()
-    Box(modifier = Modifier.fillMaxSize().background(LocalKittyPalette.current.page)) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.nestedScroll(rememberDockScroll()),
-            contentPadding = PaddingValues(bottom = 198.dp),
-        ) {
-            item {
-                Column(
-                    modifier = Modifier
-                        .windowInsetsPadding(WindowInsets.statusBars)
-                        .padding(start = 16.dp, end = 16.dp, top = 52.dp),
-                ) {
-                    val bannerDrift = if (reducedMotion) {
-                        0f
-                    } else {
-                        listState.firstVisibleItemScrollOffset * 0.28f
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(168.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                    ) {
-                        site.anikitty.app.ui.components.HeroBanner(
-                            anilistId = detail.id,
-                            bannerUrl = detail.bannerImageUrl,
-                            coverUrl = detail.coverImageUrl,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    translationY = bannerDrift
-                                    scaleX = 1.08f
-                                    scaleY = 1.08f
-                                },
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        0.5f to Color.Transparent,
-                                        1f to Color.Black.copy(alpha = 0.55f),
-                                    ),
-                                ),
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
-                        site.anikitty.app.ui.components.KittyImage(
-                            url = detail.coverImageUrl,
-                            contentDescription = detail.title,
-                            widthPx = 280,
-                            heightPx = 420,
-                            modifier = posterModifier
-                                .width(92.dp)
-                                .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(4.dp)),
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.Top) {
-                                Text(
-                                    detail.title,
-                                    color = palette.text,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 20.sp,
-                                    lineHeight = 24.sp,
-                                    letterSpacing = (-0.3).sp,
-                                    maxLines = 3,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f),
-                                )
-                                if (aniListAuth.isLinked) {
-                                    Icon(
-                                        if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                        contentDescription = if (favourite) "Remove favourite" else "Favourite",
-                                        tint = palette.text,
-                                        modifier = Modifier
-                                            .padding(start = 8.dp)
-                                            .size(22.dp)
-                                            .spacePress { toggleFavourite() },
-                                    )
-                                }
-                                KittyOverflow(
-                                    contentDescription = "Title actions",
-                                    tint = palette.text,
-                                    modifier = Modifier.padding(start = 4.dp),
-                                    entries = buildList {
-                                        add(KittyMenuEntry("Copy title") {
-                                            clipboard.setText(AnnotatedString(detail.title))
-                                            status = "Title copied"
-                                        })
-                                        add(KittyMenuEntry("Share") {
-                                            val send = Intent(Intent.ACTION_SEND).apply {
-                                                type = "text/plain"
-                                                putExtra(
-                                                    Intent.EXTRA_TEXT,
-                                                    "${detail.title}\nhttps://anilist.co/anime/${detail.id}",
-                                                )
-                                            }
-                                            context.startActivity(Intent.createChooser(send, detail.title))
-                                        })
-                                        add(KittyMenuEntry("AniList") {
-                                            openUrl("https://anilist.co/anime/${detail.id}")
-                                        })
-                                        detail.malId?.let { mal ->
-                                            add(KittyMenuEntry("MyAnimeList") {
-                                                openUrl("https://myanimelist.net/anime/$mal")
-                                            })
-                                        }
-                                        detail.trailer?.watchUrl()?.let { watch ->
-                                            add(KittyMenuEntry("Trailer") { openUrl(watch) })
-                                        }
-                                        add(KittyMenuEntry("Sources", onChangeSource))
-                                    },
-                                )
-                            }
-                            site.anikitty.app.ui.components.QualityMarks(
-                                badge = site.anikitty.app.data.servers.SourceBadgeCache.title(context, detail.id),
-                                onDark = palette.dark,
-                                modifier = Modifier.padding(top = 6.dp),
-                            )
-                            val altTitle = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
-                                .distinct()
-                                .joinToString("  ·  ")
-                            if (altTitle.isNotBlank()) {
-                                Text(
-                                    altTitle,
-                                    color = palette.text.copy(alpha = 0.45f),
-                                    fontSize = 12.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                            val movie = detail.format.equals("MOVIE", true)
-                            val detailMeta = listOfNotNull(
-                                detail.format?.takeIf { it.isNotBlank() }?.let { format ->
-                                    when (format.uppercase()) {
-                                        "TV_SHORT" -> "TV Short"
-                                        "MOVIE" -> "Movie"
-                                        else -> format
-                                    }
-                                },
-                                detail.airedLabel(),
-                                if (movie) {
-                                    detail.durationMinutes?.let { "$it min" }
-                                } else {
-                                    shownEpisodeCount?.let { "$it eps" }
-                                },
-                                detail.scoreLabel(),
-                                detail.statusLabel(),
-                                listBadge,
-                            )
-                            if (detailMeta.isNotEmpty()) {
-                                Text(
-                                    detailMeta.joinToString("  ·  "),
-                                    color = palette.text.copy(alpha = 0.7f),
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp,
-                                    modifier = Modifier.padding(top = 6.dp),
-                                )
-                            }
-                            detail.studios.firstOrNull()?.let { studio ->
-                                Text(
-                                    studio,
-                                    color = palette.text.copy(alpha = 0.4f),
-                                    fontSize = 12.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                            detail.nextAiring?.let { next ->
-                                val left = (next.airingAtEpochSec - System.currentTimeMillis() / 1000L).coerceAtLeast(0L)
-                                val days = left / 86_400
-                                val hours = (left % 86_400) / 3_600
-                                val countdown = if (days > 0) "${days}d ${hours}h" else "${hours}h"
-                                Text(
-                                    "Episode ${next.episode} in $countdown",
-                                    color = palette.text.copy(alpha = 0.7f),
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                            if (!movie && (detail.durationMinutes ?: 0) > 0) {
-                                Text(
-                                    "About ${detail.durationMinutes} min each",
-                                    color = palette.text.copy(alpha = 0.4f),
-                                    fontSize = 12.sp,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                        }
-                    }
-                    if (aniListAuth.isLinked) {
-                        Spacer(modifier = Modifier.height(14.dp))
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            listOf(
-                                "CURRENT" to "Watching",
-                                "PLANNING" to "Plan",
-                                "PAUSED" to "Paused",
-                                "COMPLETED" to "Done",
-                                "DROPPED" to "Dropped",
-                            ).forEach { (value, label) ->
-                                Chip(label, selected = listStatus.equals(value, ignoreCase = true)) {
-                                    applyListStatus(value)
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                if (listScore > 0) "Your score ${listScore / 10}" else "Your score",
-                                color = palette.text.copy(alpha = 0.45f),
-                                fontSize = 12.sp,
-                            )
-                            (1..10).forEach { point ->
-                                Chip(point.toString(), selected = listScore / 10 == point) {
-                                    applyScore(point)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            item {
-                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    if (detail.genres.isNotEmpty()) {
-                        KittyMetaChips(
-                            items = detail.genres.take(8),
-                            onItemClick = onOpenGenre,
-                        )
-                        Spacer(modifier = Modifier.height(14.dp))
-                    }
-                    if (detailLoading) {
-                        ShimmerBox(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(14.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ShimmerBox(
-                            modifier = Modifier
-                                .fillMaxWidth(0.72f)
-                                .height(14.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ShimmerBox(
-                            modifier = Modifier
-                                .fillMaxWidth(0.4f)
-                                .height(14.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    detail.trailer?.let { trailer ->
-                        val thumb = trailer.thumbnailUrl
-                        val watch = trailer.watchUrl()
-                        if (watch != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(16f / 9f)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { openUrl(watch) },
-                            ) {
-                                AsyncImage(
-                                    model = thumb ?: detail.bannerImageUrl ?: detail.coverImageUrl,
-                                    contentDescription = "Trailer",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop,
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.35f)),
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .size(52.dp)
-                                        .clip(CircleShape)
-                                        .background(palette.text),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(
-                                        Icons.Filled.PlayArrow,
-                                        contentDescription = "Play trailer",
-                                        tint = Color.Black,
-                                        modifier = Modifier.size(28.dp),
-                                    )
-                                }
-                                Text(
-                                    "Trailer",
-                                    modifier = Modifier
-                                        .align(Alignment.BottomStart)
-                                        .padding(12.dp),
-                                    color = palette.text,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 13.sp,
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
-                    }
-
-                    val watchedCount = maxOf(
-                        detail.listState?.progress ?: 0,
-                        (lastWatchedEp - 1).coerceAtLeast(0),
-                    )
-                    val totalEps = shownEpisodeCount
-                    if (totalEps != null && totalEps > 0 && watchedCount > 0) {
-                        val fraction = (watchedCount.toFloat() / totalEps.toFloat()).coerceIn(0f, 1f)
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                "$watchedCount of $totalEps watched",
-                                color = palette.text.copy(alpha = 0.45f),
-                                fontSize = 12.sp,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(2.dp)
-                                    .clip(RoundedCornerShape(999.dp))
-                                    .background(palette.text.copy(alpha = 0.08f)),
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(fraction)
-                                        .height(2.dp)
-                                        .background(palette.text),
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    if (!detail.description.isNullOrBlank()) {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                detail.description!!,
-                                color = palette.text.copy(alpha = 0.72f),
-                                fontSize = 14.sp,
-                                lineHeight = 20.sp,
-                                maxLines = if (synopsisExpanded) 40 else 6,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                if (synopsisExpanded) "Show less" else "Read more",
-                                color = palette.text,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                                modifier = Modifier
-                                    .padding(top = 8.dp)
-                                    .spacePress { synopsisExpanded = !synopsisExpanded },
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
-
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Chip("AniList", false) {
-                            openUrl("https://anilist.co/anime/${detail.id}")
-                        }
-                        Chip("Copy title", false) {
-                            clipboard.setText(AnnotatedString(detail.title))
-                            status = "Title copied"
-                        }
-                        Chip("Share", false) {
-                            val send = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(
-                                    Intent.EXTRA_TEXT,
-                                    "${detail.title}\nhttps://anilist.co/anime/${detail.id}",
-                                )
-                            }
-                            context.startActivity(Intent.createChooser(send, detail.title))
-                        }
-                        detail.malId?.let { mal ->
-                            Chip("MyAnimeList", false) {
-                                openUrl("https://myanimelist.net/anime/$mal")
-                            }
-                        }
-                        detail.externalLinks
-                            .filter { link ->
-                                link.site !in setOf("AniList", "MyAnimeList")
-                            }
-                            .take(4)
-                            .forEach { link ->
-                                Chip(link.site, false) { openUrl(link.url) }
-                            }
-                    }
-
-                    val relatedExtras = remember(detail) { detail.relatedOutsideSeasons() }
-                    if (relatedExtras.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text(
-                            "Related",
-                            color = palette.text,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = (-0.2).sp,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            lazyItems(relatedExtras, key = { it.id }) { rel ->
-                                Column(
-                                    modifier = Modifier
-                                        .width(112.dp)
-                                        .spacePress {
-                                            onOpenRelated(
-                                                AnimeSummary(
-                                                    id = rel.id,
-                                                    title = rel.title,
-                                                    coverImageUrl = rel.coverImageUrl,
-                                                    episodes = rel.episodes,
-                                                    format = rel.format,
-                                                    averageScore = null,
-                                                    season = rel.season,
-                                                    seasonYear = rel.seasonYear,
-                                                ),
-                                            )
-                                        }
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(palette.surface)
-                                        .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                        .padding(6.dp),
-                                ) {
-                                    AsyncImage(
-                                        model = rel.coverImageUrl,
-                                        contentDescription = rel.title,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(2f / 3f)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(palette.surface),
-                                        contentScale = ContentScale.Crop,
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        rel.relationType.uppercase(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = palette.text.copy(alpha = 0.5f),
-                                        fontWeight = FontWeight.SemiBold,
-                                        letterSpacing = 0.6.sp,
-                                        maxLines = 1,
-                                    )
-                                    Text(
-                                        rel.title,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = KittyText,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                        lineHeight = 15.sp,
-                                    )
-                                    rel.seasonLabel()?.let { label ->
-                                        Text(
-                                            label,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = KittyFaint,
-                                            maxLines = 1,
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (detail.characters.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        PersonRow(title = "Characters", people = detail.characters)
-                    }
-                    if (detail.staff.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        PersonRow(title = "Staff", people = detail.staff)
-                    }
-                    if (detail.recommendations.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text(
-                            "Recommended",
-                            color = palette.text,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = (-0.2).sp,
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            lazyItems(detail.recommendations, key = { "rec-${it.id}" }) { rec ->
-                                Column(
-                                    modifier = Modifier
-                                        .width(112.dp)
-                                        .spacePress { onOpenRelated(rec) }
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(palette.surface)
-                                        .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                        .padding(6.dp),
-                                ) {
-                                    AsyncImage(
-                                        model = rec.coverImageUrl,
-                                        contentDescription = rec.title,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .aspectRatio(2f / 3f)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(palette.surface),
-                                        contentScale = ContentScale.Crop,
-                                    )
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    Text(
-                                        rec.title,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = KittyText,
-                                        fontWeight = FontWeight.SemiBold,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        listOf("sub" to "Subtitled", "dub" to "Dubbed").forEach { (key, label) ->
-                            val selected = audio == key
-                            val background by animateColorAsState(
-                                if (selected) palette.text else palette.surface,
-                                tween(180),
-                                label = "audioBg",
-                            )
-                            val textColor by animateColorAsState(
-                                if (selected) Color.Black else palette.text.copy(alpha = 0.7f),
-                                tween(180),
-                                label = "audioText",
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(36.dp)
-                                    .spacePress {
-                                        audio = key
-                                        watchPrefs.edit().putString("audio", key).apply()
-                                    }
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(background)
-                                    .border(
-                                        0.5.dp,
-                                        if (selected) palette.text else palette.text.copy(alpha = 0.08f),
-                                        RoundedCornerShape(16.dp),
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Text(
-                                    label,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = textColor,
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(18.dp))
-                    Text(
-                        "Source",
-                        color = palette.text,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = (-0.2).sp,
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .spacePress(onChangeSource)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(palette.surface)
-                            .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        ExtensionIcon(
-                            iconUrl = activeServer?.iconUrl,
-                            contentDescription = activeServer?.name,
-                            size = 32.dp,
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                activeServer?.name ?: "No source",
-                                color = KittyText,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                "Tap to change",
-                                color = palette.text.copy(alpha = 0.45f),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Medium,
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(22.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(palette.surface)
-                                .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                                .padding(horizontal = 12.dp),
-                            contentAlignment = Alignment.CenterStart,
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("#", color = palette.text.copy(alpha = 0.3f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                Spacer(modifier = Modifier.width(4.dp))
-                                BasicTextField(
-                                    value = epJump,
-                                    onValueChange = { next -> if (next.all { it.isDigit() }) epJump = next },
-                                    textStyle = TextStyle(color = palette.text, fontSize = 11.sp, fontWeight = FontWeight.Medium),
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Number,
-                                        imeAction = ImeAction.Go,
-                                    ),
-                                    keyboardActions = KeyboardActions(onGo = {
-                                        val ep = epJump.toIntOrNull()
-                                        when {
-                                            ep == null -> status = "Type an episode number"
-                                            ep !in 1..maxEp -> status = "Episodes only go to $maxEp"
-                                            else -> {
-                                                episode = ep
-                                                epJump = ""
-                                                status = null
-                                            }
-                                        }
-                                    }),
-                                    singleLine = true,
-                                    decorationBox = { inner ->
-                                        if (epJump.isEmpty()) {
-                                            Text("Ep...", color = palette.text.copy(alpha = 0.3f), fontSize = 11.sp)
-                                        }
-                                        inner()
-                                    },
-                                )
-                            }
-                        }
-                        EpisodeTool(
-                            label = "Go",
-                            enabled = epJump.isNotEmpty(),
-                            onClick = {
-                                val ep = epJump.toIntOrNull()
-                                when {
-                                    ep == null -> status = "Type an episode number"
-                                    ep !in 1..maxEp -> status = "Episodes only go to $maxEp"
-                                    else -> {
-                                        episode = ep
-                                        epJump = ""
-                                        status = null
-                                    }
-                                }
-                            },
-                        )
-                        EpisodeTool(
-                            label = "Next",
-                            enabled = episode < maxEp,
-                            onClick = { if (episode < maxEp) episode += 1 },
-                        )
-                        EpisodeTool(
-                            label = "Latest",
-                            selected = episode == maxEp,
-                            enabled = episode != maxEp,
-                            onClick = { episode = maxEp },
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        Text(
-                            "Episodes",
-                            color = palette.text,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 16.sp,
-                            letterSpacing = (-0.2).sp,
-                        )
-                        Text(
-                            "$maxEp",
-                            color = palette.text.copy(alpha = 0.45f),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 13.sp,
-                        )
-                    }
-                    val selectedTitle = episodeList.firstOrNull { it.number == episode }?.title
-                        ?.takeIf { it.isNotBlank() && !it.equals("Episode $episode", ignoreCase = true) }
-                    if (selectedTitle != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            "Ep $episode · $selectedTitle",
-                            color = KittyMuted,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    if (rangeCount > 1) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            for (index in 0 until rangeCount) {
-                                val start = index * episodePageSize + 1
-                                val end = minOf(maxEp, start + episodePageSize - 1)
-                                SeasonRangeChip(
-                                    label = "$start–$end",
-                                    selected = browseRange == index,
-                                    onClick = { browseRange = index },
-                                )
-                            }
-                        }
-                    }
-                    if (seasonTabs.size > 1) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            "Seasons",
-                            color = palette.text,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = (-0.2).sp,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            seasonTabs.forEach { season ->
-                                val selectedSeason = season.id == detail.id
-                                val label = buildString {
-                                    append(
-                                        season.seasonLabel()
-                                            ?: if (season.relationType.equals("Current", true)) {
-                                                "This season"
-                                            } else {
-                                                season.relationType
-                                            },
-                                    )
-                                    season.episodes?.let { append(" · $it ep") }
-                                }
-                                SeasonRangeChip(
-                                    label = label,
-                                    selected = selectedSeason,
-                                    onClick = {
-                                        if (!selectedSeason) {
-                                            onOpenRelated(
-                                                AnimeSummary(
-                                                    id = season.id,
-                                                    title = season.title,
-                                                    coverImageUrl = season.coverImageUrl,
-                                                    episodes = season.episodes,
-                                                    format = season.format,
-                                                    averageScore = null,
-                                                    season = season.season,
-                                                    seasonYear = season.seasonYear,
-                                                ),
-                                            )
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    val finishedThrough = maxOf(
-                        detail.listState?.progress ?: 0,
-                        (lastWatchedEp - 1).coerceAtLeast(0),
-                    )
-                    val rangeStart = browseRange * episodePageSize + 1
-                    val rangeEnd = minOf(maxEp, rangeStart + episodePageSize - 1)
-                    EpisodeCarousel(
-                        slides = episodeList
-                            .filter { it.number in rangeStart..rangeEnd }
-                            .map { item ->
-                                EpisodeSlide(
-                                    number = item.number,
-                                    title = item.title,
-                                    imageUrl = item.thumbnailUrl?.takeIf { url ->
-                                        url != detail.coverImageUrl
-                                    },
-                                )
-                            },
-                        current = episode,
-                        watchedThrough = finishedThrough,
-                        currentProgress = 0f,
-                        fallbackArt = detail.bannerImageUrl ?: detail.coverImageUrl,
-                        onPick = { episode = it },
-                        anilistId = detail.id,
-                        onToggleWatched = { number ->
-                            if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) == null) {
-                                scope.launch {
-                                    historyDao.markEpisode(detail, number)
-                                    lastWatchedEp = historyDao.get(detail.id)?.episode ?: lastWatchedEp
-                                }
-                            }
-                        },
-                        modifier = Modifier.padding(horizontal = 0.dp),
-                    )
-                    if (maxEp > 1 && episode >= maxEp) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            site.anikitty.app.ui.components.KittyFace(
-                                modifier = Modifier.size(28.dp),
-                                waving = true,
-                                contentDescription = "All caught up",
-                            )
-                            Text(
-                                "You're all caught up",
-                                color = palette.text,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                                modifier = Modifier.padding(start = 10.dp),
-                            )
-                        }
-                    }
-                    if (status != null) {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            status!!,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (status!!.startsWith("Getting") || status!!.startsWith("Title")) {
-                                KittyMuted
-                            } else {
-                                MaterialTheme.colorScheme.error
-                            },
-                        )
-                    }
-                }
-            }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(palette.page),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(palette.text.copy(alpha = 0.08f)),
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .navigationBarsPadding()
-                    .padding(bottom = 50.dp)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(palette.surface)
-                                .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
-                        ) {
-                            Text(
-                                "Ep $episode · ${audio.uppercase()}",
-                                color = palette.text,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
-                            )
-                        }
-                        if (lastWatchedEp > 0 && lastWatchedEp != episode) {
-                            Text(
-                                "Last $lastWatchedEp",
-                                color = KittyFaint,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                    activeServer?.name?.let { name ->
-                        Text(
-                            name,
-                            color = palette.text.copy(alpha = 0.55f),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                if (status != null) {
-                    Text(
-                        status!!,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (
-                            status!!.startsWith("Getting") ||
-                            status!!.startsWith("Trying") ||
-                            status!!.startsWith("Playing") ||
-                            status!!.startsWith("Title")
-                        ) {
-                            KittyMuted
-                        } else {
-                            MaterialTheme.colorScheme.error
-                        },
-                        modifier = Modifier.padding(bottom = 8.dp),
-                    )
-                }
-                Button(
-                    onClick = { playSelected() },
-                    enabled = !resolving,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.accent,
-                        contentColor = palette.onAccent,
-                    ),
-                ) {
-                    if (resolving) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.dp,
-                            color = palette.onAccent,
-                        )
-                    } else {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = palette.onAccent)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (resumeEpisode == episode && resumeAtMs > 2_000L) {
-                                val totalSec = resumeAtMs / 1000L
-                                val mm = totalSec / 60L
-                                val ss = totalSec % 60L
-                                "Resume episode $episode · %d:%02d".format(mm, ss)
-                            } else {
-                                "Play episode $episode"
-                            },
-                            fontWeight = FontWeight.SemiBold,
-                            color = palette.onAccent,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(16.dp)
-                .size(36.dp)
-                .spacePress(onBack)
-                .clip(CircleShape)
-                .background(palette.surface)
-                .border(0.5.dp, palette.text.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back",
-                tint = palette.text,
-                modifier = Modifier.size(20.dp),
+    val finishedThrough = maxOf(
+        detail.listState?.progress ?: 0,
+        (lastWatchedEp - 1).coerceAtLeast(0),
+    )
+    val rangeStart = browseRange * episodePageSize + 1
+    val rangeEnd = minOf(maxEp, rangeStart + episodePageSize - 1)
+    val episodeSlides = episodeList
+        .filter { it.number in rangeStart..rangeEnd }
+        .map { item ->
+            EpisodeSlide(
+                number = item.number,
+                title = item.title,
+                imageUrl = item.thumbnailUrl?.takeIf { it.isNotBlank() },
+                marker = item.marker,
             )
         }
-    }
+    val sampleTitle = site.anikitty.app.data.demo.DemoLibrary.find(detail.id) != null
+    TitleStage(
+        detail = detail,
+        posterModifier = posterModifier,
+        detailLoading = detailLoading,
+        episode = episode,
+        maxEp = maxEp,
+        audio = audio,
+        onAudio = { next ->
+            audio = next
+            watchPrefs.edit().putString("audio", next).apply()
+        },
+        resumeEpisode = resumeEpisode,
+        resumeAtMs = resumeAtMs,
+        resumeDurationMs = resumeDurationMs,
+        lastWatchedEp = lastWatchedEp,
+        watchedThrough = finishedThrough,
+        resolving = resolving,
+        status = status,
+        listStatus = listStatus,
+        listScore = listScore,
+        favourite = favourite,
+        canEditList = sampleTitle || aniListAuth.isLinked,
+        activeServer = activeServer,
+        episodeSlides = episodeSlides,
+        rangeCount = rangeCount,
+        browseRange = browseRange,
+        episodePageSize = episodePageSize,
+        seasonTabs = seasonTabs,
+        epJump = epJump,
+        onEpJump = { epJump = it },
+        onJumpCommit = {
+            val ep = epJump.toIntOrNull()
+            when {
+                ep == null -> status = "Type an episode number"
+                ep !in 1..maxEp -> status = "Episodes only go to $maxEp"
+                else -> {
+                    episode = ep
+                    epJump = ""
+                    status = null
+                }
+            }
+        },
+        onBrowseRange = { browseRange = it },
+        onPickEpisode = { episode = it },
+        onToggleWatched = { number ->
+            if (!sampleTitle) {
+                scope.launch {
+                    historyDao.markEpisode(detail, number)
+                    lastWatchedEp = historyDao.get(detail.id)?.episode ?: lastWatchedEp
+                }
+            }
+        },
+        onPlay = { playSelected() },
+        onBack = onBack,
+        onMyList = {
+            if (listStatus == null) {
+                applyListStatus("PLANNING")
+            } else if (sampleTitle) {
+                applyListStatus(listStatus!!)
+            }
+        },
+        onListStatus = { applyListStatus(it) },
+        onScore = { applyScore(it) },
+        onShare = { shareTitle(context, detail) },
+        onTrailer = when {
+            detail.trailer?.watchUrl() != null -> {
+                val watch = detail.trailer?.watchUrl()
+                if (watch != null) {
+                    { openUrl(watch) }
+                } else {
+                    null
+                }
+            }
+            sampleTitle -> {
+                { playSelected() }
+            }
+            else -> null
+        },
+        onSources = onChangeSource,
+        onOpenUrl = { openUrl(it) },
+        onOpenRelated = onOpenRelated,
+        onOpenRelation = { season ->
+            onOpenRelated(
+                AnimeSummary(
+                    id = season.id,
+                    title = season.title,
+                    coverImageUrl = season.coverImageUrl,
+                    episodes = season.episodes,
+                    format = season.format,
+                    averageScore = null,
+                    season = season.season,
+                    seasonYear = season.seasonYear,
+                ),
+            )
+        },
+        onOpenGenre = onOpenGenre,
+    )
 }
 
 @Composable

@@ -37,7 +37,7 @@ These are the demo library (sample posters, not a signed-in AniList account). Ho
   <tr>
     <td><img src="docs/screenshots/home.png" alt="Home" width="220"></td>
     <td><img src="docs/screenshots/home-continue.png" alt="Continue, Top 10, and the rows under the hero" width="220"></td>
-    <td><img src="docs/screenshots/title.png" alt="Title" width="220"></td>
+    <td><img src="docs/screenshots/title.png" alt="Title page" width="220"></td>
   </tr>
   <tr>
     <td align="center">Home</td>
@@ -45,7 +45,7 @@ These are the demo library (sample posters, not a signed-in AniList account). Ho
     <td align="center">Title</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/title-episodes.png" alt="Episode shelf" width="220"></td>
+    <td><img src="docs/screenshots/title-episodes.png" alt="Episodes" width="220"></td>
     <td><img src="docs/screenshots/player.png" alt="Player" width="220"></td>
     <td><img src="docs/screenshots/search.png" alt="Search" width="220"></td>
   </tr>

@@ -303,7 +303,7 @@ fun KittyPosterCard(
                 contentDescription = anime.title,
                 widthPx = 360,
                 heightPx = 540,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().sharedPoster(anime.id),
             )
             val badge = site.anikitty.app.data.servers.SourceBadgeCache.title(
                 androidx.compose.ui.platform.LocalContext.current,

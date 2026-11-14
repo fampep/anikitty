@@ -39,6 +39,21 @@ data class AnimeEpisodeItem(
     val title: String,
     val thumbnailUrl: String? = null,
     val site: String? = null,
+    /** "Recap" or "Filler" when a source actually says so. Never guessed. */
+    val marker: String? = null,
+)
+
+@Immutable
+data class ScoreBucket(val score: Int, val amount: Int)
+
+@Immutable
+data class MediaRank(
+    val rank: Int,
+    val type: String,
+    val context: String,
+    val season: String? = null,
+    val year: Int? = null,
+    val allTime: Boolean = false,
 )
 
 @Immutable
@@ -127,6 +142,9 @@ data class AnimeSummary(
     val staff: List<AnimePerson> = emptyList(),
     val recommendations: List<AnimeSummary> = emptyList(),
     val nextAiring: NextAiring? = null,
+    val favourites: Int? = null,
+    val scoreDistribution: List<ScoreBucket> = emptyList(),
+    val rankings: List<MediaRank> = emptyList(),
     val listState: AnimeListState? = null,
     val isFavourite: Boolean = false,
     /** True when this payload came from the richer Media(id) query. */
@@ -244,11 +262,18 @@ data class AnimeSummary(
             .coerceAtMost(12_000)
         return (1..max).map { n ->
             val stream = byNumber[n]
+            val rawTitle = stream?.title.orEmpty()
+            val marker = when {
+                rawTitle.contains("recap", ignoreCase = true) -> "Recap"
+                rawTitle.contains("filler", ignoreCase = true) -> "Filler"
+                else -> null
+            }
             AnimeEpisodeItem(
                 number = n,
                 title = cleanStreamingEpisodeTitle(stream?.title) ?: "Episode $n",
                 thumbnailUrl = stream?.thumbnailUrl ?: fallbackCover,
                 site = stream?.site,
+                marker = marker,
             )
         }
     }
