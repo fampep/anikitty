@@ -47,7 +47,9 @@ The script fetches the Pixel 8 `layout`, `back.webp`, and `mask.webp` from the A
 | `raw/home.png` | Home: featured title, Top 10, airing today |
 | `raw/search.png` | Search grid of the public catalog |
 | `raw/title.png` | Title page |
-| `raw/title-episodes.png` | Episodes, season chips, and cast |
+| `raw/title-episodes.png` | Season selector, episode stills, and trailers |
+| `raw/title-trailers.png` | Trailer cards, cast, and staff |
+| `raw/see-all.png` | Continue watching, See all |
 | `raw/player.png` | Player during playback |
 | `raw/myspace.png` | My Space before sign-in, with on-device continue |
 | `raw/settings.png` | Settings, account reads "Not signed in" |
