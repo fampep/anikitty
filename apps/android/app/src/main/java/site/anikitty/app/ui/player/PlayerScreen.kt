@@ -60,9 +60,10 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.ClosedCaption
-import androidx.compose.material.icons.rounded.Forward30
+import androidx.compose.material.icons.rounded.Forward10
 import androidx.compose.material.icons.rounded.Hd
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
@@ -77,12 +78,16 @@ import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
+import site.anikitty.app.ui.theme.KittyDarkPalette
+import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.theme.LookState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -222,6 +227,8 @@ fun PlayerScreen(
         { _, _, _ -> SkipTimes() },
     startPositionMs: Long = 0L,
     onClose: () -> Unit,
+    onDismiss: () -> Unit = onClose,
+    onToggleWatched: ((Int) -> Unit)? = null,
     onNextEpisode: (() -> Unit)? = null,
     onProgress: ((positionMs: Long, durationMs: Long) -> Unit)? = null,
     totalEpisodes: Int = 1,
@@ -299,7 +306,8 @@ fun PlayerScreen(
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
     val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
 
-    var theater by remember { mutableStateOf(false) }
+    var theater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
+    var downloadNote by remember { mutableStateOf(false) }
 
     fun closePanelOrExit() {
         if (panel != Panel.None) {
@@ -871,7 +879,7 @@ fun PlayerScreen(
                         true
                     }
                     Key.MediaFastForward, Key.MediaNext -> {
-                        seekBy(30_000)
+                        seekBy(10_000)
                         true
                     }
                     Key.DirectionLeft -> {
@@ -884,7 +892,7 @@ fun PlayerScreen(
                     }
                     Key.DirectionRight -> {
                         if (!controlsVisible) {
-                            if (controlsLocked) controlsVisible = true else seekBy(30_000)
+                            if (controlsLocked) controlsVisible = true else seekBy(10_000)
                             true
                         } else {
                             false
@@ -926,8 +934,8 @@ fun PlayerScreen(
                     },
                     onDoubleTap = { offset ->
                         if (controlsLocked) return@detectTapGestures
-                        // Plex-style: left −10s, right +30s
-                        if (offset.x < size.width / 2f) seekBy(-10_000) else seekBy(30_000)
+                        // Double-tap either side skips 10 seconds.
+                        if (offset.x < size.width / 2f) seekBy(-10_000) else seekBy(10_000)
                     },
                 )
             }
@@ -988,7 +996,7 @@ fun PlayerScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    if (seekFlashDir < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward30,
+                    if (seekFlashDir < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward10,
                     contentDescription = null,
                     tint = PlayerChrome.Accent,
                     modifier = Modifier.size(30.dp),
@@ -1338,10 +1346,10 @@ fun PlayerScreen(
                                 modifier = Modifier.size(38.dp),
                             )
                         }
-                        ChromeDisc(onClick = { seekBy(30_000) }, size = 64.dp, large = true) {
+                        ChromeDisc(onClick = { seekBy(10_000) }, size = 64.dp, large = true) {
                             Icon(
-                                Icons.Rounded.Forward30,
-                                contentDescription = "Forward 30 seconds",
+                                Icons.Rounded.Forward10,
+                                contentDescription = "Forward 10 seconds",
                                 tint = PlayerChrome.Paper,
                                 modifier = Modifier.size(30.dp),
                             )
@@ -1630,7 +1638,7 @@ fun PlayerScreen(
 
     var dismissY by remember { mutableFloatStateOf(0f) }
     val dismissScope = rememberCoroutineScope()
-    fun Modifier.dismissDrag(): Modifier = pointerInput(onClose) {
+    fun Modifier.dismissDrag(): Modifier = pointerInput(onDismiss) {
         detectVerticalDragGestures(
             onVerticalDrag = { change, drag ->
                 if (drag > 0f || dismissY > 0f) {
@@ -1640,7 +1648,7 @@ fun PlayerScreen(
             },
             onDragEnd = {
                 if (dismissY > 160f) {
-                    onClose()
+                    onDismiss()
                 } else {
                     val from = dismissY
                     dismissScope.launch {
@@ -1656,6 +1664,11 @@ fun PlayerScreen(
             },
         )
     }
+    val playerPalette = KittyDarkPalette.copy(
+        accent = LookState.accent,
+        onAccent = LookState.onAccent(),
+    )
+    CompositionLocalProvider(LocalKittyPalette provides playerPalette) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1670,7 +1683,21 @@ fun PlayerScreen(
                 isMovie = isMovie,
                 onBack = onClose,
                 onExpand = { theater = true },
+                onDownload = { downloadNote = !downloadNote },
+                onCycleAudio = {
+                    onPickAudio?.invoke(if (audio == "dub") "sub" else "dub")
+                },
                 modifier = Modifier.dismissDrag(),
+            )
+        }
+        if (downloadNote && !theater) {
+            Text(
+                "Downloads aren't available. AniKitty streams this episode and does not keep a copy.",
+                color = Color.White.copy(alpha = 0.72f),
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .clickable { downloadNote = false },
             )
         }
         val watchFraction = if (durationMs > 0L) {
@@ -1726,9 +1753,16 @@ fun PlayerScreen(
                 },
                 episodeSlides = episodeSlides,
                 fallbackArt = fallbackArt,
+                minutesLeft = if (durationMs > 30_000L) {
+                    ((durationMs - positionMs).coerceAtLeast(0L) / 60_000L).toInt()
+                } else {
+                    null
+                },
+                onToggleWatched = onToggleWatched,
                 modifier = Modifier.weight(1f).dismissDrag(),
             )
         }
+    }
     }
 }
 
@@ -1740,6 +1774,8 @@ private fun PlayerPageBar(
     isMovie: Boolean,
     onBack: () -> Unit,
     onExpand: () -> Unit,
+    onDownload: () -> Unit,
+    onCycleAudio: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -1792,6 +1828,37 @@ private fun PlayerPageBar(
         }
         Box(
             modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(Color(0xFF141416))
+                .spacePress(onCycleAudio)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        ) {
+            Text(
+                if (audio == "dub") "Dub" else "Sub",
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 12.sp,
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .spacePress(onDownload)
+                .clip(CircleShape)
+                .background(Color(0xFF141416)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.Download,
+                contentDescription = "Download, not available",
+                tint = Color.White.copy(alpha = 0.45f),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
                 .size(36.dp)
                 .spacePress(onExpand)
                 .clip(CircleShape)
@@ -1822,6 +1889,8 @@ private fun PlayerEpisodeShelf(
     onToggleAutoNext: () -> Unit,
     episodeSlides: List<EpisodeSlide>,
     fallbackArt: String?,
+    minutesLeft: Int?,
+    onToggleWatched: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val showGrid = !isMovie && totalEpisodes > 1
@@ -1991,7 +2060,32 @@ private fun PlayerEpisodeShelf(
                 fallbackArt = fallbackArt,
                 onPick = onPickEpisode,
                 onDark = true,
+                minutesLeft = minutesLeft,
+                onToggleWatched = onToggleWatched,
             )
+            val upcoming = slides.filter { it.number > episode }.take(3)
+            if (upcoming.isNotEmpty()) {
+                Text(
+                    "Next up",
+                    color = Color.White.copy(alpha = 0.45f),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp,
+                )
+                upcoming.forEach { next ->
+                    Text(
+                        "${next.number}. ${next.title.ifBlank { "Episode ${next.number}" }}",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { onPickEpisode(next.number) }
+                            .padding(vertical = 4.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -2030,74 +2124,6 @@ private fun ShelfAction(
                 Spacer(modifier = Modifier.width(4.dp))
             }
             Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = tint)
-        }
-    }
-}
-
-@Composable
-private fun EpisodeShelfCell(
-    number: Int,
-    progress: Float,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val complete = progress >= 0.85f
-    val shape = RoundedCornerShape(12.dp)
-    val background by animateColorAsState(
-        when {
-            selected -> Color.White
-            complete -> Color.White.copy(alpha = 0.04f)
-            else -> Color(0xFF0C0C10)
-        },
-        tween(180),
-        label = "epBg",
-    )
-    val numberColor by animateColorAsState(
-        when {
-            selected -> Color.Black
-            complete -> Color.White.copy(alpha = 0.35f)
-            else -> Color.White.copy(alpha = 0.9f)
-        },
-        tween(180),
-        label = "epText",
-    )
-    Box(
-        modifier = modifier
-            .aspectRatio(1f)
-            .spacePress(onClick)
-            .clip(shape)
-            .background(background)
-            .border(
-                width = 0.5.dp,
-                color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
-                shape = shape,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            "$number",
-            fontSize = 14.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = numberColor,
-        )
-        if (progress > 0f && !complete) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 5.dp)
-                    .height(2.5.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.1f)),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(progress.coerceIn(0f, 1f))
-                        .background(Color.White),
-                )
-            }
         }
     }
 }

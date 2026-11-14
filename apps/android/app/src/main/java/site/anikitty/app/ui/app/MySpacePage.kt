@@ -12,6 +12,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -56,6 +58,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -257,12 +260,20 @@ fun MySpaceFeed(
         loadingCloud = false
     }
 
-    val continueWatching = remember(history) {
-        history
-            .filter { it.episodesFinished() > 0 || it.positionMs > 0L }
-            .sortedByDescending { it.updatedAtEpochMs }
-            .take(24)
+    var librarySort by rememberSaveable { mutableStateOf("newest") }
+    val continueWatching = remember(history, librarySort) {
+        val base = history.filter { it.episodesFinished() > 0 || it.positionMs > 0L }
+        val sorted = when (librarySort) {
+            "alpha" -> base.sortedBy { it.title.lowercase() }
+            "watched" -> base.sortedByDescending { it.episodesFinished() }
+            else -> base.sortedByDescending { it.updatedAtEpochMs }
+        }
+        sorted.take(24)
     }
+    val weekAgo = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+    val weekMinutes = history
+        .filter { it.updatedAtEpochMs >= weekAgo }
+        .sumOf { (it.positionMs.coerceAtLeast(0L) / 60_000L).toInt() }
     val tabs = remember(favourites, cloudLists, history) {
         buildList {
             if (favourites.isNotEmpty()) add("Favorites")
@@ -335,6 +346,59 @@ fun MySpaceFeed(
                             modifier = Modifier.spacePress(onOpenAccount),
                         )
                     }
+                }
+            }
+
+            item {
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(
+                        "newest" to "Newest",
+                        "watched" to "Most watched",
+                        "alpha" to "A–Z",
+                    ).forEach { (id, label) ->
+                        val selected = librarySort == id
+                        Text(
+                            label,
+                            color = if (selected) palette.onAccent else palette.text,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (selected) palette.accent else palette.surface)
+                                .border(1.dp, palette.hairline, RoundedCornerShape(999.dp))
+                                .clickable { librarySort = id }
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                        )
+                    }
+                }
+            }
+            item {
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(palette.surface)
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                ) {
+                    Text(
+                        "This week",
+                        color = palette.muted,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "$weekMinutes min logged on this phone",
+                        color = palette.text,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                 }
             }
 
@@ -644,8 +708,8 @@ private fun ContinueBlock(
         if (rows.isEmpty()) {
             EmptyPanel(
                 icon = { Icon(FluentuiSystemIconsMoviesAndTvFilled, null, tint = palette.text.copy(alpha = 0.15f), modifier = Modifier.size(42.dp)) },
-                title = "No watch history",
-                body = "Anime you watch will appear here",
+                title = "Nothing in progress",
+                body = "Start a show and it will wait for you here.",
             )
         } else {
             LazyRow(
@@ -706,11 +770,11 @@ private fun FavoritesBlock(
                         modifier = Modifier.size(42.dp),
                     )
                 },
-                title = "No favorites yet",
+                title = "Your favorites will gather here",
                 body = if (linked) {
-                    "Favourite a show on AniList and it shows up here"
+                    "Favourite a show on AniList and it will show up in this row."
                 } else {
-                    "Sign in to load your AniList favorites"
+                    "Sign in and your AniList favorites will land here."
                 },
             )
         } else {

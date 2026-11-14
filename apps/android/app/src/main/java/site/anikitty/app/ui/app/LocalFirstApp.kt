@@ -92,6 +92,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -99,6 +100,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -171,7 +173,9 @@ import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.data.local.shareWatchProgress
 import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.theme.LookState
 import site.anikitty.app.ui.theme.ShimmerBox
 import site.anikitty.app.ui.theme.prefersReducedMotion
 import site.anikitty.app.ui.theme.KittyOnAccent
@@ -448,6 +452,17 @@ fun LocalFirstApp(
                     // Return to detail for this title without wiping related back-stack.
                     screen = Screen.Detail(current.anime, current.episode)
                 },
+                onDismiss = { screen = Screen.Tabs },
+                onToggleWatched = { number ->
+                    scope.launch {
+                        historyDao.markEpisode(current.anime, number)
+                        val entry = historyDao.get(current.anime.id)
+                        watchedThrough = maxOf(
+                            current.anime.listState?.progress ?: 0,
+                            (entry?.episode ?: 1) - 1,
+                        ).coerceAtLeast(0)
+                    }
+                },
                 onProgress = { pos, dur ->
                     scope.launch {
                         val existing = historyDao.get(current.anime.id)
@@ -647,6 +662,7 @@ fun LocalFirstApp(
                         tab = "history"
                     },
                     homeLayout = homeLayout,
+                    onExportProgress = { shareWatchProgress(context, history) },
                 )
             }
         }
@@ -825,7 +841,22 @@ private fun HomeFeed(
                             "featured" -> item {
                                 HomeFeatured(items = trending, onOpen = openCatalog)
                             }
-                            "continue" -> if (continueWatching.isNotEmpty()) item {
+                            "continue" -> {
+                                if (LookState.abandonedReminders) {
+                                    val stale = continueWatching.firstOrNull {
+                                        System.currentTimeMillis() - it.updatedAtEpochMs >
+                                            14L * 24 * 60 * 60 * 1000
+                                    }
+                                    if (stale != null) item {
+                                        Text(
+                                            "You left ${stale.title} a while ago. Episode ${stale.episode} is still here.",
+                                            color = LocalKittyPalette.current.muted,
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                        )
+                                    }
+                                }
+                                if (continueWatching.isNotEmpty()) item {
                                 HomeBlock(title = "Continue") {
                                     HomeContinueRow(
                                         continueWatching.map { entry ->
@@ -875,6 +906,7 @@ private fun HomeFeed(
                                         },
                                     )
                                 }
+                            }
                             }
                             "airing" -> if (airingToday.isNotEmpty()) item {
                                 val now = System.currentTimeMillis() / 1000L
@@ -982,6 +1014,119 @@ private fun playbackTarget(entry: WatchHistoryEntity): Int {
     val ratio = if (hasDuration) entry.positionMs.toFloat() / entry.durationMs.toFloat() else 0f
     val inProgress = hasDuration && entry.positionMs >= 15_000L && ratio < 0.9f
     return if (inProgress) stored else stored + 1
+}
+
+private suspend fun WatchHistoryDao.markEpisode(anime: AnimeSummary, number: Int) {
+    val existing = get(anime.id)
+    val frontier = existing?.episode ?: 0
+    val finishedThrough = (frontier - 1).coerceAtLeast(0)
+    val already = existing != null && existing.episodesFinished() > 0 && number <= finishedThrough
+    val nextEpisode: Int
+    val nextPosition: Long
+    if (already) {
+        if (number != finishedThrough) return
+        nextEpisode = number.coerceAtLeast(1)
+        nextPosition = 0L
+    } else {
+        nextEpisode = maxOf(frontier, number + 1)
+        nextPosition = if (number + 1 > frontier) 0L else existing?.positionMs ?: 0L
+    }
+    upsert(
+        WatchHistoryEntity(
+            anilistId = anime.id,
+            title = anime.title,
+            coverImageUrl = anime.coverImageUrl ?: existing?.coverImageUrl,
+            episode = nextEpisode,
+            positionMs = nextPosition,
+            durationMs = if (nextPosition == 0L) 0L else existing?.durationMs ?: 0L,
+            updatedAtEpochMs = System.currentTimeMillis(),
+            listStatus = existing?.listStatus ?: "CURRENT",
+            malId = anime.malId ?: existing?.malId,
+        ),
+    )
+}
+
+@Composable
+private fun LookSettings(onExport: () -> Unit) {
+    val context = LocalContext.current
+    val palette = LocalKittyPalette.current
+    val playerPrefs = remember { context.getSharedPreferences("anikitty_player", 0) }
+    var startTheater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
+    Column(
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("Look", color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text("Accent", color = palette.muted, fontSize = 12.sp)
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            LookState.presets.forEach { color ->
+                val selected = LookState.accent == color
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(color)
+                        .border(
+                            if (selected) 2.dp else 1.dp,
+                            if (selected) palette.text else palette.hairline,
+                            CircleShape,
+                        )
+                        .clickable { LookState.setAccent(context, color) },
+                )
+            }
+        }
+        Text(
+            "The accent shows on the dark theme. Light mode stays ink so buttons stay readable.",
+            color = palette.muted,
+            fontSize = 12.sp,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                "Open the player full screen",
+                color = palette.text,
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = startTheater,
+                onCheckedChange = {
+                    startTheater = it
+                    playerPrefs.edit().putBoolean("start_theater", it).apply()
+                },
+            )
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                "Remind me about shows I left",
+                color = palette.text,
+                fontSize = 14.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Switch(
+                checked = LookState.abandonedReminders,
+                onCheckedChange = { LookState.setAbandonedReminders(context, it) },
+            )
+        }
+        Button(
+            onClick = onExport,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = palette.accent,
+                contentColor = palette.onAccent,
+            ),
+        ) {
+            Text("Export watch progress", fontWeight = FontWeight.Bold)
+        }
+    }
 }
 
 private fun listStatusBadge(status: String?): String? = when (status?.uppercase()) {
@@ -1515,6 +1660,7 @@ internal fun SettingsFeed(
     onOpenLibrary: (String) -> Unit = {},
     homeLayout: HomeLayoutStore,
     openAccountTick: Int = 0,
+    onExportProgress: () -> Unit = {},
 ) {
     val palette = LocalKittyPalette.current
     val selectedId by catalog.selectedId.collectAsState()
@@ -1802,6 +1948,7 @@ internal fun SettingsFeed(
                         )
                     }
                     item { AppBuildsRow(onClick = onOpenBuilds) }
+                    item { LookSettings(onExportProgress) }
                     item {
                         Text(
                             "Copyright 2026 fampep. Apache License 2.0.",
@@ -1910,6 +2057,8 @@ private fun TitleDetailScreen(
     var favourite by remember(anime.id) { mutableStateOf(anime.isFavourite) }
     var listBusy by remember(anime.id) { mutableStateOf(false) }
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
+    var resumeAtMs by remember(anime.id) { mutableLongStateOf(0L) }
+    var resumeEpisode by remember(anime.id) { mutableIntStateOf(0) }
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
     var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
@@ -1938,6 +2087,8 @@ private fun TitleDetailScreen(
         synopsisExpanded = false
         val history = historyDao.get(anime.id)
         lastWatchedEp = history?.episode ?: 0
+        resumeAtMs = history?.positionMs ?: 0L
+        resumeEpisode = history?.episode ?: 0
         episode = when {
             initialEpisode != null -> initialEpisode.coerceAtLeast(1)
             history?.episode != null -> history.episode.coerceAtLeast(1)
@@ -2847,60 +2998,6 @@ private fun TitleDetailScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    val selectedEpisode = episodeList.firstOrNull { it.number == episode }
-                    if (selectedEpisode != null) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(78.dp)
-                                .border(1.dp, palette.text.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
-                                .clip(RoundedCornerShape(4.dp)),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            AsyncImage(
-                                model = selectedEpisode.thumbnailUrl ?: detail.coverImageUrl,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .width(128.dp)
-                                    .fillMaxHeight()
-                                    .background(palette.surface),
-                            )
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(horizontal = 12.dp),
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .clip(CircleShape)
-                                            .background(palette.text),
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        "${selectedEpisode.number}. ${selectedEpisode.title}",
-                                        color = palette.text,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 14.sp,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                selectedEpisode.site?.takeIf { it.isNotBlank() }?.let { site ->
-                                    Text(
-                                        site,
-                                        color = palette.text.copy(alpha = 0.4f),
-                                        fontSize = 11.sp,
-                                        maxLines = 1,
-                                        modifier = Modifier.padding(start = 15.dp, top = 4.dp),
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                    }
                     val finishedThrough = maxOf(
                         detail.listState?.progress ?: 0,
                         (lastWatchedEp - 1).coerceAtLeast(0),
@@ -2924,6 +3021,12 @@ private fun TitleDetailScreen(
                         currentProgress = 0f,
                         fallbackArt = detail.bannerImageUrl ?: detail.coverImageUrl,
                         onPick = { episode = it },
+                        onToggleWatched = { number ->
+                            scope.launch {
+                                historyDao.markEpisode(detail, number)
+                                lastWatchedEp = historyDao.get(detail.id)?.episode ?: lastWatchedEp
+                            }
+                        },
                         modifier = Modifier.padding(horizontal = 0.dp),
                     )
                     if (status != null) {
@@ -2946,7 +3049,7 @@ private fun TitleDetailScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .background(KittyPage),
+                .background(palette.page),
         ) {
             Box(
                 modifier = Modifier
@@ -3030,7 +3133,7 @@ private fun TitleDetailScreen(
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = palette.text,
+                        containerColor = palette.accent,
                         contentColor = palette.onAccent,
                     ),
                 ) {
@@ -3041,10 +3144,17 @@ private fun TitleDetailScreen(
                             color = palette.onAccent,
                         )
                     } else {
-                        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = Color.Black)
+                        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = palette.onAccent)
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            "Play episode $episode",
+                            if (resumeEpisode == episode && resumeAtMs > 2_000L) {
+                                val totalSec = resumeAtMs / 1000L
+                                val mm = totalSec / 60L
+                                val ss = totalSec % 60L
+                                "Resume episode $episode · %d:%02d".format(mm, ss)
+                            } else {
+                                "Play episode $episode"
+                            },
                             fontWeight = FontWeight.SemiBold,
                             color = palette.onAccent,
                             maxLines = 1,

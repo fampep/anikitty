@@ -5,6 +5,7 @@ package site.anikitty.app.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -209,8 +210,15 @@ private val KittyTypography = Typography(
 
 @Composable
 fun AniKittyTheme(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    LookState.ensure(context)
     val dark = isSystemInDarkTheme()
-    val palette = if (dark) KittyDarkPalette else KittyLightPalette
+    val accent = LookState.accent
+    val palette = if (dark) {
+        KittyDarkPalette.copy(accent = accent, onAccent = LookState.onAccent(accent))
+    } else {
+        KittyLightPalette
+    }
     CompositionLocalProvider(LocalKittyPalette provides palette) {
         MaterialTheme(
             colorScheme = if (dark) DarkColors else LightColors,
