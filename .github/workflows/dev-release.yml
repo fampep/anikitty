@@ -34,7 +34,8 @@ jobs:
       - name: Next dev version
         id: ver
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.stable }}" = "true" ]; then
+          message="${{ github.event.head_commit.message }}"
+          if { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.stable }}" = "true" ]; } || [[ "$message" == *"[stable]"* ]]; then
             current="$(grep -E '^name=' VERSION | head -1 | cut -d= -f2- | tr -d '[:space:]')"
             code="$(grep -E '^code=' VERSION | head -1 | cut -d= -f2- | tr -d '[:space:]')"
             base="${current%-dev.*}"
