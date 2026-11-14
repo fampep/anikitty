@@ -2779,7 +2779,7 @@ private fun TitleDetailScreen(
                     null
                 }
             }.onFailure {
-                status = it.message ?: "All installed providers failed"
+                status = friendlyFailure(it.message ?: "All installed providers failed")
             }
             resolving = false
         }

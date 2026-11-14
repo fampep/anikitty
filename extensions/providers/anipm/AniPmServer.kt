@@ -75,26 +75,28 @@ class AniPmServer(
         }
 
         val channel = if (effective.equals("dub", ignoreCase = true)) "dub" else "sub"
-        val embedUrl = fetchSettlarEmbedUrl(selection, episode, channel)
-        val token = embedUrl.toHttpUrl().queryParameter("t")
-            ?: error("Settlar embed missing token")
-        val session = fetchEmbedSession(token, embedUrl)
-        val master = session.optString("source").trim()
-        require(master.startsWith("http")) { "Settlar HLS missing" }
-        val kind = session.optString("kind", "hls")
-        require(kind.equals("hls", ignoreCase = true) || master.contains("m3u8") || master.contains("/object/")) {
-            "Unexpected Settlar kind: $kind"
-        }
+        val primary = runCatching { openSettlar(selection, episode, channel) }
+        var opened = primary.getOrNull()
+            ?: openBackup(boot, episode, channel)
+            ?: throw primary.exceptionOrNull() ?: IllegalStateException(BLOCKED)
         // Settlar HLS keys live at …/~key or …/~key/{height} and 403 without this proof.
-        val keyProof = session.optString("keyProof").trim()
-            .ifBlank { error("Settlar keyProof missing") }
-
-        // Hit the embed once so Domain=.settlar.io cookies land in the jar before CDN GETs.
-        runCatching { httpText(embedUrl, SITE_URL, accept = "text/html", origin = null) }
-
-        val headers = streamHeaders(keyProof)
-        if (!probeMaster(master, headers)) {
-            error("Settlar CDN refused playlist")
+        var headers = streamHeaders(opened.session.optString("keyProof").trim())
+        if (!probeMaster(opened.master, headers)) {
+            val backup = openBackup(boot, episode, channel)
+            val backupHeaders = backup?.let { streamHeaders(it.session.optString("keyProof").trim()) }
+            if (backup != null && backup.master != opened.master &&
+                backupHeaders != null && probeMaster(backup.master, backupHeaders)
+            ) {
+                opened = backup
+                headers = backupHeaders
+            } else {
+                error(BLOCKED)
+            }
+        }
+        val session = opened.session
+        val master = opened.master
+        if (opened.embedUrl.startsWith("http")) {
+            runCatching { httpText(opened.embedUrl, PLAY_REFERER, accept = "text/html", origin = null) }
         }
 
         val subs = parseSubtitles(session.optJSONArray("subtitles"))
@@ -124,6 +126,43 @@ class AniPmServer(
             )
         }
         out
+    }
+
+    private data class OpenedStream(
+        val session: JSONObject,
+        val master: String,
+        val embedUrl: String,
+    )
+
+    private fun openSettlar(selection: String, episode: Int, channel: String): OpenedStream {
+        val embedUrl = fetchSettlarEmbedUrl(selection, episode, channel)
+        val token = embedUrl.toHttpUrl().queryParameter("t")
+            ?: error("Settlar embed missing token")
+        val session = fetchEmbedSession(token, embedUrl)
+        val master = session.optString("source").trim()
+        require(master.startsWith("http")) { "Settlar HLS missing" }
+        val kind = session.optString("kind", "hls")
+        require(kind.equals("hls", ignoreCase = true) || master.contains("m3u8") || master.contains("/object/")) {
+            "Unexpected Settlar kind: $kind"
+        }
+        return OpenedStream(session, master, embedUrl)
+    }
+
+    /** The site's second embed, used when the primary Settlar host refuses the phone. */
+    private fun openBackup(boot: JSONObject, episode: Int, channel: String): OpenedStream? {
+        val backup = boot.optJSONObject("backupEmbed") ?: return null
+        if (backup.has("available") && !backup.optBoolean("available", true)) return null
+        val direct = backup.optString("source").trim()
+        if (direct.startsWith("http")) {
+            val session = JSONObject()
+                .put("source", direct)
+                .put("kind", backup.optString("kind", "hls"))
+                .put("keyProof", backup.optString("keyProof"))
+            return OpenedStream(session, direct, backup.optString("embedUrl"))
+        }
+        val selection = backup.optString("selection").trim()
+        if (selection.isEmpty()) return null
+        return runCatching { openSettlar(selection, episode, channel) }.getOrNull()
     }
 
     private fun mapSiteId(anilistId: Int, titleHint: String?): String {
@@ -179,7 +218,7 @@ class AniPmServer(
 
     private fun fetchBootstrap(siteId: String, episode: Int, lang: String): JSONObject {
         val url =
-            "$SITE_URL/api/anime/playback-bootstrap/settlar/$siteId?ep=$episode&lang=$lang"
+            "$SITE_URL/api/anime/playback-bootstrap/settlar/$siteId?ep=$episode&lang=$lang&backup=1"
         val body = httpText(url, "$SITE_URL/", accept = "application/json")
         if (body.trimStart().startsWith("<")) error("ani.pm bootstrap challenged (Cloudflare)")
         val json = JSONObject(body)
@@ -212,9 +251,9 @@ class AniPmServer(
         val url = "$SETTLAR_EMBED/api/embed/session?t=${enc(token)}"
         val body = httpText(
             url,
-            embedUrl,
+            PLAY_REFERER,
             accept = "application/json",
-            origin = SETTLAR_EMBED,
+            origin = SITE_URL,
         )
         if (body.trimStart().startsWith("<")) error("Settlar session challenged")
         return JSONObject(body)
@@ -281,15 +320,11 @@ class AniPmServer(
     }
 
     /**
-     * Headers Media3 sends for playlist + segment + `/~key/{height}` fetches.
-     * Settlar returns 403 on encrypted key URLs without [HEADER_KEY_PROOF].
+     * Headers Media3, the cast relay, and segment fetches send.
+     * Cloudflare on settlar hosts 403s an old Chrome user agent, and the key
+     * URLs 403 without [HEADER_KEY_PROOF].
      */
-    private fun streamHeaders(keyProof: String): Map<String, String> = mapOf(
-        "User-Agent" to USER_AGENT,
-        "Accept" to "*/*",
-        "Referer" to "$SETTLAR_EMBED/",
-        HEADER_KEY_PROOF to keyProof,
-    )
+    private fun streamHeaders(keyProof: String): Map<String, String> = playbackHeaders(keyProof)
 
     private fun httpText(
         url: String,
@@ -311,9 +346,7 @@ class AniPmServer(
         }
         return http.newCall(b.build()).execute().use { res ->
             val text = res.body?.string().orEmpty()
-            if (!res.isSuccessful && !text.trimStart().startsWith("<")) {
-                error("ani.pm HTTP ${res.code} for ${url.take(96)}")
-            }
+            if (!res.isSuccessful) error(aniPmHttpFailure(res.code, text))
             text
         }
     }
@@ -357,13 +390,20 @@ class AniPmServer(
 
     companion object {
         const val ID = "anipm"
+        const val BLOCKED = "Ani.pm is blocked by the site's protection. Try another source."
         const val SITE_URL = "https://ani.pm"
         const val SETTLAR_EMBED = "https://embed.settlar.io"
         const val HEADER_KEY_PROOF = "X-Settlar-Key-Proof"
+        /** Page the site itself sends as Referer when it asks Settlar for a stream. */
+        const val PLAY_REFERER = "$SITE_URL/anime/"
         val SITE_ICON_URL =
             "https://www.google.com/s2/favicons?domain=ani.pm&sz=128"
+        /**
+         * embed.settlar.io's Cloudflare answers 403 to Chrome 120–124.
+         * A current desktop Chrome agent is what gets the session JSON through.
+         */
         private const val USER_AGENT =
-            "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
         private val SITE_ID_IN_URL: Pattern =
             Pattern.compile("""-(\d+)-[a-z0-9]+(?:/|$|\?)""", Pattern.CASE_INSENSITIVE)
@@ -373,5 +413,29 @@ class AniPmServer(
             val m = SITE_ID_IN_URL.matcher(url)
             return if (m.find()) m.group(1) else null
         }
+
+        fun playbackHeaders(keyProof: String): Map<String, String> = buildMap {
+            put("User-Agent", USER_AGENT)
+            put("Accept", "*/*")
+            put("Referer", PLAY_REFERER)
+            put("Origin", SITE_URL)
+            if (keyProof.isNotBlank()) put(HEADER_KEY_PROOF, keyProof)
+        }
+    }
+}
+
+/** Copy for a failed ani.pm or Settlar response. Never includes the raw URL. */
+internal fun aniPmHttpFailure(code: Int, body: String): String {
+    val trimmed = body.trim()
+    val challenge = trimmed.startsWith("<") ||
+        trimmed.contains("Just a moment", ignoreCase = true) ||
+        trimmed.contains("Attention Required", ignoreCase = true) ||
+        trimmed.contains("cf-mitigated", ignoreCase = true) ||
+        trimmed.contains("cf-error", ignoreCase = true) ||
+        trimmed.contains("challenge-platform", ignoreCase = true)
+    return when {
+        code == 404 -> "Ani.pm does not have this episode."
+        code == 403 || code == 503 || challenge -> AniPmServer.BLOCKED
+        else -> "Ani.pm could not load this episode (HTTP $code)."
     }
 }
