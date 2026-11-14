@@ -89,6 +89,8 @@ import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.coverKey
+import site.anikitty.app.ui.theme.sharedCover
 import kotlin.math.roundToInt
 
 private val SearchGenres = listOf(
@@ -133,7 +135,7 @@ private data class ActiveSearchChip(val label: String, val clear: () -> Unit)
 fun SearchFeed(
     aniList: AniListClient,
     historyDao: WatchHistoryDao,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, String) -> Unit,
     requestedGenre: String? = null,
     onRequestedGenreConsumed: () -> Unit = {},
     listMarks: Map<Int, String> = emptyMap(),
@@ -307,12 +309,13 @@ fun SearchFeed(
                     }
                 }
                 gridItems(gridItems, key = { it.id }) { anime ->
+                    val key = coverKey("search", anime.id)
                     val open = {
                         scope.launch { historyDao.touchFromCatalog(anime) }
-                        onOpen(anime)
+                        onOpen(anime, key)
                     }
-                    if (asGrid) SearchPoster(anime, listMarks[anime.id], open)
-                    else SearchListRow(anime, listMarks[anime.id], open)
+                    if (asGrid) SearchPoster(anime, listMarks[anime.id], key, open)
+                    else SearchListRow(anime, listMarks[anime.id], key, open)
                 }
                 if (loading && items.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
@@ -644,13 +647,14 @@ private fun HeaderDisc(onClick: () -> Unit, selected: Boolean = false, content: 
 }
 
 @Composable
-private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Unit) {
+private fun SearchPoster(anime: AnimeSummary, badge: String?, coverKey: String, onClick: () -> Unit) {
     Column(Modifier.clickable(onClick = onClick)) {
         AsyncImage(
             model = anime.coverImageUrl,
             contentDescription = anime.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier
+                .sharedCover(coverKey)
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(3.dp))
@@ -700,7 +704,7 @@ private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Uni
 }
 
 @Composable
-private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Unit) {
+private fun SearchListRow(anime: AnimeSummary, badge: String?, coverKey: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -716,7 +720,7 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
                 model = anime.coverImageUrl,
                 contentDescription = anime.title,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.sharedCover(coverKey).fillMaxSize(),
             )
             anime.averageScore?.let { score ->
                 ScoreBadge("$score%", score, Modifier.align(Alignment.BottomStart).padding(4.dp))
@@ -727,13 +731,13 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
             Text(anime.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val meta = listOfNotNull(formatLabel(anime.format ?: ""), anime.seasonYear?.toString(), anime.episodes?.let { "$it eps" })
                 .filter { it.isNotBlank() }
-                .joinToString(" · ")
+                .joinToString(" \u00b7 ")
             if (meta.isNotEmpty()) {
                 Text(meta, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, maxLines = 1)
             }
             if (anime.genres.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Text(anime.genres.take(3).joinToString("  ·  "), color = Color.White.copy(alpha = 0.45f), fontSize = 10.sp, maxLines = 1)
+                Text(anime.genres.take(3).joinToString("  \u00b7  "), color = Color.White.copy(alpha = 0.45f), fontSize = 10.sp, maxLines = 1)
             }
             badge?.let {
                 Text(it, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
