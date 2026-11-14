@@ -4,6 +4,8 @@
 package site.anikitty.app
 
 import android.app.Application
+import coil.ImageLoader
+import coil.ImageLoaderFactory
 import com.google.android.gms.cast.framework.CastContext
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.anilist.AniListClient
@@ -15,7 +17,7 @@ import site.anikitty.app.data.server.DedicatedApiClient
 import site.anikitty.app.data.server.ServerConfig
 import site.anikitty.app.data.servers.ServerCatalog
 
-class AnikittyApp : Application() {
+class AnikittyApp : Application(), ImageLoaderFactory {
     lateinit var database: AppDatabase
         private set
     lateinit var aniList: AniListClient
@@ -34,6 +36,12 @@ class AnikittyApp : Application() {
         private set
     lateinit var api: DedicatedApiClient
         private set
+
+    override fun newImageLoader(): ImageLoader =
+        ImageLoader.Builder(this)
+            .crossfade(true)
+            .crossfade(180)
+            .build()
 
     override fun onCreate() {
         super.onCreate()

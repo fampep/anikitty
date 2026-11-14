@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,12 +28,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,12 +74,24 @@ fun EpisodeCarousel(
     onPick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     onDark: Boolean = false,
+    minutesLeft: Int? = null,
+    onToggleWatched: ((Int) -> Unit)? = null,
 ) {
     if (slides.isEmpty()) return
     val palette = LocalKittyPalette.current
     val reduced = prefersReducedMotion()
+    val haptic = LocalHapticFeedback.current
     val state = rememberLazyListState()
     val fling = rememberSnapFlingBehavior(lazyListState = state)
+    var didScroll by remember { mutableStateOf(false) }
+    LaunchedEffect(state.isScrollInProgress) {
+        if (state.isScrollInProgress) {
+            didScroll = true
+        } else if (didScroll) {
+            didScroll = false
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+    }
     LaunchedEffect(current, slides.size) {
         val index = slides.indexOfFirst { it.number == current }
         if (index < 0) return@LaunchedEffect
@@ -83,12 +106,22 @@ fun EpisodeCarousel(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        itemsIndexed(slides, key = { _, slide -> slide.number }) { _, slide ->
+        itemsIndexed(slides, key = { _, slide -> slide.number }) { index, slide ->
             val selected = slide.number == current
             val progress = when {
                 slide.number == current -> currentProgress.coerceIn(0f, 1f)
                 watchedThrough > 0 && slide.number <= watchedThrough -> 1f
                 else -> 0f
+            }
+            val layout = state.layoutInfo
+            val info = layout.visibleItemsInfo.firstOrNull { it.index == index }
+            val scale = if (reduced || info == null) {
+                1f
+            } else {
+                val viewportCenter = (layout.viewportStartOffset + layout.viewportEndOffset) / 2f
+                val center = info.offset + info.size / 2f
+                val distance = kotlin.math.abs(center - viewportCenter)
+                1f - (distance / 900f).coerceIn(0f, 0.08f)
             }
             EpisodeThumb(
                 slide = slide,
@@ -98,7 +131,18 @@ fun EpisodeCarousel(
                 ink = if (onDark || palette.dark) Color.White else palette.text,
                 mute = if (onDark) Color.White.copy(alpha = 0.55f) else palette.muted,
                 surface = if (onDark) Color(0xFF16161A) else palette.surface,
-                onClick = { onPick(slide.number) },
+                scale = scale,
+                minutesLeft = if (selected) minutesLeft else null,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onPick(slide.number)
+                },
+                onSwipeWatched = onToggleWatched?.let { toggle ->
+                    {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        toggle(slide.number)
+                    }
+                },
             )
         }
     }
@@ -113,7 +157,10 @@ private fun EpisodeThumb(
     ink: Color,
     mute: Color,
     surface: Color,
+    scale: Float,
+    minutesLeft: Int?,
     onClick: () -> Unit,
+    onSwipeWatched: (() -> Unit)?,
 ) {
     val shape = RoundedCornerShape(8.dp)
     val border by animateDpAsState(
@@ -125,6 +172,38 @@ private fun EpisodeThumb(
     Column(
         modifier = Modifier
             .width(168.dp)
+            .semantics(mergeDescendants = true) {
+                contentDescription = buildString {
+                    append("Episode ${slide.number}")
+                    if (slide.title.isNotBlank()) append(". ${slide.title}")
+                    if (selected) append(". Selected")
+                }
+                this.selected = selected
+            }
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .then(
+                if (onSwipeWatched == null) {
+                    Modifier
+                } else {
+                    Modifier.pointerInput(slide.number) {
+                        var total = 0f
+                        detectVerticalDragGestures(
+                            onDragEnd = {
+                                if (total < -72f) onSwipeWatched()
+                                total = 0f
+                            },
+                            onDragCancel = { total = 0f },
+                            onVerticalDrag = { change, drag ->
+                                total += drag
+                                if (total < -24f) change.consume()
+                            },
+                        )
+                    }
+                },
+            )
             .spacePress(onClick),
     ) {
         Box(
@@ -138,7 +217,7 @@ private fun EpisodeThumb(
             if (art != null) {
                 SubcomposeAsyncImage(
                     model = art,
-                    contentDescription = slide.title,
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                     loading = { ShimmerBox(Modifier.fillMaxSize()) },
@@ -168,6 +247,20 @@ private fun EpisodeThumb(
                     .align(Alignment.BottomStart)
                     .padding(start = 8.dp, bottom = if (progress > 0f) 8.dp else 6.dp),
             )
+            if (minutesLeft != null) {
+                Text(
+                    "$minutesLeft min left",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 10.sp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp),
+                )
+            }
             if (progress > 0f) {
                 Box(
                     modifier = Modifier

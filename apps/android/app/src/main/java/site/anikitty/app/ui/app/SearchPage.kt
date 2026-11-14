@@ -67,6 +67,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -236,6 +238,7 @@ fun SearchFeed(
 
     val chips = activeChips(pick) { update(it) }
     val showingResults = items.isNotEmpty() || (query.trim().length >= 2 || pick.on())
+    val suggestions = if (query.trim().length >= 2) items.take(6) else emptyList()
     val gridItems = if (items.isNotEmpty()) items else if (!showingResults) discover else emptyList()
 
     val palette = LocalKittyPalette.current
@@ -246,7 +249,8 @@ fun SearchFeed(
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                top = if (chips.isNotEmpty()) 188.dp else 148.dp,
+                top = (if (chips.isNotEmpty()) 188.dp else 148.dp) +
+                    if (suggestions.isNotEmpty()) 44.dp else 0.dp,
                 bottom = 110.dp,
             ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -308,6 +312,30 @@ fun SearchFeed(
                         }
                     }
                 }
+                if (showingResults && items.isEmpty() && !loading) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                "Nothing matches that yet",
+                                color = palette.text,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 16.sp,
+                            )
+                            Text(
+                                "Try a shorter title, or clear the filters and browse what's trending.",
+                                color = palette.muted,
+                                fontSize = 13.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        }
+                    }
+                }
                 gridItems(gridItems, key = { it.id }) { anime ->
                     val open = {
                         scope.launch { historyDao.touchFromCatalog(anime) }
@@ -330,7 +358,7 @@ fun SearchFeed(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-                .background(Color.Black.copy(alpha = 0.92f))
+                .background(palette.page.copy(alpha = 0.94f))
                 .statusBarsPadding()
                 .padding(bottom = 8.dp),
         ) {
@@ -368,7 +396,11 @@ fun SearchFeed(
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { runSearch(query) }),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(38.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(38.dp)
+                    .semantics { contentDescription = "Search titles" },
                 decorationBox = { inner ->
                     Row(
                         modifier = Modifier
@@ -401,6 +433,22 @@ fun SearchFeed(
                     }
                 },
             )
+            if (suggestions.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    suggestions.forEach { anime ->
+                        SearchFilterChip(anime.title, selected = false) {
+                            scope.launch { historyDao.touchFromCatalog(anime) }
+                            onOpen(anime)
+                        }
+                    }
+                }
+            }
             if (chips.isNotEmpty()) {
                 Spacer(Modifier.height(8.dp))
                 LazyRow(

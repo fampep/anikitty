@@ -82,7 +82,7 @@ internal fun HomeBar(
             Icon(
                 Icons.Filled.Search,
                 contentDescription = "Search",
-                tint = Color.White,
+                tint = ink,
                 modifier = Modifier.height(18.dp).width(18.dp),
             )
         }
@@ -91,13 +91,13 @@ internal fun HomeBar(
                 CircularProgressIndicator(
                     modifier = Modifier.height(16.dp).width(16.dp),
                     strokeWidth = 2.dp,
-                    color = Color.White,
+                    color = ink,
                 )
             } else {
                 Icon(
                     Icons.Rounded.Refresh,
                     contentDescription = "Refresh",
-                    tint = Color.White,
+                    tint = ink,
                     modifier = Modifier.height(18.dp).width(18.dp),
                 )
             }
@@ -135,8 +135,8 @@ internal fun HomeFeatured(
     if (pages.isEmpty()) return
     val reducedMotion = prefersReducedMotion()
     val pagerState = rememberPagerState(pageCount = { pages.size })
-    LaunchedEffect(pages.size) {
-        if (pages.size < 2) return@LaunchedEffect
+    LaunchedEffect(pages.size, reducedMotion) {
+        if (reducedMotion || pages.size < 2) return@LaunchedEffect
         while (true) {
             delay(6500)
             if (!pagerState.isScrollInProgress) {
@@ -414,73 +414,118 @@ internal data class HomeContinueCard(
 
 @Composable
 internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    if (cards.isEmpty()) return
+    val lead = cards.first()
+    val rest = cards.drop(1)
+    val palette = LocalKittyPalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 16.dp)
+                .fillMaxWidth()
+                .spacePress(lead.onClick),
+        ) {
+            Text(
+                "Continue where you left off",
+                color = palette.muted,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            ContinueArt(lead, height = 180.dp, radius = 12.dp, titleSize = 18.sp)
+        }
+        if (rest.isNotEmpty()) {
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(rest, key = { it.id }) { card ->
+                    Column(
+                        modifier = Modifier
+                            .width(196.dp)
+                            .spacePress(card.onClick),
+                    ) {
+                        ContinueArt(card, height = 110.dp, radius = 6.dp, titleSize = 13.sp)
+                        Text(
+                            card.label,
+                            color = palette.muted,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            modifier = Modifier.padding(top = 6.dp, start = 2.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContinueArt(
+    card: HomeContinueCard,
+    height: androidx.compose.ui.unit.Dp,
+    radius: androidx.compose.ui.unit.Dp,
+    titleSize: androidx.compose.ui.unit.TextUnit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(RoundedCornerShape(radius))
+            .background(Color(0xFF141416)),
     ) {
-        items(cards, key = { it.id }) { card ->
-            Column(
+        AsyncImage(
+            model = card.imageUrl,
+            contentDescription = card.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0.4f to Color.Transparent,
+                        1f to Color.Black.copy(alpha = 0.82f),
+                    ),
+                ),
+        )
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            Text(
+                card.title,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = titleSize,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (height > 140.dp) {
+                Text(
+                    card.label,
+                    color = Color.White.copy(alpha = 0.8f),
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            }
+        }
+        if (card.progress > 0f) {
+            Box(
                 modifier = Modifier
-                    .width(196.dp)
-                    .spacePress(card.onClick),
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(Color.White.copy(alpha = 0.2f)),
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFF141416)),
-                ) {
-                    AsyncImage(
-                        model = card.imageUrl,
-                        contentDescription = card.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    0.45f to Color.Transparent,
-                                    1f to Color.Black.copy(alpha = 0.82f),
-                                ),
-                            ),
-                    )
-                    Text(
-                        card.title,
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                    )
-                    if (card.progress > 0f) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomStart)
-                                .fillMaxWidth()
-                                .height(2.dp)
-                                .background(Color.White.copy(alpha = 0.2f)),
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxHeight()
-                                    .fillMaxWidth(card.progress.coerceIn(0f, 1f))
-                                    .background(Color.White),
-                            )
-                        }
-                    }
-                }
-                Text(
-                    card.label,
-                    color = Color.White.copy(alpha = 0.45f),
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    modifier = Modifier.padding(top = 6.dp, start = 2.dp),
+                        .fillMaxHeight()
+                        .fillMaxWidth(card.progress.coerceIn(0f, 1f))
+                        .background(Color.White),
                 )
             }
         }

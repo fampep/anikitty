@@ -14,6 +14,8 @@ import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -38,8 +40,9 @@ fun ShimmerBox(modifier: Modifier = Modifier) {
     val reduced = prefersReducedMotion()
     val base = if (palette.dark) Color(0xFF16161A) else Color(0xFFE6E6E3)
     val highlight = if (palette.dark) Color(0xFF2A2A30) else Color(0xFFF7F7F5)
+    val labeled = modifier.semantics { contentDescription = "Loading" }
     if (reduced) {
-        androidx.compose.foundation.layout.Box(modifier.background(base))
+        androidx.compose.foundation.layout.Box(labeled.background(base))
         return
     }
     val transition = rememberInfiniteTransition(label = "shimmer")
@@ -53,7 +56,7 @@ fun ShimmerBox(modifier: Modifier = Modifier) {
         label = "shimmerX",
     )
     androidx.compose.foundation.layout.Box(
-        modifier.background(
+        labeled.background(
             Brush.linearGradient(
                 colors = listOf(base, highlight, base),
                 start = Offset(travel * 900f - 400f, 0f),
