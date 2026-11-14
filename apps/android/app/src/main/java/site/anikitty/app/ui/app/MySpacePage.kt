@@ -80,6 +80,7 @@ import site.anikitty.app.data.anilist.AniListViewer
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
+import site.anikitty.app.ui.theme.LocalKittyPalette
 
 @Composable
 fun MySpaceFeed(
@@ -97,6 +98,7 @@ fun MySpaceFeed(
     onSignOut: () -> Unit,
     avatarUrl: String? = null,
 ) {
+    val palette = LocalKittyPalette.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var viewer by remember { mutableStateOf<AniListViewer?>(null) }
@@ -283,7 +285,7 @@ fun MySpaceFeed(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black),
+            .background(LocalKittyPalette.current.page),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -306,12 +308,12 @@ fun MySpaceFeed(
                                 fontWeight = FontWeight.SemiBold,
                                 letterSpacing = (-0.5).sp,
                             ),
-                            color = Color.White,
+                            color = palette.text,
                         )
                         Text(
                             text = "Your favorites & history.",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.45f),
+                            color = palette.text.copy(alpha = 0.45f),
                             modifier = Modifier.padding(top = 2.dp),
                         )
                     }
@@ -321,7 +323,7 @@ fun MySpaceFeed(
                     ) {
                         Text(
                             text = if (selecting) "Cancel" else "Select",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = palette.text.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                             modifier = Modifier.spacePress {
                                 if (selecting) leaveSelection() else selecting = true
@@ -436,6 +438,7 @@ private fun CloudSyncBlock(
     onOpen: (AnimeSummary) -> Unit,
     selection: ShowSelection,
 ) {
+    val palette = LocalKittyPalette.current
     val spin = rememberInfiniteTransition(label = "sync")
     val rotation by spin.animateFloat(
         initialValue = 0f,
@@ -464,7 +467,7 @@ private fun CloudSyncBlock(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 1.sp,
                     ),
-                    color = Color.White.copy(alpha = 0.6f),
+                    color = palette.text.copy(alpha = 0.6f),
                 )
                 if (linked) {
                     Box(
@@ -478,7 +481,7 @@ private fun CloudSyncBlock(
                         Icon(
                             imageVector = Icons.Filled.Sync,
                             contentDescription = "Sync AniList",
-                            tint = if (syncing) Color.White else Color.White.copy(alpha = 0.6f),
+                            tint = if (syncing) palette.text else palette.text.copy(alpha = 0.6f),
                             modifier = Modifier
                                 .size(14.dp)
                                 .graphicsLayer { rotationZ = if (syncing) rotation else 0f },
@@ -490,7 +493,7 @@ private fun CloudSyncBlock(
                 Text(
                     text = "Logout",
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = palette.text.copy(alpha = 0.55f),
                     modifier = Modifier.clickable(onClick = onSignOut),
                 )
             }
@@ -502,15 +505,15 @@ private fun CloudSyncBlock(
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF141416))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                    .background(palette.surface)
+                    .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                     .clickable(onClick = onConnect)
                     .padding(16.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "Connect AniList",
-                    color = Color.White,
+                    color = palette.text,
                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                 )
             }
@@ -523,7 +526,7 @@ private fun CloudSyncBlock(
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = palette.text.copy(alpha = 0.5f),
                     strokeWidth = 2.dp,
                 )
             }
@@ -547,12 +550,12 @@ private fun CloudSyncBlock(
                 Column {
                     Text(
                         text = viewer?.name ?: accountLabel.ifBlank { "AniList" },
-                        color = Color.White,
+                        color = palette.text,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                     )
                     Text(
                         text = if (syncing) "Syncing..." else "Connected",
-                        color = Color.White.copy(alpha = if (syncing) 1f else 0.5f),
+                        color = palette.text.copy(alpha = if (syncing) 1f else 0.5f),
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
@@ -612,6 +615,7 @@ private fun ContinueBlock(
     onClear: () -> Unit,
     onOpen: (WatchHistoryEntity) -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier
@@ -626,20 +630,20 @@ private fun ContinueBlock(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp,
                 ),
-                color = Color.White.copy(alpha = 0.6f),
+                color = palette.text.copy(alpha = 0.6f),
             )
             if (rows.isNotEmpty()) {
                 Text(
                     text = if (confirmClear) "Confirm" else "Clear history",
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = palette.text.copy(alpha = 0.7f),
                     modifier = Modifier.clickable(onClick = onClear),
                 )
             }
         }
         if (rows.isEmpty()) {
             EmptyPanel(
-                icon = { Icon(FluentuiSystemIconsMoviesAndTvFilled, null, tint = Color.White.copy(alpha = 0.15f), modifier = Modifier.size(42.dp)) },
+                icon = { Icon(FluentuiSystemIconsMoviesAndTvFilled, null, tint = palette.text.copy(alpha = 0.15f), modifier = Modifier.size(42.dp)) },
                 title = "No watch history",
                 body = "Anime you watch will appear here",
             )
@@ -681,6 +685,7 @@ private fun FavoritesBlock(
     onOpen: (AnimeSummary) -> Unit,
     selection: ShowSelection,
 ) {
+    val palette = LocalKittyPalette.current
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             text = "MY FAVORITES",
@@ -689,7 +694,7 @@ private fun FavoritesBlock(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp,
             ),
-            color = Color.White.copy(alpha = 0.6f),
+            color = palette.text.copy(alpha = 0.6f),
         )
         if (favourites.isEmpty()) {
             EmptyPanel(
@@ -697,7 +702,7 @@ private fun FavoritesBlock(
                     Icon(
                         FluentuiSystemIconsBookmarkOutline,
                         null,
-                        tint = Color.White.copy(alpha = 0.15f),
+                        tint = palette.text.copy(alpha = 0.15f),
                         modifier = Modifier.size(42.dp),
                     )
                 },
@@ -735,13 +740,14 @@ private fun EmptyPanel(
     title: String,
     body: String,
 ) {
+    val palette = LocalKittyPalette.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White.copy(alpha = 0.02f))
-            .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .background(palette.text.copy(alpha = 0.02f))
+            .border(1.dp, palette.text.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
             .padding(vertical = 40.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -753,12 +759,12 @@ private fun EmptyPanel(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = Color.White.copy(alpha = 0.8f),
+                color = palette.text.copy(alpha = 0.8f),
             )
             Text(
                 text = body,
                 style = MaterialTheme.typography.labelMedium,
-                color = Color.White.copy(alpha = 0.4f),
+                color = palette.text.copy(alpha = 0.4f),
             )
         }
     }
@@ -776,10 +782,11 @@ private fun SpacePoster(
     selecting: Boolean = false,
     onLongClick: (() -> Unit)? = null,
 ) {
+    val palette = LocalKittyPalette.current
     val width = if (wide) 180.dp else 140.dp
     val height = if (wide) 102.dp else 80.dp
     val frame by animateColorAsState(
-        if (selected) Color.White else Color.Transparent,
+        if (selected) palette.text else Color.Transparent,
         tween(160),
         label = "posterFrame",
     )
@@ -795,7 +802,7 @@ private fun SpacePoster(
                 .width(width)
                 .height(height)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color.White.copy(alpha = 0.05f)),
+                .background(palette.text.copy(alpha = 0.05f)),
         ) {
             AsyncImage(
                 model = imageUrl,
@@ -818,13 +825,13 @@ private fun SpacePoster(
                         .fillMaxWidth()
                         .height(2.dp)
                         .align(Alignment.BottomStart)
-                        .background(Color.White.copy(alpha = 0.08f)),
+                        .background(palette.text.copy(alpha = 0.08f)),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
                             .fillMaxWidth(progress.coerceIn(0f, 1f))
-                            .background(Color.White),
+                            .background(palette.text),
                     )
                 }
             }
@@ -840,7 +847,7 @@ private fun SpacePoster(
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = title,
-            color = Color.White,
+            color = palette.text,
             style = MaterialTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Medium,
                 fontSize = 12.sp,
@@ -852,7 +859,7 @@ private fun SpacePoster(
         )
         Text(
             text = subtitle,
-            color = Color.White.copy(alpha = 0.4f),
+            color = palette.text.copy(alpha = 0.4f),
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -869,9 +876,10 @@ private fun FavoriteRow(
     selecting: Boolean = false,
     onLongClick: (() -> Unit)? = null,
 ) {
+    val palette = LocalKittyPalette.current
     val score = anime.averageScore?.takeIf { it > 0 }
     val stroke by animateColorAsState(
-        if (selected) Color.White else Color.White.copy(alpha = 0.08f),
+        if (selected) palette.text else palette.text.copy(alpha = 0.08f),
         tween(160),
         label = "favStroke",
     )
@@ -880,7 +888,7 @@ private fun FavoriteRow(
             .fillMaxWidth()
             .spaceHold(onClick = onClick, onLongClick = onLongClick)
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0C0C10))
+            .background(palette.surface)
             .border(if (selected) 1.5.dp else 0.5.dp, stroke, RoundedCornerShape(12.dp)),
     ) {
         if (!anime.bannerImageUrl.isNullOrBlank()) {
@@ -913,7 +921,7 @@ private fun FavoriteRow(
                     .width(72.dp)
                     .aspectRatio(0.7f)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(Color(0xFF141416)),
+                    .background(palette.surface),
             ) {
                 AsyncImage(
                     model = anime.coverImageUrl,
@@ -933,7 +941,7 @@ private fun FavoriteRow(
                     val scoreColor = when {
                         score > 75 -> Color(0xFF4CAF50)
                         score > 50 -> Color(0xFFFFC107)
-                        else -> Color.White
+                        else -> palette.text
                     }
                     Box(
                         modifier = Modifier
@@ -953,7 +961,7 @@ private fun FavoriteRow(
                             Spacer(modifier = Modifier.width(2.dp))
                             Text(
                                 text = "$score%",
-                                color = Color.White,
+                                color = palette.text,
                                 style = MaterialTheme.typography.labelSmall.copy(
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.SemiBold,
@@ -967,7 +975,7 @@ private fun FavoriteRow(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = anime.title,
-                    color = Color.White,
+                    color = palette.text,
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Medium,
                         fontSize = 13.sp,
@@ -981,7 +989,7 @@ private fun FavoriteRow(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = formatText,
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = palette.text.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -994,13 +1002,13 @@ private fun FavoriteRow(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(Color.White.copy(alpha = 0.05f))
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(6.dp))
+                                    .background(palette.text.copy(alpha = 0.05f))
+                                    .border(0.5.dp, palette.text.copy(alpha = 0.06f), RoundedCornerShape(6.dp))
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                             ) {
                                 Text(
                                     text = genre,
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = palette.text.copy(alpha = 0.7f),
                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
                                 )
                             }
@@ -1166,13 +1174,14 @@ private fun WatchSelectBar(
     onAll: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalKittyPalette.current
     val ready = count > 0 && !busy
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF0C0C10))
-            .border(0.5.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+            .background(palette.surface)
+            .border(0.5.dp, palette.text.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -1187,13 +1196,13 @@ private fun WatchSelectBar(
                     count == 1 -> "1 selected"
                     else -> "$count selected"
                 },
-                color = Color.White,
+                color = palette.text,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
             )
             Text(
                 text = "All",
-                color = Color.White.copy(alpha = if (busy) 0.3f else 0.7f),
+                color = palette.text.copy(alpha = if (busy) 0.3f else 0.7f),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
                 modifier = if (busy) Modifier else Modifier.spacePress(onAll),
@@ -1205,27 +1214,27 @@ private fun WatchSelectBar(
         ) {
             Text(
                 text = "Not watched",
-                color = if (ready) Color.White else Color.White.copy(alpha = 0.3f),
+                color = if (ready) palette.text else palette.text.copy(alpha = 0.3f),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White.copy(alpha = if (ready) 0.08f else 0.04f))
+                    .background(palette.text.copy(alpha = if (ready) 0.08f else 0.04f))
                     .then(if (ready) Modifier.spacePress(onNotWatched) else Modifier)
                     .padding(vertical = 10.dp),
             )
             Text(
                 text = "Watched",
-                color = if (ready) Color.Black else Color.Black.copy(alpha = 0.35f),
+                color = if (ready) palette.onAccent else palette.onAccent.copy(alpha = 0.35f),
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (ready) Color.White else Color.White.copy(alpha = 0.35f))
+                    .background(if (ready) palette.text else palette.text.copy(alpha = 0.35f))
                     .then(if (ready) Modifier.spacePress(onWatched) else Modifier)
                     .padding(vertical = 10.dp),
             )
@@ -1233,7 +1242,7 @@ private fun WatchSelectBar(
         if (!note.isNullOrBlank()) {
             Text(
                 text = note,
-                color = Color.White.copy(alpha = 0.55f),
+                color = palette.text.copy(alpha = 0.55f),
                 fontSize = 12.sp,
             )
         }
@@ -1242,19 +1251,20 @@ private fun WatchSelectBar(
 
 @Composable
 private fun SelectMark(selected: Boolean, modifier: Modifier = Modifier) {
+    val palette = LocalKittyPalette.current
     Box(
         modifier = modifier
             .size(22.dp)
             .clip(CircleShape)
-            .background(if (selected) Color.White else Color.Black.copy(alpha = 0.45f))
-            .border(1.5.dp, Color.White, CircleShape),
+            .background(if (selected) palette.text else Color.Black.copy(alpha = 0.45f))
+            .border(1.5.dp, palette.text, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         if (selected) {
             Icon(
                 Icons.Rounded.Check,
                 contentDescription = null,
-                tint = Color.Black,
+                tint = palette.onAccent,
                 modifier = Modifier.size(14.dp),
             )
         }

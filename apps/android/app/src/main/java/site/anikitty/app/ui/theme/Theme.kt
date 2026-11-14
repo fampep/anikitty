@@ -3,10 +3,15 @@
 
 package site.anikitty.app.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -70,6 +75,45 @@ object PlayerChrome {
     val MarkerRecap = Paper.copy(alpha = 0.45f)
 }
 
+@Immutable
+data class KittyPalette(
+    val page: Color,
+    val text: Color,
+    val muted: Color,
+    val faint: Color,
+    val surface: Color,
+    val hairline: Color,
+    val accent: Color,
+    val onAccent: Color,
+    val dark: Boolean,
+)
+
+val KittyDarkPalette = KittyPalette(
+    page = KittyPage,
+    text = KittyText,
+    muted = KittyMuted,
+    faint = KittyFaint,
+    surface = Color(0xFF0C0C10),
+    hairline = KittyOutlineSoft,
+    accent = KittyAccent,
+    onAccent = KittyOnAccent,
+    dark = true,
+)
+
+val KittyLightPalette = KittyPalette(
+    page = Color(0xFFF3F3F1),
+    text = Color(0xFF141414),
+    muted = Color(0xFF5E5E5E),
+    faint = Color(0xFF8A8A8A),
+    surface = Color(0xFFFFFFFF),
+    hairline = Color(0x14141414),
+    accent = Color(0xFF141414),
+    onAccent = Color(0xFFFFFFFF),
+    dark = false,
+)
+
+val LocalKittyPalette = staticCompositionLocalOf { KittyDarkPalette }
+
 private val DarkColors = darkColorScheme(
     primary = KittyAccent,
     onPrimary = KittyOnAccent,
@@ -82,6 +126,20 @@ private val DarkColors = darkColorScheme(
     onSurfaceVariant = KittyMuted,
     outline = KittyOutline,
     error = Color(0xFFE53935),
+)
+
+private val LightColors = lightColorScheme(
+    primary = KittyLightPalette.accent,
+    onPrimary = KittyLightPalette.onAccent,
+    secondary = Color(0xFFE7E7E4),
+    onSecondary = KittyLightPalette.text,
+    background = KittyLightPalette.page,
+    onBackground = KittyLightPalette.text,
+    surface = KittyLightPalette.surface,
+    onSurface = KittyLightPalette.text,
+    onSurfaceVariant = KittyLightPalette.muted,
+    outline = KittyLightPalette.hairline,
+    error = Color(0xFFB42318),
 )
 
 private val KittyTypography = Typography(
@@ -151,9 +209,13 @@ private val KittyTypography = Typography(
 
 @Composable
 fun AniKittyTheme(content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = DarkColors,
-        typography = KittyTypography,
-        content = content,
-    )
+    val dark = isSystemInDarkTheme()
+    val palette = if (dark) KittyDarkPalette else KittyLightPalette
+    CompositionLocalProvider(LocalKittyPalette provides palette) {
+        MaterialTheme(
+            colorScheme = if (dark) DarkColors else LightColors,
+            typography = KittyTypography,
+            content = content,
+        )
+    }
 }

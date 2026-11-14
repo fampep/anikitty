@@ -89,6 +89,8 @@ import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.theme.ShimmerBox
 import kotlin.math.roundToInt
 
 private val SearchGenres = listOf(
@@ -236,7 +238,8 @@ fun SearchFeed(
     val showingResults = items.isNotEmpty() || (query.trim().length >= 2 || pick.on())
     val gridItems = if (items.isNotEmpty()) items else if (!showingResults) discover else emptyList()
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    val palette = LocalKittyPalette.current
+    Box(modifier = Modifier.fillMaxSize().background(palette.page)) {
         LazyVerticalGrid(
             state = gridState,
             columns = if (asGrid) GridCells.Adaptive(100.dp) else GridCells.Fixed(1),
@@ -252,22 +255,21 @@ fun SearchFeed(
         ) {
             if (loading && items.isEmpty() && showingResults) {
                 items(6) {
-                    Box(
+                    ShimmerBox(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(if (asGrid) 150.dp else 84.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.White.copy(alpha = 0.04f)),
+                            .clip(RoundedCornerShape(12.dp)),
                     )
                 }
             } else if (error != null && items.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     Column(Modifier.fillMaxWidth().padding(top = 48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(error ?: "Search failed", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text(error ?: "Search failed", color = palette.text, fontWeight = FontWeight.SemiBold)
                         Spacer(Modifier.height(10.dp))
                         Button(
                             onClick = { runSearch(query) },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+                            colors = ButtonDefaults.buttonColors(containerColor = palette.text, contentColor = palette.onAccent),
                         ) { Text("Retry", fontWeight = FontWeight.Bold) }
                     }
                 }
@@ -277,13 +279,13 @@ fun SearchFeed(
                         modifier = Modifier.fillMaxWidth().padding(top = 72.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(Icons.Filled.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.35f), modifier = Modifier.size(32.dp))
+                        Icon(Icons.Filled.Search, contentDescription = null, tint = palette.text.copy(alpha = 0.35f), modifier = Modifier.size(32.dp))
                         Spacer(Modifier.height(12.dp))
-                        Text("No results found", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("No results found", color = palette.text, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Spacer(Modifier.height(6.dp))
                         Text(
                             "Try a broader title or clear a filter.",
-                            color = Color.White.copy(alpha = 0.45f),
+                            color = palette.text.copy(alpha = 0.45f),
                             fontSize = 13.sp,
                             textAlign = TextAlign.Center,
                         )
@@ -317,7 +319,7 @@ fun SearchFeed(
                 if (loading && items.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(color = palette.text, modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
                         }
                     }
                 }
@@ -336,12 +338,12 @@ fun SearchFeed(
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Search", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
+                Text("Search", color = palette.text, fontWeight = FontWeight.Bold, fontSize = 22.sp, modifier = Modifier.weight(1f))
                 HeaderDisc(onClick = { asGrid = !asGrid }) {
                     Icon(
                         if (asGrid) Icons.AutoMirrored.Filled.ViewList else Icons.Filled.GridView,
                         contentDescription = if (asGrid) "List" else "Grid",
-                        tint = Color.White.copy(alpha = 0.75f),
+                        tint = palette.text.copy(alpha = 0.75f),
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -350,7 +352,7 @@ fun SearchFeed(
                     Icon(
                         FluentuiSystemIconsFilter,
                         contentDescription = "Filters",
-                        tint = if (filtersOpen || pick.on()) Color.White else Color.White.copy(alpha = 0.75f),
+                        tint = if (filtersOpen || pick.on()) palette.text else palette.text.copy(alpha = 0.75f),
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -361,8 +363,8 @@ fun SearchFeed(
                     query = it
                     runSearch(it)
                 },
-                textStyle = TextStyle(color = Color.White, fontSize = 14.sp),
-                cursorBrush = SolidColor(Color.White),
+                textStyle = TextStyle(color = palette.text, fontSize = 14.sp),
+                cursorBrush = SolidColor(palette.text),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { runSearch(query) }),
                 singleLine = true,
@@ -372,16 +374,16 @@ fun SearchFeed(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(19.dp))
-                            .background(Color.White.copy(alpha = 0.05f))
-                            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(19.dp))
+                            .background(palette.text.copy(alpha = 0.05f))
+                            .border(1.dp, palette.text.copy(alpha = 0.12f), RoundedCornerShape(19.dp))
                             .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Filled.Search, contentDescription = null, tint = Color.White.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.Search, contentDescription = null, tint = palette.text.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
                         Box(Modifier.weight(1f)) {
                             if (query.isEmpty()) {
-                                Text("Titles, genres, specials...", color = Color.White.copy(alpha = 0.35f), fontSize = 13.sp)
+                                Text("Titles, genres, specials...", color = palette.text.copy(alpha = 0.35f), fontSize = 13.sp)
                             }
                             inner()
                         }
@@ -389,7 +391,7 @@ fun SearchFeed(
                             Icon(
                                 Icons.Filled.Close,
                                 contentDescription = "Clear search",
-                                tint = Color.White.copy(alpha = 0.6f),
+                                tint = palette.text.copy(alpha = 0.6f),
                                 modifier = Modifier.size(16.dp).clickable {
                                     query = ""
                                     runSearch("")
@@ -409,15 +411,15 @@ fun SearchFeed(
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color.White.copy(alpha = 0.12f))
-                                .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
+                                .background(palette.text.copy(alpha = 0.12f))
+                                .border(1.dp, palette.text.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
                                 .clickable(onClick = chip.clear)
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Text(chip.label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text(chip.label, color = palette.text, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             Spacer(Modifier.width(6.dp))
-                            Icon(Icons.Filled.Close, contentDescription = "Remove ${chip.label}", tint = Color.White, modifier = Modifier.size(12.dp))
+                            Icon(Icons.Filled.Close, contentDescription = "Remove ${chip.label}", tint = palette.text, modifier = Modifier.size(12.dp))
                         }
                     }
                 }
@@ -441,7 +443,7 @@ fun SearchFeed(
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text("Filters", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Filters", color = palette.text, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 FilterChoice("FORMAT", listOf("TV", "TV_SHORT", "MOVIE", "SPECIAL", "OVA", "ONA"), pick.format, ::formatLabel) {
                     update(pick.copy(format = it))
                 }
@@ -487,17 +489,17 @@ fun SearchFeed(
                 ) { a, b ->
                     update(pick.copy(durationFrom = a.takeIf { it > 1 }, durationTo = b.takeIf { it < 180 }))
                 }
-                Text("GENRES", color = Color.White.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+                Text("GENRES", color = palette.text.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
                 FlowChips(SearchGenres, pick.genres) { name ->
                     val next = if (name in pick.genres) pick.genres - name else pick.genres + name
                     update(pick.copy(genres = next))
                 }
-                Text("TAGS", color = Color.White.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+                Text("TAGS", color = palette.text.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
                 FlowChips(SearchTags, pick.tags) { name ->
                     val next = if (name in pick.tags) pick.tags - name else pick.tags + name
                     update(pick.copy(tags = next))
                 }
-                Text("SORT BY", color = Color.White.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+                Text("SORT BY", color = palette.text.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
                 FlowChips(
                     listOf("POPULARITY_DESC", "SCORE_DESC", "TRENDING_DESC", "START_DATE_DESC", "EPISODES_DESC"),
                     setOf(pick.sort),
@@ -507,7 +509,7 @@ fun SearchFeed(
                     onClick = { update(SearchPick()) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.12f), contentColor = Color.White),
+                    colors = ButtonDefaults.buttonColors(containerColor = palette.text.copy(alpha = 0.12f), contentColor = palette.text),
                 ) { Text("Clear all filters", fontWeight = FontWeight.Bold) }
             }
         }
@@ -555,8 +557,9 @@ private fun FilterChoice(
     label: (String) -> String,
     onPick: (String?) -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     Column {
-        Text(title, color = Color.White.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+        Text(title, color = palette.text.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
         Spacer(Modifier.height(6.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             item {
@@ -594,13 +597,14 @@ private fun RangeBlock(
     label: (Int, Int) -> String,
     onFinish: (Int, Int) -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     var local by remember(start, end) { mutableStateOf(start..end) }
     Column {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(title, color = Color.White.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
+            Text(title, color = palette.text.copy(alpha = 0.4f), fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 1.sp)
             Text(
                 label(local.start.roundToInt(), local.endInclusive.roundToInt()),
-                color = Color.White,
+                color = palette.text,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
             )
@@ -616,15 +620,16 @@ private fun RangeBlock(
 
 @Composable
 private fun SearchFilterChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    val palette = LocalKittyPalette.current
     Text(
         text,
-        color = if (selected) Color.White else Color.White.copy(alpha = 0.7f),
+        color = if (selected) palette.text else palette.text.copy(alpha = 0.7f),
         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
         fontSize = 11.sp,
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(if (selected) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.04f))
-            .border(0.5.dp, Color.White.copy(alpha = if (selected) 0.4f else 0.08f), RoundedCornerShape(10.dp))
+            .background(if (selected) palette.text.copy(alpha = 0.16f) else palette.text.copy(alpha = 0.04f))
+            .border(0.5.dp, palette.text.copy(alpha = if (selected) 0.4f else 0.08f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
@@ -632,12 +637,13 @@ private fun SearchFilterChip(text: String, selected: Boolean, onClick: () -> Uni
 
 @Composable
 private fun HeaderDisc(onClick: () -> Unit, selected: Boolean = false, content: @Composable () -> Unit) {
+    val palette = LocalKittyPalette.current
     Box(
         modifier = Modifier
             .size(34.dp)
             .clip(CircleShape)
-            .background(if (selected) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.05f))
-            .border(1.dp, Color.White.copy(alpha = if (selected) 0.35f else 0.08f), CircleShape)
+            .background(if (selected) palette.text.copy(alpha = 0.16f) else palette.text.copy(alpha = 0.05f))
+            .border(1.dp, palette.text.copy(alpha = if (selected) 0.35f else 0.08f), CircleShape)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { content() }
@@ -645,6 +651,7 @@ private fun HeaderDisc(onClick: () -> Unit, selected: Boolean = false, content: 
 
 @Composable
 private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Unit) {
+    val palette = LocalKittyPalette.current
     Column(Modifier.clickable(onClick = onClick)) {
         AsyncImage(
             model = anime.coverImageUrl,
@@ -654,12 +661,12 @@ private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Uni
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
                 .clip(RoundedCornerShape(3.dp))
-                .background(Color(0xFF141416)),
+                .background(palette.surface),
         )
         Spacer(Modifier.height(6.dp))
         Text(
             anime.title,
-            color = Color.White,
+            color = palette.text,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
             maxLines = 2,
@@ -674,7 +681,7 @@ private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Uni
             if (!aired.isNullOrBlank()) {
                 Text(
                     aired,
-                    color = Color.White.copy(alpha = 0.4f),
+                    color = palette.text.copy(alpha = 0.4f),
                     fontSize = 11.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -683,7 +690,7 @@ private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Uni
             }
             anime.format?.takeIf { it.isNotBlank() }?.let { format ->
                 if (!aired.isNullOrBlank()) Spacer(Modifier.width(6.dp))
-                Text(formatLabel(format), color = Color.White.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 1)
+                Text(formatLabel(format), color = palette.text.copy(alpha = 0.55f), fontSize = 11.sp, maxLines = 1)
             }
             if (anime.status.equals("RELEASING", true)) {
                 Spacer(Modifier.width(5.dp))
@@ -691,27 +698,28 @@ private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Uni
                     Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(Color.White),
+                        .background(palette.text),
                 )
             }
         }
-        badge?.let { Text(it, color = Color.White.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Medium) }
+        badge?.let { Text(it, color = palette.text.copy(alpha = 0.7f), fontSize = 10.sp, fontWeight = FontWeight.Medium) }
     }
 }
 
 @Composable
 private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Unit) {
+    val palette = LocalKittyPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0C0C10))
-            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .background(palette.surface)
+            .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.width(72.dp).aspectRatio(0.7f).clip(RoundedCornerShape(8.dp)).background(Color(0xFF141416))) {
+        Box(Modifier.width(72.dp).aspectRatio(0.7f).clip(RoundedCornerShape(8.dp)).background(palette.surface)) {
             AsyncImage(
                 model = anime.coverImageUrl,
                 contentDescription = anime.title,
@@ -724,19 +732,19 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(anime.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(anime.title, color = palette.text, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val meta = listOfNotNull(formatLabel(anime.format ?: ""), anime.seasonYear?.toString(), anime.episodes?.let { "$it eps" })
                 .filter { it.isNotBlank() }
                 .joinToString(" · ")
             if (meta.isNotEmpty()) {
-                Text(meta, color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp, maxLines = 1)
+                Text(meta, color = palette.text.copy(alpha = 0.6f), fontSize = 11.sp, maxLines = 1)
             }
             if (anime.genres.isNotEmpty()) {
                 Spacer(Modifier.height(4.dp))
-                Text(anime.genres.take(3).joinToString("  ·  "), color = Color.White.copy(alpha = 0.45f), fontSize = 10.sp, maxLines = 1)
+                Text(anime.genres.take(3).joinToString("  ·  "), color = palette.text.copy(alpha = 0.45f), fontSize = 10.sp, maxLines = 1)
             }
             badge?.let {
-                Text(it, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(it, color = palette.text, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -744,6 +752,7 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
 
 @Composable
 private fun ScoreBadge(text: String, score: Int, modifier: Modifier = Modifier) {
+    val palette = LocalKittyPalette.current
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
@@ -751,9 +760,9 @@ private fun ScoreBadge(text: String, score: Int, modifier: Modifier = Modifier) 
             .padding(horizontal = 5.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(FluentuiSystemIconsStarFilled, contentDescription = null, tint = Color.White, modifier = Modifier.size(9.dp))
+        Icon(FluentuiSystemIconsStarFilled, contentDescription = null, tint = palette.text, modifier = Modifier.size(9.dp))
         Spacer(Modifier.width(2.dp))
-        Text(text, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = palette.text, fontSize = 9.sp, fontWeight = FontWeight.Bold)
     }
 }
 

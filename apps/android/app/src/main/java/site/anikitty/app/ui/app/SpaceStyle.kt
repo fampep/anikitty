@@ -4,7 +4,9 @@
 package site.anikitty.app.ui.app
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +34,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import coil.compose.AsyncImage
 import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonOutline
+import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.theme.prefersReducedMotion
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -44,8 +48,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-private val SpaceCardColor = Color(0xFF0C0C10)
 
 /** Round AniList picture, the same mark My Space uses next to the name. */
 @Composable
@@ -81,13 +83,17 @@ fun ProfileMark(
 private val SpaceShape = RoundedCornerShape(12.dp)
 private val ChipShape = RoundedCornerShape(16.dp)
 
-/** Press sinks the control a little, then it springs back. */
+/** Press sinks the control, then a spring brings it back. Reduced motion stays still. */
 fun Modifier.spacePress(onClick: () -> Unit): Modifier = composed {
+    val reduced = prefersReducedMotion()
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.97f else 1f,
-        animationSpec = tween(140),
+        targetValue = if (!reduced && pressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
         label = "press",
     )
     graphicsLayer {
@@ -168,14 +174,15 @@ fun SpaceCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     Column(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
             .clip(SpaceShape)
             .then(if (onClick != null) Modifier.spacePress(onClick) else Modifier)
-            .background(SpaceCardColor)
-            .border(0.5.dp, Color.White.copy(alpha = 0.08f), SpaceShape)
+            .background(palette.surface)
+            .border(0.5.dp, palette.hairline, SpaceShape)
             .padding(14.dp),
         content = content,
     )

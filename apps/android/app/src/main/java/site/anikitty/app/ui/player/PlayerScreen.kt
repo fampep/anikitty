@@ -21,9 +21,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -73,6 +75,8 @@ import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Speed
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastSessionHelper
+import site.anikitty.app.ui.components.EpisodeCarousel
+import site.anikitty.app.ui.components.EpisodeSlide
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
@@ -87,6 +91,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -144,6 +149,7 @@ import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.CaptionStyleCompat
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.servers.GotakuObfDataSource
@@ -224,6 +230,9 @@ fun PlayerScreen(
     isMovie: Boolean = false,
     onPickEpisode: ((Int) -> Unit)? = null,
     onPickAudio: ((String) -> Unit)? = null,
+    episodeSlides: List<EpisodeSlide> = emptyList(),
+    fallbackArt: String? = null,
+    stageModifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val activity = context as? Activity
@@ -1619,9 +1628,38 @@ fun PlayerScreen(
     }
     }
 
+    var dismissY by remember { mutableFloatStateOf(0f) }
+    val dismissScope = rememberCoroutineScope()
+    fun Modifier.dismissDrag(): Modifier = pointerInput(onClose) {
+        detectVerticalDragGestures(
+            onVerticalDrag = { change, drag ->
+                if (drag > 0f || dismissY > 0f) {
+                    change.consume()
+                    dismissY = (dismissY + drag).coerceAtLeast(0f)
+                }
+            },
+            onDragEnd = {
+                if (dismissY > 160f) {
+                    onClose()
+                } else {
+                    val from = dismissY
+                    dismissScope.launch {
+                        animate(from, 0f) { value, _ -> dismissY = value }
+                    }
+                }
+            },
+            onDragCancel = {
+                val from = dismissY
+                dismissScope.launch {
+                    animate(from, 0f) { value, _ -> dismissY = value }
+                }
+            },
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .offset { androidx.compose.ui.unit.IntOffset(0, dismissY.toInt()) }
             .background(Color.Black),
     ) {
         if (!theater) {
@@ -1632,6 +1670,7 @@ fun PlayerScreen(
                 isMovie = isMovie,
                 onBack = onClose,
                 onExpand = { theater = true },
+                modifier = Modifier.dismissDrag(),
             )
         }
         val watchFraction = if (durationMs > 0L) {
@@ -1640,15 +1679,17 @@ fun PlayerScreen(
             0f
         }
         VideoStage(
-            modifier = if (theater) {
-                Modifier.weight(1f)
-            } else {
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .aspectRatio(16f / 9f)
-            },
+            modifier = stageModifier.then(
+                if (theater) {
+                    Modifier.weight(1f)
+                } else {
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .aspectRatio(16f / 9f)
+                },
+            ),
         )
         if (!theater && durationMs > 0L) {
             Box(
@@ -1683,7 +1724,9 @@ fun PlayerScreen(
                     autoNext = !autoNext
                     playerPrefs.edit().putBoolean("auto_next", autoNext).apply()
                 },
-                modifier = Modifier.weight(1f),
+                episodeSlides = episodeSlides,
+                fallbackArt = fallbackArt,
+                modifier = Modifier.weight(1f).dismissDrag(),
             )
         }
     }
@@ -1697,9 +1740,10 @@ private fun PlayerPageBar(
     isMovie: Boolean,
     onBack: () -> Unit,
     onExpand: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .background(Color.Black)
             .windowInsetsPadding(WindowInsets.statusBars)
@@ -1776,15 +1820,12 @@ private fun PlayerEpisodeShelf(
     onPickEpisode: (Int) -> Unit,
     onPickAudio: (String) -> Unit,
     onToggleAutoNext: () -> Unit,
+    episodeSlides: List<EpisodeSlide>,
+    fallbackArt: String?,
     modifier: Modifier = Modifier,
 ) {
     val showGrid = !isMovie && totalEpisodes > 1
     var jump by remember { mutableStateOf("") }
-    val pageSize = 100
-    val rangeCount = ((totalEpisodes + pageSize - 1) / pageSize).coerceAtLeast(1)
-    var browseRange by remember(episode, rangeCount) {
-        mutableIntStateOf(((episode - 1) / pageSize).coerceIn(0, (rangeCount - 1).coerceAtLeast(0)))
-    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -1922,79 +1963,35 @@ private fun PlayerEpisodeShelf(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    "EPISODES",
-                    color = Color.White.copy(alpha = 0.6f),
+                    "Episodes",
+                    color = Color.White,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 11.sp,
-                    letterSpacing = 1.sp,
+                    fontSize = 16.sp,
+                    letterSpacing = (-0.2).sp,
                 )
                 Text(
                     "$totalEpisodes",
                     color = Color.White.copy(alpha = 0.45f),
                     fontWeight = FontWeight.Medium,
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                 )
             }
-            if (rangeCount > 1) {
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    for (index in 0 until rangeCount) {
-                        val start = index * pageSize + 1
-                        val end = minOf(totalEpisodes, start + pageSize - 1)
-                        val selected = browseRange == index
-                        val rangeBg by animateColorAsState(
-                            if (selected) Color.White else Color.White.copy(alpha = 0.06f),
-                            tween(180),
-                            label = "rangeBg",
-                        )
-                        val rangeText by animateColorAsState(
-                            if (selected) Color.Black else Color.White.copy(alpha = 0.75f),
-                            tween(180),
-                            label = "rangeText",
-                        )
-                        Text(
-                            "$start–$end",
-                            color = rangeText,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(rangeBg)
-                                .spacePress { browseRange = index }
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        )
-                    }
+            val slides = if (episodeSlides.isNotEmpty()) {
+                episodeSlides
+            } else {
+                (1..totalEpisodes).map { number ->
+                    EpisodeSlide(number, "Episode $number", null)
                 }
             }
-            val rangeStart = browseRange * pageSize + 1
-            val rangeEnd = minOf(totalEpisodes, rangeStart + pageSize - 1)
-            (rangeStart..rangeEnd).toList().chunked(6).forEach { rowItems ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    rowItems.forEach { number ->
-                        val selected = number == episode
-                        val progress = when {
-                            number == episode -> positionFraction
-                            number <= watchedThrough -> 1f
-                            else -> 0f
-                        }
-                        EpisodeShelfCell(
-                            number = number,
-                            progress = progress,
-                            selected = selected,
-                            onClick = { onPickEpisode(number) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    }
-                    repeat(6 - rowItems.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
+            EpisodeCarousel(
+                slides = slides,
+                current = episode,
+                watchedThrough = watchedThrough,
+                currentProgress = positionFraction,
+                fallbackArt = fallbackArt,
+                onPick = onPickEpisode,
+                onDark = true,
+            )
         }
     }
 }

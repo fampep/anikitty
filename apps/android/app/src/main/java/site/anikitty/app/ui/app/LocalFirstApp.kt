@@ -7,8 +7,18 @@ import androidx.activity.compose.BackHandler
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.BoundsTransform
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -136,6 +146,8 @@ import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.AnimatedSearchIcon
+import site.anikitty.app.ui.components.EpisodeCarousel
+import site.anikitty.app.ui.components.EpisodeSlide
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.icons.FluentuiSystemIconsCalendarClockFilled
 import site.anikitty.app.ui.icons.FluentuiSystemIconsCalendarClockOutline
@@ -159,6 +171,9 @@ import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.theme.ShimmerBox
+import site.anikitty.app.ui.theme.prefersReducedMotion
 import site.anikitty.app.ui.theme.KittyOnAccent
 import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittyOutlineSoft
@@ -179,6 +194,7 @@ private sealed class Screen {
     data object Builds : Screen()
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun LocalFirstApp(
     aniList: AniListClient,
@@ -307,7 +323,51 @@ fun LocalFirstApp(
         )
     }
 
-    when (val current = screen) {
+    if (screen is Screen.Detail || screen is Screen.Player) {
+        val reducedMotion = prefersReducedMotion()
+        val bounds = BoundsTransform { _, _ ->
+            if (reducedMotion) {
+                snap()
+            } else {
+                spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow,
+                )
+            }
+        }
+        SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+            val shared = this
+            AnimatedContent(
+                targetState = screen,
+                contentKey = { state ->
+                    when (state) {
+                        is Screen.Player -> "player-${state.anime.id}-${state.episode}"
+                        is Screen.Detail -> "detail-${state.anime.id}"
+                        else -> state.toString()
+                    }
+                },
+                transitionSpec = {
+                    if (reducedMotion) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        fadeIn(tween(240)) togetherWith fadeOut(tween(180))
+                    }
+                },
+                label = "watch",
+            ) { current ->
+                val animeId = when (current) {
+                    is Screen.Player -> current.anime.id
+                    is Screen.Detail -> current.anime.id
+                    else -> 0
+                }
+                val artModifier = with(shared) {
+                    Modifier.sharedElement(
+                        rememberSharedContentState(key = "art-$animeId"),
+                        animatedVisibilityScope = this@AnimatedContent,
+                        boundsTransform = bounds,
+                    )
+                }
+                when (current) {
         is Screen.Player -> {
             var resumeMs by remember(current.anime.id, current.episode) { mutableStateOf(0L) }
             var watchedThrough by remember(current.anime.id) {
@@ -424,21 +484,18 @@ fun LocalFirstApp(
                 onPickAudio = { picked ->
                     if (picked != playerAudio) openResolved(current.episode, picked)
                 },
+                episodeSlides = current.anime.episodeItems().map { item ->
+                    EpisodeSlide(
+                        number = item.number,
+                        title = item.title,
+                        imageUrl = item.thumbnailUrl?.takeIf { url ->
+                            url.isNotBlank() && url != current.anime.coverImageUrl
+                        },
+                    )
+                },
+                fallbackArt = current.anime.bannerImageUrl ?: current.anime.coverImageUrl,
+                stageModifier = artModifier,
             )
-            return
-        }
-        Screen.Schedule -> {
-            ScheduleFeed(
-                aniList = aniList,
-                onBack = { screen = Screen.Tabs },
-                onOpen = { openDetail(it) },
-                followedEpisodes = followedEpisodes,
-            )
-            return
-        }
-        Screen.Builds -> {
-            BuildChannelPage(onBack = { screen = Screen.Tabs })
-            return
         }
         is Screen.Detail -> {
             TitleDetailScreen(
@@ -466,10 +523,31 @@ fun LocalFirstApp(
                 onPlay = { episode, sources, resolvedAnime ->
                     screen = Screen.Player(resolvedAnime, episode, sources)
                 },
+                posterModifier = artModifier,
+            )
+        }
+        else -> Unit
+                }
+            }
+        }
+        return
+    }
+
+    when (screen) {
+        Screen.Schedule -> {
+            ScheduleFeed(
+                aniList = aniList,
+                onBack = { screen = Screen.Tabs },
+                onOpen = { openDetail(it) },
+                followedEpisodes = followedEpisodes,
             )
             return
         }
-        Screen.Tabs -> Unit
+        Screen.Builds -> {
+            BuildChannelPage(onBack = { screen = Screen.Tabs })
+            return
+        }
+        else -> Unit
     }
 
     @Composable
@@ -677,7 +755,8 @@ private fun HomeFeed(
         onOpen(anime, null)
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    val pageColor = LocalKittyPalette.current.page
+    Box(modifier = Modifier.fillMaxSize().background(pageColor)) {
         when {
             loading && trending.isEmpty() -> {
                 Column(modifier = Modifier.fillMaxSize()) {
@@ -688,12 +767,26 @@ private fun HomeFeed(
                         onOpenAccount = onOpenAccount,
                         avatarUrl = aniListAuth.avatarUrl,
                     )
-                    Box(
+                    ShimmerBox(
                         modifier = Modifier
+                            .padding(horizontal = 16.dp)
                             .fillMaxWidth()
-                            .height(280.dp)
-                            .background(Color(0xFF0C0C10)),
+                            .height(210.dp)
+                            .clip(RoundedCornerShape(8.dp)),
                     )
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        repeat(3) {
+                            ShimmerBox(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(2f / 3f)
+                                    .clip(RoundedCornerShape(4.dp)),
+                            )
+                        }
+                    }
                 }
             }
             error != null && trending.isEmpty() -> {
@@ -1423,6 +1516,7 @@ internal fun SettingsFeed(
     homeLayout: HomeLayoutStore,
     openAccountTick: Int = 0,
 ) {
+    val palette = LocalKittyPalette.current
     val selectedId by catalog.selectedId.collectAsState()
     val resolvers by catalog.resolvers.collectAsState()
     val installedExt by catalog.extensions.installed.collectAsState()
@@ -1442,7 +1536,7 @@ internal fun SettingsFeed(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black)
+            .background(LocalKittyPalette.current.page)
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(bottom = 100.dp),
     ) {
@@ -1553,7 +1647,7 @@ internal fun SettingsFeed(
                                 Text(
                                     linkStatus,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = palette.text.copy(alpha = 0.5f),
                                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                                 )
                             }
@@ -1563,12 +1657,12 @@ internal fun SettingsFeed(
                             SpaceCard(onClick = { AniListOAuth.openAuthorize(context) }) {
                                 Text(
                                     "Connect AniList",
-                                    color = Color.White,
+                                    color = palette.text,
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                                 )
                                 Text(
                                     "Your list and the next episode come back with you.",
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = palette.text.copy(alpha = 0.5f),
                                     style = MaterialTheme.typography.bodySmall,
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
@@ -1577,7 +1671,7 @@ internal fun SettingsFeed(
                                 Text(
                                     linkStatus,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = palette.text.copy(alpha = 0.5f),
                                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                                 )
                             }
@@ -1619,7 +1713,7 @@ internal fun SettingsFeed(
                         if (extensionStatus != null) {
                             Text(
                                 extensionStatus!!,
-                                color = Color.White.copy(alpha = 0.5f),
+                                color = palette.text.copy(alpha = 0.5f),
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                             )
@@ -1634,10 +1728,10 @@ internal fun SettingsFeed(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .spacePress { catalog.select(server.id) }
-                                .background(Color(0xFF0C0C10))
+                                .background(palette.surface)
                                 .border(
                                     0.5.dp,
-                                    if (selected) Color.White.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.08f),
+                                    if (selected) palette.text.copy(alpha = 0.45f) else palette.text.copy(alpha = 0.08f),
                                     RoundedCornerShape(12.dp),
                                 )
                                 .padding(14.dp),
@@ -1711,7 +1805,7 @@ internal fun SettingsFeed(
                     item {
                         Text(
                             "Copyright 2026 fampep. Apache License 2.0.",
-                            color = Color.White.copy(alpha = 0.45f),
+                            color = palette.text.copy(alpha = 0.45f),
                             fontSize = 13.sp,
                             modifier = Modifier.padding(horizontal = 20.dp),
                         )
@@ -1732,6 +1826,7 @@ private fun SettingsHubRow(
     avatarUrl: String? = null,
     useAvatar: Boolean = false,
 ) {
+    val palette = LocalKittyPalette.current
     SpaceCard(onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (useAvatar) {
@@ -1741,23 +1836,23 @@ private fun SettingsHubRow(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF141416)),
+                        .background(palette.surface),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Icon(icon, contentDescription = null, tint = palette.text, modifier = Modifier.size(18.dp))
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
-                    color = Color.White,
+                    color = palette.text,
                     fontWeight = FontWeight.Medium,
                     fontSize = 15.sp,
                 )
                 Text(
                     detail,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = palette.muted,
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1766,7 +1861,7 @@ private fun SettingsHubRow(
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.35f),
+                tint = palette.muted,
             )
         }
     }
@@ -1785,7 +1880,9 @@ private fun TitleDetailScreen(
     onOpenGenre: (String) -> Unit,
     aniListAuth: AniListAuthStore,
     onPlay: (episode: Int, sources: List<PlayableSource>, anime: AnimeSummary) -> Unit,
+    posterModifier: Modifier = Modifier,
 ) {
+    val palette = LocalKittyPalette.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -2001,14 +2098,24 @@ private fun TitleDetailScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
-        LazyColumn(contentPadding = PaddingValues(bottom = 148.dp)) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val reducedMotion = prefersReducedMotion()
+    Box(modifier = Modifier.fillMaxSize().background(LocalKittyPalette.current.page)) {
+        LazyColumn(
+            state = listState,
+            contentPadding = PaddingValues(bottom = 148.dp),
+        ) {
             item {
                 Column(
                     modifier = Modifier
                         .windowInsetsPadding(WindowInsets.statusBars)
                         .padding(start = 16.dp, end = 16.dp, top = 52.dp),
                 ) {
+                    val bannerDrift = if (reducedMotion) {
+                        0f
+                    } else {
+                        listState.firstVisibleItemScrollOffset * 0.28f
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -2018,7 +2125,13 @@ private fun TitleDetailScreen(
                         AsyncImage(
                             model = detail.bannerImageUrl ?: detail.coverImageUrl,
                             contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    translationY = bannerDrift
+                                    scaleX = 1.08f
+                                    scaleY = 1.08f
+                                },
                             contentScale = ContentScale.Crop,
                         )
                         Box(
@@ -2042,17 +2155,17 @@ private fun TitleDetailScreen(
                             model = detail.coverImageUrl,
                             contentDescription = detail.title,
                             contentScale = ContentScale.Crop,
-                            modifier = Modifier
+                            modifier = posterModifier
                                 .width(92.dp)
                                 .aspectRatio(2f / 3f)
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(Color(0xFF141416)),
+                                .background(palette.surface),
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.Top) {
                                 Text(
                                     detail.title,
-                                    color = Color.White,
+                                    color = palette.text,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 20.sp,
                                     lineHeight = 24.sp,
@@ -2065,7 +2178,7 @@ private fun TitleDetailScreen(
                                     Icon(
                                         if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                         contentDescription = if (favourite) "Remove favourite" else "Favourite",
-                                        tint = Color.White,
+                                        tint = palette.text,
                                         modifier = Modifier
                                             .padding(start = 8.dp)
                                             .size(22.dp)
@@ -2079,7 +2192,7 @@ private fun TitleDetailScreen(
                             if (altTitle.isNotBlank()) {
                                 Text(
                                     altTitle,
-                                    color = Color.White.copy(alpha = 0.45f),
+                                    color = palette.text.copy(alpha = 0.45f),
                                     fontSize = 12.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -2108,7 +2221,7 @@ private fun TitleDetailScreen(
                             if (detailMeta.isNotEmpty()) {
                                 Text(
                                     detailMeta.joinToString("  ·  "),
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = palette.text.copy(alpha = 0.7f),
                                     fontSize = 12.sp,
                                     lineHeight = 16.sp,
                                     modifier = Modifier.padding(top = 6.dp),
@@ -2117,7 +2230,7 @@ private fun TitleDetailScreen(
                             detail.studios.firstOrNull()?.let { studio ->
                                 Text(
                                     studio,
-                                    color = Color.White.copy(alpha = 0.4f),
+                                    color = palette.text.copy(alpha = 0.4f),
                                     fontSize = 12.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
@@ -2131,7 +2244,7 @@ private fun TitleDetailScreen(
                                 val countdown = if (days > 0) "${days}d ${hours}h" else "${hours}h"
                                 Text(
                                     "Episode ${next.episode} in $countdown",
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = palette.text.copy(alpha = 0.7f),
                                     fontSize = 12.sp,
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
@@ -2139,7 +2252,7 @@ private fun TitleDetailScreen(
                             if (!movie && (detail.durationMinutes ?: 0) > 0) {
                                 Text(
                                     "About ${detail.durationMinutes} min each",
-                                    color = Color.White.copy(alpha = 0.4f),
+                                    color = palette.text.copy(alpha = 0.4f),
                                     fontSize = 12.sp,
                                     modifier = Modifier.padding(top = 4.dp),
                                 )
@@ -2172,7 +2285,7 @@ private fun TitleDetailScreen(
                         ) {
                             Text(
                                 if (listScore > 0) "Your score ${listScore / 10}" else "Your score",
-                                color = Color.White.copy(alpha = 0.45f),
+                                color = palette.text.copy(alpha = 0.45f),
                                 fontSize = 12.sp,
                             )
                             (1..10).forEach { point ->
@@ -2196,7 +2309,7 @@ private fun TitleDetailScreen(
                     if (detailLoading) {
                         Text(
                             "Loading AniList…",
-                            color = Color.White.copy(alpha = 0.4f),
+                            color = palette.text.copy(alpha = 0.4f),
                             fontSize = 12.sp,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -2229,7 +2342,7 @@ private fun TitleDetailScreen(
                                         .align(Alignment.Center)
                                         .size(52.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White),
+                                        .background(palette.text),
                                     contentAlignment = Alignment.Center,
                                 ) {
                                     Icon(
@@ -2244,7 +2357,7 @@ private fun TitleDetailScreen(
                                     modifier = Modifier
                                         .align(Alignment.BottomStart)
                                         .padding(12.dp),
-                                    color = Color.White,
+                                    color = palette.text,
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 13.sp,
                                 )
@@ -2263,7 +2376,7 @@ private fun TitleDetailScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 "$watchedCount of $totalEps watched",
-                                color = Color.White.copy(alpha = 0.45f),
+                                color = palette.text.copy(alpha = 0.45f),
                                 fontSize = 12.sp,
                             )
                             Spacer(modifier = Modifier.height(8.dp))
@@ -2272,13 +2385,13 @@ private fun TitleDetailScreen(
                                     .fillMaxWidth()
                                     .height(2.dp)
                                     .clip(RoundedCornerShape(999.dp))
-                                    .background(Color.White.copy(alpha = 0.08f)),
+                                    .background(palette.text.copy(alpha = 0.08f)),
                             ) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth(fraction)
                                         .height(2.dp)
-                                        .background(Color.White),
+                                        .background(palette.text),
                                 )
                             }
                         }
@@ -2289,7 +2402,7 @@ private fun TitleDetailScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 detail.description!!,
-                                color = Color.White.copy(alpha = 0.72f),
+                                color = palette.text.copy(alpha = 0.72f),
                                 fontSize = 14.sp,
                                 lineHeight = 20.sp,
                                 maxLines = if (synopsisExpanded) 40 else 6,
@@ -2297,7 +2410,7 @@ private fun TitleDetailScreen(
                             )
                             Text(
                                 if (synopsisExpanded) "Show less" else "Read more",
-                                color = Color.White,
+                                color = palette.text,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.sp,
                                 modifier = Modifier
@@ -2349,7 +2462,7 @@ private fun TitleDetailScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             "Related",
-                            color = Color.White,
+                            color = palette.text,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = (-0.2).sp,
@@ -2377,8 +2490,8 @@ private fun TitleDetailScreen(
                                             )
                                         }
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF0C0C10))
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                                        .background(palette.surface)
+                                        .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                         .padding(6.dp),
                                 ) {
                                     AsyncImage(
@@ -2388,14 +2501,14 @@ private fun TitleDetailScreen(
                                             .fillMaxWidth()
                                             .aspectRatio(2f / 3f)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFF141416)),
+                                            .background(palette.surface),
                                         contentScale = ContentScale.Crop,
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
                                     Text(
                                         rel.relationType.uppercase(),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White.copy(alpha = 0.5f),
+                                        color = palette.text.copy(alpha = 0.5f),
                                         fontWeight = FontWeight.SemiBold,
                                         letterSpacing = 0.6.sp,
                                         maxLines = 1,
@@ -2434,7 +2547,7 @@ private fun TitleDetailScreen(
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
                             "Recommended",
-                            color = Color.White,
+                            color = palette.text,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = (-0.2).sp,
@@ -2447,8 +2560,8 @@ private fun TitleDetailScreen(
                                         .width(112.dp)
                                         .spacePress { onOpenRelated(rec) }
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(Color(0xFF0C0C10))
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                                        .background(palette.surface)
+                                        .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                                         .padding(6.dp),
                                 ) {
                                     AsyncImage(
@@ -2458,7 +2571,7 @@ private fun TitleDetailScreen(
                                             .fillMaxWidth()
                                             .aspectRatio(2f / 3f)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(Color(0xFF141416)),
+                                            .background(palette.surface),
                                         contentScale = ContentScale.Crop,
                                     )
                                     Spacer(modifier = Modifier.height(6.dp))
@@ -2483,12 +2596,12 @@ private fun TitleDetailScreen(
                         listOf("sub" to "Subtitled", "dub" to "Dubbed").forEach { (key, label) ->
                             val selected = audio == key
                             val background by animateColorAsState(
-                                if (selected) Color.White else Color(0xFF0C0C10),
+                                if (selected) palette.text else palette.surface,
                                 tween(180),
                                 label = "audioBg",
                             )
                             val textColor by animateColorAsState(
-                                if (selected) Color.Black else Color.White.copy(alpha = 0.7f),
+                                if (selected) Color.Black else palette.text.copy(alpha = 0.7f),
                                 tween(180),
                                 label = "audioText",
                             )
@@ -2504,7 +2617,7 @@ private fun TitleDetailScreen(
                                     .background(background)
                                     .border(
                                         0.5.dp,
-                                        if (selected) Color.White else Color.White.copy(alpha = 0.08f),
+                                        if (selected) palette.text else palette.text.copy(alpha = 0.08f),
                                         RoundedCornerShape(16.dp),
                                     ),
                                 contentAlignment = Alignment.Center,
@@ -2521,7 +2634,7 @@ private fun TitleDetailScreen(
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
                         "Source",
-                        color = Color.White,
+                        color = palette.text,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = (-0.2).sp,
@@ -2532,8 +2645,8 @@ private fun TitleDetailScreen(
                             .fillMaxWidth()
                             .spacePress(onChangeSource)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF0C0C10))
-                            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+                            .background(palette.surface)
+                            .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -2551,7 +2664,7 @@ private fun TitleDetailScreen(
                             )
                             Text(
                                 "Tap to change",
-                                color = Color.White.copy(alpha = 0.45f),
+                                color = palette.text.copy(alpha = 0.45f),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Medium,
                             )
@@ -2568,18 +2681,18 @@ private fun TitleDetailScreen(
                                 .weight(1f)
                                 .height(36.dp)
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFF0C0C10))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .background(palette.surface)
+                                .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
                                 .padding(horizontal = 12.dp),
                             contentAlignment = Alignment.CenterStart,
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("#", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("#", color = palette.text.copy(alpha = 0.3f), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 Spacer(modifier = Modifier.width(4.dp))
                                 BasicTextField(
                                     value = epJump,
                                     onValueChange = { next -> if (next.all { it.isDigit() }) epJump = next },
-                                    textStyle = TextStyle(color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium),
+                                    textStyle = TextStyle(color = palette.text, fontSize = 11.sp, fontWeight = FontWeight.Medium),
                                     keyboardOptions = KeyboardOptions(
                                         keyboardType = KeyboardType.Number,
                                         imeAction = ImeAction.Go,
@@ -2599,7 +2712,7 @@ private fun TitleDetailScreen(
                                     singleLine = true,
                                     decorationBox = { inner ->
                                         if (epJump.isEmpty()) {
-                                            Text("Ep...", color = Color.White.copy(alpha = 0.3f), fontSize = 11.sp)
+                                            Text("Ep...", color = palette.text.copy(alpha = 0.3f), fontSize = 11.sp)
                                         }
                                         inner()
                                     },
@@ -2641,14 +2754,14 @@ private fun TitleDetailScreen(
                     ) {
                         Text(
                             "Episodes",
-                            color = Color.White,
+                            color = palette.text,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 16.sp,
                             letterSpacing = (-0.2).sp,
                         )
                         Text(
                             "$maxEp",
-                            color = Color.White.copy(alpha = 0.45f),
+                            color = palette.text.copy(alpha = 0.45f),
                             fontWeight = FontWeight.Medium,
                             fontSize = 13.sp,
                         )
@@ -2687,7 +2800,7 @@ private fun TitleDetailScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             "Seasons",
-                            color = Color.White,
+                            color = palette.text,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = (-0.2).sp,
@@ -2740,7 +2853,7 @@ private fun TitleDetailScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(78.dp)
-                                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                                .border(1.dp, palette.text.copy(alpha = 0.12f), RoundedCornerShape(4.dp))
                                 .clip(RoundedCornerShape(4.dp)),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -2751,7 +2864,7 @@ private fun TitleDetailScreen(
                                 modifier = Modifier
                                     .width(128.dp)
                                     .fillMaxHeight()
-                                    .background(Color(0xFF141416)),
+                                    .background(palette.surface),
                             )
                             Column(
                                 modifier = Modifier
@@ -2763,12 +2876,12 @@ private fun TitleDetailScreen(
                                         modifier = Modifier
                                             .size(7.dp)
                                             .clip(CircleShape)
-                                            .background(Color.White),
+                                            .background(palette.text),
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         "${selectedEpisode.number}. ${selectedEpisode.title}",
-                                        color = Color.White,
+                                        color = palette.text,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 14.sp,
                                         maxLines = 2,
@@ -2778,7 +2891,7 @@ private fun TitleDetailScreen(
                                 selectedEpisode.site?.takeIf { it.isNotBlank() }?.let { site ->
                                     Text(
                                         site,
-                                        color = Color.White.copy(alpha = 0.4f),
+                                        color = palette.text.copy(alpha = 0.4f),
                                         fontSize = 11.sp,
                                         maxLines = 1,
                                         modifier = Modifier.padding(start = 15.dp, top = 4.dp),
@@ -2792,76 +2905,27 @@ private fun TitleDetailScreen(
                         detail.listState?.progress ?: 0,
                         (lastWatchedEp - 1).coerceAtLeast(0),
                     )
-                    if (finishedThrough > 0) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            EpisodeLegendDot(KittySurfaceElevated, "Watched")
-                            EpisodeLegendDot(KittyAccent.copy(alpha = 0.22f), "Up next")
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-                    val columns = 6
                     val rangeStart = browseRange * episodePageSize + 1
                     val rangeEnd = minOf(maxEp, rangeStart + episodePageSize - 1)
-                    episodeList.map { it.number }
-                        .filter { it in rangeStart..rangeEnd }
-                        .chunked(columns)
-                        .forEach { rowItems ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            rowItems.forEach { number ->
-                                val selected = number == episode
-                                val watched = finishedThrough > 0 && number <= finishedThrough
-                                val continueEp = !watched && number == finishedThrough + 1
-                                val cellBg by animateColorAsState(
-                                    when {
-                                        selected -> Color.White
-                                        continueEp -> Color.White.copy(alpha = 0.14f)
-                                        watched -> Color.White.copy(alpha = 0.04f)
-                                        else -> Color(0xFF0C0C10)
+                    EpisodeCarousel(
+                        slides = episodeList
+                            .filter { it.number in rangeStart..rangeEnd }
+                            .map { item ->
+                                EpisodeSlide(
+                                    number = item.number,
+                                    title = item.title,
+                                    imageUrl = item.thumbnailUrl?.takeIf { url ->
+                                        url != detail.coverImageUrl
                                     },
-                                    tween(180),
-                                    label = "epBg",
                                 )
-                                val cellText by animateColorAsState(
-                                    when {
-                                        selected -> Color.Black
-                                        watched -> Color.White.copy(alpha = 0.35f)
-                                        else -> Color.White.copy(alpha = 0.9f)
-                                    },
-                                    tween(180),
-                                    label = "epText",
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .aspectRatio(1f)
-                                        .spacePress { episode = number }
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(cellBg)
-                                        .border(
-                                            width = 0.5.dp,
-                                            color = if (selected) Color.White else Color.White.copy(alpha = 0.08f),
-                                            shape = RoundedCornerShape(12.dp),
-                                        ),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        "$number",
-                                        fontSize = 14.sp,
-                                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                                        color = cellText,
-                                    )
-                                }
-                            }
-                            repeat(columns - rowItems.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
+                            },
+                        current = episode,
+                        watchedThrough = finishedThrough,
+                        currentProgress = 0f,
+                        fallbackArt = detail.bannerImageUrl ?: detail.coverImageUrl,
+                        onPick = { episode = it },
+                        modifier = Modifier.padding(horizontal = 0.dp),
+                    )
                     if (status != null) {
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
@@ -2888,7 +2952,7 @@ private fun TitleDetailScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(Color.White.copy(alpha = 0.08f)),
+                    .background(palette.text.copy(alpha = 0.08f)),
             )
             Column(
                 modifier = Modifier
@@ -2910,13 +2974,13 @@ private fun TitleDetailScreen(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(Color(0xFF0C0C10))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+                                .background(palette.surface)
+                                .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
                                 .padding(horizontal = 10.dp, vertical = 5.dp),
                         ) {
                             Text(
                                 "Ep $episode · ${audio.uppercase()}",
-                                color = Color.White,
+                                color = palette.text,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 12.sp,
                             )
@@ -2933,7 +2997,7 @@ private fun TitleDetailScreen(
                     activeServer?.name?.let { name ->
                         Text(
                             name,
-                            color = Color.White.copy(alpha = 0.55f),
+                            color = palette.text.copy(alpha = 0.55f),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Medium,
                             maxLines = 1,
@@ -2966,15 +3030,15 @@ private fun TitleDetailScreen(
                         .height(48.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = Color.Black,
+                        containerColor = palette.text,
+                        contentColor = palette.onAccent,
                     ),
                 ) {
                     if (resolving) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(22.dp),
                             strokeWidth = 2.dp,
-                            color = Color.Black,
+                            color = palette.onAccent,
                         )
                     } else {
                         Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = Color.Black)
@@ -2982,7 +3046,7 @@ private fun TitleDetailScreen(
                         Text(
                             "Play episode $episode",
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.Black,
+                            color = palette.onAccent,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -2998,14 +3062,14 @@ private fun TitleDetailScreen(
                 .size(36.dp)
                 .spacePress(onBack)
                 .clip(CircleShape)
-                .background(Color(0xFF141416))
-                .border(0.5.dp, Color.White.copy(alpha = 0.1f), CircleShape),
+                .background(palette.surface)
+                .border(0.5.dp, palette.text.copy(alpha = 0.1f), CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = "Back",
-                tint = Color.White,
+                tint = palette.text,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -3019,16 +3083,17 @@ private fun EpisodeTool(
     selected: Boolean = false,
     onClick: () -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     val filled = selected
     val background by animateColorAsState(
-        if (filled) Color.White else Color(0xFF0C0C10),
+        if (filled) palette.accent else palette.surface,
         tween(180),
         label = "toolBg",
     )
     val tint = when {
-        filled -> Color.Black
-        enabled -> Color.White.copy(alpha = 0.85f)
-        else -> Color.White.copy(alpha = 0.3f)
+        filled -> palette.onAccent
+        enabled -> palette.text.copy(alpha = 0.85f)
+        else -> palette.text.copy(alpha = 0.3f)
     }
     Box(
         modifier = Modifier
@@ -3038,7 +3103,7 @@ private fun EpisodeTool(
             .background(background)
             .border(
                 0.5.dp,
-                if (filled) Color.White else Color.White.copy(alpha = if (enabled) 0.08f else 0.04f),
+                if (filled) palette.accent else palette.hairline,
                 RoundedCornerShape(16.dp),
             )
             .padding(horizontal = 12.dp),
