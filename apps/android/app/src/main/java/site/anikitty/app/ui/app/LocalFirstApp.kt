@@ -6,9 +6,6 @@ package site.anikitty.app.ui.app
 import androidx.activity.compose.BackHandler
 import android.content.Intent
 import android.net.Uri
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -38,7 +35,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -61,20 +57,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Extension
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.History
@@ -121,11 +109,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -1828,7 +1814,6 @@ private fun TitleDetailScreen(
     var listBusy by remember(anime.id) { mutableStateOf(false) }
     var lastWatchedEp by remember(anime.id) { mutableIntStateOf(0) }
     var synopsisExpanded by remember(anime.id) { mutableStateOf(false) }
-    var trailerPlaying by remember(anime.id) { mutableStateOf(false) }
     var detailLoading by remember(anime.id) { mutableStateOf(!anime.detailLoaded) }
     var episodeList by remember(anime.id) { mutableStateOf(anime.episodeItems()) }
     val maxEp = episodeList.maxOfOrNull { it.number }?.coerceAtLeast(1) ?: 1
@@ -2019,83 +2004,124 @@ private fun TitleDetailScreen(
     Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         LazyColumn(contentPadding = PaddingValues(bottom = 148.dp)) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(220.dp),
-                ) {
-                    AsyncImage(
-                        model = detail.bannerImageUrl ?: detail.coverImageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.25f),
-                                    0.45f to Color.Transparent,
-                                    1f to Color.Black,
-                                ),
-                            ),
-                    )
-                }
-            }
-            item {
                 Column(
                     modifier = Modifier
-                        .offset(y = (-45).dp)
-                        .padding(horizontal = 24.dp),
+                        .windowInsetsPadding(WindowInsets.statusBars)
+                        .padding(start = 16.dp, end = 16.dp, top = 52.dp),
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(168.dp)
+                            .clip(RoundedCornerShape(8.dp)),
+                    ) {
+                        AsyncImage(
+                            model = detail.bannerImageUrl ?: detail.coverImageUrl,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        0.5f to Color.Transparent,
+                                        1f to Color.Black.copy(alpha = 0.55f),
+                                    ),
+                                ),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         AsyncImage(
                             model = detail.coverImageUrl,
                             contentDescription = detail.title,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
-                                .width(108.dp)
+                                .width(92.dp)
                                 .aspectRatio(2f / 3f)
-                                .clip(RoundedCornerShape(3.dp))
+                                .clip(RoundedCornerShape(4.dp))
                                 .background(Color(0xFF141416)),
                         )
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(
-                                detail.title,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 22.sp,
-                                lineHeight = 26.sp,
-                                letterSpacing = (-0.3).sp,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.Top) {
+                                Text(
+                                    detail.title,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 20.sp,
+                                    lineHeight = 24.sp,
+                                    letterSpacing = (-0.3).sp,
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                if (aniListAuth.isLinked) {
+                                    Icon(
+                                        if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                        contentDescription = if (favourite) "Remove favourite" else "Favourite",
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .padding(start = 8.dp)
+                                            .size(22.dp)
+                                            .spacePress { toggleFavourite() },
+                                    )
+                                }
+                            }
                             val altTitle = listOfNotNull(detail.romajiTitle, detail.nativeTitle)
                                 .distinct()
                                 .joinToString("  ·  ")
                             if (altTitle.isNotBlank()) {
                                 Text(
                                     altTitle,
-                                    color = Color.White.copy(alpha = 0.5f),
+                                    color = Color.White.copy(alpha = 0.45f),
                                     fontSize = 12.sp,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
-                            listBadge?.let { badge ->
+                            val movie = detail.format.equals("MOVIE", true)
+                            val detailMeta = listOfNotNull(
+                                detail.format?.takeIf { it.isNotBlank() }?.let { format ->
+                                    when (format.uppercase()) {
+                                        "TV_SHORT" -> "TV Short"
+                                        "MOVIE" -> "Movie"
+                                        else -> format
+                                    }
+                                },
+                                detail.airedLabel(),
+                                if (movie) {
+                                    detail.durationMinutes?.let { "$it min" }
+                                } else {
+                                    shownEpisodeCount?.let { "$it eps" }
+                                },
+                                detail.scoreLabel(),
+                                detail.statusLabel(),
+                                listBadge,
+                            )
+                            if (detailMeta.isNotEmpty()) {
                                 Text(
-                                    badge,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 11.sp,
+                                    detailMeta.joinToString("  ·  "),
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 12.sp,
+                                    lineHeight = 16.sp,
+                                    modifier = Modifier.padding(top = 6.dp),
+                                )
+                            }
+                            detail.studios.firstOrNull()?.let { studio ->
+                                Text(
+                                    studio,
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 12.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
                             detail.nextAiring?.let { next ->
@@ -2103,112 +2129,25 @@ private fun TitleDetailScreen(
                                 val days = left / 86_400
                                 val hours = (left % 86_400) / 3_600
                                 val countdown = if (days > 0) "${days}d ${hours}h" else "${hours}h"
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(Color.White.copy(alpha = 0.12f))
-                                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                                ) {
-                                    Icon(
-                                        Icons.Filled.CalendarMonth,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(10.dp),
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        "EP ${next.episode}: $countdown",
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 9.sp,
-                                    )
-                                }
+                                Text(
+                                    "Episode ${next.episode} in $countdown",
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
                             }
-                        }
-                    }
-                    val detailMeta = listOfNotNull(
-                        detail.format?.takeIf { it.isNotBlank() }?.let { format ->
-                            when (format.uppercase()) {
-                                "TV_SHORT" -> "TV Short"
-                                "MOVIE" -> "Movie"
-                                else -> format
-                            }
-                        },
-                        shownEpisodeCount?.let { "$it episodes" },
-                        detail.status?.takeIf { it.isNotBlank() }?.let { "(${it.uppercase()})" },
-                        detail.airedLabel(),
-                        detail.season?.uppercase(),
-                        detail.averageScore?.let { "$it / 100" },
-                        detail.popularity?.takeIf { it > 0 }?.let { "%,d".format(it) },
-                    )
-                    if (detailMeta.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            detailMeta.joinToString("   "),
-                            color = Color.White.copy(alpha = 0.62f),
-                            fontSize = 12.sp,
-                            lineHeight = 16.sp,
-                        )
-                    }
-                    if (detail.genres.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            detail.genres.joinToString(", "),
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Button(
-                            onClick = { playSelected() },
-                            enabled = !resolving,
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = Color.Black,
-                            ),
-                        ) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                when {
-                                    lastWatchedEp > 0 -> "Play Ep. $episode"
-                                    else -> "Play now"
-                                },
-                                fontWeight = FontWeight.SemiBold,
-                                color = Color.Black,
-                            )
-                        }
-                        if (aniListAuth.isLinked) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .spacePress { toggleFavourite() }
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(Color(0xFF0C0C10))
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp)),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    if (favourite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                    contentDescription = if (favourite) "Remove favourite" else "Favourite",
-                                    tint = if (favourite) Color.White else Color.White.copy(alpha = 0.7f),
+                            if (!movie && (detail.durationMinutes ?: 0) > 0) {
+                                Text(
+                                    "About ${detail.durationMinutes} min each",
+                                    color = Color.White.copy(alpha = 0.4f),
+                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(top = 4.dp),
                                 )
                             }
                         }
                     }
                     if (aniListAuth.isLinked) {
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -2232,10 +2171,9 @@ private fun TitleDetailScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "Score",
-                                color = Color.White.copy(alpha = 0.55f),
+                                if (listScore > 0) "Your score ${listScore / 10}" else "Your score",
+                                color = Color.White.copy(alpha = 0.45f),
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold,
                             )
                             (1..10).forEach { point ->
                                 Chip(point.toString(), selected = listScore / 10 == point) {
@@ -2247,160 +2185,34 @@ private fun TitleDetailScreen(
                 }
             }
             item {
-                val score = detail.averageScore
-                val movie = detail.format.equals("MOVIE", true)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFF0C0C10))
-                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    DetailStat(
-                        value = score?.let { "$it%" } ?: "--",
-                        label = "Score",
-                        icon = Icons.Filled.Star,
-                        color = Color.White,
-                    )
-                    DetailStatDivider()
-                    DetailStat(
-                        value = if (movie) {
-                            "${detail.durationMinutes ?: "--"}m"
-                        } else {
-                            shownEpisodeCount?.let { "$it EP" } ?: "--"
-                        },
-                        label = if (movie) "Duration" else "Episodes",
-                        icon = if (movie) Icons.Filled.Movie else Icons.AutoMirrored.Filled.FormatListBulleted,
-                    )
-                    DetailStatDivider()
-                    DetailStat(
-                        value = detail.seasonYear?.toString() ?: "--",
-                        label = "Year",
-                        icon = Icons.Filled.CalendarMonth,
-                    )
-                    DetailStatDivider()
-                    DetailStat(
-                        value = detail.format ?: "TV",
-                        label = "Format",
-                        icon = Icons.Filled.Info,
-                    )
-                }
-                if (!movie && (detail.durationMinutes ?: 0) > 0) {
-                    Text(
-                        "About ${detail.durationMinutes} min each",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        color = Color.White.copy(alpha = 0.45f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                if (listScore > 0) {
-                    Text(
-                        "Your score ${listScore / 10} / 10",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 6.dp),
-                        color = Color.White.copy(alpha = 0.7f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-            item {
                 Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-                    if (
-                        detail.genres.isNotEmpty() ||
-                        detail.studios.isNotEmpty() ||
-                        detail.popularity != null ||
-                        detailLoading ||
-                        !detail.seasonLabel().isNullOrBlank()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF0C0C10))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                .padding(16.dp),
-                        ) {
-                            Text(
-                                "DETAILS",
-                                color = Color.White.copy(alpha = 0.6f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.sp,
-                            )
-                            if (detail.genres.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                KittyMetaChips(
-                                    items = detail.genres.take(8),
-                                    onItemClick = onOpenGenre,
-                                )
-                            }
-                            val facts = listOfNotNull(
-                                detail.seasonLabel(),
-                                detail.statusLabel(),
-                                detail.studios.takeIf { it.isNotEmpty() }?.joinToString(" · "),
-                                detail.popularity?.let { "${"%,d".format(it)} on AniList" },
-                            )
-                            if (facts.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    facts.joinToString("  ·  "),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = KittyMuted,
-                                )
-                            }
-                            if (detailLoading) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    "Loading AniList…",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = KittyFaint,
-                                )
-                            }
-                        }
+                    if (detail.genres.isNotEmpty()) {
+                        KittyMetaChips(
+                            items = detail.genres.take(8),
+                            onItemClick = onOpenGenre,
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                    }
+                    if (detailLoading) {
+                        Text(
+                            "Loading AniList…",
+                            color = Color.White.copy(alpha = 0.4f),
+                            fontSize = 12.sp,
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                     }
 
                     detail.trailer?.let { trailer ->
                         val thumb = trailer.thumbnailUrl
                         val watch = trailer.watchUrl()
-                        val youtube = trailer.site.equals("youtube", ignoreCase = true)
                         if (watch != null) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(16f / 9f)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        if (youtube) trailerPlaying = true else openUrl(watch)
-                                    },
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { openUrl(watch) },
                             ) {
-                                if (youtube && trailerPlaying) {
-                                    AndroidView(
-                                        factory = { ctx ->
-                                            WebView(ctx).apply {
-                                                webViewClient = WebViewClient()
-                                                webChromeClient = WebChromeClient()
-                                                settings.javaScriptEnabled = true
-                                                settings.mediaPlaybackRequiresUserGesture = false
-                                                setBackgroundColor(android.graphics.Color.BLACK)
-                                                loadUrl("https://www.youtube.com/embed/${trailer.id}?autoplay=1&playsinline=1")
-                                            }
-                                        },
-                                        modifier = Modifier.fillMaxSize(),
-                                    )
-                                } else {
                                 AsyncImage(
                                     model = thumb ?: detail.bannerImageUrl ?: detail.coverImageUrl,
                                     contentDescription = "Trailer",
@@ -2428,19 +2240,14 @@ private fun TitleDetailScreen(
                                     )
                                 }
                                 Text(
-                                    "Trailer · ${trailer.site.replaceFirstChar { it.titlecase() }}",
+                                    "Trailer",
                                     modifier = Modifier
                                         .align(Alignment.BottomStart)
-                                        .padding(12.dp)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(Color(0xFF0C0C10))
-                                        .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
-                                        .padding(horizontal = 10.dp, vertical = 5.dp),
-                                    style = MaterialTheme.typography.labelMedium,
+                                        .padding(12.dp),
                                     color = Color.White,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 13.sp,
                                 )
-                                }
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                         }
@@ -2453,33 +2260,13 @@ private fun TitleDetailScreen(
                     val totalEps = shownEpisodeCount
                     if (totalEps != null && totalEps > 0 && watchedCount > 0) {
                         val fraction = (watchedCount.toFloat() / totalEps.toFloat()).coerceIn(0f, 1f)
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFF0C0C10))
-                                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-                                .padding(14.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                            ) {
-                                Text(
-                                    "YOUR PROGRESS",
-                                    color = Color.White.copy(alpha = 0.6f),
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 11.sp,
-                                    letterSpacing = 1.sp,
-                                )
-                                Text(
-                                    "$watchedCount of $totalEps",
-                                    color = Color.White.copy(alpha = 0.45f),
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                "$watchedCount of $totalEps watched",
+                                color = Color.White.copy(alpha = 0.45f),
+                                fontSize = 12.sp,
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -2561,17 +2348,11 @@ private fun TitleDetailScreen(
                     if (relatedExtras.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
-                            "RELATED",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
+                            "Related",
+                            color = Color.White,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp,
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Spin-offs and more. Seasons switch below.",
-                            color = Color.White.copy(alpha = 0.4f),
-                            fontSize = 12.sp,
+                            letterSpacing = (-0.2).sp,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         LazyRow(
@@ -2652,11 +2433,11 @@ private fun TitleDetailScreen(
                     if (detail.recommendations.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(20.dp))
                         Text(
-                            "RECOMMENDED",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
+                            "Recommended",
+                            color = Color.White,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp,
+                            letterSpacing = (-0.2).sp,
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2739,17 +2520,11 @@ private fun TitleDetailScreen(
                     }
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
-                        "SOURCE",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 11.sp,
+                        "Source",
+                        color = Color.White,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        "Play tries this first, then the other installed providers.",
-                        color = Color.White.copy(alpha = 0.4f),
-                        fontSize = 12.sp,
+                        letterSpacing = (-0.2).sp,
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(
@@ -2865,17 +2640,17 @@ private fun TitleDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            "EPISODES",
-                            color = Color.White.copy(alpha = 0.6f),
+                            "Episodes",
+                            color = Color.White,
                             fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
-                            letterSpacing = 1.sp,
+                            fontSize = 16.sp,
+                            letterSpacing = (-0.2).sp,
                         )
                         Text(
                             "$maxEp",
                             color = Color.White.copy(alpha = 0.45f),
                             fontWeight = FontWeight.Medium,
-                            fontSize = 11.sp,
+                            fontSize = 13.sp,
                         )
                     }
                     val selectedTitle = episodeList.firstOrNull { it.number == episode }?.title
@@ -2911,11 +2686,11 @@ private fun TitleDetailScreen(
                     if (seasonTabs.size > 1) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "SEASONS",
-                            color = Color.White.copy(alpha = 0.6f),
-                            fontSize = 11.sp,
+                            "Seasons",
+                            color = Color.White,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp,
+                            letterSpacing = (-0.2).sp,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
@@ -3235,46 +3010,6 @@ private fun TitleDetailScreen(
             )
         }
     }
-}
-
-@Composable
-private fun DetailStat(
-    value: String,
-    label: String,
-    icon: ImageVector? = null,
-    color: Color = Color.White,
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        if (icon != null) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = color.copy(alpha = 0.6f),
-                modifier = Modifier.size(16.dp),
-            )
-        }
-        Text(value, color = color, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Text(
-            label.uppercase(),
-            color = Color.White.copy(alpha = 0.3f),
-            fontSize = 9.sp,
-            letterSpacing = 1.sp,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-}
-
-@Composable
-private fun DetailStatDivider() {
-    Box(
-        modifier = Modifier
-            .height(24.dp)
-            .width(1.dp)
-            .background(Color.White.copy(alpha = 0.1f)),
-    )
 }
 
 @Composable
@@ -3603,11 +3338,11 @@ private fun EpisodeLegendDot(color: Color, label: String) {
 private fun PersonRow(title: String, people: List<site.anikitty.app.data.anilist.AnimePerson>) {
     Column {
         Text(
-            title.uppercase(),
-            color = Color.White.copy(alpha = 0.6f),
+            title,
+            color = Color.White,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 11.sp,
-            letterSpacing = 1.sp,
+            fontSize = 16.sp,
+            letterSpacing = (-0.2).sp,
         )
         Spacer(modifier = Modifier.height(10.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
