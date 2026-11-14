@@ -23,13 +23,14 @@ import java.util.regex.Pattern
 /**
  * On-device ani.pm → Settlar resolve (same shape as Anikoto/Gotaku).
  *
- * Flow:
- * 1. Map AniList id → ani.pm site id (partner catalogue)
- * 2. `playback-bootstrap/settlar/{siteId}` → `settlarSelection`
- * 3. `settlar/session` → Settlar embed token
- * 4. `embed.settlar.io/api/embed/session` → HLS master + captions
+ * Preferred flow is the public embed page (the player NekoWatch loads in an iframe).
+ * The page is scraped for its nonce; the stream still plays in Media3, not a WebView:
+ * 1. `GET /embed/ani/{anilistId}/{ep}/{lang}` → `anipm-embed-config` nonce
+ * 2. `GET /api/partner/v1/session?n=` → Settlar token
+ * 3. `embed.settlar.io/api/embed/session` → HLS master + captions
  *
- * Media3 pulls bytes from `media.settlar.io`; no WebView.
+ * If that page is blocked, fall back to the site-id bootstrap and its backup embed.
+ * Media3 pulls bytes from `media.settlar.io`.
  */
 class AniPmServer(
     private val cache: ResolveCache? = null,
@@ -61,36 +62,47 @@ class AniPmServer(
         val mode = if (audio.equals("dub", ignoreCase = true)) "dub" else "sub"
 
         warmUp()
-        val siteId = mapSiteId(anilistId, titleHint)
-        val boot = fetchBootstrap(siteId, episode, mode)
-        val selection = boot.optString("settlarSelection").trim()
-        require(selection.isNotEmpty()) { "ani.pm missing settlarSelection" }
-        val effective = boot.optString("effectiveLanguage", mode).ifBlank { mode }
-        val avail = boot.optJSONObject("availability")
-        if (mode == "dub" && avail?.optBoolean("dub", true) == false) {
-            error("Dub unavailable for episode $episode")
-        }
-        if (mode != "dub" && avail?.optBoolean("sub", true) == false) {
-            error("Sub unavailable for episode $episode")
-        }
-
-        val channel = if (effective.equals("dub", ignoreCase = true)) "dub" else "sub"
-        val primary = runCatching { openSettlar(selection, episode, channel) }
-        var opened = primary.getOrNull()
-            ?: openBackup(boot, episode, channel)
-            ?: throw primary.exceptionOrNull() ?: IllegalStateException(BLOCKED)
-        // Settlar HLS keys live at …/~key or …/~key/{height} and 403 without this proof.
-        var headers = streamHeaders(opened.session.optString("keyProof").trim())
-        if (!probeMaster(opened.master, headers)) {
-            val backup = openBackup(boot, episode, channel)
-            val backupHeaders = backup?.let { streamHeaders(it.session.optString("keyProof").trim()) }
-            if (backup != null && backup.master != opened.master &&
-                backupHeaders != null && probeMaster(backup.master, backupHeaders)
-            ) {
-                opened = backup
-                headers = backupHeaders
-            } else {
-                error(BLOCKED)
+        val channel = if (mode.equals("dub", ignoreCase = true)) "dub" else "sub"
+        val fromEmbed = runCatching { openPartnerEmbed(anilistId, episode, channel) }
+        val embedTry = fromEmbed.getOrNull()
+        val embedHeaders = embedTry?.let { streamHeaders(it.session.optString("keyProof").trim()) }
+        var opened: OpenedStream
+        var headers: Map<String, String>
+        if (embedTry != null && embedHeaders != null && probeMaster(embedTry.master, embedHeaders)) {
+            opened = embedTry
+            headers = embedHeaders
+        } else {
+            val siteId = mapSiteId(anilistId, titleHint)
+            val boot = fetchBootstrap(siteId, episode, mode)
+            val selection = boot.optString("settlarSelection").trim()
+            require(selection.isNotEmpty()) { "ani.pm missing settlarSelection" }
+            val effective = boot.optString("effectiveLanguage", mode).ifBlank { mode }
+            val avail = boot.optJSONObject("availability")
+            if (mode == "dub" && avail?.optBoolean("dub", true) == false) {
+                error("Dub unavailable for episode $episode")
+            }
+            if (mode != "dub" && avail?.optBoolean("sub", true) == false) {
+                error("Sub unavailable for episode $episode")
+            }
+            val fallbackChannel = if (effective.equals("dub", ignoreCase = true)) "dub" else "sub"
+            val primary = runCatching { openSettlar(selection, episode, fallbackChannel) }
+            opened = primary.getOrNull()
+                ?: openBackup(boot, episode, fallbackChannel)
+                ?: throw primary.exceptionOrNull() ?: fromEmbed.exceptionOrNull()
+                    ?: IllegalStateException(BLOCKED)
+            // Settlar HLS keys live at …/~key or …/~key/{height} and 403 without this proof.
+            headers = streamHeaders(opened.session.optString("keyProof").trim())
+            if (!probeMaster(opened.master, headers)) {
+                val backup = openBackup(boot, episode, fallbackChannel)
+                val backupHeaders = backup?.let { streamHeaders(it.session.optString("keyProof").trim()) }
+                if (backup != null && backup.master != opened.master &&
+                    backupHeaders != null && probeMaster(backup.master, backupHeaders)
+                ) {
+                    opened = backup
+                    headers = backupHeaders
+                } else {
+                    error(fromEmbed.exceptionOrNull()?.message ?: BLOCKED)
+                }
             }
         }
         val session = opened.session
@@ -163,6 +175,32 @@ class AniPmServer(
         val selection = backup.optString("selection").trim()
         if (selection.isEmpty()) return null
         return runCatching { openSettlar(selection, episode, channel) }.getOrNull()
+    }
+
+    /**
+     * Scrape the embed page NekoWatch loads (`/embed/ani/{id}/{ep}/{lang}`).
+     * The nonce in `anipm-embed-config` is what that page sends to the partner session.
+     */
+    private fun openPartnerEmbed(anilistId: Int, episode: Int, channel: String): OpenedStream {
+        val embedUrl = partnerEmbedUrl(anilistId, episode, channel)
+        val html = httpText(embedUrl, "$SITE_URL/", accept = "text/html", origin = null)
+        val nonce = aniPmEmbedNonce(html) ?: error(BLOCKED)
+        val body = httpText(
+            partnerSessionUrl(nonce, anilistId, episode, channel),
+            embedUrl,
+            accept = "application/json",
+            origin = SITE_URL,
+        )
+        val token = JSONObject(body).optString("token").trim()
+        require(token.isNotEmpty()) { "Ani.pm partner session missing token" }
+        val session = fetchEmbedSession(token, embedUrl)
+        val master = session.optString("source").trim()
+        require(master.startsWith("http")) { "Settlar HLS missing" }
+        val kind = session.optString("kind", "hls")
+        require(kind.equals("hls", ignoreCase = true) || master.contains("m3u8") || master.contains("/object/")) {
+            "Unexpected Settlar kind: $kind"
+        }
+        return OpenedStream(session, master, embedUrl)
     }
 
     private fun mapSiteId(anilistId: Int, titleHint: String?): String {
@@ -438,4 +476,34 @@ internal fun aniPmHttpFailure(code: Int, body: String): String {
         code == 403 || code == 503 || challenge -> AniPmServer.BLOCKED
         else -> "Ani.pm could not load this episode (HTTP $code)."
     }
+}
+
+/** Embed URL NekoWatch puts in its Ani.pm iframe. Playback stays in Media3. */
+internal fun partnerEmbedUrl(anilistId: Int, episode: Int, channel: String): String =
+    "${AniPmServer.SITE_URL}/embed/ani/$anilistId/$episode/$channel?autonext=0&episodes=0&adult=0"
+
+/** Partner session the embed page calls with the nonce scraped from its config. */
+internal fun partnerSessionUrl(
+    nonce: String,
+    anilistId: Int,
+    episode: Int,
+    channel: String,
+): String {
+    val encoded = URLEncoder.encode(nonce, StandardCharsets.UTF_8.name())
+    return "${AniPmServer.SITE_URL}/api/partner/v1/session" +
+        "?n=$encoded&id=$anilistId&ep=$episode&lang=$channel&hardsub=0&adult=0"
+}
+
+/** Nonce from `<script id="anipm-embed-config">`. Null when the page is a challenge. */
+internal fun aniPmEmbedNonce(html: String): String? {
+    val idAt = html.indexOf("anipm-embed-config", ignoreCase = true)
+    if (idAt < 0) return null
+    val open = html.indexOf('>', idAt)
+    if (open < 0 || open > idAt + 80) return null
+    val close = html.indexOf('<', open + 1)
+    if (close < 0) return null
+    val raw = html.substring(open + 1, close)
+    val nonce = Pattern.compile("\"nonce\"\\s*:\\s*\"([^\"]+)\"").matcher(raw)
+    if (!nonce.find()) return null
+    return nonce.group(1)?.trim()?.ifBlank { null }
 }
