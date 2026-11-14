@@ -370,6 +370,7 @@ internal fun HomePosterGrid(
 internal fun HomePosterRow(
     items: List<AnimeSummary>,
     onOpen: (AnimeSummary) -> Unit,
+    captions: Map<Int, String> = emptyMap(),
 ) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
@@ -379,6 +380,7 @@ internal fun HomePosterRow(
             HomePosterCell(
                 anime = anime,
                 onOpen = onOpen,
+                caption = captions[anime.id],
                 modifier = Modifier.width(104.dp),
             )
         }
@@ -390,6 +392,7 @@ private fun HomePosterCell(
     anime: AnimeSummary,
     onOpen: (AnimeSummary) -> Unit,
     modifier: Modifier = Modifier,
+    caption: String? = null,
 ) {
     val palette = LocalKittyPalette.current
     Column(modifier = modifier.spacePress { onOpen(anime) }) {
@@ -414,7 +417,7 @@ private fun HomePosterCell(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 6.dp),
         )
-        val meta = listOfNotNull(
+        val meta = caption ?: listOfNotNull(
             anime.airedLabel(),
             anime.format?.takeIf { it.isNotBlank() }?.let(::homeFormat),
         ).joinToString(" · ")

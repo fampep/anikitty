@@ -79,9 +79,12 @@ import site.anikitty.app.data.anilist.AnimePerson
 import site.anikitty.app.data.anilist.AnimeRelation
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.anilist.MediaRank
+import site.anikitty.app.data.tmdb.EpisodeDetail
+import site.anikitty.app.data.tmdb.PersonProfile
 import site.anikitty.app.data.tmdb.SeasonChip
 import site.anikitty.app.data.tmdb.TitleArt
 import site.anikitty.app.data.tmdb.TmdbCatalog
+import site.anikitty.app.data.tmdb.tmdbEpisodeNumber
 import site.anikitty.app.data.tmdb.preferEpisodeTitle
 import site.anikitty.app.data.tmdb.preferStill
 import site.anikitty.app.data.servers.StreamServer
@@ -158,6 +161,11 @@ internal fun TitleStage(
     var backdropIndex by remember(detail.id) { mutableStateOf(0) }
     var shelfSeason by remember(detail.id) { mutableStateOf<Int?>(null) }
     var shelf by remember(detail.id) { mutableStateOf<Map<Int, site.anikitty.app.data.tmdb.TmdbEpisode>>(emptyMap()) }
+    var episodeSheet by remember(detail.id) { mutableStateOf<EpisodeSlide?>(null) }
+    var episodeDetail by remember(detail.id) { mutableStateOf<EpisodeDetail?>(null) }
+    var tmdbPersonId by remember(detail.id) { mutableStateOf<Int?>(null) }
+    var personProfile by remember(detail.id) { mutableStateOf<PersonProfile?>(null) }
+    var showCast by remember(detail.id) { mutableStateOf(false) }
     LaunchedEffect(detail.id, detail.title, detail.seasonYear, detail.format, detail.detailLoaded) {
         art = withContext(Dispatchers.IO) { tmdb.load(detail) }
         shelfSeason = null
@@ -171,6 +179,22 @@ internal fun TitleStage(
             return@LaunchedEffect
         }
         shelf = withContext(Dispatchers.IO) { tmdb.seasonShelf(current.tmdbId, season) }
+    }
+    LaunchedEffect(episodeSheet?.number, art?.tmdbId, shelfSeason, art?.seasonNumber, art?.episodeOffset) {
+        val slide = episodeSheet ?: return@LaunchedEffect
+        val current = art ?: return@LaunchedEffect
+        if (current.tmdbId <= 0) return@LaunchedEffect
+        val season = shelfSeason ?: current.seasonNumber ?: return@LaunchedEffect
+        val number = if (season == current.seasonNumber) {
+            tmdbEpisodeNumber(slide.number, current.episodeOffset)
+        } else {
+            slide.number
+        }
+        episodeDetail = withContext(Dispatchers.IO) { tmdb.episodeDetail(current.tmdbId, season, number) }
+    }
+    LaunchedEffect(tmdbPersonId) {
+        val id = tmdbPersonId ?: return@LaunchedEffect
+        personProfile = withContext(Dispatchers.IO) { tmdb.person(id) }
     }
     val slides = remember(episodeSlides, art, shelf, shelfSeason) {
         val browsing = shelfSeason != null && shelfSeason != art?.seasonNumber && shelf.isNotEmpty()
@@ -345,6 +369,16 @@ internal fun TitleStage(
                                 modifier = Modifier.padding(top = 4.dp),
                             )
                         }
+                        art?.tagline?.let { line ->
+                            Text(
+                                line,
+                                color = Color.White.copy(alpha = 0.78f),
+                                fontSize = 14.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 6.dp),
+                            )
+                        }
                         Spacer(Modifier.height(KittySpace.sm))
                         MetaLine(detail, movie, total, art)
                         val marks = art?.networks?.filter { !it.logoUrl.isNullOrBlank() }.orEmpty()
@@ -487,10 +521,11 @@ internal fun TitleStage(
                     }
                 }
             }
-            if ((art?.backdrops?.size ?: 0) > 1) {
+            val gallery = galleryTiles(art)
+            if (gallery.size > 1) {
                 item(key = "gallery", contentType = "gallery") {
                     BackdropStrip(
-                        urls = art?.backdrops.orEmpty(),
+                        tiles = gallery,
                         selected = backdropIndex,
                         onSelect = { backdropIndex = it },
                     )
@@ -515,6 +550,7 @@ internal fun TitleStage(
                 if (!art?.keywords.isNullOrEmpty()) {
                     KeywordRow(art?.keywords.orEmpty())
                 }
+                art?.let { FactLine(it) }
             }
             item(key = "episodes", contentType = "episodes") {
                 if (detailLoading && episodeSlides.size <= 1 && detail.streamingEpisodes.isEmpty()) {
@@ -552,10 +588,30 @@ internal fun TitleStage(
                         selectedSeason = shelfSeason ?: art?.seasonNumber,
                         onSeason = { shelfSeason = it },
                         episodeNote = slides.firstOrNull { it.number == episode }?.overview,
+                        onInspect = { episodeSheet = it },
                     )
                 }
             }
-            if (!detailLoading && cast.isNotEmpty()) {
+            val tmdbCast = art?.castList.orEmpty()
+            if (tmdbCast.isNotEmpty()) {
+                item(key = "cast", contentType = "people") {
+                    PeopleRow(
+                        "Cast",
+                        tmdbCast.map { credit ->
+                            AnimePerson(credit.personId, credit.name, credit.photoUrl, credit.role)
+                        },
+                    ) { if (it.id > 0) tmdbPersonId = it.id }
+                    Text(
+                        "Cast & crew",
+                        color = palette.text,
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp,
+                        modifier = Modifier
+                            .padding(horizontal = KittySpace.md, vertical = 4.dp)
+                            .spacePress { showCast = true },
+                    )
+                }
+            } else if (!detailLoading && cast.isNotEmpty()) {
                 item(key = "cast", contentType = "people") {
                     PeopleRow("Cast", cast) { person = it to "character" }
                 }
@@ -570,9 +626,37 @@ internal fun TitleStage(
                     PeopleRow(
                         "Crew",
                         art?.crew.orEmpty().map { credit ->
-                            AnimePerson(id = credit.name.hashCode(), name = credit.name, imageUrl = credit.photoUrl, role = credit.job)
+                            AnimePerson(id = credit.personId, name = credit.name, imageUrl = credit.photoUrl, role = credit.job)
                         },
-                    ) { person = it to "staff" }
+                    ) { if (it.id > 0) tmdbPersonId = it.id }
+                }
+            }
+            if (!art?.providers.isNullOrEmpty()) {
+                item(key = "watch", contentType = "watch") {
+                    ProviderRow(art?.providers.orEmpty(), art?.providerLink, onOpenUrl)
+                }
+            }
+            if (!art?.collectionName.isNullOrBlank() && !art?.collectionItems.isNullOrEmpty()) {
+                item(key = "collection", contentType = "posters") {
+                    PosterLane(
+                        title = art?.collectionName ?: "Collection",
+                        cards = art?.collectionItems.orEmpty().map { rec ->
+                            LaneCard(rec.anilistId, rec.title, rec.posterUrl, "Collection") {
+                                if (rec.anilistId > 0) {
+                                    onOpenRelated(
+                                        AnimeSummary(
+                                            id = rec.anilistId,
+                                            title = rec.title,
+                                            coverImageUrl = rec.posterUrl,
+                                            episodes = null,
+                                            format = null,
+                                            averageScore = null,
+                                        ),
+                                    )
+                                }
+                            }
+                        },
+                    )
                 }
             }
             if (related.isNotEmpty()) {
@@ -703,6 +787,160 @@ internal fun TitleStage(
                     person = null
                 },
             )
+        }
+    }
+
+    episodeSheet?.let { slide ->
+        val shown = episodeDetail?.takeIf { it.number == slide.number || it.title == slide.title } ?: null
+        KittyBottomSheet(title = slide.title.ifBlank { "Episode ${slide.number}" }, onDismiss = { episodeSheet = null }) {
+            val still = shown?.stillUrl ?: slide.imageUrl
+            if (!still.isNullOrBlank()) {
+                AsyncImage(
+                    model = still,
+                    contentDescription = slide.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .clip(RoundedCornerShape(12.dp)),
+                )
+                Spacer(Modifier.height(KittySpace.sm))
+            }
+            val meta = listOfNotNull(
+                shown?.airLabel ?: slide.airLabel,
+                shown?.runtimeMinutes?.let { "$it min" },
+            )
+            if (meta.isNotEmpty()) {
+                Text(meta.joinToString("  ·  "), color = palette.muted, fontSize = 13.sp)
+            }
+            val overview = shown?.overview ?: slide.overview
+            if (!overview.isNullOrBlank()) {
+                Text(
+                    overview,
+                    color = palette.text,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(top = KittySpace.sm),
+                )
+            }
+            if (!shown?.guests.isNullOrEmpty()) {
+                Spacer(Modifier.height(KittySpace.md))
+                Text("Guest stars", fontWeight = FontWeight.SemiBold, color = palette.text)
+                shown?.guests.orEmpty().forEach { guest ->
+                    Text(
+                        listOf(guest.name, guest.role).filter { it.isNotBlank() }.joinToString(" · "),
+                        color = palette.muted,
+                        fontSize = 13.sp,
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .spacePress { if (guest.personId > 0) tmdbPersonId = guest.personId },
+                    )
+                }
+            }
+            if (!shown?.crew.isNullOrEmpty()) {
+                Spacer(Modifier.height(KittySpace.md))
+                Text("Crew", fontWeight = FontWeight.SemiBold, color = palette.text)
+                shown?.crew.orEmpty().forEach { member ->
+                    Text(
+                        "${member.name} · ${member.job}",
+                        color = palette.muted,
+                        fontSize = 13.sp,
+                        modifier = Modifier
+                            .padding(top = 6.dp)
+                            .spacePress { if (member.personId > 0) tmdbPersonId = member.personId },
+                    )
+                }
+            }
+            Spacer(Modifier.height(KittySpace.md))
+            KittyChip(label = "Play episode ${slide.number}", selected = true, onClick = {
+                onPickEpisode(slide.number)
+                episodeSheet = null
+            })
+        }
+    }
+
+    if (showCast) {
+        KittyBottomSheet(title = "Cast & crew", onDismiss = { showCast = false }) {
+            val people = art?.castList.orEmpty().map { it.personId to "${it.name} · ${it.role}" } +
+                art?.crew.orEmpty().map { it.personId to "${it.name} · ${it.job}" }
+            people.forEach { (id, label) ->
+                Text(
+                    label,
+                    color = palette.text,
+                    fontSize = 15.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .spacePress {
+                            showCast = false
+                            if (id > 0) tmdbPersonId = id
+                        },
+                )
+            }
+        }
+    }
+
+    tmdbPersonId?.let { id ->
+        val profile = personProfile?.takeIf { it.id == id }
+        KittyBottomSheet(title = profile?.name ?: "Person", onDismiss = {
+            tmdbPersonId = null
+            personProfile = null
+        }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (profile?.photoUrl != null) {
+                    AsyncImage(
+                        model = profile.photoUrl,
+                        contentDescription = profile.name,
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape),
+                    )
+                }
+                Text(
+                    profile?.name ?: "Loading",
+                    color = palette.text,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(start = KittySpace.md),
+                )
+            }
+            profile?.bio?.let { bio ->
+                Text(
+                    bio,
+                    color = palette.muted,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp,
+                    modifier = Modifier.padding(top = KittySpace.md),
+                )
+            }
+            if (!profile?.knownFor.isNullOrEmpty()) {
+                Spacer(Modifier.height(KittySpace.md))
+                Text("Known for", fontWeight = FontWeight.SemiBold, color = palette.text)
+                profile?.knownFor.orEmpty().forEach { known ->
+                    Text(
+                        known.title,
+                        color = palette.text,
+                        fontSize = 14.sp,
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .spacePress {
+                                if (known.anilistId > 0) {
+                                    tmdbPersonId = null
+                                    onOpenRelated(
+                                        AnimeSummary(
+                                            id = known.anilistId,
+                                            title = known.title,
+                                            coverImageUrl = known.posterUrl,
+                                            episodes = null,
+                                            format = null,
+                                            averageScore = null,
+                                        ),
+                                    )
+                                }
+                            },
+                    )
+                }
+            }
         }
     }
 }
@@ -879,6 +1117,7 @@ private fun EpisodeBlock(
     selectedSeason: Int? = null,
     onSeason: (Int) -> Unit = {},
     episodeNote: String? = null,
+    onInspect: (EpisodeSlide) -> Unit = {},
 ) {
     val palette = LocalKittyPalette.current
     Column {
@@ -975,7 +1214,10 @@ private fun EpisodeBlock(
             watchedThrough = watchedThrough,
             currentProgress = episodeFraction,
             fallbackArt = detail.bannerImageUrl ?: detail.coverImageUrl,
-            onPick = onPickEpisode,
+            onPick = { number ->
+                onPickEpisode(number)
+                slides.firstOrNull { it.number == number }?.let(onInspect)
+            },
             anilistId = detail.id,
             onToggleWatched = onToggleWatched,
         )
@@ -993,30 +1235,108 @@ private fun EpisodeBlock(
     }
 }
 
+private data class GalleryTile(val url: String, val wide: Boolean, val backdropIndex: Int?)
+
+private fun galleryTiles(art: TitleArt?): List<GalleryTile> {
+    if (art == null) return emptyList()
+    return buildList {
+        art.backdrops.forEachIndexed { index, url ->
+            add(GalleryTile(url, wide = true, backdropIndex = index))
+        }
+        art.posters.forEach { url -> add(GalleryTile(url, wide = false, backdropIndex = null)) }
+        art.logoGallery.drop(1).forEach { url -> add(GalleryTile(url, wide = true, backdropIndex = null)) }
+    }
+}
+
 @Composable
-private fun BackdropStrip(urls: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+private fun BackdropStrip(tiles: List<GalleryTile>, selected: Int, onSelect: (Int) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = KittySpace.md, vertical = KittySpace.sm),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(urls.size) { index ->
+        items(tiles.size) { index ->
+            val tile = tiles[index]
             val shape = RoundedCornerShape(10.dp)
             AsyncImage(
-                model = urls[index],
-                contentDescription = "Backdrop ${index + 1}",
-                contentScale = ContentScale.Crop,
+                model = tile.url,
+                contentDescription = if (tile.wide) "Image ${index + 1}" else "Poster ${index + 1}",
+                contentScale = if (tile.backdropIndex == null && tile.wide) ContentScale.Fit else ContentScale.Crop,
                 modifier = Modifier
-                    .width(168.dp)
+                    .width(if (tile.wide) 168.dp else 78.dp)
                     .height(94.dp)
                     .clip(shape)
+                    .background(Color.White.copy(alpha = 0.06f))
                     .border(
-                        width = if (index == selected) 1.5.dp else 0.dp,
+                        width = if (tile.backdropIndex == selected) 1.5.dp else 0.dp,
                         color = Color.White,
                         shape = shape,
                     )
-                    .spacePress { onSelect(index) },
+                    .spacePress { tile.backdropIndex?.let(onSelect) },
             )
         }
+    }
+}
+
+@Composable
+private fun FactLine(art: TitleArt) {
+    val palette = LocalKittyPalette.current
+    val bits = listOfNotNull(
+        art.originalLanguage,
+        art.originCountry,
+        art.status,
+        art.firstAir?.let { "From $it" },
+        art.lastAir?.let { "Until $it" },
+        art.nextAir?.let { "Next $it" },
+    )
+    if (bits.isEmpty()) return
+    Text(
+        bits.joinToString("   ·   "),
+        color = palette.muted,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        modifier = Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.sm),
+    )
+}
+
+@Composable
+private fun ProviderRow(
+    offers: List<site.anikitty.app.data.tmdb.WatchOffer>,
+    link: String?,
+    onOpenUrl: (String) -> Unit,
+) {
+    val palette = LocalKittyPalette.current
+    Column(Modifier.padding(top = KittySpace.md)) {
+        KittySectionHeading(title = "Where to watch", padded = true)
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = KittySpace.md, vertical = KittySpace.sm),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            offers.forEach { offer ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    if (offer.logoUrl != null) {
+                        AsyncImage(
+                            model = offer.logoUrl,
+                            contentDescription = offer.name,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(8.dp)),
+                        )
+                    }
+                    Text(offer.name, color = palette.muted, fontSize = 11.sp, maxLines = 1)
+                }
+            }
+        }
+        Text(
+            "Streaming data by JustWatch",
+            color = palette.muted,
+            fontSize = 12.sp,
+            modifier = Modifier
+                .padding(horizontal = KittySpace.md)
+                .spacePress { onOpenUrl(link ?: "https://www.justwatch.com") },
+        )
     }
 }
 

@@ -55,7 +55,13 @@ android {
         // Public AniList client id. Sign-in is the implicit grant, so the APK has no secret.
         val anilistClientId = configValue("anilistClientId", "ANILIST_CLIENT_ID", "56768")
         buildConfigField("String", "ANILIST_CLIENT_ID", "\"$anilistClientId\"")
-        val tmdbApiKey = configValue("tmdbApiKey", "TMDB_API_KEY")
+        // Public TMDB key. A gradle property, local.properties, or TMDB_API_KEY overrides it.
+        // A blank override keeps this default. Settings can still replace it on the phone.
+        val tmdbApiKey = configValue(
+            "tmdbApiKey",
+            "TMDB_API_KEY",
+            "d708d48abb71e5352958f6e17209f960",
+        ).ifBlank { "d708d48abb71e5352958f6e17209f960" }
         val fanartApiKey = configValue("fanartApiKey", "FANART_API_KEY")
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
         buildConfigField("String", "FANART_API_KEY", "\"$fanartApiKey\"")

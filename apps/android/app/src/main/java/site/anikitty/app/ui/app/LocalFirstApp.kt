@@ -869,6 +869,12 @@ private fun HomeFeed(
     val planToWatch = remember(history) {
         history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(12)
     }
+    var topTen by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var upcoming by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var upcomingDates by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var topRated by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var because by remember { mutableStateOf<Pair<String, List<AnimeSummary>>?>(null) }
+    var networkRow by remember { mutableStateOf<Triple<String, String?, List<AnimeSummary>>?>(null) }
     var heroLogos by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     var stills by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var collection by remember { mutableStateOf<Pair<String, List<AnimeSummary>>?>(null) }
@@ -925,26 +931,35 @@ private fun HomeFeed(
                 coroutineScope {
                     val t = async { aniList.trending(forceRefresh = fromPull) }
                     val s = async { aniList.seasonal(forceRefresh = fromPull) }
+                    val seasonTop = async {
+                        val now = java.util.Calendar.getInstance()
+                        val season = when (now.get(java.util.Calendar.MONTH)) {
+                            in 0..2 -> "WINTER"
+                            in 3..5 -> "SPRING"
+                            in 6..8 -> "SUMMER"
+                            else -> "FALL"
+                        }
+                        runCatching {
+                            aniList.browse(
+                                season = season,
+                                seasonYear = now.get(java.util.Calendar.YEAR),
+                                sort = "TRENDING_DESC",
+                                perPage = 12,
+                            )
+                        }.getOrDefault(emptyList())
+                    }
                     trending = t.await()
                     seasonal = s.await()
-                    prefetchCovers(context, trending + seasonal)
+                    topTen = seasonTop.await().ifEmpty { trending }.take(10)
+                    prefetchCovers(context, trending + seasonal + topTen)
                 }
             }.onFailure { error = friendlyFailure(it.message) }
             loading = false
             refreshing = false
             if (error != null && trending.isEmpty()) return@launch
             runCatching {
-                val shown = trending
+                val shown = trending + seasonal + topTen
                 val catalog = TmdbCatalog(context)
-                val discovered = runCatching {
-                    withContext(Dispatchers.IO) { catalog.discoverAnilistIds() }
-                }.getOrDefault(emptyList())
-                if (discovered.size >= 4) {
-                    val mapped = discovered.mapNotNull { id ->
-                        shown.firstOrNull { it.id == id } ?: runCatching { aniList.media(id) }.getOrNull()
-                    }
-                    if (mapped.size >= 4) trending = mapped
-                }
                 val heroes = trending.take(5).map { it.id }
                 val art = runCatching { withContext(Dispatchers.IO) { catalog.heroArt(heroes) } }.getOrDefault(emptyMap())
                 if (art.isNotEmpty()) {
@@ -969,6 +984,33 @@ private fun HomeFeed(
                     }
                 }
                 stills = stillMap
+                suspend fun showsFor(ids: List<Int>): List<AnimeSummary> {
+                    return ids.take(8).mapNotNull { id ->
+                        shown.firstOrNull { it.id == id } ?: runCatching { aniList.media(id) }.getOrNull()
+                    }
+                }
+                val dated = runCatching { withContext(Dispatchers.IO) { catalog.upcomingTitles() } }.getOrDefault(emptyList())
+                val upcomingShows = dated.mapNotNull { item ->
+                    showsFor(listOf(item.anilistId)).firstOrNull()?.let { it to item.dateLabel }
+                }
+                upcoming = upcomingShows.map { it.first }
+                upcomingDates = upcomingShows.associate { it.first.id to it.second }
+                topRated = showsFor(runCatching { withContext(Dispatchers.IO) { catalog.topRatedIds() } }.getOrDefault(emptyList()))
+                val watched = continueWatching.firstOrNull()
+                if (watched != null) {
+                    val related = showsFor(
+                        runCatching { withContext(Dispatchers.IO) { catalog.becauseYouWatched(watched.anilistId) } }
+                            .getOrDefault(emptyList()),
+                    )
+                    because = if (related.isNotEmpty()) watched.title to related else null
+                }
+                val shelf = trending.firstOrNull()?.let { anime ->
+                    runCatching { withContext(Dispatchers.IO) { catalog.networkShelf(anime.id) } }.getOrNull()
+                }
+                if (shelf != null) {
+                    val onNetwork = showsFor(shelf.anilistIds)
+                    networkRow = if (onNetwork.isNotEmpty()) Triple(shelf.name, shelf.logoUrl, onNetwork) else null
+                }
                 val seed = continueWatching.firstOrNull()?.anilistId ?: trending.firstOrNull()?.id
                 if (seed != null) {
                     val group = runCatching { withContext(Dispatchers.IO) { catalog.collection(seed) } }.getOrNull()
@@ -1134,9 +1176,10 @@ private fun HomeFeed(
                                     )
                                 }
                             }
-                                if (trending.isNotEmpty()) item(key = "top10", contentType = "rank") {
-                                    HomeBlock(title = "Top 10", subtitle = "Trending this week") {
-                                        HomeRankRow(items = trending, onOpen = openCatalog)
+                                val ranked = topTen.ifEmpty { trending }
+                                if (ranked.isNotEmpty()) item(key = "top10", contentType = "rank") {
+                                    HomeBlock(title = "Top 10", subtitle = "Trending this season") {
+                                        HomeRankRow(items = ranked, onOpen = openCatalog)
                                     }
                                 }
                             }
@@ -1156,6 +1199,40 @@ private fun HomeFeed(
                                             )
                                         },
                                     )
+                                }
+                            }
+                            "upcoming" -> if (upcoming.isNotEmpty()) item(key = "upcoming", contentType = "upcoming") {
+                                HomeBlock(title = "Upcoming", subtitle = "TMDB release dates") {
+                                    HomePosterRow(items = upcoming, onOpen = openCatalog, captions = upcomingDates)
+                                }
+                            }
+                            "rated" -> if (topRated.isNotEmpty()) item(key = "rated", contentType = "rated") {
+                                HomeBlock(title = "Top rated", subtitle = "Recent Japanese animation") {
+                                    HomePosterRow(items = topRated, onOpen = openCatalog)
+                                }
+                            }
+                            "because" -> because?.let { (title, shows) ->
+                                item(key = "because", contentType = "because") {
+                                    HomeBlock(title = "Because you watched", subtitle = title) {
+                                        HomePosterRow(items = shows, onOpen = openCatalog)
+                                    }
+                                }
+                            }
+                            "network" -> networkRow?.let { (name, logo, shows) ->
+                                item(key = "network", contentType = "network") {
+                                    HomeBlock(title = name, subtitle = "Same network") {
+                                        if (!logo.isNullOrBlank()) {
+                                            coil.compose.AsyncImage(
+                                                model = logo,
+                                                contentDescription = name,
+                                                modifier = Modifier
+                                                    .padding(horizontal = 16.dp)
+                                                    .padding(bottom = 8.dp)
+                                                    .height(28.dp),
+                                            )
+                                        }
+                                        HomePosterRow(items = shows, onOpen = openCatalog)
+                                    }
                                 }
                             }
                             "collection" -> collection?.let { (name, shows) ->
