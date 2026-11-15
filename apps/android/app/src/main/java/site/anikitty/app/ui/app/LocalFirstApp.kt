@@ -54,6 +54,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -899,8 +900,11 @@ private fun HomeFeed(
             aniList.airingSchedule(from, from + 24 * 60 * 60)
         }.getOrDefault(emptyList())
     }
-    var shelf by remember { mutableStateOf(HomeShelf.All) }
-    var topWindow by remember { mutableStateOf(HomeTopWindow.Season) }
+    var shelfName by rememberSaveable { mutableStateOf(HomeShelf.All.name) }
+    val shelf = HomeShelf.entries.firstOrNull { it.name == shelfName } ?: HomeShelf.All
+    var topWindowName by rememberSaveable { mutableStateOf(HomeTopWindow.Season.name) }
+    val topWindow = HomeTopWindow.entries.firstOrNull { it.name == topWindowName } ?: HomeTopWindow.Season
+    val homeListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val hiddenContinue = ContinueHidden.ids
     val continueWatching = remember(history, hiddenContinue) {
         continueQueue(history, hiddenContinue).take(12)
@@ -1101,12 +1105,24 @@ private fun HomeFeed(
                         avatarUrl = aniListAuth.avatarUrl,
                         onShuffle = shuffleCatalog,
                     )
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        repeat(4) { index ->
+                            ShimmerBox(
+                                modifier = Modifier
+                                    .width(if (index == 0) 56.dp else 84.dp)
+                                    .height(32.dp)
+                                    .clip(RoundedCornerShape(16.dp)),
+                            )
+                        }
+                    }
                     ShimmerBox(
                         modifier = Modifier
-                            .padding(horizontal = 16.dp)
                             .fillMaxWidth()
-                            .height(210.dp)
-                            .clip(RoundedCornerShape(8.dp)),
+                            .height(292.dp)
+                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
                     )
                     Spacer(modifier = Modifier.height(KittySpace.lg))
                     ContinueSkeletonRow()
@@ -1132,7 +1148,12 @@ private fun HomeFeed(
                 }
             }
             else -> {
+                val shelfCatalog = trending + seasonal + topTen + upcoming + topRated + forYou
+                val continueShown = continueWatching.filter { entry ->
+                    shelf == HomeShelf.All || shelfCatalog.any { it.id == entry.anilistId && it.onShelf(shelf) }
+                }
                 LazyColumn(
+                    state = homeListState,
                     modifier = Modifier.nestedScroll(rememberDockScroll()),
                     contentPadding = PaddingValues(bottom = 110.dp),
                 ) {
@@ -1147,7 +1168,7 @@ private fun HomeFeed(
                         )
                     }
                     item(key = "shelves", contentType = "chips") {
-                        HomeShelfChips(selected = shelf, onSelect = { shelf = it })
+                        HomeShelfChips(selected = shelf, onSelect = { shelfName = it.name })
                     }
                     val phoneSections = homeLayout.sections()
                     phoneSections.forEach { section ->
@@ -1160,8 +1181,8 @@ private fun HomeFeed(
                                 }
                             }
                             "continue" -> {
-                                if (continueWatching.isNotEmpty() && LookState.abandonedReminders) {
-                                    val stale = continueWatching.firstOrNull {
+                                if (continueShown.isNotEmpty() && LookState.abandonedReminders) {
+                                    val stale = continueShown.firstOrNull {
                                         System.currentTimeMillis() - it.updatedAtEpochMs >
                                             14L * 24 * 60 * 60 * 1000
                                     }
@@ -1175,14 +1196,14 @@ private fun HomeFeed(
                                         )
                                     }
                                 }
-                                if (continueWatching.isNotEmpty()) item(key = "continue", contentType = "continue") {
+                                if (continueShown.isNotEmpty()) item(key = "continue", contentType = "continue") {
                                     HomeBlock(
                                         title = "Continue watching",
                                         subtitle = "Where you left off",
                                         onMore = onSeeAllContinue,
                                     ) {
                                         ContinueWatchRow(
-                                            entries = continueWatching,
+                                            entries = continueShown,
                                             onOpen = { entry, episode ->
                                                 scope.launch {
                                                     val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
@@ -1208,6 +1229,8 @@ private fun HomeFeed(
                                         )
                                     }
                                 }
+                            }
+                            "top" -> {
                                 val rankedSource = if (topWindow == HomeTopWindow.Trending) {
                                     trending
                                 } else {
@@ -1218,14 +1241,17 @@ private fun HomeFeed(
                                     HomeBlock(title = "Top 10", subtitle = topWindow.label) {
                                         HomeTopWindowChips(
                                             selected = topWindow,
-                                            onSelect = { topWindow = it },
+                                            onSelect = { topWindowName = it.name },
                                         )
                                         HomeRankRow(items = ranked, onOpen = openCatalog)
                                     }
                                 }
                             }
                             "fresh" -> {
-                                val fresh = airingToday.filter { it.anime.onShelf(shelf) }
+                                val nowSec = System.currentTimeMillis() / 1000L
+                                val fresh = airingToday.filter {
+                                    it.airingAtEpochSec < nowSec - 20 * 60 && it.anime.onShelf(shelf)
+                                }
                                 if (fresh.isNotEmpty()) item(key = "fresh", contentType = "fresh") {
                                     HomeBlock(title = "New episodes", subtitle = "Stills from today's airings") {
                                         HomeContinueRow(
@@ -1297,11 +1323,12 @@ private fun HomeFeed(
                                 }
                             }
                             "airing" -> {
-                                val airingShelf = airingToday.filter { it.anime.onShelf(shelf) }
-                                if (airingShelf.isNotEmpty()) item(key = "airing", contentType = "airing") {
                                 val now = System.currentTimeMillis() / 1000L
-                                val upcoming = airingShelf.filter { it.airingAtEpochSec >= now - 20 * 60 }
-                                val shown = (if (upcoming.isNotEmpty()) upcoming else airingShelf).take(5)
+                                val airingShelf = airingToday.filter {
+                                    it.airingAtEpochSec >= now - 20 * 60 && it.anime.onShelf(shelf)
+                                }
+                                if (airingShelf.isNotEmpty()) item(key = "airing", contentType = "airing") {
+                                val shown = airingShelf.take(5)
                                 HomeBlock(
                                     title = "Airing today",
                                     onMore = onOpenSchedule,
@@ -1348,7 +1375,7 @@ private fun HomeFeed(
                                     }
                                 }
                             }
-                            "plan" -> if (planToWatch.isNotEmpty()) item(key = "plan", contentType = "posters") {
+                            "plan" -> if (shelf == HomeShelf.All && planToWatch.isNotEmpty()) item(key = "plan", contentType = "posters") {
                                 HomeBlock(title = "Plan to watch") {
                                     HomePosterRow(
                                         items = planToWatch.map { entry ->
@@ -1371,7 +1398,7 @@ private fun HomeFeed(
                                     )
                                 }
                             }
-                            "genres" -> item(key = "genres", contentType = "chips") {
+                            "genres" -> if (shelf == HomeShelf.All) item(key = "genres", contentType = "chips") {
                                 HomeBlock(title = "Genres") {
                                     HomeGenreRow(
                                         names = listOf(
@@ -1398,6 +1425,31 @@ private fun HomeFeed(
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                             )
+                        }
+                    } else if (shelf != HomeShelf.All) {
+                        val rankedSource = if (topWindow == HomeTopWindow.Trending) {
+                            trending
+                        } else {
+                            topTen.ifEmpty { trending }
+                        }
+                        val hasShelfRows = continueShown.isNotEmpty() ||
+                            trending.any { it.onShelf(shelf) } ||
+                            rankedSource.any { it.onShelf(shelf) } ||
+                            airingToday.any { it.anime.onShelf(shelf) } ||
+                            upcoming.any { it.onShelf(shelf) } ||
+                            topRated.any { it.onShelf(shelf) } ||
+                            because?.second?.any { it.onShelf(shelf) } == true ||
+                            networkRow?.third?.any { it.onShelf(shelf) } == true ||
+                            collection?.second?.any { it.onShelf(shelf) } == true ||
+                            seasonal.any { it.onShelf(shelf) } ||
+                            forYou.any { it.onShelf(shelf) }
+                        if (!hasShelfRows) {
+                            item(key = "empty-shelf", contentType = "note") {
+                                KittyEmptyState(
+                                    title = "Nothing on ${shelf.label}",
+                                    body = "This shelf only keeps titles that match. All still has the full home.",
+                                )
+                            }
                         }
                     }
                 }
