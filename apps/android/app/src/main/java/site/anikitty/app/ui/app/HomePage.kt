@@ -210,7 +210,9 @@ internal fun HomeFeatured(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(292.dp),
+                .height(292.dp)
+                .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                .clipToBounds(),
         ) {
             HorizontalPager(
                 state = pagerState,
@@ -257,9 +259,10 @@ internal fun HomeFeatured(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.15f),
-                                    0.42f to Color.Transparent,
-                                    1f to Color.Black.copy(alpha = 0.88f),
+                                    0f to Color.Black.copy(alpha = 0.22f),
+                                    0.35f to Color.Transparent,
+                                    0.65f to Color.Black.copy(alpha = 0.55f),
+                                    1f to Color.Black.copy(alpha = 0.92f),
                                 ),
                             ),
                     )
