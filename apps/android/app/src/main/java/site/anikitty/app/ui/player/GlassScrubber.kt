@@ -132,45 +132,53 @@ fun GlassScrubber(
                         }
                         var latest = fractionAt(start.x)
                         var dragging = false
-                        while (true) {
-                            if (!dragging) {
-                                val event = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
-                                    awaitPointerEvent()
-                                }
-                                if (event == null) {
-                                    dragging = true
-                                    latestFraction = latest
-                                    latestOnScrub(latest)
-                                    continue
-                                }
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (!change.pressed) {
-                                    latestFraction = latest
-                                    latestOnScrub(latest)
-                                    latestOnFinished(latest)
-                                    break
-                                }
-                                val dx = change.position.x - start.x
-                                val dy = change.position.y - start.y
-                                if (dx * dx + dy * dy > slop * slop) {
-                                    dragging = true
+                        var finished = false
+                        try {
+                            while (true) {
+                                if (!dragging) {
+                                    val event = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                        awaitPointerEvent()
+                                    }
+                                    if (event == null) {
+                                        dragging = true
+                                        latestFraction = latest
+                                        latestOnScrub(latest)
+                                        continue
+                                    }
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+                                    if (change == null) break
+                                    if (!change.pressed) {
+                                        latestFraction = latest
+                                        latestOnScrub(latest)
+                                        latestOnFinished(latest)
+                                        finished = true
+                                        break
+                                    }
+                                    val dx = change.position.x - start.x
+                                    val dy = change.position.y - start.y
+                                    if (dx * dx + dy * dy > slop * slop) {
+                                        dragging = true
+                                        change.consume()
+                                        latest = fractionAt(change.position.x)
+                                        latestFraction = latest
+                                        latestOnScrub(latest)
+                                    }
+                                } else {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+                                    if (change == null || !change.pressed) {
+                                        latestOnFinished(latest)
+                                        finished = true
+                                        break
+                                    }
                                     change.consume()
                                     latest = fractionAt(change.position.x)
                                     latestFraction = latest
                                     latestOnScrub(latest)
                                 }
-                            } else {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                if (!change.pressed) {
-                                    latestOnFinished(latest)
-                                    break
-                                }
-                                change.consume()
-                                latest = fractionAt(change.position.x)
-                                latestFraction = latest
-                                latestOnScrub(latest)
                             }
+                        } finally {
+                            if (dragging && !finished) latestOnFinished(latest)
                         }
                     }
                 },

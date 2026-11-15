@@ -31,6 +31,7 @@ internal class ThumbnailLoader(
     private val gate = Mutex()
     private var cues: List<ThumbnailCue> = emptyList()
     private var indexed = false
+    private var retryAtMs = 0L
     private val sprites = object : android.util.LruCache<String, Sprite>(4) {}
     private val localFrames = object : android.util.LruCache<Long, Bitmap>(6) {}
 
@@ -43,12 +44,22 @@ internal class ThumbnailLoader(
 
     private suspend fun ensureIndex() {
         if (indexed) return
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (now < retryAtMs) return
         gate.withLock {
             if (indexed) return
-            indexed = true
-            val source = track ?: return
-            val text = fetchText(source.url, source.headers) ?: return
+            if (android.os.SystemClock.elapsedRealtime() < retryAtMs) return
+            val source = track ?: run {
+                indexed = true
+                return
+            }
+            val text = fetchText(source.url, source.headers)
+            if (text == null) {
+                retryAtMs = android.os.SystemClock.elapsedRealtime() + 2_000L
+                return
+            }
             cues = parseThumbnailVtt(text, source.url)
+            indexed = true
         }
     }
 

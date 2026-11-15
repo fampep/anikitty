@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
@@ -39,7 +40,18 @@ internal fun SeekPreview(
     frame: Bitmap?,
     modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(modifier.fillMaxWidth()) {
+    BoxWithConstraints(
+        modifier
+            .fillMaxWidth()
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                // The card draws above the bar. Reporting height 0 keeps the
+                // scrubber and the pills from jumping when a frame arrives.
+                layout(placeable.width, 0) {
+                    placeable.placeRelative(0, -placeable.height)
+                }
+            },
+    ) {
         val narrow = maxWidth < 480.dp
         val cardWidth = if (narrow) 112.dp else 148.dp
         val cardHeight = cardWidth * 9f / 16f
@@ -47,7 +59,7 @@ internal fun SeekPreview(
         val x = (maxWidth * clamped - cardWidth / 2).coerceIn(0.dp, (maxWidth - cardWidth).coerceAtLeast(0.dp))
         Column(
             modifier = Modifier
-                .offset(x = x, y = -(cardHeight + 28.dp))
+                .offset(x = x)
                 .width(cardWidth),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

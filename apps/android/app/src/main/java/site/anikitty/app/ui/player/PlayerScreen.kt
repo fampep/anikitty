@@ -319,7 +319,7 @@ fun PlayerScreen(
     var volumeBoost by remember {
         mutableIntStateOf(playerPrefs.getInt("volume_boost", 0).coerceIn(0, 3))
     }
-    var loudnessBoost by remember { mutableStateOf<android.media.audiofx.LoudnessEnhancer?>(null) }
+    val loudnessHold = remember { LoudnessHold() }
     var autoNext by remember { mutableStateOf(playerPrefs.getBoolean("auto_next", true)) }
     var holdBoost by remember { mutableStateOf(false) }
     var gestureHud by remember { mutableStateOf<Pair<String, Float>?>(null) }
@@ -903,16 +903,24 @@ fun PlayerScreen(
     DisposableEffect(player, volumeBoost, muted) {
         val exo = player as? ExoPlayer
         fun applyBoost() {
-            loudnessBoost?.release()
-            loudnessBoost = null
-            val session = exo?.audioSessionId ?: return
-            if (muted || volumeBoost <= 0 || session == androidx.media3.common.C.AUDIO_SESSION_ID_UNSET) return
-            val gain = when (volumeBoost) {
-                1 -> 250
-                2 -> 600
+            val session = exo?.audioSessionId ?: androidx.media3.common.C.AUDIO_SESSION_ID_UNSET
+            val gain = when {
+                muted || volumeBoost <= 0 || session == androidx.media3.common.C.AUDIO_SESSION_ID_UNSET -> 0
+                volumeBoost == 1 -> 250
+                volumeBoost == 2 -> 600
                 else -> 1000
             }
-            loudnessBoost = runCatching {
+            if (loudnessHold.session == session && loudnessHold.gain == gain &&
+                (gain == 0 || loudnessHold.effect != null)
+            ) {
+                return
+            }
+            loudnessHold.effect?.release()
+            loudnessHold.effect = null
+            loudnessHold.session = session
+            loudnessHold.gain = gain
+            if (gain == 0) return
+            loudnessHold.effect = runCatching {
                 android.media.audiofx.LoudnessEnhancer(session).apply {
                     setTargetGain(gain)
                     enabled = true
@@ -927,8 +935,7 @@ fun PlayerScreen(
         applyBoost()
         onDispose {
             exo?.removeListener(listener)
-            loudnessBoost?.release()
-            loudnessBoost = null
+            loudnessHold.release()
         }
     }
 
@@ -3437,6 +3444,19 @@ private fun formatClock(ms: Long): String {
         String.format(Locale.US, "%d:%02d:%02d", h, m, s)
     } else {
         String.format(Locale.US, "%d:%02d", m, s)
+    }
+}
+
+private class LoudnessHold {
+    var effect: android.media.audiofx.LoudnessEnhancer? = null
+    var session: Int = androidx.media3.common.C.AUDIO_SESSION_ID_UNSET
+    var gain: Int = Int.MIN_VALUE
+
+    fun release() {
+        effect?.release()
+        effect = null
+        session = androidx.media3.common.C.AUDIO_SESSION_ID_UNSET
+        gain = Int.MIN_VALUE
     }
 }
 
