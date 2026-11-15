@@ -99,9 +99,9 @@ internal fun HomeBar(
         Text(
             "anikitty.",
             color = ink,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 20.sp,
-            letterSpacing = (-0.5).sp,
+            fontWeight = FontWeight.Bold,
+            fontSize = 22.sp,
+            letterSpacing = (-0.6).sp,
         )
         if (LocalDemoMode.current) {
             KittyBadge(
@@ -116,7 +116,7 @@ internal fun HomeBar(
                 Icons.Filled.Search,
                 contentDescription = "Search",
                 tint = ink,
-                modifier = Modifier.height(18.dp).width(18.dp),
+                modifier = Modifier.height(20.dp).width(20.dp),
             )
         }
         if (onShuffle != null) {
@@ -125,7 +125,7 @@ internal fun HomeBar(
                     Icons.Outlined.Shuffle,
                     contentDescription = "Random anime",
                     tint = ink,
-                    modifier = Modifier.height(18.dp).width(18.dp),
+                    modifier = Modifier.height(20.dp).width(20.dp),
                 )
             }
         }
@@ -141,7 +141,7 @@ internal fun HomeBar(
                     Icons.Rounded.Refresh,
                     contentDescription = "Refresh",
                     tint = ink,
-                    modifier = Modifier.height(18.dp).width(18.dp),
+                    modifier = Modifier.height(20.dp).width(20.dp),
                 )
             }
         }

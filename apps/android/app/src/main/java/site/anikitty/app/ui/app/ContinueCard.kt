@@ -66,7 +66,7 @@ import site.anikitty.app.ui.theme.KittySpace
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.ShimmerBox
 
-private val ContinueCardWidth = 232.dp
+private val ContinueCardWidth = 248.dp
 
 @Composable
 fun ContinueWatchRow(
@@ -323,15 +323,16 @@ fun ContinueWatchCard(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .height(2.dp)
-                    .background(Color.White.copy(alpha = 0.22f)),
+                    .height(3.dp)
+                    .background(Color.White.copy(alpha = 0.18f)),
             ) {
                 if (shown.progress > 0f) {
                     Box(
                         modifier = Modifier
                             .fillMaxHeight()
                             .fillMaxWidth(shown.progress.coerceIn(0f, 1f))
-                            .background(Color.White),
+                            .clip(RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                            .background(Color(0xFFDDDDDD)),
                     )
                 }
             }
