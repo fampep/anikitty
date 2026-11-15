@@ -19,9 +19,13 @@ class HomeShelfTest {
         assertTrue(airing.onShelf(HomeShelf.Airing))
         assertFalse(airing.onShelf(HomeShelf.Movies))
         assertTrue(airing.onShelf(HomeShelf.All))
+        val unknown = sample(format = "TV", status = null)
+        assertFalse(unknown.onShelf(HomeShelf.Airing))
+        assertFalse(unknown.onShelf(HomeShelf.Finished))
+        assertTrue(unknown.onShelf(HomeShelf.All))
     }
 
-    private fun sample(format: String, status: String) = AnimeSummary(
+    private fun sample(format: String, status: String?) = AnimeSummary(
         id = 1,
         title = "Sample",
         coverImageUrl = null,

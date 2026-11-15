@@ -197,8 +197,18 @@ class AnikotoServer(
         val anime = kotoAnimeObject(page) ?: error("Empty episode list")
         val listedAni = anime.optInt("ani_id", 0)
         if (listedAni > 0 && listedAni != anilistId) error("No watch page for AniList $anilistId")
+        val listedMal = anime.optInt("mal_id", 0)
+        if (malId != null && malId > 0 && listedMal > 0 && listedMal != malId) {
+            error("No watch page for AniList $anilistId")
+        }
         val chapters = parseKotoChapters(anime)
         if (chapters.isEmpty()) error("Empty episode list")
+        if (malId != null && malId > 0) {
+            val chapterMals = chapters.mapNotNull { it.malId }.filter { it > 0 }.toSet()
+            if (chapterMals.isNotEmpty() && malId !in chapterMals) {
+                error("No watch page for AniList $anilistId")
+            }
+        }
         return KotoShow(hit.slug, chapters)
     }
 
@@ -1039,6 +1049,7 @@ class AnikotoServer(
                     chapterId = chapterId,
                     hasSub = kotoFlag(row, "is_sub"),
                     hasDub = kotoFlag(row, "is_dub"),
+                    malId = row.optInt("mal_id", 0).takeIf { it > 0 },
                 )
             }
             return out
@@ -1059,8 +1070,8 @@ class AnikotoServer(
         }
 
         /**
-         * Prefer the AniList id the catalog stored. A MAL id is the next check.
-         * A title match is only used when neither id is on the row.
+         * Prefer the AniList id. When AniList sent a MAL id, the row must carry
+         * that same id. A title match is only used when we have no MAL id.
          */
         internal fun pickKotoHit(
             hits: List<KotoHit>,
@@ -1070,15 +1081,12 @@ class AnikotoServer(
         ): KotoHit? {
             hits.firstOrNull { it.aniId == anilistId }?.let { return it }
             if (malId != null && malId > 0) {
-                hits.firstOrNull { hit ->
-                    hit.malId == malId &&
-                        (hit.aniId == null || hit.aniId == anilistId) &&
-                        (titles.isEmpty() || titlesIdentifySameWork(hit.title, titles))
-                }?.let { return it }
+                return hits.firstOrNull { hit ->
+                    hit.malId == malId && (hit.aniId == null || hit.aniId == anilistId)
+                }
             }
             return hits.firstOrNull { hit ->
                 (hit.aniId == null || hit.aniId == anilistId) &&
-                    (malId == null || malId <= 0 || hit.malId == null || hit.malId == malId) &&
                     titlesIdentifySameWork(hit.title, titles)
             }
         }
@@ -1109,6 +1117,7 @@ internal data class KotoChapter(
     val chapterId: Int,
     val hasSub: Boolean,
     val hasDub: Boolean,
+    val malId: Int? = null,
 )
 
 internal data class KotoServerLink(

@@ -64,7 +64,17 @@ class KotoplayFallbackTest {
     fun titleMatchDoesNotStealADifferentAnilistId() {
         val hits = listOf(
             KotoHit("other", "Ghost in the Shell", aniId = 40, malId = 40),
+            KotoHit("untitled", "Ghost in the Shell", aniId = null, malId = null),
         )
         assertNull(AnikotoServer.pickKotoHit(hits, 43, listOf("Ghost in the Shell"), 43))
+    }
+
+    @Test
+    fun malIdStillSelectsTheRow() {
+        val hits = listOf(
+            KotoHit("sequel", "Ghost in the Shell", aniId = null, malId = 99),
+            KotoHit("film", "Ghost in the Shell", aniId = null, malId = 43),
+        )
+        assertEquals("film", AnikotoServer.pickKotoHit(hits, 43, listOf("Ghost in the Shell"), 43)?.slug)
     }
 }

@@ -90,6 +90,7 @@ class AniListClient(
               title { romaji english }
               coverImage { extraLarge large }
               format
+              status
               episodes
               averageScore
             }
