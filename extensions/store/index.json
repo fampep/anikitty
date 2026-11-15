@@ -6,9 +6,9 @@
     {
       "id": "anikoto",
       "name": "Anikoto",
-      "version": "1.1.1",
+      "version": "1.1.2",
       "protocol": "1.1",
-      "description": "Bundled Anikoto resolver. Skip times come from Anikoto for every provider. Quality and sub/dub come from the embed label when it states them. If a title is missing, playback tries the others and keeps your choice.",
+      "description": "Bundled Anikoto resolver. Tries anikoto.cz, then kotoplay.to if Anikoto is down or has no source. Skip times come from whichever site answers. Quality and sub/dub come from the embed label when it states them. If a title is missing, playback tries the others and keeps your choice.",
       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/anikoto",
       "author": "fampep",
       "featured": true,
