@@ -3,7 +3,6 @@
 
 package site.anikitty.app.ui.player
 
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -35,9 +34,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -63,6 +60,7 @@ fun GlassScrubber(
     onScrubFinished: (Float) -> Unit,
     formatClock: (Long) -> String,
     skipTimes: SkipTimes = SkipTimes(),
+    buffered: Float = 0f,
     modifier: Modifier = Modifier,
 ) {
     val clamped = progress.coerceIn(0f, 1f)
@@ -82,11 +80,6 @@ fun GlassScrubber(
         targetValue = if (scrubbing) 1.28f else 1f,
         animationSpec = spring(dampingRatio = 0.65f, stiffness = Spring.StiffnessMedium),
         label = "thumbScale",
-    )
-    val glowAlpha by animateFloatAsState(
-        targetValue = if (scrubbing) 0.55f else 0.28f,
-        animationSpec = tween(220, easing = FastOutSlowInEasing),
-        label = "glow",
     )
     val latestOnScrub by rememberUpdatedState(onScrub)
     val latestOnFinished by rememberUpdatedState(onScrubFinished)
@@ -143,8 +136,8 @@ fun GlassScrubber(
                         y = (-34).dp,
                     )
                     .clip(RoundedCornerShape(10.dp))
-                    .background(PlayerChrome.DiscLarge)
-                    .border(1.dp, PlayerChrome.Accent.copy(alpha = 0.45f), RoundedCornerShape(10.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 5.dp),
             ) {
                 Text(
@@ -190,82 +183,62 @@ fun GlassScrubber(
                 },
         ) {
             val cy = size.height / 2f
-            val trackH = 5.dp.toPx()
+            val trackH = 3.dp.toPx()
             val radius = CornerRadius(trackH / 2f, trackH / 2f)
+            val unplayed = Color(0xFF2C2C2C)
+            val bufferedColor = Color(0xFF5A5A5A)
+            val played = Color(0xFFD4D4D4)
+            val marker = Color(0xFFFFE14A)
 
             drawRoundRect(
-                color = PlayerChrome.TrackGlass,
+                color = unplayed,
                 topLeft = Offset(0f, cy - trackH / 2f),
                 size = Size(size.width, trackH),
                 cornerRadius = radius,
             )
 
-            if (durationMs > 0 && !skipTimes.isEmpty) {
-                val dur = durationMs.coerceAtLeast(1L).toFloat()
-                skipTimes.segments.forEach { (kind, iv) ->
-                    val start = (iv.startMs / dur).coerceIn(0f, 1f)
-                    val end = (iv.endMs / dur).coerceIn(0f, 1f)
-                    val color = when (kind) {
-                        "intro" -> PlayerChrome.MarkerIntro
-                        "credits" -> PlayerChrome.MarkerCredits
-                        "recap" -> PlayerChrome.MarkerRecap
-                        else -> PlayerChrome.Faint
-                    }
-                    val left = size.width * start
-                    val w = (size.width * (end - start)).coerceAtLeast(3.dp.toPx())
-                    drawRoundRect(
-                        color = color.copy(alpha = 0.85f),
-                        topLeft = Offset(left, cy - 1.5.dp.toPx()),
-                        size = Size(w, 3.dp.toPx()),
-                        cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
-                    )
-                }
+            val bufferedW = size.width * buffered.coerceIn(0f, 1f)
+            if (bufferedW > 0f) {
+                drawRoundRect(
+                    color = bufferedColor,
+                    topLeft = Offset(0f, cy - trackH / 2f),
+                    size = Size(bufferedW, trackH),
+                    cornerRadius = radius,
+                )
             }
 
             val progressW = size.width * animatedProgress
             if (progressW > 0f) {
                 drawRoundRect(
-                    color = PlayerChrome.Progress.copy(alpha = glowAlpha),
-                    topLeft = Offset(0f, cy - trackH),
-                    size = Size(progressW, trackH * 2f),
-                    cornerRadius = CornerRadius(trackH, trackH),
-                )
-                drawRoundRect(
-                    brush = Brush.horizontalGradient(
-                        colors = listOf(
-                            PlayerChrome.Progress.copy(alpha = 0.75f),
-                            PlayerChrome.Progress,
-                            Color.White.copy(alpha = 0.92f),
-                        ),
-                    ),
+                    color = played,
                     topLeft = Offset(0f, cy - trackH / 2f),
                     size = Size(progressW, trackH),
                     cornerRadius = radius,
                 )
             }
 
-            val thumbR = 8.dp.toPx() * thumbScale
+            if (durationMs > 0 && !skipTimes.isEmpty) {
+                val dur = durationMs.coerceAtLeast(1L).toFloat()
+                skipTimes.segments.forEach { (_, iv) ->
+                    val start = (iv.startMs / dur).coerceIn(0f, 1f)
+                    val end = (iv.endMs / dur).coerceIn(0f, 1f)
+                    val left = size.width * start
+                    val w = (size.width * (end - start)).coerceAtLeast(trackH)
+                    drawRoundRect(
+                        color = marker,
+                        topLeft = Offset(left, cy - trackH / 2f),
+                        size = Size(w, trackH),
+                        cornerRadius = radius,
+                    )
+                }
+            }
+
+            val thumbR = 5.dp.toPx() * thumbScale
             val thumbX = progressW.coerceIn(thumbR, (size.width - thumbR).coerceAtLeast(thumbR))
             drawCircle(
-                color = PlayerChrome.Progress.copy(alpha = glowAlpha),
-                radius = thumbR * 1.75f,
-                center = Offset(thumbX, cy),
-            )
-            drawCircle(
-                color = PlayerChrome.Progress,
+                color = Color.White,
                 radius = thumbR,
                 center = Offset(thumbX, cy),
-            )
-            drawCircle(
-                color = Color.White.copy(alpha = 0.55f),
-                radius = thumbR * 0.35f,
-                center = Offset(thumbX - thumbR * 0.18f, cy - thumbR * 0.18f),
-            )
-            drawCircle(
-                color = Color.White.copy(alpha = 0.35f),
-                radius = thumbR,
-                center = Offset(thumbX, cy),
-                style = Stroke(width = 1.2.dp.toPx()),
             )
         }
     }
