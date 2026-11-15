@@ -142,6 +142,7 @@ import site.anikitty.app.BuildConfig
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListAuthStore
 import site.anikitty.app.data.airingLabel
+import site.anikitty.app.data.watchedAgo
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.anilist.AniListOAuth
@@ -898,6 +899,8 @@ private fun HomeFeed(
             aniList.airingSchedule(from, from + 24 * 60 * 60)
         }.getOrDefault(emptyList())
     }
+    var shelf by remember { mutableStateOf(HomeShelf.All) }
+    var topWindow by remember { mutableStateOf(HomeTopWindow.Season) }
     val hiddenContinue = ContinueHidden.ids
     val continueWatching = remember(history, hiddenContinue) {
         continueQueue(history, hiddenContinue).take(12)
@@ -1070,6 +1073,20 @@ private fun HomeFeed(
         }
         onOpen(known ?: anime, null)
     }
+    val shuffleCatalog = {
+        val pool = (trending + seasonal).filter { it.onShelf(shelf) }.distinctBy { it.id }
+        if (pool.isNotEmpty()) openCatalog(pool.random())
+    }
+    fun freshLabel(slot: AiringSlot): String {
+        val now = System.currentTimeMillis() / 1000L
+        val clock = airingClock.format(java.util.Date(slot.airingAtEpochSec * 1000L))
+        val whenLabel = if (slot.airingAtEpochSec <= now) {
+            watchedAgo(slot.airingAtEpochSec * 1000L).ifBlank { clock }
+        } else {
+            airingLabel(slot.airingAtEpochSec, now, clock)
+        }
+        return "Episode ${slot.episode} · $whenLabel"
+    }
 
     val pageColor = LocalKittyPalette.current.page
     Box(modifier = Modifier.fillMaxSize().background(pageColor)) {
@@ -1082,6 +1099,7 @@ private fun HomeFeed(
                         onOpenSearch = onOpenSearch,
                         onOpenAccount = onOpenAccount,
                         avatarUrl = aniListAuth.avatarUrl,
+                        onShuffle = shuffleCatalog,
                     )
                     ShimmerBox(
                         modifier = Modifier
@@ -1102,6 +1120,7 @@ private fun HomeFeed(
                         onOpenSearch = onOpenSearch,
                         onOpenAccount = onOpenAccount,
                         avatarUrl = aniListAuth.avatarUrl,
+                        onShuffle = shuffleCatalog,
                     )
                     Spacer(modifier = Modifier.height(28.dp))
                     KittyEmptyState(
@@ -1124,14 +1143,21 @@ private fun HomeFeed(
                             onOpenSearch = onOpenSearch,
                             onOpenAccount = onOpenAccount,
                             avatarUrl = aniListAuth.avatarUrl,
+                            onShuffle = shuffleCatalog,
                         )
+                    }
+                    item(key = "shelves", contentType = "chips") {
+                        HomeShelfChips(selected = shelf, onSelect = { shelf = it })
                     }
                     val phoneSections = homeLayout.sections()
                     phoneSections.forEach { section ->
                         if (!section.enabled) return@forEach
                         when (section.id) {
-                            "featured" -> item(key = "featured", contentType = "hero") {
-                                HomeFeatured(items = trending, onOpen = openCatalog, logos = heroLogos)
+                            "featured" -> {
+                                val hero = trending.filter { it.onShelf(shelf) }
+                                if (hero.isNotEmpty()) item(key = "featured", contentType = "hero") {
+                                    HomeFeatured(items = hero, onOpen = openCatalog, logos = heroLogos)
+                                }
                             }
                             "continue" -> {
                                 if (continueWatching.isNotEmpty() && LookState.abandonedReminders) {
@@ -1182,49 +1208,70 @@ private fun HomeFeed(
                                         )
                                     }
                                 }
-                                val ranked = topTen.ifEmpty { trending }
+                                val rankedSource = if (topWindow == HomeTopWindow.Trending) {
+                                    trending
+                                } else {
+                                    topTen.ifEmpty { trending }
+                                }
+                                val ranked = rankedSource.filter { it.onShelf(shelf) }
                                 if (ranked.isNotEmpty()) item(key = "top10", contentType = "rank") {
-                                    HomeBlock(title = "Top 10", subtitle = "Trending this season") {
+                                    HomeBlock(title = "Top 10", subtitle = topWindow.label) {
+                                        HomeTopWindowChips(
+                                            selected = topWindow,
+                                            onSelect = { topWindow = it },
+                                        )
                                         HomeRankRow(items = ranked, onOpen = openCatalog)
                                     }
                                 }
                             }
-                            "fresh" -> if (airingToday.isNotEmpty()) item(key = "fresh", contentType = "fresh") {
-                                HomeBlock(title = "New episodes", subtitle = "Stills from today's airings") {
-                                    HomeContinueRow(
-                                        airingToday.take(8).map { slot ->
-                                            HomeContinueCard(
-                                                id = slot.anime.id * 1000 + slot.episode,
-                                                title = slot.anime.title,
-                                                imageUrl = stills["air-${slot.anime.id}-${slot.episode}"]
-                                                    ?: slot.anime.bannerImageUrl
-                                                    ?: slot.anime.coverImageUrl,
-                                                label = "Episode ${slot.episode}",
-                                                progress = 0f,
-                                                onClick = { openCatalog(slot.anime) },
-                                            )
-                                        },
-                                    )
+                            "fresh" -> {
+                                val fresh = airingToday.filter { it.anime.onShelf(shelf) }
+                                if (fresh.isNotEmpty()) item(key = "fresh", contentType = "fresh") {
+                                    HomeBlock(title = "New episodes", subtitle = "Stills from today's airings") {
+                                        HomeContinueRow(
+                                            fresh.take(8).map { slot ->
+                                                HomeContinueCard(
+                                                    id = slot.anime.id * 1000 + slot.episode,
+                                                    title = slot.anime.title,
+                                                    imageUrl = stills["air-${slot.anime.id}-${slot.episode}"]
+                                                        ?: slot.anime.bannerImageUrl
+                                                        ?: slot.anime.coverImageUrl,
+                                                    label = freshLabel(slot),
+                                                    progress = 0f,
+                                                    onClick = { openCatalog(slot.anime) },
+                                                )
+                                            },
+                                        )
+                                    }
                                 }
                             }
-                            "upcoming" -> if (upcoming.isNotEmpty()) item(key = "upcoming", contentType = "upcoming") {
-                                HomeBlock(title = "Upcoming", subtitle = "TMDB release dates") {
-                                    HomePosterRow(items = upcoming, onOpen = openCatalog, captions = upcomingDates)
+                            "upcoming" -> {
+                                val shownUpcoming = upcoming.filter { it.onShelf(shelf) }
+                                if (shownUpcoming.isNotEmpty()) item(key = "upcoming", contentType = "upcoming") {
+                                    HomeBlock(title = "Upcoming", subtitle = "TMDB release dates") {
+                                        HomePosterRow(items = shownUpcoming, onOpen = openCatalog, captions = upcomingDates)
+                                    }
                                 }
                             }
-                            "rated" -> if (topRated.isNotEmpty()) item(key = "rated", contentType = "rated") {
-                                HomeBlock(title = "Top rated", subtitle = "Recent Japanese animation") {
-                                    HomePosterRow(items = topRated, onOpen = openCatalog)
+                            "rated" -> {
+                                val shownRated = topRated.filter { it.onShelf(shelf) }
+                                if (shownRated.isNotEmpty()) item(key = "rated", contentType = "rated") {
+                                    HomeBlock(title = "Top rated", subtitle = "Recent Japanese animation") {
+                                        HomePosterRow(items = shownRated, onOpen = openCatalog)
+                                    }
                                 }
                             }
                             "because" -> because?.let { (title, shows) ->
-                                item(key = "because", contentType = "because") {
+                                val shownBecause = shows.filter { it.onShelf(shelf) }
+                                if (shownBecause.isNotEmpty()) item(key = "because", contentType = "because") {
                                     HomeBlock(title = "Because you watched", subtitle = title) {
-                                        HomePosterRow(items = shows, onOpen = openCatalog)
+                                        HomePosterRow(items = shownBecause, onOpen = openCatalog)
                                     }
                                 }
                             }
                             "network" -> networkRow?.let { (name, logo, shows) ->
+                                val shownNetwork = shows.filter { it.onShelf(shelf) }
+                                if (shownNetwork.isEmpty()) return@let
                                 item(key = "network", contentType = "network") {
                                     HomeBlock(title = name, subtitle = "Same network") {
                                         if (!logo.isNullOrBlank()) {
@@ -1237,21 +1284,24 @@ private fun HomeFeed(
                                                     .height(28.dp),
                                             )
                                         }
-                                        HomePosterRow(items = shows, onOpen = openCatalog)
+                                        HomePosterRow(items = shownNetwork, onOpen = openCatalog)
                                     }
                                 }
                             }
                             "collection" -> collection?.let { (name, shows) ->
-                                item(key = "collection", contentType = "collection") {
+                                val shownCollection = shows.filter { it.onShelf(shelf) }
+                                if (shownCollection.isNotEmpty()) item(key = "collection", contentType = "collection") {
                                     HomeBlock(title = name, subtitle = "Same collection") {
-                                        HomePosterRow(items = shows, onOpen = openCatalog)
+                                        HomePosterRow(items = shownCollection, onOpen = openCatalog)
                                     }
                                 }
                             }
-                            "airing" -> if (airingToday.isNotEmpty()) item(key = "airing", contentType = "airing") {
+                            "airing" -> {
+                                val airingShelf = airingToday.filter { it.anime.onShelf(shelf) }
+                                if (airingShelf.isNotEmpty()) item(key = "airing", contentType = "airing") {
                                 val now = System.currentTimeMillis() / 1000L
-                                val upcoming = airingToday.filter { it.airingAtEpochSec >= now - 20 * 60 }
-                                val shown = (if (upcoming.isNotEmpty()) upcoming else airingToday).take(5)
+                                val upcoming = airingShelf.filter { it.airingAtEpochSec >= now - 20 * 60 }
+                                val shown = (if (upcoming.isNotEmpty()) upcoming else airingShelf).take(5)
                                 HomeBlock(
                                     title = "Airing today",
                                     onMore = onOpenSchedule,
@@ -1273,22 +1323,29 @@ private fun HomeFeed(
                                         },
                                     )
                                 }
-                            }
-                            "season" -> if (seasonal.isNotEmpty()) item(key = "season", contentType = "posters") {
-                                HomeBlock(
-                                    title = "This season",
-                                    subtitle = "New this season",
-                                    onMore = onOpenSchedule,
-                                ) {
-                                    HomePosterGrid(items = seasonal.take(9), onOpen = openCatalog)
                                 }
                             }
-                            "foryou" -> if (forYou.isNotEmpty()) item(key = "foryou", contentType = "posters") {
-                                HomeBlock(
-                                    title = "For you",
-                                    subtitle = forYouFrom?.let { "Because you watch $it" },
-                                ) {
-                                    HomePosterRow(items = forYou, onOpen = openCatalog)
+                            "season" -> {
+                                val shownSeason = seasonal.filter { it.onShelf(shelf) }
+                                if (shownSeason.isNotEmpty()) item(key = "season", contentType = "posters") {
+                                    HomeBlock(
+                                        title = "This season",
+                                        subtitle = "New this season",
+                                        onMore = onOpenSchedule,
+                                    ) {
+                                        HomePosterGrid(items = shownSeason.take(9), onOpen = openCatalog)
+                                    }
+                                }
+                            }
+                            "foryou" -> {
+                                val shownForYou = forYou.filter { it.onShelf(shelf) }
+                                if (shownForYou.isNotEmpty()) item(key = "foryou", contentType = "posters") {
+                                    HomeBlock(
+                                        title = "For you",
+                                        subtitle = forYouFrom?.let { "Because you watch $it" },
+                                    ) {
+                                        HomePosterRow(items = shownForYou, onOpen = openCatalog)
+                                    }
                                 }
                             }
                             "plan" -> if (planToWatch.isNotEmpty()) item(key = "plan", contentType = "posters") {
@@ -2267,7 +2324,7 @@ internal fun SettingsFeed(
                     item {
                         SpacePageHeader(
                             title = "Sources",
-                            subtitle = "Anikoto, Gotaku, reanime, and mkissa ship in the app.",
+                            subtitle = "Anikoto (kotoplay.to if Anikoto is down), Gotaku, reanime, and mkissa ship in the app.",
                             onBack = { page = "hub" },
                         )
                     }

@@ -47,7 +47,7 @@ Stable is the latest stable release. Dev is the rolling `anikitty-dev.apk`. A pu
 
 - The catalog is AniList. Search, the season, and a title page use it.
 - The player is Media3, on the phone. Watch progress stays on the device.
-- **Anikoto**, **Gotaku**, **reanime**, and **mkissa** ship in the app. Anything else is an extension you add. The app does not preload one.
+- **Anikoto**, **Gotaku**, **reanime**, and **mkissa** ship in the app. Anything else is an extension you add. The app does not preload one. Anikoto tries anikoto.cz first and [kotoplay.to](https://kotoplay.to/) when Anikoto is down or has no source. Those sites can change their player without notice, and a title can stop playing when they do.
 - The phone asks a resolver for a URL and plays that URL. It does not upload an episode and it does not keep a copy.
 
 ```bash

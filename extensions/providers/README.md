@@ -5,7 +5,7 @@ Playback stays on the phone. This repository is where the extension version of e
 
 | Folder | Provider |
 |---|---|
-| [anikoto](./anikoto) | Anikoto → MegaPlay, including skip times used for every provider |
+| [anikoto](./anikoto) | Anikoto → MegaPlay, then kotoplay.to if Anikoto is down. Skip times used for every provider |
 | [gotaku](./gotaku) | Gotaku HLS unwrap |
 | [reanime](./reanime) | reanime.cz |
 | [mkissa](./mkissa) | mkissa.to direct files. Tried after reanime |

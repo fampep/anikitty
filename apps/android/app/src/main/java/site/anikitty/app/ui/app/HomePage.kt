@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Shuffle
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -80,6 +81,7 @@ internal fun HomeBar(
     onOpenSearch: () -> Unit,
     onOpenAccount: () -> Unit,
     avatarUrl: String?,
+    onShuffle: (() -> Unit)? = null,
 ) {
     val ink = LocalKittyPalette.current.text
     Row(
@@ -116,6 +118,16 @@ internal fun HomeBar(
                 tint = ink,
                 modifier = Modifier.height(18.dp).width(18.dp),
             )
+        }
+        if (onShuffle != null) {
+            HomeBarIcon(onClick = onShuffle) {
+                Icon(
+                    Icons.Outlined.Shuffle,
+                    contentDescription = "Random anime",
+                    tint = ink,
+                    modifier = Modifier.height(18.dp).width(18.dp),
+                )
+            }
         }
         HomeBarIcon(onClick = onRefresh) {
             if (refreshBusy) {
@@ -683,6 +695,80 @@ internal fun HomeRankRow(
                     modifier = Modifier.padding(start = 18.dp, top = 6.dp),
                 )
             }
+        }
+    }
+}
+
+/** Home shelves copied from the kotoplay chip bar, using the AniList fields we already have. */
+internal enum class HomeShelf(val label: String) {
+    All("All"),
+    Movies("Movies"),
+    Airing("Ongoing"),
+    Finished("Finished"),
+}
+
+internal enum class HomeTopWindow(val label: String) {
+    Season("This season"),
+    Trending("Trending"),
+}
+
+internal fun AnimeSummary.onShelf(shelf: HomeShelf): Boolean = when (shelf) {
+    HomeShelf.All -> true
+    HomeShelf.Movies -> format.equals("MOVIE", ignoreCase = true)
+    HomeShelf.Airing -> status.equals("RELEASING", ignoreCase = true)
+    HomeShelf.Finished -> status.equals("FINISHED", ignoreCase = true)
+}
+
+@Composable
+internal fun HomeShelfChips(
+    selected: HomeShelf,
+    onSelect: (HomeShelf) -> Unit,
+) {
+    val palette = LocalKittyPalette.current
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(HomeShelf.entries, key = { it.name }, contentType = { "shelf" }) { shelf ->
+            val on = shelf == selected
+            Text(
+                shelf.label,
+                color = if (on) palette.page else palette.text,
+                fontWeight = FontWeight.Medium,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (on) palette.text else Color.Transparent)
+                    .border(1.dp, if (on) palette.text else Hairline, RoundedCornerShape(16.dp))
+                    .spacePress { onSelect(shelf) }
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+            )
+        }
+    }
+}
+
+@Composable
+internal fun HomeTopWindowChips(
+    selected: HomeTopWindow,
+    onSelect: (HomeTopWindow) -> Unit,
+) {
+    val palette = LocalKittyPalette.current
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        HomeTopWindow.entries.forEach { window ->
+            val on = window == selected
+            Text(
+                window.label,
+                color = if (on) palette.text else palette.muted,
+                fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .spacePress { onSelect(window) }
+                    .padding(horizontal = 2.dp, vertical = 4.dp),
+            )
         }
     }
 }
