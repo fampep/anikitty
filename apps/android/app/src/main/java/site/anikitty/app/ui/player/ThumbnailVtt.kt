@@ -86,16 +86,24 @@ private fun cueFromPayload(raw: String, vttUrl: String, startMs: Long, endMs: Lo
 
 private fun resolveSpriteUrl(raw: String, vttUrl: String): String? {
     if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
-    val base = vttUrl.substringBefore('#')
-    if (raw.startsWith("//")) {
-        val scheme = base.substringBefore("://", "https")
-        return "$scheme:$raw"
+    val withoutHash = vttUrl.substringBefore('#')
+    val query = withoutHash.substringAfter('?', "")
+    val base = withoutHash.substringBefore('?')
+    val resolved = when {
+        raw.startsWith("//") -> {
+            val scheme = base.substringBefore("://", "https")
+            "$scheme:$raw"
+        }
+        raw.startsWith("/") -> {
+            val origin = Regex("""^https?://[^/]+""").find(base)?.value ?: return null
+            origin + raw
+        }
+        else -> {
+            val dir = base.substringBeforeLast('/', "")
+            if (!dir.startsWith("http")) return null
+            "$dir/$raw"
+        }
     }
-    if (raw.startsWith("/")) {
-        val origin = Regex("""^https?://[^/]+""").find(base)?.value ?: return null
-        return origin + raw
-    }
-    val dir = base.substringBeforeLast('/', "")
-    if (!dir.startsWith("http")) return null
-    return "$dir/$raw"
+    if (query.isEmpty() || resolved.contains('?')) return resolved
+    return "$resolved?$query"
 }
