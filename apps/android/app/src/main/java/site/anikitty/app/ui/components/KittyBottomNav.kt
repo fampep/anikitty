@@ -91,7 +91,7 @@ fun KittyBottomNav(
                 )
             }
             .navigationBarsPadding()
-            .height(50.dp),
+            .height(58.dp),
         contentAlignment = Alignment.Center,
     ) {
         val view = LocalView.current
@@ -166,7 +166,7 @@ fun KittyBottomNav(
                             contentScale = ContentScale.Crop,
                             modifier = Modifier
                                 .graphicsLayer(scaleX = scale, scaleY = scale)
-                                .size(18.dp)
+                                .size(20.dp)
                                 .clip(CircleShape)
                                 .border(
                                     width = if (selected) 1.dp else 0.dp,
@@ -181,16 +181,16 @@ fun KittyBottomNav(
                             tint = tint,
                             modifier = Modifier
                                 .graphicsLayer(scaleX = scale, scaleY = scale)
-                                .size(17.dp),
+                                .size(20.dp),
                         )
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         tab.label,
                         color = tint,
-                        fontSize = 8.sp,
+                        fontSize = 9.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        letterSpacing = 0.05.sp,
+                        letterSpacing = 0.sp,
                         maxLines = 1,
                     )
                 }
