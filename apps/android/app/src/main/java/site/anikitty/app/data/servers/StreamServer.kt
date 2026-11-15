@@ -50,6 +50,15 @@ data class PlayableSource(
     val qualityRating: String? = null,
     /** FlixCloud playlist key and segment mask. Null for every other source. */
     val flix: FlixUnwrap? = null,
+    /** Sprite-sheet WebVTT for the seek preview. Null when the source has none. */
+    val thumbnails: ThumbnailTrack? = null,
+)
+
+/** Thumbnail VTT plus the headers its sprite sheets require. */
+@Immutable
+data class ThumbnailTrack(
+    val url: String,
+    val headers: Map<String, String> = emptyMap(),
 )
 
 /** Keys Media3 needs to turn a FlixCloud response into a normal HLS stream. */

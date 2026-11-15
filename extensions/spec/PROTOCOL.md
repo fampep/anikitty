@@ -72,6 +72,10 @@ Optional: `description`, `author`, `homepage`, `resolvePath`, `siteUrl`, `nsfw`.
       language?: string | null;
       mimeType?: string | null;
     }>;
+    thumbnails?: string | {
+      url: string;
+      headers?: Record<string, string>;
+    };
   }>;
 }
 ```
@@ -86,6 +90,7 @@ Constraints:
 - A dropped connection is tried once more. An HTTP error is not retried.
 - Empty `sources` → client treats as failure.
 - `quality`, `audio`, and `qualityRating` are optional strings. Trimmed blank values are treated as omitted.
+- `thumbnails` is an optional WebVTT URL. A string uses the source headers, so Referer and Origin still go out with the sprite sheets. An object can add its own headers. The app parses `#xywh` crops and does not require a thumbnail track.
 - There is no enum. Examples that the app will show as-is: `quality` `"480p"` `"720p"` `"1080p"` `"4K"`; `audio` `"SUB"` `"DUB"` `"AAC 2.0 · SUB"` `"AC3 5.1 · DUB"`; `qualityRating` `"SD"` `"HD"` `"FHD"` `"UHD"`.
 - Do not send a grade you did not read from the stream or the site. The app will not fill one in.
 - `label` is still the sheet name. It is not copied into `quality`.
@@ -167,5 +172,6 @@ Typical AniKitty client budgets:
 | `sources[].qualityRating` | string | grade the source stated: `"SD"`, `"HD"`, `"FHD"`, `"UHD"`, `"HQ"` | no grade badge |
 | `sources[].stripBytes` | number | `0` or a positive byte count | `0` |
 | `sources[].subtitles` | array | `{ url, label, language?, mimeType? }` | none |
+| `sources[].thumbnails` | string or `{ url, headers? }` | absolute WebVTT URL for seek sprites | none |
 
 Backward compatibility: a 1.0 body with only `url` and `label` is valid. Unknown keys are ignored. Blank strings are treated as omitted. The app never copies `label` into `quality` and never invents `qualityRating` from height.

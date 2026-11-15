@@ -70,13 +70,26 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.outlined.Forward10
 import androidx.compose.material.icons.outlined.FullscreenExit
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.outlined.Pause
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.PictureInPicture
 import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Replay10
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.ClosedCaption
+import androidx.compose.material.icons.outlined.Equalizer
+import androidx.compose.material.icons.outlined.FormatColorFill
+import androidx.compose.material.icons.outlined.FormatColorText
+import androidx.compose.material.icons.outlined.AspectRatio
+import androidx.compose.material.icons.outlined.Title
+import androidx.compose.material.icons.outlined.Translate
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.rounded.Fullscreen
@@ -135,6 +148,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
@@ -185,8 +199,6 @@ import site.anikitty.app.ui.theme.PlayerChrome
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-
-private enum class Panel { None, Quality, Subs, Style, Display, Speed, Sleep }
 
 /** Soft “next episode?” offer when this much remains. */
 private const val NEAR_END_THRESHOLD_MS = 90_000L
@@ -281,7 +293,7 @@ fun PlayerScreen(
     var resumeAtMs by remember { mutableLongStateOf(startPositionMs) }
     /** True until the first successful resume seek or a user quality pick. */
     var allowHistoryFallback by remember { mutableStateOf(true) }
-    var panel by remember { mutableStateOf(Panel.None) }
+    var panel by remember { mutableStateOf(PlayerMenuPage.None) }
     var immersive by remember { mutableStateOf(true) }
     var resizeMode by remember {
         mutableIntStateOf(
@@ -304,6 +316,10 @@ fun PlayerScreen(
     var playbackSpeed by remember {
         mutableFloatStateOf(playerPrefs.getFloat("playback_speed", 1f).coerceIn(0.5f, 2f))
     }
+    var volumeBoost by remember {
+        mutableIntStateOf(playerPrefs.getInt("volume_boost", 0).coerceIn(0, 3))
+    }
+    var loudnessBoost by remember { mutableStateOf<android.media.audiofx.LoudnessEnhancer?>(null) }
     var autoNext by remember { mutableStateOf(playerPrefs.getBoolean("auto_next", true)) }
     var holdBoost by remember { mutableStateOf(false) }
     var gestureHud by remember { mutableStateOf<Pair<String, Float>?>(null) }
@@ -331,12 +347,10 @@ fun PlayerScreen(
     var muted by remember { mutableStateOf(false) }
 
     fun closePanelOrExit() {
-        if (panel != Panel.None) {
-            panel = Panel.None
-        } else if (theater) {
-            theater = false
-        } else {
-            onClose()
+        when (panel) {
+            PlayerMenuPage.None -> if (theater) theater = false else onClose()
+            PlayerMenuPage.Root -> panel = PlayerMenuPage.None
+            else -> panel = PlayerMenuPage.Root
         }
     }
 
@@ -865,7 +879,7 @@ fun PlayerScreen(
 
     LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting, nearEndOffer, showEndAutoplay, chromeFocused) {
         if (nearEndOffer || showEndAutoplay) return@LaunchedEffect
-        if (controlsVisible && playing && !scrubbing && panel == Panel.None && !chromeFocused) {
+        if (controlsVisible && playing && !scrubbing && panel == PlayerMenuPage.None && !chromeFocused) {
             delay(if (isCasting) 5_500 else 3_600)
             controlsVisible = false
         }
@@ -884,6 +898,38 @@ fun PlayerScreen(
 
     LaunchedEffect(player, muted) {
         pushMute()
+    }
+
+    DisposableEffect(player, volumeBoost, muted) {
+        val exo = player as? ExoPlayer
+        fun applyBoost() {
+            loudnessBoost?.release()
+            loudnessBoost = null
+            val session = exo?.audioSessionId ?: return
+            if (muted || volumeBoost <= 0 || session == androidx.media3.common.C.AUDIO_SESSION_ID_UNSET) return
+            val gain = when (volumeBoost) {
+                1 -> 250
+                2 -> 600
+                else -> 1000
+            }
+            loudnessBoost = runCatching {
+                android.media.audiofx.LoudnessEnhancer(session).apply {
+                    setTargetGain(gain)
+                    enabled = true
+                }
+            }.getOrNull()
+        }
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) = applyBoost()
+        }
+        exo?.addListener(listener)
+        playerPrefs.edit().putInt("volume_boost", volumeBoost).apply()
+        applyBoost()
+        onDispose {
+            exo?.removeListener(listener)
+            loudnessBoost?.release()
+            loudnessBoost = null
+        }
     }
 
     fun seekBy(deltaMs: Long) {
@@ -911,7 +957,7 @@ fun PlayerScreen(
         allowHistoryFallback = false
         // Keep the user's resolution lock across mirror switches when possible.
         sourceIndex = index
-        panel = Panel.None
+        panel = PlayerMenuPage.None
         controlsVisible = true
     }
 
@@ -947,85 +993,332 @@ fun PlayerScreen(
             false
         }
         if (entered) {
-            panel = Panel.None
+            panel = PlayerMenuPage.None
             controlsVisible = false
         }
     }
 
     @Composable
+    fun SettingsRoot(compact: Boolean) {
+        val speedValue = if (kotlin.math.abs(playbackSpeed - 1f) < 0.01f) "Normal" else speedLabel(playbackSpeed)
+        PlayerMenuRow(
+            label = "Play Speed",
+            value = speedValue,
+            icon = Icons.Outlined.PlayCircle,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Speed },
+        )
+        PlayerMenuRow(
+            label = "Quality",
+            value = menuQualityValue(qualityLabel),
+            icon = Icons.Outlined.Equalizer,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Quality },
+        )
+        PlayerMenuRow(
+            label = "Subtitles",
+            value = subLabel,
+            icon = Icons.Outlined.ClosedCaption,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Subs },
+        )
+        PlayerMenuRow(
+            label = "Subtitle Size",
+            value = "${subtitlePercent(subStyle.sizeSp)}%",
+            glyph = "T",
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Size },
+        )
+        PlayerMenuRow(
+            label = "Subtitle Timing",
+            value = timingLabel(subStyle.bottomPad),
+            icon = Icons.Outlined.Schedule,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Timing },
+        )
+        PlayerMenuRow(
+            label = "Volume Boost",
+            value = boostLabel(volumeBoost),
+            icon = Icons.AutoMirrored.Outlined.VolumeUp,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Volume },
+        )
+        PlayerMenuRow(
+            label = "Audio Tracks",
+            value = if (audio == "dub") "Dub" else "Sub",
+            icon = Icons.Outlined.Translate,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Audio },
+        )
+        PlayerMenuRow(
+            label = "Subtitle Color",
+            value = captionColorLabel(subStyle.color),
+            icon = Icons.Outlined.FormatColorText,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Color },
+        )
+        PlayerMenuRow(
+            label = "Subtitle Edge",
+            value = edgeLabel(subStyle.edgeType),
+            icon = Icons.Outlined.Title,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Edge },
+        )
+        PlayerMenuRow(
+            label = "Subtitle Background",
+            value = bgLabel(subStyle.bgMode),
+            icon = Icons.Outlined.FormatColorFill,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Background },
+        )
+        PlayerMenuRow(
+            label = "Episodes",
+            icon = Icons.Outlined.VideoLibrary,
+            showChevron = true,
+            onClick = {
+                panel = PlayerMenuPage.None
+                theater = false
+            },
+        )
+        if (onNextEpisode != null && episode < totalEpisodes) {
+            PlayerMenuRow(
+                label = "Next episode",
+                icon = Icons.Outlined.SkipNext,
+                showChevron = true,
+                onClick = {
+                    panel = PlayerMenuPage.None
+                    goNextEpisode()
+                },
+            )
+        }
+        PlayerMenuRow(
+            label = "Picture",
+            value = resizeLabel(resizeMode),
+            icon = Icons.Outlined.AspectRatio,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Resize },
+        )
+        PlayerMenuRow(
+            label = "Sleep timer",
+            value = sleepLabel(sleepChoice),
+            icon = Icons.Outlined.Bedtime,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Sleep },
+        )
+        PlayerMenuRow(
+            label = "Lock controls",
+            icon = Icons.Outlined.Lock,
+            showChevron = true,
+            onClick = {
+                controlsLocked = true
+                panel = PlayerMenuPage.None
+                controlsVisible = false
+            },
+        )
+        if (compact) {
+            PlayerMenuRow(
+                label = "Screenshot",
+                icon = Icons.Outlined.PhotoCamera,
+                showChevron = true,
+                onClick = {
+                    panel = PlayerMenuPage.None
+                    capturePlayerFrame(context, playerViewRef)
+                },
+            )
+            PlayerMenuRow(
+                label = "Picture in picture",
+                icon = Icons.Outlined.PictureInPicture,
+                showChevron = true,
+                onClick = { enterPip() },
+            )
+        }
+    }
+
+    @Composable
     fun PanelContents() {
+        val compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 840
         when (panel) {
-            Panel.Quality -> QualitySheet(
-                videoOptions = videoOptions,
-                selectedVideoId = selectedVideoId,
-                onPickVideo = {
-                    selectedVideoId = it
-                    panel = Panel.None
-                    controlsVisible = true
-                },
-                sources = sources,
-                selectedSource = sourceIndex,
-                onPickSource = ::pickQuality,
-            )
-            Panel.Subs -> SubsSheet(
-                enabled = subsEnabled,
-                options = textOptions,
-                selectedId = selectedTextId,
-                onToggle = {
-                    subsEnabled = it
-                    if (!it) selectedTextId = "off"
-                    else if (selectedTextId == "off") selectedTextId = "auto"
-                },
-                onPick = {
-                    selectedTextId = it
-                    subsEnabled = it != "off"
-                },
-                onOpenStyle = { panel = Panel.Style },
-                audio = audio,
-                onPickAudio = onPickAudio,
-            )
-            Panel.Style -> StyleSheet(
-                style = subStyle,
-                onChange = { subStyle = it },
-                onBack = { panel = Panel.Subs },
-            )
-            Panel.Display -> DisplaySheet(
-                resizeMode = resizeMode,
-                immersive = immersive,
-                onResize = { resizeMode = it },
-                onImmersive = { immersive = it },
-                onSleep = { panel = Panel.Sleep },
-                onLock = {
-                    controlsLocked = true
-                    panel = Panel.None
-                    controlsVisible = false
-                },
-                onQuality = { panel = Panel.Quality },
-                onAudio = { panel = Panel.Subs },
-                onSpeed = { panel = Panel.Speed },
-                onEpisodes = {
-                    panel = Panel.None
-                    theater = false
-                },
-                onNext = { goNextEpisode() },
-                nextEnabled = onNextEpisode != null && episode < totalEpisodes,
-            )
-            Panel.Speed -> SpeedSheet(
-                speed = playbackSpeed,
-                onPick = {
-                    playbackSpeed = it
-                    panel = Panel.None
-                },
-            )
-            Panel.Sleep -> SleepSheet(
-                choice = sleepChoice,
-                onPick = {
-                    sleepNote = null
-                    sleepChoice = it
-                    panel = Panel.None
-                },
-            )
-            Panel.None -> Unit
+            PlayerMenuPage.None -> Unit
+            PlayerMenuPage.Root -> SettingsRoot(compact)
+            PlayerMenuPage.Speed -> {
+                listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEach { rate ->
+                    PlayerMenuRow(
+                        label = if (kotlin.math.abs(rate - 1f) < 0.01f) "Normal" else speedLabel(rate),
+                        selected = kotlin.math.abs(playbackSpeed - rate) < 0.01f,
+                        onClick = { playbackSpeed = rate },
+                    )
+                }
+            }
+            PlayerMenuPage.Quality -> {
+                val resolutions = videoOptions.ifEmpty {
+                    listOf(VideoOption(id = "auto", label = "Auto (best available)"))
+                }
+                resolutions.forEach { opt ->
+                    PlayerMenuRow(
+                        label = opt.label,
+                        selected = selectedVideoId == opt.id,
+                        onClick = { selectedVideoId = opt.id },
+                    )
+                }
+                if (sources.size > 1) {
+                    sources.forEachIndexed { index, src ->
+                        PlayerMenuRow(
+                            label = src.label,
+                            selected = index == sourceIndex,
+                            onClick = { pickQuality(index) },
+                        )
+                    }
+                }
+            }
+            PlayerMenuPage.Subs -> {
+                PlayerMenuRow(
+                    label = "Off",
+                    selected = !subsEnabled || selectedTextId == "off",
+                    onClick = {
+                        subsEnabled = false
+                        selectedTextId = "off"
+                    },
+                )
+                PlayerMenuRow(
+                    label = "Auto",
+                    selected = subsEnabled && selectedTextId == "auto",
+                    onClick = {
+                        subsEnabled = true
+                        selectedTextId = "auto"
+                    },
+                )
+                textOptions.filter { it.id != "off" && it.id != "auto" }.forEach { opt ->
+                    PlayerMenuRow(
+                        label = opt.label,
+                        selected = subsEnabled && selectedTextId == opt.id,
+                        onClick = {
+                            subsEnabled = true
+                            selectedTextId = opt.id
+                        },
+                    )
+                }
+            }
+            PlayerMenuPage.Size -> {
+                listOf(50, 75, 100, 125).forEach { percent ->
+                    val sp = (DEFAULT_SUB_SIZE_SP * percent / 100f)
+                        .coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX)
+                    PlayerMenuRow(
+                        label = "$percent%",
+                        selected = kotlin.math.abs(subStyle.sizeSp - sp) < 0.6f,
+                        onClick = { subStyle = subStyle.copy(sizeSp = sp) },
+                    )
+                }
+            }
+            PlayerMenuPage.Timing -> {
+                listOf(
+                    "Low" to 0.06f,
+                    "Mid" to 0.12f,
+                    "High" to 0.18f,
+                    "Top" to 0.24f,
+                ).forEach { (label, pad) ->
+                    PlayerMenuRow(
+                        label = label,
+                        selected = timingLabel(subStyle.bottomPad) == label,
+                        onClick = { subStyle = subStyle.copy(bottomPad = pad) },
+                    )
+                }
+            }
+            PlayerMenuPage.Volume -> {
+                listOf(0 to "Off", 1 to "Low", 2 to "Medium", 3 to "High").forEach { (level, label) ->
+                    PlayerMenuRow(
+                        label = label,
+                        selected = volumeBoost == level,
+                        onClick = { volumeBoost = level },
+                    )
+                }
+            }
+            PlayerMenuPage.Audio -> {
+                if (onPickAudio != null) {
+                    PlayerMenuRow(
+                        label = "Subtitled",
+                        selected = audio != "dub",
+                        onClick = { onPickAudio.invoke("sub") },
+                    )
+                    PlayerMenuRow(
+                        label = "Dubbed",
+                        selected = audio == "dub",
+                        onClick = { onPickAudio.invoke("dub") },
+                    )
+                } else {
+                    PlayerMenuRow(
+                        label = if (audio == "dub") "Dubbed" else "Subtitled",
+                        selected = true,
+                        onClick = {},
+                    )
+                }
+            }
+            PlayerMenuPage.Color -> {
+                captionColors().forEach { (color, label) ->
+                    PlayerMenuRow(
+                        label = label,
+                        selected = subStyle.color == color,
+                        onClick = { subStyle = subStyle.copy(color = color) },
+                    )
+                }
+            }
+            PlayerMenuPage.Edge -> {
+                listOf(
+                    CaptionStyleCompat.EDGE_TYPE_OUTLINE to "Outline",
+                    CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW to "Shadow",
+                    CaptionStyleCompat.EDGE_TYPE_NONE to "None",
+                ).forEach { (edge, label) ->
+                    PlayerMenuRow(
+                        label = label,
+                        selected = subStyle.edgeType == edge,
+                        onClick = { subStyle = subStyle.copy(edgeType = edge) },
+                    )
+                }
+            }
+            PlayerMenuPage.Background -> {
+                listOf(
+                    SubBgMode.None to "None",
+                    SubBgMode.Soft to "Soft",
+                    SubBgMode.Blur to "Blur",
+                    SubBgMode.Solid to "Solid",
+                ).forEach { (mode, label) ->
+                    PlayerMenuRow(
+                        label = label,
+                        selected = subStyle.bgMode == mode,
+                        onClick = { subStyle = subStyle.copy(bgMode = mode) },
+                    )
+                }
+            }
+            PlayerMenuPage.Resize -> {
+                listOf(
+                    AspectRatioFrameLayout.RESIZE_MODE_FIT to "Fit",
+                    AspectRatioFrameLayout.RESIZE_MODE_ZOOM to "Fill",
+                    AspectRatioFrameLayout.RESIZE_MODE_FILL to "Stretch",
+                ).forEach { (mode, label) ->
+                    PlayerMenuRow(
+                        label = label,
+                        selected = resizeMode == mode,
+                        onClick = { resizeMode = mode },
+                    )
+                }
+            }
+            PlayerMenuPage.Sleep -> {
+                listOf(
+                    0 to "Off",
+                    15 to "15 minutes",
+                    30 to "30 minutes",
+                    45 to "45 minutes",
+                    -1 to "End of this episode",
+                ).forEach { (value, label) ->
+                    PlayerMenuRow(
+                        label = label,
+                        selected = sleepChoice == value,
+                        onClick = {
+                            sleepNote = null
+                            sleepChoice = value
+                        },
+                    )
+                }
+            }
         }
     }
 
@@ -1036,7 +1329,7 @@ fun PlayerScreen(
             .clipToBounds()
             .background(KittyInk)
             .onFocusChanged { chromeFocused = it.hasFocus }
-            .focusProperties { canFocus = panel == Panel.None && !controlsVisible }
+            .focusProperties { canFocus = panel == PlayerMenuPage.None && !controlsVisible }
             .focusable()
             .onPreviewKeyEvent { event ->
                 if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
@@ -1111,8 +1404,8 @@ fun PlayerScreen(
                         }
                         if (!theater) {
                             activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
-                        } else if (panel != Panel.None) {
-                            panel = Panel.None
+                        } else if (panel != PlayerMenuPage.None) {
+                            panel = PlayerMenuPage.None
                         } else {
                             controlsVisible = !controlsVisible
                         }
@@ -1473,7 +1766,7 @@ fun PlayerScreen(
         }
 
         AnimatedVisibility(
-            visible = theater && !controlsLocked && (controlsVisible || error != null || panel != Panel.None),
+            visible = theater && !controlsLocked && (controlsVisible || error != null || panel != PlayerMenuPage.None),
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize(),
@@ -1491,7 +1784,7 @@ fun PlayerScreen(
                         ),
                 )
 
-                if (panel == Panel.None) {
+                if (panel == PlayerMenuPage.None) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -1531,6 +1824,8 @@ fun PlayerScreen(
                         scrubValue = scrubValue,
                         durationMs = durationMs,
                         skipTimes = skipTimes,
+                        thumbnails = source?.thumbnails,
+                        mediaUrl = source?.url,
                         onScrub = {
                             scrubbing = true
                             scrubValue = it
@@ -1592,47 +1887,51 @@ fun PlayerScreen(
                                 description = "Skip 85 seconds",
                                 onClick = { seekBy(85_000) },
                             )
-                            PillIcon(
-                                icon = Icons.Outlined.PhotoCamera,
-                                description = "Screenshot",
-                                onClick = { capturePlayerFrame(context, playerViewRef) },
-                            )
+                            val compactPills = LocalConfiguration.current.screenWidthDp < 840
+                            if (!compactPills) {
+                                PillIcon(
+                                    icon = Icons.Outlined.PhotoCamera,
+                                    description = "Screenshot",
+                                    onClick = { capturePlayerFrame(context, playerViewRef) },
+                                )
+                            }
                             PillIcon(
                                 icon = Icons.Outlined.Settings,
                                 description = "Settings",
                                 onClick = {
-                                    panel = if (panel == Panel.Display) Panel.None else Panel.Display
+                                    panel = if (panel == PlayerMenuPage.None) {
+                                        PlayerMenuPage.Root
+                                    } else {
+                                        PlayerMenuPage.None
+                                    }
                                     controlsVisible = true
                                 },
                             )
-                            PillIcon(
-                                icon = Icons.Outlined.PictureInPicture,
-                                description = "Picture in picture",
-                                onClick = { enterPip() },
-                            )
+                            if (!compactPills) {
+                                PillIcon(
+                                    icon = Icons.Outlined.PictureInPicture,
+                                    description = "Picture in picture",
+                                    onClick = { enterPip() },
+                                )
+                            }
                             PillIcon(
                                 icon = Icons.Outlined.FullscreenExit,
                                 description = "Exit full screen",
                                 onClick = { theater = false },
                             )
                             if (castHelper != null) {
-                                CastRouteButton(modifier = Modifier.size(40.dp))
+                                CastRouteButton(modifier = Modifier.size(48.dp))
                             }
                         }
                     }
                 }
 
-                if (panel != Panel.None) {
-                    PlayerSheet(
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth()
-                            .heightIn(max = 480.dp)
-                            .windowInsetsPadding(
-                                WindowInsets.navigationBars.union(WindowInsets.displayCutout),
-                            ),
-                        onDismiss = { panel = Panel.None },
-                        resetKey = panel,
+                if (panel != PlayerMenuPage.None) {
+                    PlayerMenuFrame(
+                        theater = true,
+                        page = panel,
+                        onBack = { panel = PlayerMenuPage.Root },
+                        onDismiss = { panel = PlayerMenuPage.None },
                     ) {
                         PanelContents()
                     }
@@ -1640,7 +1939,7 @@ fun PlayerScreen(
             }
         }
 
-        if (activeSkip != null && !isCasting && panel == Panel.None) {
+        if (activeSkip != null && !isCasting && panel == PlayerMenuPage.None) {
             val (kind, iv) = activeSkip
             val label = when (kind) {
                 "intro" -> "Skip Intro"
@@ -1726,7 +2025,7 @@ fun PlayerScreen(
                 onBack = onClose,
                 onExpand = { theater = true },
                 onSettings = {
-                    panel = if (panel == Panel.Display) Panel.None else Panel.Display
+                    panel = if (panel == PlayerMenuPage.None) PlayerMenuPage.Root else PlayerMenuPage.None
                 },
                 onPip = { enterPip() },
                 cast = {
@@ -1754,9 +2053,25 @@ fun PlayerScreen(
             ),
         )
         if (!theater && durationMs > 0L) {
-            LiveHairline(
+            LiveTimeline(
                 player = activePlayer,
+                scrubbing = scrubbing,
+                scrubValue = scrubValue,
                 durationMs = durationMs,
+                skipTimes = skipTimes,
+                thumbnails = source?.thumbnails,
+                mediaUrl = source?.url,
+                onScrub = {
+                    scrubbing = true
+                    scrubValue = it
+                },
+                onScrubFinished = { fraction ->
+                    val target = (fraction * durationMs).toLong()
+                    activePlayer?.seekTo(target)
+                    playhead.ms = target
+                    positionMs = target
+                    scrubbing = false
+                },
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .padding(top = 8.dp),
@@ -1789,35 +2104,26 @@ fun PlayerScreen(
                 onToggleWatched = onToggleWatched,
                 speedLabel = speedLabel(playbackSpeed),
                 qualityLabel = shortQuality(qualityLabel),
-                onSpeed = { panel = if (panel == Panel.Speed) Panel.None else Panel.Speed },
-                onQuality = { panel = if (panel == Panel.Quality) Panel.None else Panel.Quality },
+                onSpeed = { panel = if (panel == PlayerMenuPage.Speed) PlayerMenuPage.None else PlayerMenuPage.Speed },
+                onQuality = { panel = if (panel == PlayerMenuPage.Quality) PlayerMenuPage.None else PlayerMenuPage.Quality },
                 onAudio = {
-                    panel = if (panel == Panel.Subs || panel == Panel.Style) Panel.None else Panel.Subs
+                    panel = if (panel == PlayerMenuPage.Subs) PlayerMenuPage.None else PlayerMenuPage.Subs
                 },
                 onNext = { goNextEpisode() },
                 nextEnabled = onNextEpisode != null && episode < totalEpisodes,
-                speedSelected = panel == Panel.Speed,
-                qualitySelected = panel == Panel.Quality,
-                audioSelected = panel == Panel.Subs || panel == Panel.Style,
+                speedSelected = panel == PlayerMenuPage.Speed,
+                qualitySelected = panel == PlayerMenuPage.Quality,
+                audioSelected = panel == PlayerMenuPage.Subs,
                 modifier = Modifier.weight(1f).dismissDrag(),
             )
         }
     }
-    if (!theater && panel != Panel.None) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.45f))
-                .clickable { panel = Panel.None },
-        )
-        PlayerSheet(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .heightIn(max = 560.dp)
-                .windowInsetsPadding(WindowInsets.navigationBars),
-            onDismiss = { panel = Panel.None },
-            resetKey = panel,
+    if (!theater && panel != PlayerMenuPage.None) {
+        PlayerMenuFrame(
+            theater = false,
+            page = panel,
+            onBack = { panel = PlayerMenuPage.Root },
+            onDismiss = { panel = PlayerMenuPage.None },
         ) {
             PanelContents()
         }
@@ -2200,8 +2506,11 @@ private fun LiveTimeline(
     scrubValue: Float,
     durationMs: Long,
     skipTimes: SkipTimes,
+    thumbnails: site.anikitty.app.data.servers.ThumbnailTrack?,
+    mediaUrl: String?,
     onScrub: (Float) -> Unit,
     onScrubFinished: (Float) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var liveMs by remember { mutableLongStateOf(0L) }
     LaunchedEffect(player, scrubbing) {
@@ -2230,52 +2539,37 @@ private fun LiveTimeline(
     } else {
         0f
     }
-    GlassScrubber(
-        progress = if (durationMs > 0L) (shown / dur).coerceIn(0f, 1f) else 0f,
-        buffered = buffered,
-        durationMs = durationMs,
-        scrubbing = scrubbing,
-        onScrub = onScrub,
-        onScrubFinished = onScrubFinished,
-        formatClock = ::formatClockPadded,
-        skipTimes = skipTimes,
-        modifier = Modifier.fillMaxWidth(),
-    )
-}
-
-@Composable
-private fun LiveHairline(
-    player: Player?,
-    durationMs: Long,
-    modifier: Modifier = Modifier,
-) {
-    var liveMs by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(player) {
-        val p = player ?: return@LaunchedEffect
-        while (true) {
-            val next = p.currentPosition.coerceAtLeast(0L)
-            if (next != liveMs) liveMs = next
-            delay(250)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val loader = remember(thumbnails?.url, mediaUrl) {
+        ThumbnailLoader(context, thumbnails, mediaUrl)
+    }
+    var frame by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    LaunchedEffect(scrubbing, scrubValue, durationMs, loader) {
+        if (!scrubbing || durationMs <= 0L) {
+            frame = null
+            return@LaunchedEffect
         }
+        val ms = (scrubValue.coerceIn(0f, 1f) * durationMs).toLong()
+        frame = loader.frame(ms)
     }
-    val fraction = if (durationMs > 0L) {
-        (liveMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(2.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(Color.White.copy(alpha = 0.12f)),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(fraction)
-                .background(Color.White),
+    Box(modifier) {
+        GlassScrubber(
+            progress = if (durationMs > 0L) (shown / dur).coerceIn(0f, 1f) else 0f,
+            buffered = buffered,
+            durationMs = durationMs,
+            scrubbing = scrubbing,
+            onScrub = onScrub,
+            onScrubFinished = onScrubFinished,
+            skipTimes = skipTimes,
+            modifier = Modifier.fillMaxWidth(),
         )
+        if (scrubbing && durationMs > 0L) {
+            SeekPreview(
+                fraction = scrubValue,
+                timeLabel = formatClockPadded(shown),
+                frame = frame,
+            )
+        }
     }
 }
 
@@ -2409,622 +2703,6 @@ private fun NextEpisodePrompt(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun PlayerSheet(
-    modifier: Modifier = Modifier,
-    onDismiss: () -> Unit,
-    resetKey: Any? = null,
-    content: @Composable () -> Unit,
-) {
-    val shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
-    val focusManager = LocalFocusManager.current
-    val scroll = rememberScrollState()
-    LaunchedEffect(resetKey) { scroll.scrollTo(0) }
-    Box(
-        modifier = modifier
-            .clip(shape)
-            .background(Color(0xFF0C0C10))
-            .border(0.5.dp, Color.White.copy(alpha = 0.1f), shape)
-            .onPreviewKeyEvent { event ->
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                when (event.key) {
-                    Key.DirectionDown -> {
-                        focusManager.moveFocus(FocusDirection.Down)
-                        true
-                    }
-                    Key.DirectionUp -> {
-                        focusManager.moveFocus(FocusDirection.Up)
-                        true
-                    }
-                    else -> false
-                }
-            }
-            .pointerInput(Unit) { detectTapGestures { } }
-            .padding(16.dp),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 12.dp)
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.28f)),
-            )
-            Column(
-                modifier = Modifier
-                    .focusProperties { canFocus = false }
-                    .verticalScroll(scroll),
-            ) {
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-private fun SleepSheet(choice: Int, onPick: (Int) -> Unit) {
-    SheetTitle("Sleep timer")
-    Spacer(modifier = Modifier.height(6.dp))
-    Text(
-        "Pause playback after a while, or when this episode ends.",
-        color = PlayerChrome.Graphite,
-        fontSize = 12.sp,
-    )
-    Spacer(modifier = Modifier.height(10.dp))
-    listOf(
-        0 to "Off",
-        15 to "15 minutes",
-        30 to "30 minutes",
-        45 to "45 minutes",
-        -1 to "End of this episode",
-    ).forEachIndexed { index, (value, label) ->
-        SheetRow(
-            label = label,
-            selected = choice == value,
-            onClick = { onPick(value) },
-            initiallyFocused = index == 0,
-        )
-    }
-}
-
-@Composable
-private fun SpeedSheet(speed: Float, onPick: (Float) -> Unit) {
-    SheetTitle("Speed")
-    Spacer(modifier = Modifier.height(10.dp))
-    listOf(0.75f, 1f, 1.25f, 1.5f, 2f).forEachIndexed { index, rate ->
-        SheetRow(
-            label = speedLabel(rate),
-            selected = kotlin.math.abs(speed - rate) < 0.01f,
-            onClick = { onPick(rate) },
-            initiallyFocused = index == 0,
-        )
-    }
-}
-
-@Composable
-private fun QualitySheet(
-    videoOptions: List<VideoOption>,
-    selectedVideoId: String,
-    onPickVideo: (String) -> Unit,
-    sources: List<PlayableSource>,
-    selectedSource: Int,
-    onPickSource: (Int) -> Unit,
-) {
-    SheetTitle("Resolution")
-    Spacer(modifier = Modifier.height(6.dp))
-    Text(
-        "Pick 1080p / 720p / … when the stream offers them",
-        color = PlayerChrome.Graphite,
-        fontSize = 12.sp,
-    )
-    Spacer(modifier = Modifier.height(10.dp))
-    val resolutions = videoOptions.ifEmpty {
-        listOf(VideoOption(id = "auto", label = "Auto (best available)"))
-    }
-    resolutions.forEachIndexed { index, opt ->
-        SheetRow(
-            label = opt.label,
-            selected = selectedVideoId == opt.id ||
-                (opt.id == "auto" && selectedVideoId == "auto"),
-            onClick = { onPickVideo(opt.id) },
-            initiallyFocused = index == 0,
-        )
-    }
-    if (sources.size > 1) {
-        Spacer(modifier = Modifier.height(16.dp))
-        SheetTitle("Source")
-        Spacer(modifier = Modifier.height(6.dp))
-        Text(
-            "Alternate mirrors for this episode",
-            color = PlayerChrome.Graphite,
-            fontSize = 12.sp,
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        sources.forEachIndexed { index, src ->
-            SheetRow(
-                label = src.label,
-                selected = index == selectedSource,
-                onClick = { onPickSource(index) },
-            )
-        }
-    } else if (sources.size == 1) {
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            "Source · ${sources[0].label}",
-            color = PlayerChrome.Graphite,
-            fontSize = 12.sp,
-        )
-    }
-}
-
-@Composable
-private fun SubsSheet(
-    enabled: Boolean,
-    options: List<TextOption>,
-    selectedId: String,
-    onToggle: (Boolean) -> Unit,
-    onPick: (String) -> Unit,
-    onOpenStyle: () -> Unit,
-    audio: String = "sub",
-    onPickAudio: ((String) -> Unit)? = null,
-) {
-    SheetTitle("Subtitles")
-    if (onPickAudio != null) {
-        Spacer(modifier = Modifier.height(8.dp))
-        SheetRow(
-            label = "Subtitled",
-            selected = audio != "dub",
-            onClick = { onPickAudio("sub") },
-        )
-        SheetRow(
-            label = "Dubbed",
-            selected = audio == "dub",
-            onClick = { onPickAudio("dub") },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-    }
-    Spacer(modifier = Modifier.height(10.dp))
-    SheetRow(
-        label = "Off",
-        selected = !enabled || selectedId == "off",
-        onClick = { onToggle(false) },
-        initiallyFocused = true,
-    )
-    SheetRow(
-        label = "Auto",
-        selected = enabled && selectedId == "auto",
-        onClick = {
-            onToggle(true)
-            onPick("auto")
-        },
-    )
-    options.filter { it.id != "off" && it.id != "auto" }.forEach { opt ->
-        SheetRow(
-            label = opt.label,
-            selected = enabled && selectedId == opt.id,
-            onClick = {
-                onToggle(true)
-                onPick(opt.id)
-            },
-        )
-    }
-    if (options.none { it.id != "off" && it.id != "auto" }) {
-        Text(
-            "No external caption files on this stream — Auto uses embedded tracks when available.",
-            color = PlayerChrome.Faint,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(vertical = 8.dp),
-        )
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    SheetRow(label = "Customize appearance…", selected = false, onClick = onOpenStyle)
-}
-
-@Composable
-private fun StyleSheet(
-    style: SubStyle,
-    onChange: (SubStyle) -> Unit,
-    onBack: () -> Unit,
-) {
-    val positionLabel = when {
-        style.bottomPad <= 0.08f -> "Low"
-        style.bottomPad <= 0.13f -> "Mid"
-        style.bottomPad <= 0.19f -> "High"
-        else -> "Top"
-    }
-    SheetTitle("Captions")
-    SheetRow(
-        label = "Back to subtitles",
-        selected = false,
-        onClick = onBack,
-        initiallyFocused = true,
-    )
-    CaptionPreview(style)
-    Text(
-        "A Chromecast uses the TV's own caption style.",
-        color = PlayerChrome.Faint,
-        fontSize = 11.sp,
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Size", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Text(
-            String.format(Locale.US, "%.0f sp", style.sizeSp),
-            color = PlayerChrome.Faint,
-            fontSize = 11.sp,
-        )
-    }
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        listOf(
-            8f to "Tiny",
-            12f to "Small",
-            16f to "Medium",
-            DEFAULT_SUB_SIZE_SP to "Default",
-            22f to "Max",
-        ).forEach { (sp, label) ->
-            ChoicePill(
-                label = label,
-                selected = kotlin.math.abs(style.sizeSp - sp) < 0.4f,
-                onClick = { onChange(style.copy(sizeSp = sp)) },
-            )
-        }
-    }
-    Slider(
-        value = style.sizeSp,
-        onValueChange = { onChange(style.copy(sizeSp = it)) },
-        valueRange = SUB_SIZE_SP_MIN..SUB_SIZE_SP_MAX,
-        colors = SliderDefaults.colors(
-            thumbColor = PlayerChrome.Accent,
-            activeTrackColor = PlayerChrome.Accent,
-            inactiveTrackColor = PlayerChrome.Faint,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-    )
-
-    Spacer(modifier = Modifier.height(8.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Position", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Text(positionLabel, color = PlayerChrome.Faint, fontSize = 11.sp)
-    }
-    Text(
-        "Drag right to raise captions",
-        color = PlayerChrome.Faint,
-        fontSize = 11.sp,
-    )
-    Slider(
-        value = style.bottomPad,
-        onValueChange = { onChange(style.copy(bottomPad = it)) },
-        valueRange = SUB_BOTTOM_MIN..SUB_BOTTOM_MAX,
-        colors = SliderDefaults.colors(
-            thumbColor = PlayerChrome.Accent,
-            activeTrackColor = PlayerChrome.Accent,
-            inactiveTrackColor = PlayerChrome.Faint,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-    )
-
-    Spacer(modifier = Modifier.height(8.dp))
-    Text("Style", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        ChoicePill(
-            label = "Regular",
-            selected = !style.bold,
-            onClick = { onChange(style.copy(bold = false)) },
-        )
-        ChoicePill(
-            label = "Bold",
-            selected = style.bold,
-            onClick = { onChange(style.copy(bold = true)) },
-        )
-        ChoicePill(
-            label = "Italic",
-            selected = style.italic,
-            onClick = { onChange(style.copy(italic = !style.italic)) },
-        )
-    }
-
-    Spacer(modifier = Modifier.height(10.dp))
-    Text("Color", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        listOf(
-            AndroidColor.WHITE to "White",
-            AndroidColor.YELLOW to "Yellow",
-            AndroidColor.CYAN to "Cyan",
-            AndroidColor.rgb(255, 210, 140) to "Warm",
-            AndroidColor.rgb(180, 255, 180) to "Mint",
-            AndroidColor.rgb(220, 220, 255) to "Ice",
-        ).forEach { (c, label) ->
-            ChoicePill(
-                label = label,
-                selected = style.color == c,
-                onClick = { onChange(style.copy(color = c)) },
-            )
-        }
-    }
-
-    Spacer(modifier = Modifier.height(14.dp))
-    Text("Background", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        listOf(
-            SubBgMode.None to "None",
-            SubBgMode.Soft to "Soft",
-            SubBgMode.Blur to "Blur",
-            SubBgMode.Solid to "Solid",
-        ).forEach { (mode, label) ->
-            ChoicePill(
-                label = label,
-                selected = style.bgMode == mode,
-                onClick = { onChange(style.copy(bgMode = mode)) },
-            )
-        }
-    }
-    if (style.bgMode != SubBgMode.None) {
-        Spacer(modifier = Modifier.height(6.dp))
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Box opacity", color = PlayerChrome.Graphite, fontSize = 12.sp)
-            Text(
-                "${(style.bgAlpha * 100).toInt()}%",
-                color = PlayerChrome.Faint,
-                fontSize = 11.sp,
-            )
-        }
-        Slider(
-            value = style.bgAlpha,
-            onValueChange = { onChange(style.copy(bgAlpha = it)) },
-            valueRange = 0.15f..1f,
-            colors = SliderDefaults.colors(
-                thumbColor = PlayerChrome.Accent,
-                activeTrackColor = PlayerChrome.Accent,
-                inactiveTrackColor = PlayerChrome.Faint,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-
-    Spacer(modifier = Modifier.height(14.dp))
-    Text("Edge", color = PlayerChrome.Graphite, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-    Spacer(modifier = Modifier.height(6.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        listOf(
-            CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW to "Shadow",
-            CaptionStyleCompat.EDGE_TYPE_OUTLINE to "Outline",
-            CaptionStyleCompat.EDGE_TYPE_NONE to "None",
-        ).forEach { (edge, label) ->
-            ChoicePill(
-                label = label,
-                selected = style.edgeType == edge,
-                onClick = { onChange(style.copy(edgeType = edge)) },
-            )
-        }
-    }
-
-}
-
-@Composable
-private fun CaptionPreview(style: SubStyle) {
-    val previewBg = when (style.bgMode) {
-        SubBgMode.None -> Color.Transparent
-        SubBgMode.Soft -> Color.Black.copy(alpha = style.bgAlpha.coerceIn(0.15f, 0.55f))
-        SubBgMode.Blur -> Color.Black.copy(alpha = style.bgAlpha.coerceIn(0.25f, 0.7f))
-        SubBgMode.Solid -> Color.Black.copy(alpha = style.bgAlpha)
-    }
-    val shadow = when (style.edgeType) {
-        CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW -> Shadow(
-            color = Color.Black.copy(alpha = 0.9f),
-            offset = Offset(0f, 1.5f),
-            blurRadius = 6f,
-        )
-        CaptionStyleCompat.EDGE_TYPE_OUTLINE -> Shadow(
-            color = Color.Black,
-            offset = Offset(0f, 0f),
-            blurRadius = 3f,
-        )
-        else -> null
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF1A1A1E), Color(0xFF0A0A0C)),
-                ),
-            )
-            .padding(vertical = 22.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            "Preview · 字幕サンプル",
-            color = Color(style.color),
-            fontSize = style.sizeSp.sp,
-            fontWeight = if (style.bold) FontWeight.Bold else FontWeight.Medium,
-            fontStyle = if (style.italic) FontStyle.Italic else FontStyle.Normal,
-            fontFamily = FontFamily.SansSerif,
-            style = TextStyle(shadow = shadow),
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(previewBg)
-                .padding(horizontal = 10.dp, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
-private fun DisplaySheet(
-    resizeMode: Int,
-    immersive: Boolean,
-    onResize: (Int) -> Unit,
-    onImmersive: (Boolean) -> Unit,
-    onSleep: () -> Unit,
-    onLock: () -> Unit,
-    onQuality: () -> Unit,
-    onAudio: () -> Unit,
-    onSpeed: () -> Unit,
-    onEpisodes: () -> Unit,
-    onNext: () -> Unit,
-    nextEnabled: Boolean,
-) {
-    SheetTitle("Display")
-    Spacer(modifier = Modifier.height(10.dp))
-    SheetRow(label = "Quality", selected = false, onClick = onQuality, initiallyFocused = true)
-    SheetRow(label = "Audio and subtitles", selected = false, onClick = onAudio)
-    SheetRow(label = "Speed", selected = false, onClick = onSpeed)
-    SheetRow(label = "Episodes", selected = false, onClick = onEpisodes)
-    if (nextEnabled) {
-        SheetRow(label = "Next episode", selected = false, onClick = onNext)
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    SheetRow(
-        label = "Fit (letterbox)",
-        selected = resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT,
-        onClick = { onResize(AspectRatioFrameLayout.RESIZE_MODE_FIT) },
-    )
-    SheetRow(
-        label = "Fill (crop)",
-        selected = resizeMode == AspectRatioFrameLayout.RESIZE_MODE_ZOOM,
-        onClick = { onResize(AspectRatioFrameLayout.RESIZE_MODE_ZOOM) },
-    )
-    SheetRow(
-        label = "Stretch",
-        selected = resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FILL,
-        onClick = { onResize(AspectRatioFrameLayout.RESIZE_MODE_FILL) },
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    SheetRow(
-        label = if (immersive) "System bars hidden" else "Show system bars",
-        selected = immersive,
-        onClick = { onImmersive(!immersive) },
-    )
-    SheetRow(label = "Sleep timer", selected = false, onClick = onSleep)
-    SheetRow(label = "Lock controls", selected = false, onClick = onLock)
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        "Downloads aren't available. AniKitty streams this episode and does not keep a copy.",
-        color = PlayerChrome.Faint,
-        fontSize = 12.sp,
-    )
-}
-
-@Composable
-private fun SheetTitle(text: String) {
-    Text(
-        text,
-        color = PlayerChrome.Accent,
-        fontWeight = FontWeight.Bold,
-        fontSize = 15.sp,
-        letterSpacing = 0.2.sp,
-    )
-}
-
-@Composable
-private fun SheetRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    initiallyFocused: Boolean = false,
-) {
-    val shape = RoundedCornerShape(12.dp)
-    val focusRequester = remember { FocusRequester() }
-    var focused by remember { mutableStateOf(false) }
-    LaunchedEffect(initiallyFocused) {
-        if (!initiallyFocused) return@LaunchedEffect
-        delay(80)
-        runCatching { focusRequester.requestFocus() }
-    }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .focusRequester(focusRequester)
-            .onFocusChanged { focused = it.isFocused }
-            .clip(shape)
-            .background(if (selected || focused) PlayerChrome.RowSelected else Color.Transparent)
-            .border(
-                if (focused) 2.dp else 1.dp,
-                when {
-                    focused -> Color.White
-                    selected -> PlayerChrome.Accent.copy(alpha = 0.45f)
-                    else -> Color.Transparent
-                },
-                shape,
-            )
-            .clickable(onClick = onClick)
-            .heightIn(min = 48.dp)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            color = if (selected) PlayerChrome.Paper else PlayerChrome.Graphite,
-            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-            fontSize = 14.sp,
-            modifier = Modifier.weight(1f),
-        )
-        if (selected) {
-            Icon(
-                Icons.Rounded.Check,
-                contentDescription = null,
-                tint = PlayerChrome.Accent,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ChoicePill(label: String, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(999.dp)
-    var focused by remember { mutableStateOf(false) }
-    Box(
-        modifier = Modifier
-            .heightIn(min = 48.dp)
-            .clip(shape)
-            .background(if (selected || focused) PlayerChrome.Accent else PlayerChrome.Disc)
-            .border(
-                if (focused) 2.dp else 1.dp,
-                if (selected || focused) Color.White else PlayerChrome.DiscStroke,
-                shape,
-            )
-            .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            label,
-            color = if (selected || focused) PlayerChrome.Ink else PlayerChrome.Paper,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
     }
 }
 
@@ -3537,6 +3215,62 @@ private fun resizeLabel(mode: Int): String = when (mode) {
     else -> "Fit"
 }
 
+private fun menuQualityValue(raw: String): String {
+    val parts = raw.split(" · ")
+    return if (parts.size == 2) "${parts[0]} (${parts[1]})" else raw
+}
+
+private fun subtitlePercent(sizeSp: Float): Int =
+    (sizeSp / DEFAULT_SUB_SIZE_SP * 100f).toInt().coerceIn(40, 150)
+
+private fun timingLabel(pad: Float): String = when {
+    pad <= 0.09f -> "Low"
+    pad <= 0.15f -> "Mid"
+    pad <= 0.21f -> "High"
+    else -> "Top"
+}
+
+private fun boostLabel(level: Int): String = when (level) {
+    1 -> "Low"
+    2 -> "Medium"
+    3 -> "High"
+    else -> "Off"
+}
+
+private fun edgeLabel(edge: Int): String = when (edge) {
+    CaptionStyleCompat.EDGE_TYPE_OUTLINE -> "Outline"
+    CaptionStyleCompat.EDGE_TYPE_NONE -> "None"
+    else -> "Shadow"
+}
+
+private fun bgLabel(mode: SubBgMode): String = when (mode) {
+    SubBgMode.None -> "None"
+    SubBgMode.Soft -> "Soft"
+    SubBgMode.Blur -> "Blur"
+    SubBgMode.Solid -> "Solid"
+}
+
+private fun captionColors(): List<Pair<Int, String>> = listOf(
+    AndroidColor.rgb(242, 242, 242) to "Grey",
+    AndroidColor.WHITE to "White",
+    AndroidColor.YELLOW to "Yellow",
+    AndroidColor.CYAN to "Cyan",
+    AndroidColor.rgb(255, 210, 140) to "Warm",
+    AndroidColor.rgb(180, 255, 180) to "Mint",
+    AndroidColor.rgb(220, 220, 255) to "Ice",
+)
+
+private fun captionColorLabel(color: Int): String =
+    captionColors().firstOrNull { it.first == color }?.second ?: "Custom"
+
+private fun sleepLabel(choice: Int): String = when (choice) {
+    15 -> "15 min"
+    30 -> "30 min"
+    45 -> "45 min"
+    -1 -> "End"
+    else -> "Off"
+}
+
 private fun speedLabel(speed: Float): String {
     return when {
         kotlin.math.abs(speed - 1f) < 0.01f -> "1×"
@@ -3598,7 +3332,7 @@ private fun PillIcon(
 ) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
@@ -3624,7 +3358,7 @@ private fun PillLabel(
 ) {
     Box(
         modifier = Modifier
-            .size(40.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .clearAndSetSemantics { contentDescription = description }
             .clickable(
