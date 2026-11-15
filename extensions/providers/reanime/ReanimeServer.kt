@@ -195,6 +195,7 @@ class ReanimeServer(
                 segmentMask = Base64.getEncoder().encodeToString(mask),
                 englishAudio = mode == "dub",
             ),
+            thumbnails = thumbnailTrackFromJson(data, playbackHeaders()),
         )
     }
 

@@ -8,28 +8,22 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -42,11 +36,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.withTimeoutOrNull
 import site.anikitty.app.data.skip.SkipTimes
-import site.anikitty.app.ui.theme.PlayerChrome
 
 /**
  * Glassy timeline scrubber — soft track, glowing progress rail, springy thumb.
@@ -58,7 +50,6 @@ fun GlassScrubber(
     scrubbing: Boolean,
     onScrub: (Float) -> Unit,
     onScrubFinished: (Float) -> Unit,
-    formatClock: (Long) -> String,
     skipTimes: SkipTimes = SkipTimes(),
     buffered: Float = 0f,
     modifier: Modifier = Modifier,
@@ -125,61 +116,71 @@ fun GlassScrubber(
             ),
     ) {
         val trackWidthPx = with(density) { maxWidth.toPx() }
-        val scrubMs = (clamped * durationMs).toLong()
-
-        if (scrubbing) {
-            val bubbleX = (maxWidth * clamped) - 28.dp
-            Box(
-                modifier = Modifier
-                    .offset(
-                        x = bubbleX.coerceIn(0.dp, (maxWidth - 56.dp).coerceAtLeast(0.dp)),
-                        y = (-34).dp,
-                    )
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color.Black.copy(alpha = 0.72f))
-                    .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 10.dp, vertical = 5.dp),
-            ) {
-                Text(
-                    formatClock(scrubMs),
-                    color = PlayerChrome.Paper,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
 
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(28.dp)
                 .pointerInput(durationMs, trackWidthPx) {
-                    detectTapGestures { offset ->
-                        if (trackWidthPx <= 0f) return@detectTapGestures
-                        val fraction = (offset.x / trackWidthPx).coerceIn(0f, 1f)
-                        latestFraction = fraction
-                        latestOnScrub(fraction)
-                        latestOnFinished(fraction)
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        val slop = viewConfiguration.touchSlop
+                        val start = down.position
+                        fun fractionAt(x: Float): Float {
+                            if (trackWidthPx <= 0f) return 0f
+                            return (x / trackWidthPx).coerceIn(0f, 1f)
+                        }
+                        var latest = fractionAt(start.x)
+                        var dragging = false
+                        var finished = false
+                        try {
+                            while (true) {
+                                if (!dragging) {
+                                    val event = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                                        awaitPointerEvent()
+                                    }
+                                    if (event == null) {
+                                        dragging = true
+                                        latestFraction = latest
+                                        latestOnScrub(latest)
+                                        continue
+                                    }
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+                                    if (change == null) break
+                                    if (!change.pressed) {
+                                        latestFraction = latest
+                                        latestOnScrub(latest)
+                                        latestOnFinished(latest)
+                                        finished = true
+                                        break
+                                    }
+                                    val dx = change.position.x - start.x
+                                    val dy = change.position.y - start.y
+                                    if (dx * dx + dy * dy > slop * slop) {
+                                        dragging = true
+                                        change.consume()
+                                        latest = fractionAt(change.position.x)
+                                        latestFraction = latest
+                                        latestOnScrub(latest)
+                                    }
+                                } else {
+                                    val event = awaitPointerEvent()
+                                    val change = event.changes.firstOrNull { it.id == down.id }
+                                    if (change == null || !change.pressed) {
+                                        latestOnFinished(latest)
+                                        finished = true
+                                        break
+                                    }
+                                    change.consume()
+                                    latest = fractionAt(change.position.x)
+                                    latestFraction = latest
+                                    latestOnScrub(latest)
+                                }
+                            }
+                        } finally {
+                            if (dragging && !finished) latestOnFinished(latest)
+                        }
                     }
-                }
-                .pointerInput(durationMs, trackWidthPx) {
-                    detectHorizontalDragGestures(
-                        onDragStart = { offset ->
-                            if (trackWidthPx <= 0f) return@detectHorizontalDragGestures
-                            val fraction = (offset.x / trackWidthPx).coerceIn(0f, 1f)
-                            latestFraction = fraction
-                            latestOnScrub(fraction)
-                        },
-                        onDragEnd = { latestOnFinished(latestFraction) },
-                        onDragCancel = { latestOnFinished(latestFraction) },
-                        onHorizontalDrag = { change, _ ->
-                            change.consume()
-                            if (trackWidthPx <= 0f) return@detectHorizontalDragGestures
-                            val fraction = (change.position.x / trackWidthPx).coerceIn(0f, 1f)
-                            latestFraction = fraction
-                            latestOnScrub(fraction)
-                        },
-                    )
                 },
         ) {
             val cy = size.height / 2f
