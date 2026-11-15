@@ -6,6 +6,8 @@ package site.anikitty.app.ui.player
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import site.anikitty.app.data.servers.ThumbnailTrack
+import site.anikitty.app.data.servers.spriteTrack
 import site.anikitty.app.data.servers.thumbnailUrlFromLooseText
 
 class ThumbnailVttTest {
@@ -40,5 +42,43 @@ class ThumbnailVttTest {
         """.trimIndent()
         assertEquals("https://cdn.example/sprites.vtt", thumbnailUrlFromLooseText(html))
         assertNull(thumbnailUrlFromLooseText("https://cdn.example/english.vtt"))
+    }
+
+    @Test
+    fun keepsSignedQueryOnSpriteVttAndSkipsPosters() {
+        val html = """
+            <img data-thumbnail="https://cdn.example/thumb/poster.jpg">
+            <div data-thumbnails="https://cdn.example/sprites.vtt?token=abc&exp=9"></div>
+        """.trimIndent()
+        assertEquals(
+            "https://cdn.example/sprites.vtt?token=abc&exp=9",
+            thumbnailUrlFromLooseText(html),
+        )
+        assertEquals(
+            "https://cdn.example/storyboard.vtt?sig=xyz",
+            thumbnailUrlFromLooseText("see https://cdn.example/storyboard.vtt?sig=xyz now"),
+        )
+        assertNull(thumbnailUrlFromLooseText("""data-thumbnail="https://cdn.example/episode-still.webp""""))
+        assertNull(spriteTrack(ThumbnailTrack("https://cdn.example/thumb/poster.jpg")))
+        assertEquals(
+            "https://cdn.example/sprites.vtt?token=abc",
+            spriteTrack(ThumbnailTrack("https://cdn.example/sprites.vtt?token=abc"))?.url,
+        )
+    }
+
+    @Test
+    fun relativeSpriteKeepsTheVttToken() {
+        val vtt = """
+            WEBVTT
+
+            00:00:00.000 --> 00:00:05.000
+            sheet.jpg?own=1#xywh=0,0,160,90
+
+            00:00:05.000 --> 00:00:10.000
+            sheet-2.jpg#xywh=160,0,160,90
+        """.trimIndent()
+        val cues = parseThumbnailVtt(vtt, "https://cdn.example/thumbs/story.vtt?token=abc")
+        assertEquals("https://cdn.example/thumbs/sheet.jpg?own=1", cues[0].spriteUrl)
+        assertEquals("https://cdn.example/thumbs/sheet-2.jpg?token=abc", cues[1].spriteUrl)
     }
 }
