@@ -1,4 +1,5 @@
 import java.util.Properties
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("com.android.application")
@@ -133,6 +134,7 @@ android {
             java.srcDir("../../../extensions/providers/anikoto")
             java.srcDir("../../../extensions/providers/gotaku")
             java.srcDir("../../../extensions/providers/reanime")
+            java.srcDir("../../../extensions/providers/mkissa")
         }
     }
 }
@@ -172,7 +174,18 @@ dependencies {
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
 
     testImplementation("junit:junit:4.13.2")
+    // Android's unit-test stub replaces org.json with methods that throw.
+    // The real parser lets resolver fixture tests read recorded JSON.
+    testImplementation("org.json:json:20240303")
     implementation("androidx.browser:browser:1.8.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+}
+
+// android.jar's org.json is a stub that throws. Put the real parser first.
+tasks.withType<Test>().configureEach {
+    doFirst {
+        val json = classpath.files.firstOrNull { it.name.startsWith("json-") } ?: return@doFirst
+        classpath = project.files(json) + classpath
+    }
 }
