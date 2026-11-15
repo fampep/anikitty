@@ -18,30 +18,7 @@ class ExtensionInstaller(
      */
     suspend fun installFromGithub(input: String): ExtensionManifest = withContext(Dispatchers.IO) {
         val target = GitHubExtensionLocator.parse(input)
-        var lastError: String? = null
-        for (rawUrl in target.rawCandidates) {
-            val result = runCatching {
-                val body = ExtensionHttp.getString(rawUrl)
-                val manifest = ExtensionManifestParser.parse(
-                    raw = body,
-                    sourceGithub = target.githubWebUrl,
-                    manifestUrl = rawUrl,
-                )
-                repository.upsert(manifest)
-                manifest
-            }
-            if (result.isSuccess) return@withContext result.getOrThrow()
-            lastError = result.exceptionOrNull()?.message
-        }
-        val hint = lastError.orEmpty()
-        when {
-            hint.contains("iconUrl", ignoreCase = true) ->
-                error("$hint — add the scraped site’s favicon as iconUrl in anikitty-extension.json")
-            hint.isNotBlank() ->
-                error(hint)
-            else ->
-                error("anikitty-extension.json not found on that GitHub repo")
-        }
+        installFromUrls(target.rawCandidates, target.githubWebUrl)
     }
 
     /**
@@ -66,7 +43,12 @@ class ExtensionInstaller(
 
     suspend fun update(id: String): ExtensionManifest = withContext(Dispatchers.IO) {
         val installed = repository.get(id) ?: error("Extension is not installed")
-        val remote = fetchPublished(installed)
+        val remote = try {
+            fetchPublished(installed)
+        } catch (e: Exception) {
+            if (e is kotlinx.coroutines.CancellationException) throw e
+            error(explainInstallFailure(e))
+        }
         require(remote.id == installed.id) { "Update published a different id" }
         repository.upsert(remote)
         remote
@@ -104,14 +86,33 @@ class ExtensionInstaller(
     suspend fun installFromManifestUrl(
         manifestUrl: String,
         github: String? = null,
+    ): ExtensionManifest = installFromUrls(listOf(manifestUrl), github)
+
+    internal suspend fun installFromUrls(
+        urls: List<String>,
+        github: String?,
     ): ExtensionManifest = withContext(Dispatchers.IO) {
-        val body = ExtensionHttp.getString(manifestUrl)
-        val manifest = ExtensionManifestParser.parse(
-            raw = body,
-            sourceGithub = github,
-            manifestUrl = manifestUrl,
+        var last: Throwable? = null
+        for (rawUrl in urls) {
+            val result = runCatching {
+                val body = ExtensionHttp.getString(rawUrl)
+                val manifest = ExtensionManifestParser.parse(
+                    raw = body,
+                    sourceGithub = github,
+                    manifestUrl = rawUrl,
+                )
+                repository.upsert(manifest)
+                manifest
+            }
+            if (result.isSuccess) return@withContext result.getOrThrow()
+            val err = result.exceptionOrNull()
+            if (err is kotlinx.coroutines.CancellationException) throw err
+            last = err
+        }
+        error(
+            explainInstallFailure(
+                last ?: IllegalStateException("anikitty-extension.json not found on that GitHub repo"),
+            ),
         )
-        repository.upsert(manifest)
-        manifest
     }
 }
