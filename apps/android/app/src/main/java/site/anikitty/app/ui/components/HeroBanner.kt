@@ -107,7 +107,7 @@ fun HeroBanner(
 }
 
 private object SoftCover : Transformation {
-    override val cacheKey: String = "anikitty-soft-cover"
+    override val cacheKey: String = "anikitty-soft-cover-v2"
 
     override suspend fun transform(input: Bitmap, size: Size): Bitmap {
         val tiny = Bitmap.createScaledBitmap(input, 28, 16, true)
@@ -118,9 +118,9 @@ private object SoftCover : Transformation {
         for (i in pixels.indices) {
             val color = pixels[i]
             val a = color ushr 24
-            val r = ((color shr 16) and 0xFF) * 4 / 10
-            val g = ((color shr 8) and 0xFF) * 4 / 10
-            val b = (color and 0xFF) * 4 / 10
+            val r = ((color shr 16) and 0xFF) * 58 / 100
+            val g = ((color shr 8) and 0xFF) * 58 / 100
+            val b = (color and 0xFF) * 58 / 100
             pixels[i] = (a shl 24) or (r shl 16) or (g shl 8) or b
         }
         out.setPixels(pixels, 0, out.width, 0, 0, out.width, out.height)
