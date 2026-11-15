@@ -6,7 +6,6 @@ package site.anikitty.app.ui.player
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -18,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
@@ -37,7 +37,9 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,10 +85,12 @@ internal fun playerMenuTitle(page: PlayerMenuPage): String = when (page) {
     PlayerMenuPage.None, PlayerMenuPage.Root -> ""
 }
 
+private val LocalMenuCompact = staticCompositionLocalOf { false }
+
 /**
- * Landscape theater: a floating card above the control bar, at most half
- * the width. Portrait and the inline player: a bottom sheet in the same
- * dark style. The card scrolls and stays inside the gesture and cutout insets.
+ * Sized from the space left after cutouts and system bars.
+ * A short landscape phone stays above the pills. A narrow portrait
+ * phone uses a bottom sheet. A tablet stays a 360dp card.
  */
 @Composable
 internal fun PlayerMenuFrame(
@@ -97,73 +101,95 @@ internal fun PlayerMenuFrame(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    BoxWithConstraints(modifier.fillMaxSize()) {
-        val floating = theater && maxWidth > maxHeight
-        if (!floating) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.28f))
-                    .clickable(onClick = onDismiss),
-            )
-        }
-        val half = maxWidth * 0.5f
-        val panelWidth = if (half < 420.dp) half else 420.dp
-        // Bottom padding, pill, gap, timeline, and a little air. Keeps the
-        // scrubber and the pills uncovered in landscape.
-        val aboveControls = 120.dp
-        val maxPanel = if (floating) {
-            (maxHeight - aboveControls - 8.dp).coerceAtLeast(140.dp)
-        } else {
-            maxHeight * 0.72f
-        }
-        val shape = if (floating) {
-            RoundedCornerShape(16.dp)
-        } else {
-            RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
-        }
-        Column(
-            modifier = Modifier
-                .align(if (floating) Alignment.BottomEnd else Alignment.BottomCenter)
-                .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout))
-                .padding(
-                    end = if (floating) 12.dp else 0.dp,
-                    bottom = if (floating) aboveControls else 0.dp,
-                )
-                .then(if (floating) Modifier.width(panelWidth) else Modifier.fillMaxWidth())
-                .heightIn(max = maxPanel)
-                .clip(shape)
-                .background(Color.Black.copy(alpha = 0.78f))
-                .pointerInput(Unit) { detectTapGestures { } },
-        ) {
-            if (page != PlayerMenuPage.Root && page != PlayerMenuPage.None) {
-                Row(
+    Box(
+        modifier
+            .fillMaxSize()
+            .windowInsetsPadding(
+                WindowInsets.navigationBars
+                    .union(WindowInsets.displayCutout)
+                    .union(WindowInsets.statusBars),
+            ),
+    ) {
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val landscape = maxWidth > maxHeight
+            val shortSide = if (maxWidth < maxHeight) maxWidth else maxHeight
+            val tablet = shortSide >= 600.dp
+            val compactHeight = maxHeight < 480.dp
+            val sheet = !tablet && !landscape
+            val floating = !sheet
+            if (sheet) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp)
-                        .clickable(onClick = onBack)
-                        .padding(start = 4.dp, end = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.AutoMirrored.Outlined.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp),
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.28f))
+                        .clickable(onClick = onDismiss),
+                )
+            }
+            val aboveControls = if (compactHeight) 112.dp else 120.dp
+            val room = maxHeight - aboveControls - 8.dp
+            val panelMax = if (sheet) maxHeight * 0.60f else room.coerceAtLeast(48.dp)
+            val panelWidth = if (tablet) {
+                360.dp
+            } else if (sheet) {
+                maxWidth
+            } else {
+                maxWidth * 0.45f
+            }
+            val shape = if (sheet) {
+                RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+            } else {
+                RoundedCornerShape(16.dp)
+            }
+            Column(
+                modifier = Modifier
+                    .align(if (sheet) Alignment.BottomCenter else Alignment.BottomEnd)
+                    .padding(
+                        start = if (sheet) 0.dp else 12.dp,
+                        end = if (sheet) 0.dp else 12.dp,
+                        bottom = if (theater && landscape) aboveControls else 0.dp,
+                    )
+                    .then(if (sheet) Modifier.fillMaxWidth() else Modifier.width(panelWidth))
+                    .heightIn(max = panelMax)
+                    .clip(shape)
+                    .background(Color.Black.copy(alpha = 0.78f))
+                    .pointerInput(Unit) { detectTapGestures { } },
+            ) {
+                if (page != PlayerMenuPage.Root && page != PlayerMenuPage.None) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (compactHeight) 48.dp else 56.dp)
+                            .clickable(onClick = onBack)
+                            .padding(end = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                            Icon(
+                                Icons.AutoMirrored.Outlined.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color.White,
+                                modifier = Modifier.size(if (compactHeight) 20.dp else 22.dp),
+                            )
+                        }
+                        Text(
+                            playerMenuTitle(page),
+                            color = Color.White,
+                            fontSize = if (compactHeight) 14.sp else 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            fontFamily = FontFamily.SansSerif,
+                            maxLines = 1,
                         )
                     }
-                    Text(
-                        playerMenuTitle(page),
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Normal,
-                        fontFamily = FontFamily.SansSerif,
-                    )
                 }
-            }
-            Column(modifier = Modifier.verticalScroll(remember(page) { ScrollState(0) })) {
-                content()
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(remember(page) { ScrollState(0) }),
+                ) {
+                    CompositionLocalProvider(LocalMenuCompact provides compactHeight) {
+                        content()
+                    }
+                }
             }
         }
     }
@@ -179,13 +205,14 @@ internal fun PlayerMenuRow(
     showChevron: Boolean = false,
     onClick: () -> Unit,
 ) {
+    val compact = LocalMenuCompact.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp)
+            .height(if (compact) 48.dp else 60.dp)
             .background(if (selected) Color.White.copy(alpha = 0.10f) else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
@@ -194,12 +221,12 @@ internal fun PlayerMenuRow(
                     icon,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(22.dp),
+                    modifier = Modifier.size(if (compact) 20.dp else 22.dp),
                 )
                 glyph != null -> Text(
                     glyph,
                     color = Color.White,
-                    fontSize = 18.sp,
+                    fontSize = if (compact) 16.sp else 18.sp,
                     fontFamily = FontFamily.SansSerif,
                 )
             }
@@ -207,7 +234,7 @@ internal fun PlayerMenuRow(
         Text(
             label,
             color = Color.White,
-            fontSize = 16.sp,
+            fontSize = if (compact) 14.sp else 16.sp,
             fontWeight = FontWeight.Normal,
             fontFamily = FontFamily.SansSerif,
             modifier = Modifier.weight(1f),
@@ -216,7 +243,7 @@ internal fun PlayerMenuRow(
             Text(
                 value,
                 color = Color(0xFFB5B5B5),
-                fontSize = 14.sp,
+                fontSize = if (compact) 13.sp else 14.sp,
                 fontFamily = FontFamily.SansSerif,
                 modifier = Modifier.padding(end = 4.dp),
             )
@@ -239,55 +266,54 @@ internal fun PlayerMenuRow(
     }
 }
 
-@Preview(name = "Phone landscape", widthDp = 800, heightDp = 360)
+@Preview(name = "320x640", widthDp = 320, heightDp = 640)
 @Composable
-private fun PlayerMenuLandscapePreview() {
+private fun Preview320x640() = MenuPreview(sheet = true)
+
+@Preview(name = "360x800", widthDp = 360, heightDp = 800)
+@Composable
+private fun Preview360x800() = MenuPreview(sheet = true)
+
+@Preview(name = "800x360", widthDp = 800, heightDp = 360)
+@Composable
+private fun Preview800x360() = MenuPreview(sheet = false)
+
+@Preview(name = "640x320", widthDp = 640, heightDp = 320)
+@Composable
+private fun Preview640x320() = MenuPreview(sheet = false)
+
+@Preview(name = "Tablet landscape", widthDp = 1280, heightDp = 800)
+@Composable
+private fun PreviewTabletLandscape() = MenuPreview(sheet = false)
+
+@Preview(name = "Tablet portrait", widthDp = 800, heightDp = 1280)
+@Composable
+private fun PreviewTabletPortrait() = MenuPreview(sheet = false)
+
+@Composable
+private fun MenuPreview(sheet: Boolean) {
     Box(Modifier.fillMaxSize().background(Color(0xFF1A1A1A))) {
         PlayerMenuFrame(
-            theater = true,
+            theater = !sheet,
             page = PlayerMenuPage.Root,
             onBack = {},
             onDismiss = {},
         ) {
             PreviewRows()
         }
-        Row(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 22.dp, bottom = 20.dp)
-                .height(48.dp)
-                .clip(RoundedCornerShape(999.dp))
-                .background(Color.Black.copy(alpha = 0.58f))
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            listOf("10", "10", "85", "gear").forEach {
-                Box(
-                    Modifier.size(48.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(it, color = Color.White, fontSize = 12.sp)
-                }
+        if (!sheet) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 22.dp, bottom = 20.dp)
+                    .height(48.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.Black.copy(alpha = 0.58f))
+                    .padding(horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("pills", color = Color.White, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 12.dp))
             }
-        }
-    }
-}
-
-@Preview(name = "Phone portrait", widthDp = 360, heightDp = 800)
-@Composable
-private fun PlayerMenuPortraitPreview() {
-    Box(Modifier.fillMaxSize().background(Color(0xFF1A1A1A))) {
-        PlayerMenuFrame(
-            theater = false,
-            page = PlayerMenuPage.Speed,
-            onBack = {},
-            onDismiss = {},
-        ) {
-            listOf("0.75×" to false, "Normal" to true, "1.25×" to false, "1.5×" to false, "2×" to false)
-                .forEach { (label, selected) ->
-                    PlayerMenuRow(label = label, selected = selected, onClick = {})
-                }
         }
     }
 }

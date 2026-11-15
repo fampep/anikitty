@@ -4,11 +4,10 @@
 
 """Frame raw screenshots with Google's Pixel 8 device art.
 
-The bezel, mask, and layout are downloaded when this runs. They are not
-committed. Android Studio's device art is not for Play Store listings.
-
-Raw captures live in docs/screenshots/raw/. This writes transparent framed
-PNGs and a dark hero image next to that folder.
+The README uses one unframed capture, docs/screenshots/app.png. This script
+is only for an optional device-art pass. Drop PNGs in docs/screenshots/raw/
+first. The bezel, mask, and layout are downloaded when this runs. They are
+not committed. Android Studio's device art is not for Play Store listings.
 """
 
 from __future__ import annotations

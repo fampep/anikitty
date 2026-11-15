@@ -20,10 +20,6 @@
 > [!WARNING]
 > AniKitty is an unofficial app. It is not affiliated with AniList, MyAnimeList, or any studio or streaming service. Sideload APKs only from the [official releases](https://github.com/fampep/anikitty/releases) of this repository. Dev builds can be unstable.
 
-<p align="center">
-  <img src="docs/screenshots/hero.png" alt="AniKitty on a Pixel" width="820">
-</p>
-
 ## Why AniKitty
 
 - The catalog is AniList. Search, the season, and a title page all use it.
@@ -48,32 +44,13 @@ Stable opens the latest stable release. Dev downloads `anikitty-dev.apk`, a roll
 
 Allow installs from the browser, then open the file. If Android refuses an update because the signature does not match, uninstall the old app first.
 
-## Screenshots
+## Screenshot
 
-Public AniList catalog, night theme, on a Pixel-sized screen. This is not a signed-in account, and it is not the sample library. How to take the shots again is in [docs/screenshots/README.md](docs/screenshots/README.md). The frames are Google's Pixel 8 device art. Do not use those framed files in a Play listing.
+Public AniList catalog, night theme, on a phone. This is not a signed-in account, and it is not the sample library.
 
-<table>
-  <tr>
-    <td><img src="docs/screenshots/home.png" alt="Home" width="200"></td>
-    <td><img src="docs/screenshots/search.png" alt="Search" width="200"></td>
-    <td><img src="docs/screenshots/title.png" alt="Title page" width="200"></td>
-  </tr>
-  <tr>
-    <td align="center">Home</td>
-    <td align="center">Search</td>
-    <td align="center">Title</td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/title-episodes.png" alt="Episodes and cast" width="200"></td>
-    <td><img src="docs/screenshots/player.png" alt="Player" width="200"></td>
-    <td><img src="docs/screenshots/myspace.png" alt="My Space, not signed in" width="200"></td>
-  </tr>
-  <tr>
-    <td align="center">Episodes</td>
-    <td align="center">Player</td>
-    <td align="center">My Space</td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/screenshots/app.png" alt="AniKitty title page for Black Clover Season 2" width="360">
+</p>
 
 ## Features
 
