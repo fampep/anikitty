@@ -93,6 +93,7 @@ class AnikotoServer(
                             quality = fields.quality,
                             audio = fields.audio,
                             qualityRating = fields.qualityRating,
+                            thumbnails = resolved.thumbnails,
                         )
                     }
                 }
@@ -165,6 +166,7 @@ class AnikotoServer(
         val file: String,
         val labeled: List<Pair<String, String>>,
         val subtitles: List<SubtitleTrack>,
+        val thumbnails: ThumbnailTrack?,
     )
 
     private fun mapWatchPage(anilistId: Int, titles: List<String>, malId: Int?): MappedShow {
@@ -365,7 +367,31 @@ class AnikotoServer(
         val file = extractFile(srcJson) ?: error("MegaPlay file missing")
         val labeled = extractLabeled(srcJson).ifEmpty { listOf(file to "Stream") }
         val subs = extractSubtitles(srcJson)
-        return ResolvedEmbed(origin = origin, file = file, labeled = labeled, subtitles = subs)
+        val headers = streamHeaders(origin)
+        val thumbs = extractThumbnails(srcJson, headers)
+        return ResolvedEmbed(
+            origin = origin,
+            file = file,
+            labeled = labeled,
+            subtitles = subs,
+            thumbnails = thumbs,
+        )
+    }
+
+    private fun extractThumbnails(data: JSONObject, headers: Map<String, String>): ThumbnailTrack? {
+        fun from(obj: JSONObject): ThumbnailTrack? {
+            spriteTrack(thumbnailTrackFromJson(obj, headers))?.let { return it }
+            thumbnailTrackFromTracks(obj.optJSONArray("tracks"), headers)?.let { return it }
+            return null
+        }
+        from(data)?.let { return it }
+        val enc = data.optString("enc")
+        if (enc.isNotBlank()) {
+            val origin = data.optString("_anikittyOrigin").ifBlank { "https://megaplay.buzz" }
+            val decrypted = runCatching { crypto.decryptEnc(enc, origin) }.getOrNull()
+            if (decrypted != null) from(decrypted)?.let { return it }
+        }
+        return null
     }
 
     private fun extractSubtitles(data: JSONObject): List<SubtitleTrack> {

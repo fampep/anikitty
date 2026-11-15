@@ -52,9 +52,9 @@ class GotakuServer(
         if (mode != "dub" && !ep.sub) error("Sub unavailable for episode $episode")
         val embedType = if (mode == "dub") "dub" else "hard_sub"
         val embedUrl = fetchEmbedUrl(ep.id, embedType)
-        val (stamp, manifestBase) = fetchEmbedStamp(embedUrl)
-        val (nonce, token) = GotakuCrypto.buildManifestToken(stamp)
-        val manifestJson = fetchManifest(manifestBase, token, nonce, embedUrl)
+        val page = fetchEmbedPage(embedUrl)
+        val (nonce, token) = GotakuCrypto.buildManifestToken(page.stamp)
+        val manifestJson = fetchManifest(page.base, token, nonce, embedUrl)
         val manifest = JSONObject(manifestJson)
         val keySeed = manifest.getString("keySeed")
         val playlistToken = manifest.getString("token")
@@ -120,6 +120,13 @@ class GotakuServer(
                 val first = out[0]
                 out[0] = first.copy(subtitles = subs)
             }
+        }
+        val thumbs = spriteTrack(thumbnailTrackFromJson(manifest, headers))
+            ?: thumbnailTrackFromTracks(manifest.optJSONArray("tracks"), headers)
+            ?: thumbnailTrackFromTracks(manifest.optJSONArray("captions"), headers)
+            ?: page.thumbnails
+        if (thumbs != null) {
+            for (i in out.indices) out[i] = out[i].copy(thumbnails = thumbs)
         }
         out
     }
@@ -248,17 +255,20 @@ class GotakuServer(
         return url
     }
 
-    private fun fetchEmbedStamp(embedUrl: String): Pair<String, String> {
+    private fun fetchEmbedPage(embedUrl: String): EmbedPage {
         val html = httpText(embedUrl, GOTAKU_ORIGIN)
         val stamp = DATA_STAMP.matcher(html).let {
             require(it.find()) { "Gotaku embed missing data-manifest-stamp" }
-            it.group(1)
+            it.group(1) ?: error("Gotaku embed missing data-manifest-stamp")
         }
         val base = DATA_BASE.matcher(html).let {
             require(it.find()) { "Gotaku embed missing data-manifest-base" }
-            it.group(1)
+            it.group(1) ?: error("Gotaku embed missing data-manifest-base")
         }
-        return stamp to base
+        val thumbs = thumbnailUrlFromLooseText(html)?.let {
+            ThumbnailTrack(it, streamHeaders(embedUrl))
+        }
+        return EmbedPage(stamp, base, thumbs)
     }
 
     private fun fetchManifest(
@@ -361,6 +371,7 @@ class GotakuServer(
     private fun enc(s: String): String =
         URLEncoder.encode(s, StandardCharsets.UTF_8.name())
 
+    private data class EmbedPage(val stamp: String, val base: String, val thumbnails: ThumbnailTrack?)
     private data class TitleHit(val id: String, val name: String, val poster: String)
     private data class TitleInfo(val anilistId: Int, val latestSub: Int, val listedTotal: Int)
     private data class EpisodeHit(val id: String, val number: Int, val sub: Boolean, val dub: Boolean)

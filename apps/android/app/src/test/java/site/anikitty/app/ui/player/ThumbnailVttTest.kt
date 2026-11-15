@@ -4,7 +4,9 @@
 package site.anikitty.app.ui.player
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
+import site.anikitty.app.data.servers.thumbnailUrlFromLooseText
 
 class ThumbnailVttTest {
     @Test
@@ -28,5 +30,15 @@ class ThumbnailVttTest {
         assertEquals("https://cdn.example/thumbs/sheet-2.jpg", cues[1].spriteUrl)
         assertEquals(cues[1], cueAt(cues, 7_000L))
         assertEquals(cues[0], cueAt(cues, 0L))
+    }
+
+    @Test
+    fun findsSpriteSheetsAndSkipsSubtitleFiles() {
+        val html = """
+            <div data-thumbnails="https://cdn.example/sprites.vtt"></div>
+            <track src="https://cdn.example/english.vtt" kind="captions">
+        """.trimIndent()
+        assertEquals("https://cdn.example/sprites.vtt", thumbnailUrlFromLooseText(html))
+        assertNull(thumbnailUrlFromLooseText("https://cdn.example/english.vtt"))
     }
 }
