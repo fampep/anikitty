@@ -207,7 +207,7 @@ private data class SubStyle(
     val bottomPad: Float = DEFAULT_SUB_BOTTOM_PAD,
     val color: Int = AndroidColor.rgb(242, 242, 242),
     val bgMode: SubBgMode = SubBgMode.None,
-    val edgeType: Int = CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
+    val edgeType: Int = CaptionStyleCompat.EDGE_TYPE_OUTLINE,
     val bold: Boolean = false,
     val italic: Boolean = true,
     val bgAlpha: Float = 0.55f,
@@ -3442,9 +3442,10 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     )
 }
 
-/** True when the saved look is still the previous stock caption style. */
+/** True when the saved look is still a stock caption style we can replace. */
 private fun stockCaptionLook(prefs: android.content.SharedPreferences): Boolean {
     if (!prefs.contains("sub_size_sp") && !prefs.contains("sub_bg_mode")) return true
+    if (shadowStockFromOverlay(prefs)) return true
     val size = prefs.getFloat("sub_size_sp", 9f)
     val bg = prefs.getString("sub_bg_mode", SubBgMode.Soft.name)
     val edge = prefs.getInt("sub_edge", CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW)
@@ -3458,8 +3459,27 @@ private fun stockCaptionLook(prefs: android.content.SharedPreferences): Boolean 
         !bold
 }
 
-/** Large italic captions, clear of the control pills. A saved custom look is kept. */
-private const val SUB_STYLE_VERSION = 5
+/**
+ * The 1.2.7-dev.6 stock look: 20sp italic, no box, drop shadow, light grey.
+ * That was written as soon as the player opened, so it is not a custom choice.
+ */
+private fun shadowStockFromOverlay(prefs: android.content.SharedPreferences): Boolean {
+    if (!prefs.contains("sub_size_sp") || !prefs.contains("sub_edge")) return false
+    val size = prefs.getFloat("sub_size_sp", 0f)
+    val bottom = prefs.getFloat("sub_bottom", -1f)
+    val alpha = prefs.getFloat("sub_bg_alpha", -1f)
+    return kotlin.math.abs(size - 20f) < 0.4f &&
+        kotlin.math.abs(bottom - 0.20f) < 0.02f &&
+        kotlin.math.abs(alpha - 0.55f) < 0.02f &&
+        prefs.getString("sub_bg_mode", null) == SubBgMode.None.name &&
+        prefs.getInt("sub_edge", -1) == CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW &&
+        prefs.getInt("sub_color", 0) == AndroidColor.rgb(242, 242, 242) &&
+        !prefs.getBoolean("sub_bold", true) &&
+        prefs.getBoolean("sub_italic", false)
+}
+
+/** Italic outlined captions, clear of the control pills. A saved custom look is kept. */
+private const val SUB_STYLE_VERSION = 6
 private const val DEFAULT_SUB_SIZE_SP = 20f
 private const val SUB_SIZE_SP_MIN = 8f
 private const val SUB_SIZE_SP_MAX = 24f
