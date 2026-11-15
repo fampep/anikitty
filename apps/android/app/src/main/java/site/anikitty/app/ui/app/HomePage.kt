@@ -209,10 +209,8 @@ internal fun HomeFeatured(
     Column {
         Box(
             modifier = Modifier
-                .padding(horizontal = 16.dp)
                 .fillMaxWidth()
-                .height(248.dp)
-                .clip(RoundedCornerShape(KittyRadius.lg)),
+                .height(292.dp),
         ) {
             HorizontalPager(
                 state = pagerState,
@@ -268,7 +266,7 @@ internal fun HomeFeatured(
                     Column(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
-                            .padding(horizontal = 14.dp, vertical = 12.dp)
+                            .padding(horizontal = 18.dp, vertical = 16.dp)
                             .fillMaxWidth(),
                     ) {
                         val logo = logos[anime.id]
@@ -325,11 +323,11 @@ internal fun HomeFeatured(
                     val selected = pagerState.currentPage == index
                     Box(
                         modifier = Modifier
-                            .padding(horizontal = 3.dp)
+                            .padding(horizontal = 4.dp)
                             .height(4.dp)
-                            .width(if (selected) 14.dp else 4.dp)
+                            .width(if (selected) 22.dp else 5.dp)
                             .clip(CircleShape)
-                            .background(if (selected) Color.White else Color.White.copy(alpha = 0.28f)),
+                            .background(if (selected) Color.White else Color.White.copy(alpha = 0.32f)),
                     )
                 }
             }
@@ -393,7 +391,7 @@ internal fun HomePosterRow(
                 anime = anime,
                 onOpen = onOpen,
                 caption = captions[anime.id],
-                modifier = Modifier.width(104.dp),
+                modifier = Modifier.width(112.dp),
             )
         }
     }
@@ -417,7 +415,7 @@ private fun HomePosterCell(
                 .sharedPoster(anime.id)
                 .fillMaxWidth()
                 .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(4.dp)),
+                .clip(RoundedCornerShape(10.dp)),
         )
         Text(
             anime.title,
@@ -483,7 +481,7 @@ internal fun HomeContinueRow(cards: List<HomeContinueCard>) {
         items(cards, key = { it.id }, contentType = { "still" }) { card ->
             Column(
                 modifier = Modifier
-                    .width(232.dp)
+                    .width(248.dp)
                     .spacePress(card.onClick),
             ) {
                 ContinueArt(card)
@@ -544,14 +542,15 @@ private fun ContinueArt(card: HomeContinueCard) {
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .height(2.dp)
-                    .background(Color.White.copy(alpha = 0.22f)),
+                    .height(3.dp)
+                    .background(Color.White.copy(alpha = 0.18f)),
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .fillMaxWidth(card.progress.coerceIn(0f, 1f))
-                        .background(Color.White),
+                        .clip(RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                        .background(Color(0xFFDDDDDD)),
                 )
             }
         }
@@ -577,10 +576,10 @@ internal fun HomeAiringRow(cards: List<HomeAiringCard>) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .height(72.dp)
                     .spacePress(card.onClick)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF0C0C10)),
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF0F0F13)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 KittyImage(
@@ -589,7 +588,7 @@ internal fun HomeAiringRow(cards: List<HomeAiringCard>) {
                     widthPx = 140,
                     heightPx = 200,
                     modifier = Modifier
-                        .width(46.dp)
+                        .width(54.dp)
                         .fillMaxHeight(),
                 )
                 Column(
@@ -638,7 +637,7 @@ internal fun HomeGenreRow(
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.dp, Hairline, RoundedCornerShape(16.dp))
                     .spacePress { onOpen(name) }
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
             )
         }
     }
@@ -660,7 +659,7 @@ internal fun HomeRankRow(
             val anime = shown[index]
             Column(
                 modifier = Modifier
-                    .width(104.dp)
+                    .width(112.dp)
                     .spacePress { onOpen(anime) },
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
@@ -670,18 +669,18 @@ internal fun HomeRankRow(
                         widthPx = 320,
                         heightPx = 480,
                         modifier = Modifier
-                            .padding(start = 18.dp)
+                            .padding(start = 20.dp)
                             .sharedPoster(anime.id)
                             .fillMaxWidth()
                             .aspectRatio(2f / 3f)
-                            .clip(RoundedCornerShape(4.dp)),
+                            .clip(RoundedCornerShape(8.dp)),
                     )
                     Text(
                         "${index + 1}",
-                        color = palette.text.copy(alpha = 0.22f),
+                        color = palette.text.copy(alpha = 0.28f),
                         fontWeight = FontWeight.Black,
-                        fontSize = 42.sp,
-                        letterSpacing = (-1.5).sp,
+                        fontSize = 48.sp,
+                        letterSpacing = (-2.0).sp,
                         modifier = Modifier.align(Alignment.BottomStart),
                     )
                 }
@@ -692,7 +691,7 @@ internal fun HomeRankRow(
                     fontSize = 12.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = 18.dp, top = 6.dp),
+                    modifier = Modifier.padding(start = 20.dp, top = 6.dp),
                 )
             }
         }
@@ -741,7 +740,7 @@ internal fun HomeShelfChips(
                     .background(if (on) palette.text else Color.Transparent)
                     .border(1.dp, if (on) palette.text else Hairline, RoundedCornerShape(16.dp))
                     .spacePress { onSelect(shelf) }
-                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                    .padding(horizontal = 14.dp, vertical = 9.dp),
             )
         }
     }
