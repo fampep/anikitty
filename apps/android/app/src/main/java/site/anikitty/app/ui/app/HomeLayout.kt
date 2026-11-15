@@ -50,6 +50,7 @@ object HomeCatalog {
     val sections = listOf(
         HomeSection("featured", "Featured"),
         HomeSection("continue", "Continue watching"),
+        HomeSection("top", "Top 10"),
         HomeSection("fresh", "New episodes"),
         HomeSection("upcoming", "Upcoming"),
         HomeSection("rated", "Top rated"),

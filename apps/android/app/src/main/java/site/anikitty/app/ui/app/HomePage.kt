@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,10 +49,14 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -63,8 +68,6 @@ import site.anikitty.app.ui.components.HeroBanner
 import site.anikitty.app.ui.components.KittyImage
 import site.anikitty.app.ui.components.sharedPoster
 import site.anikitty.app.ui.components.KittyBadge
-import site.anikitty.app.ui.components.KittyMenuEntry
-import site.anikitty.app.ui.components.KittyOverflow
 import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.theme.KittyRadius
 import site.anikitty.app.ui.theme.KittySpace
@@ -102,6 +105,9 @@ internal fun HomeBar(
             fontWeight = FontWeight.Bold,
             fontSize = 22.sp,
             letterSpacing = (-0.6).sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
         if (LocalDemoMode.current) {
             KittyBadge(
@@ -110,7 +116,6 @@ internal fun HomeBar(
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
-        Spacer(modifier = Modifier.weight(1f))
         HomeBarIcon(onClick = onOpenSearch) {
             Icon(
                 Icons.Filled.Search,
@@ -149,16 +154,6 @@ internal fun HomeBar(
             imageUrl = avatarUrl,
             size = 32.dp,
             modifier = Modifier.padding(start = 4.dp).spacePress(onOpenAccount),
-        )
-        KittyOverflow(
-            contentDescription = "More",
-            tint = ink,
-            modifier = Modifier.padding(start = 4.dp),
-            entries = listOf(
-                KittyMenuEntry("Search", onOpenSearch),
-                KittyMenuEntry("Refresh", onRefresh),
-                KittyMenuEntry("Settings", onOpenAccount),
-            ),
         )
     }
 }
@@ -239,6 +234,7 @@ internal fun HomeFeatured(
                         title = anime.title,
                         year = anime.seasonYear,
                         movie = anime.format.equals("MOVIE", true),
+                        alignment = Alignment.TopCenter,
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
@@ -248,10 +244,8 @@ internal fun HomeFeatured(
                                 alpha = if (reducedMotion) {
                                     1f
                                 } else {
-                                    1f - kotlin.math.abs(offset).coerceIn(0f, 1f) * 0.4f
+                                    1f - kotlin.math.abs(offset).coerceIn(0f, 1f) * 0.25f
                                 }
-                                scaleX = 1.12f
-                                scaleY = 1.12f
                             },
                     )
                     Box(
@@ -291,7 +285,7 @@ internal fun HomeFeatured(
                                 fontSize = 22.sp,
                                 lineHeight = 26.sp,
                                 letterSpacing = (-0.4).sp,
-                                maxLines = 1,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
@@ -358,21 +352,29 @@ internal fun HomePosterGrid(
     onOpen: (AnimeSummary) -> Unit,
 ) {
     if (items.isEmpty()) return
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        items.chunked(3).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { anime ->
-                    HomePosterCell(
-                        anime = anime,
-                        onOpen = onOpen,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                repeat(3 - row.size) {
-                    Spacer(modifier = Modifier.weight(1f))
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val columns = when {
+            maxWidth >= 1000.dp -> 6
+            maxWidth >= 840.dp -> 5
+            maxWidth >= 600.dp -> 4
+            else -> 3
+        }
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            items.chunked(columns).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { anime ->
+                        HomePosterCell(
+                            anime = anime,
+                            onOpen = onOpen,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    repeat(columns - row.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
                 }
             }
         }
@@ -517,6 +519,7 @@ private fun ContinueArt(card: HomeContinueCard) {
             contentDescription = card.title,
             widthPx = 640,
             heightPx = 360,
+            alignment = Alignment.TopCenter,
             modifier = Modifier.fillMaxSize().sharedPoster(card.id),
         )
         Box(
@@ -680,10 +683,13 @@ internal fun HomeRankRow(
                     )
                     Text(
                         "${index + 1}",
-                        color = palette.text.copy(alpha = 0.28f),
+                        color = palette.text,
                         fontWeight = FontWeight.Black,
                         fontSize = 48.sp,
                         letterSpacing = (-2.0).sp,
+                        style = TextStyle(
+                            shadow = Shadow(Color.Black.copy(alpha = 0.85f), Offset(0f, 2f), 10f),
+                        ),
                         modifier = Modifier.align(Alignment.BottomStart),
                     )
                 }

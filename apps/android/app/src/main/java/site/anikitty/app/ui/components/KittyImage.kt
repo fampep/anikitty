@@ -6,6 +6,7 @@ package site.anikitty.app.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
@@ -26,6 +27,7 @@ fun KittyImage(
     widthPx: Int = 480,
     heightPx: Int = 720,
     contentScale: ContentScale = ContentScale.Crop,
+    alignment: Alignment = Alignment.Center,
     placeholder: Color = Color(0xFF141416),
 ) {
     val context = LocalContext.current
@@ -44,6 +46,7 @@ fun KittyImage(
             .build(),
         contentDescription = contentDescription,
         contentScale = contentScale,
+        alignment = alignment,
         placeholder = matte,
         error = matte,
         modifier = modifier,

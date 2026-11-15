@@ -251,6 +251,7 @@ fun ContinueWatchCard(
                     widthPx = 640,
                     heightPx = 360,
                     contentScale = ContentScale.Crop,
+                    alignment = Alignment.TopCenter,
                     modifier = Modifier.fillMaxSize(),
                 )
             }

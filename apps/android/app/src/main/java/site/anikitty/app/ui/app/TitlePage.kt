@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -31,7 +32,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -56,6 +57,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
@@ -243,7 +245,7 @@ internal fun TitleStage(
     val trailerClick = onTrailer ?: art?.youtubeId?.let { id ->
         { onOpenUrl("https://www.youtube.com/watch?v=$id") }
     }
-    val listState = rememberLazyListState()
+    val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val stuck by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 120
@@ -287,7 +289,7 @@ internal fun TitleStage(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(heroHeight)
+                        .heightIn(min = heroHeight)
                         .clipToBounds(),
                 ) {
                     val gallery = art?.backdrops.orEmpty()
@@ -306,7 +308,7 @@ internal fun TitleStage(
                         movie = movie,
                         locked = pickedBackdrop != null,
                         modifier = posterModifier
-                            .fillMaxSize()
+                            .matchParentSize()
                             .graphicsLayer {
                                 val drift = if (reduced || listState.firstVisibleItemIndex > 0) {
                                     0f
@@ -318,7 +320,7 @@ internal fun TitleStage(
                     )
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
+                            .matchParentSize()
                             .background(
                                 Brush.verticalGradient(
                                     0f to Color.Black.copy(alpha = 0.18f),
@@ -1077,7 +1079,8 @@ private fun TitleAction(
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
-            modifier = Modifier.padding(top = 4.dp),
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp),
         )
     }
 }
@@ -1085,6 +1088,7 @@ private fun TitleAction(
 @Composable
 private fun Synopsis(text: String) {
     var open by remember(text) { mutableStateOf(false) }
+    var canExpand by remember(text) { mutableStateOf(false) }
     val palette = LocalKittyPalette.current
     Column(Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.md)) {
         KittySectionHeading(title = "Synopsis", padded = false)
@@ -1094,18 +1098,23 @@ private fun Synopsis(text: String) {
             color = palette.text.copy(alpha = 0.78f),
             fontSize = 15.sp,
             lineHeight = 22.sp,
-            maxLines = if (open) 40 else 4,
+            maxLines = if (open) Int.MAX_VALUE else 4,
             overflow = TextOverflow.Ellipsis,
+            onTextLayout = { result ->
+                if (result.hasVisualOverflow) canExpand = true
+            },
         )
-        Text(
-            if (open) "Show less" else "More",
-            color = palette.text,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
-            modifier = Modifier
-                .padding(top = 8.dp)
-                .spacePress { open = !open },
-        )
+        if (canExpand || open) {
+            Text(
+                if (open) "Show less" else "More",
+                color = palette.text,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .spacePress { open = !open },
+            )
+        }
     }
 }
 
