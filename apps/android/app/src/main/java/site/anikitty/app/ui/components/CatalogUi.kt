@@ -42,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -231,9 +232,9 @@ fun KittySectionHeading(
             Text(
                 title,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
                 color = LocalKittyPalette.current.text,
-                letterSpacing = (-0.3).sp,
+                letterSpacing = (-0.4).sp,
             )
             if (!subtitle.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -246,13 +247,25 @@ fun KittySectionHeading(
             }
         }
         if (onMore != null) {
-            Text(
-                "See all",
-                color = LocalKittyPalette.current.text.copy(alpha = 0.7f),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.spacePress(onMore).padding(horizontal = 4.dp, vertical = 6.dp),
-            )
+            Row(
+                modifier = Modifier
+                    .spacePress(onMore)
+                    .padding(start = 8.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "See all",
+                    color = LocalKittyPalette.current.text.copy(alpha = 0.6f),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Icon(
+                    Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = LocalKittyPalette.current.text.copy(alpha = 0.6f),
+                    modifier = Modifier.size(14.dp),
+                )
+            }
         }
     }
 }
