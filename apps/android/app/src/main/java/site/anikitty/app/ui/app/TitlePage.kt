@@ -299,8 +299,8 @@ internal fun TitleStage(
                         bannerUrl = pickedBackdrop ?: if (localArt) detail.coverImageUrl else detail.bannerImageUrl,
                         coverUrl = detail.coverImageUrl,
                         contentDescription = detail.title,
-                        contentScale = ContentScale.Crop,
-                        alignment = if (localArt) Alignment.TopCenter else Alignment.Center,
+                        contentScale = ContentScale.FillWidth,
+                        alignment = Alignment.TopCenter,
                         title = detail.title,
                         year = detail.seasonYear,
                         movie = movie,
@@ -324,11 +324,11 @@ internal fun TitleStage(
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    0f to Color.Black.copy(alpha = 0.28f),
-                                    0.18f to Color.Black.copy(alpha = 0.05f),
-                                    0.46f to Color.Black.copy(alpha = 0.42f),
-                                    0.68f to Color.Black.copy(alpha = 0.82f),
-                                    1f to Color.Black.copy(alpha = 0.96f),
+                                    0f to Color.Black.copy(alpha = 0.18f),
+                                    0.22f to Color.Black.copy(alpha = 0.0f),
+                                    0.52f to Color.Black.copy(alpha = 0.52f),
+                                    0.72f to Color.Black.copy(alpha = 0.88f),
+                                    1f to Color.Black,
                                 ),
                             ),
                     )
