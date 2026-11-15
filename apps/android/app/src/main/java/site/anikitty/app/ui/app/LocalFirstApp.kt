@@ -2267,7 +2267,7 @@ internal fun SettingsFeed(
                     item {
                         SpacePageHeader(
                             title = "Sources",
-                            subtitle = "Anikoto, Gotaku, and reanime ship in the app.",
+                            subtitle = "Anikoto, Gotaku, reanime, and mkissa ship in the app.",
                             onBack = { page = "hub" },
                         )
                     }

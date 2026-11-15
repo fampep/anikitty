@@ -39,6 +39,7 @@ class ServerCatalog(context: Context) {
         AnikotoServer(cache = resolveCache, crypto = megaPlayCrypto),
         GotakuServer(cache = resolveCache),
         ReanimeServer(cache = resolveCache),
+        MkissaServer(cache = resolveCache),
     )
 
     private val _resolvers = MutableStateFlow(buildResolvers(extensions.installed.value))

@@ -8,7 +8,7 @@ Manifest `apiVersion` stays **1**. Protocol 1.1 only adds optional source fields
 
 - Optional per-source `quality`, `audio`, and `qualityRating`.
 - Omitted fields mean “unknown”. The app shows no badge for a missing field.
-- Built-in resolvers (Anikoto, Gotaku, reanime) fill the same fields when the playlist or provider label actually states them. They do not invent a grade from height.
+- Built-in resolvers (Anikoto, Gotaku, reanime, mkissa) fill the same fields when the playlist or provider label actually states them. They do not invent a grade from height.
 
 ### 1.0
 
@@ -124,7 +124,7 @@ A 1.0 server that returns only `url` and `label` is still valid. The phone plays
 
 ### Built-in and user-added
 
-| | Built-in (Anikoto, Gotaku, reanime) | User-added HTTP extension |
+| | Built-in (Anikoto, Gotaku, reanime, mkissa) | User-added HTTP extension |
 |---|---|---|
 | Where it runs | Compiled into the APK | Your HTTPS `POST` |
 | How metadata arrives | The resolver reads playlist `RESOLUTION` / `CODECS` / `CHANNELS`, or the site’s own quality label | You set `quality`, `audio`, `qualityRating` on each source |

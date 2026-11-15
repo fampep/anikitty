@@ -32,6 +32,17 @@ object BuiltInSourceMeta {
     fun reanime(streamInf: String, audioMode: String, audioMedia: String? = null): SourceFields =
         fromHls(streamInf, audioMode, audioMedia)
 
+    /** mkissa states a video height on the episode, not a grade word. */
+    fun mkissa(videoHeight: Int?, audioMode: String): SourceFields = SourceFields(
+        quality = videoHeight?.let { heightLabel(it) },
+        audio = when {
+            audioMode.equals("dub", true) -> "DUB"
+            audioMode.equals("sub", true) -> "SUB"
+            audioMode.equals("raw", true) -> "RAW"
+            else -> null
+        },
+    )
+
     fun gotaku(streamInf: String, audioMode: String, audioMedia: String? = null): SourceFields =
         fromHls(streamInf, audioMode, audioMedia)
 

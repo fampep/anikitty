@@ -68,6 +68,7 @@ import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.StoreListing
 import site.anikitty.app.data.extensions.isRetiredExtension
+import site.anikitty.app.data.servers.MkissaServer
 import site.anikitty.app.data.servers.ReanimeServer
 import site.anikitty.app.data.servers.AnikotoServer
 import site.anikitty.app.data.servers.GotakuServer
@@ -148,7 +149,7 @@ fun ExtensionStoreFeed(
     }
 
     val bundledIds = remember {
-        setOf(AnikotoServer.ID, GotakuServer.ID, ReanimeServer.ID)
+        setOf(AnikotoServer.ID, GotakuServer.ID, ReanimeServer.ID, MkissaServer.ID)
     }
 
     // Always surface on-device resolvers even if the remote index is stale/offline.
@@ -735,6 +736,7 @@ private fun StreamServer.toStoreListing(
 /** Shown when the store index has not published a version for a bundled source. */
 private fun bundledStoreVersion(id: String): String = when (id) {
     "reanime" -> "1.0.0"
+    "mkissa" -> "1.0.0"
     else -> "1.1.1"
 }
 
@@ -747,5 +749,6 @@ private fun providerSource(id: String): String = when (id) {
     "anikoto" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/anikoto"
     "gotaku" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/gotaku"
     "reanime" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/reanime"
+    "mkissa" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/mkissa"
     else -> "https://github.com/fampep/anikitty-extensions"
 }

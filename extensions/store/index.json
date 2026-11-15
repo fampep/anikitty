@@ -40,6 +40,18 @@
       "siteUrl": "https://reanime.cz"
     },
     {
+      "id": "mkissa",
+      "name": "mkissa",
+      "version": "1.0.0",
+      "protocol": "1.1",
+      "description": "Bundled mkissa.to resolver. Tried after reanime. A direct file plays in the app. Iframe hosts are skipped. Resolution is shown when the episode states it.",
+      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/mkissa",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=mkissa.to&sz=128",
+      "siteUrl": "https://mkissa.to"
+    },
+    {
       "id": "site.anikitty.example.hello",
       "name": "Hello HTTP",
       "version": "1.1.1",
