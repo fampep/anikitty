@@ -454,6 +454,14 @@ fun PlayerScreen(
     val playhead = remember { Playhead() }
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
+    val mutedNow = rememberUpdatedState(muted)
+
+    fun pushMute() {
+        val level = if (mutedNow.value) 0f else 1f
+        castHelper?.heldVolume = level
+        player?.volume = level
+        castHelper?.castPlayer?.volume = level
+    }
 
     fun goNextEpisode() {
         if (nextTriggered) return
@@ -483,6 +491,7 @@ fun PlayerScreen(
                     castHint = error.message?.takeIf { it.isNotBlank() }
                         ?: "Chromecast could not play this stream"
                     isCasting = false
+                    pushMute()
                     latestPlayer?.play()
                 }
             }
@@ -496,6 +505,7 @@ fun PlayerScreen(
                     isCasting = false
                     castHint = "Connecting to your TV"
                     controlsVisible = true
+                    pushMute()
                     helper.load(
                         source = src,
                         title = latestTitle,
@@ -503,12 +513,14 @@ fun PlayerScreen(
                         positionMs = pos,
                         onReady = {
                             local?.pause()
+                            pushMute()
                             isCasting = true
                             castHint = null
                         },
                         onError = { message ->
                             castHint = message
                             isCasting = false
+                            pushMute()
                             local?.play()
                         },
                     )
@@ -525,6 +537,7 @@ fun PlayerScreen(
                         local?.seekTo(pos)
                         positionMs = pos
                     }
+                    pushMute()
                     local?.play()
                     controlsVisible = true
                 }
@@ -552,12 +565,14 @@ fun PlayerScreen(
             positionMs = pos,
             onReady = {
                 latestPlayer?.pause()
+                pushMute()
                 castHint = null
             },
             onError = { message ->
                 castHint = message
                 if (castHelper?.casting != true) {
                     isCasting = false
+                    pushMute()
                     latestPlayer?.play()
                 }
             },
@@ -857,14 +872,18 @@ fun PlayerScreen(
     }
 
     fun toggleMute() {
-        muted = !muted
-        activePlayer?.volume = if (muted) 0f else 1f
+        val next = !muted
+        muted = next
+        val level = if (next) 0f else 1f
+        castHelper?.heldVolume = level
+        activePlayer?.volume = level
+        player?.volume = level
+        castHelper?.castPlayer?.volume = level
         controlsVisible = true
     }
 
-    LaunchedEffect(player, isCasting, muted) {
-        val target = if (isCasting) castHelper?.castPlayer else player
-        target?.volume = if (muted) 0f else 1f
+    LaunchedEffect(player, muted) {
+        pushMute()
     }
 
     fun seekBy(deltaMs: Long) {
