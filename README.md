@@ -20,6 +20,14 @@
 > [!WARNING]
 > AniKitty is an unofficial app. It is not affiliated with AniList, MyAnimeList, or any studio or streaming service. Sideload APKs only from the [official releases](https://github.com/fampep/anikitty/releases) of this repository. Dev builds can be unstable.
 
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Home" width="260">
+  &nbsp;
+  <img src="docs/screenshots/title.png" alt="Title page" width="260">
+</p>
+
+<p align="center">Home and a title page. Public AniList catalog, night theme, in Pixel frames.</p>
+
 ## Why AniKitty
 
 - The catalog is AniList. Search, the season, and a title page all use it.
@@ -43,14 +51,6 @@ A push to `main` publishes a signed dev build. Those land roughly every day. Sta
 Stable opens the latest stable release. Dev downloads `anikitty-dev.apk`, a rolling build that moves with `main`. Numbered builds stay on the [releases page](https://github.com/fampep/anikitty/releases).
 
 Allow installs from the browser, then open the file. If Android refuses an update because the signature does not match, uninstall the old app first.
-
-## Screenshot
-
-Public AniList catalog, night theme, on a phone. This is not a signed-in account, and it is not the sample library.
-
-<p align="center">
-  <img src="docs/screenshots/app.png" alt="AniKitty title page for Black Clover Season 2" width="360">
-</p>
 
 ## Features
 
