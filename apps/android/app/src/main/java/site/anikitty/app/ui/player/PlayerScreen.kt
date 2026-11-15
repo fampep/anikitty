@@ -68,16 +68,20 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CastConnected
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.outlined.Forward10
+import androidx.compose.material.icons.outlined.FullscreenExit
+import androidx.compose.material.icons.outlined.LockOpen
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.PictureInPicture
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.Replay10
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.automirrored.outlined.VolumeOff
+import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.rounded.Fullscreen
-import androidx.compose.material.icons.rounded.Forward10
-import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.PictureInPicture
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Replay10
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.SkipNext
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.ui.components.EpisodeCarousel
@@ -134,6 +138,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -199,10 +205,11 @@ private enum class SubBgMode { None, Soft, Solid, Blur }
 private data class SubStyle(
     val sizeSp: Float = DEFAULT_SUB_SIZE_SP,
     val bottomPad: Float = DEFAULT_SUB_BOTTOM_PAD,
-    val color: Int = AndroidColor.WHITE,
-    val bgMode: SubBgMode = SubBgMode.Soft,
+    val color: Int = AndroidColor.rgb(242, 242, 242),
+    val bgMode: SubBgMode = SubBgMode.None,
     val edgeType: Int = CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
     val bold: Boolean = false,
+    val italic: Boolean = true,
     val bgAlpha: Float = 0.55f,
 )
 
@@ -321,6 +328,7 @@ fun PlayerScreen(
     val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
 
     var theater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
+    var muted by remember { mutableStateOf(false) }
 
     fun closePanelOrExit() {
         if (panel != Panel.None) {
@@ -446,6 +454,14 @@ fun PlayerScreen(
     val playhead = remember { Playhead() }
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
+    val mutedNow = rememberUpdatedState(muted)
+
+    fun pushMute() {
+        val level = if (mutedNow.value) 0f else 1f
+        castHelper?.heldVolume = level
+        player?.volume = level
+        castHelper?.castPlayer?.volume = level
+    }
 
     fun goNextEpisode() {
         if (nextTriggered) return
@@ -475,6 +491,7 @@ fun PlayerScreen(
                     castHint = error.message?.takeIf { it.isNotBlank() }
                         ?: "Chromecast could not play this stream"
                     isCasting = false
+                    pushMute()
                     latestPlayer?.play()
                 }
             }
@@ -488,6 +505,7 @@ fun PlayerScreen(
                     isCasting = false
                     castHint = "Connecting to your TV"
                     controlsVisible = true
+                    pushMute()
                     helper.load(
                         source = src,
                         title = latestTitle,
@@ -495,12 +513,14 @@ fun PlayerScreen(
                         positionMs = pos,
                         onReady = {
                             local?.pause()
+                            pushMute()
                             isCasting = true
                             castHint = null
                         },
                         onError = { message ->
                             castHint = message
                             isCasting = false
+                            pushMute()
                             local?.play()
                         },
                     )
@@ -517,6 +537,7 @@ fun PlayerScreen(
                         local?.seekTo(pos)
                         positionMs = pos
                     }
+                    pushMute()
                     local?.play()
                     controlsVisible = true
                 }
@@ -544,12 +565,14 @@ fun PlayerScreen(
             positionMs = pos,
             onReady = {
                 latestPlayer?.pause()
+                pushMute()
                 castHint = null
             },
             onError = { message ->
                 castHint = message
                 if (castHelper?.casting != true) {
                     isCasting = false
+                    pushMute()
                     latestPlayer?.play()
                 }
             },
@@ -710,6 +733,7 @@ fun PlayerScreen(
             .putBoolean("sub_bg", subStyle.bgMode != SubBgMode.None)
             .putInt("sub_edge", subStyle.edgeType)
             .putBoolean("sub_bold", subStyle.bold)
+            .putBoolean("sub_italic", subStyle.italic)
             .putFloat("sub_bg_alpha", subStyle.bgAlpha)
             .apply()
     }
@@ -847,6 +871,21 @@ fun PlayerScreen(
         }
     }
 
+    fun toggleMute() {
+        val next = !muted
+        muted = next
+        val level = if (next) 0f else 1f
+        castHelper?.heldVolume = level
+        activePlayer?.volume = level
+        player?.volume = level
+        castHelper?.castPlayer?.volume = level
+        controlsVisible = true
+    }
+
+    LaunchedEffect(player, muted) {
+        pushMute()
+    }
+
     fun seekBy(deltaMs: Long) {
         val p = activePlayer ?: return
         val target = (p.currentPosition + deltaMs).coerceIn(0L, p.duration.coerceAtLeast(0L))
@@ -961,6 +1000,15 @@ fun PlayerScreen(
                     panel = Panel.None
                     controlsVisible = false
                 },
+                onQuality = { panel = Panel.Quality },
+                onAudio = { panel = Panel.Subs },
+                onSpeed = { panel = Panel.Speed },
+                onEpisodes = {
+                    panel = Panel.None
+                    theater = false
+                },
+                onNext = { goNextEpisode() },
+                nextEnabled = onNextEpisode != null && episode < totalEpisodes,
             )
             Panel.Speed -> SpeedSheet(
                 speed = playbackSpeed,
@@ -1159,7 +1207,7 @@ fun PlayerScreen(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    if (seekFlashDir < 0) Icons.Rounded.Replay10 else Icons.Rounded.Forward10,
+                    if (seekFlashDir < 0) Icons.Outlined.Replay10 else Icons.Outlined.Forward10,
                     contentDescription = null,
                     tint = PlayerChrome.Accent,
                     modifier = Modifier.size(30.dp),
@@ -1419,7 +1467,7 @@ fun PlayerScreen(
                     controlsLocked = false
                     controlsVisible = true
                 }, size = 48.dp) {
-                    Icon(Icons.Rounded.LockOpen, contentDescription = "Unlock", tint = PlayerChrome.Paper)
+                    Icon(Icons.Outlined.LockOpen, contentDescription = "Unlock", tint = Color.White)
                 }
             }
         }
@@ -1431,157 +1479,39 @@ fun PlayerScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                // Soft Plex-like vignettes — airy, not heavy bars.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp)
-                        .align(Alignment.TopCenter)
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color.Black.copy(alpha = 0.55f), Color.Transparent),
-                            ),
-                        ),
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
+                        .height(160.dp)
                         .align(Alignment.BottomCenter)
                         .background(
                             Brush.verticalGradient(
-                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.62f)),
+                                listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
                             ),
                         ),
                 )
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ChromeDisc(onClick = onClose, size = 48.dp) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack,
-                            contentDescription = "Close",
-                            tint = PlayerChrome.Paper,
-                        )
-                    }
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 10.dp),
-                    ) {
-                        Text(
-                            title,
-                            color = PlayerChrome.Paper,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 17.sp,
-                            letterSpacing = (-0.3).sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            episodeLine,
-                            color = PlayerChrome.Graphite,
-                            fontSize = 13.sp,
-                            maxLines = 1,
-                        )
-                        if (sleepChoice != 0) {
-                            val sleepText = if (sleepChoice == -1) {
-                                "Sleep at end"
-                            } else {
-                                val elapsed = (System.currentTimeMillis() - sleepArmedAt).coerceAtLeast(0L)
-                                val leftMin = (
-                                    (sleepChoice * 60_000L - elapsed) / 60_000L
-                                    ).toInt().coerceAtLeast(1)
-                                if (sleepTick < 0) "" else "Sleep ${leftMin}m"
-                            }
-                            if (sleepText.isNotBlank()) {
-                                Text(sleepText, color = PlayerChrome.Paper, fontSize = 12.sp)
-                            }
-                        }
-                    }
-                    if (castHelper != null) {
-                        Box(
-                            modifier = Modifier.size(48.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            CastRouteButton()
-                        }
-                    }
-                    ChromeDisc(onClick = { enterPip() }, size = 48.dp) {
-                        Icon(
-                            Icons.Rounded.PictureInPicture,
-                            contentDescription = "Picture in picture",
-                            tint = PlayerChrome.Paper,
-                        )
-                    }
-                    ChromeDisc(onClick = {
-                        controlsLocked = true
-                        panel = Panel.None
-                        controlsVisible = false
-                    }, size = 48.dp) {
-                        Icon(Icons.Rounded.Lock, contentDescription = "Lock controls", tint = PlayerChrome.Paper)
-                    }
-                    ChromeDisc(onClick = {
-                        panel = if (panel == Panel.Display) Panel.None else Panel.Display
-                        controlsVisible = true
-                    }, size = 48.dp) {
-                        Icon(
-                            Icons.Rounded.Settings,
-                            contentDescription = "Settings",
-                            tint = if (panel == Panel.Display || panel == Panel.Sleep) {
-                                PlayerChrome.Progress
-                            } else {
-                                PlayerChrome.Paper
-                            },
-                        )
-                    }
-                }
-
                 if (panel == Panel.None) {
-                    Row(
-                        modifier = Modifier.align(Alignment.Center),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(28.dp),
-                    ) {
-                        ChromeDisc(onClick = { seekBy(-10_000) }, size = 64.dp, large = true) {
-                            Icon(
-                                Icons.Rounded.Replay10,
-                                contentDescription = "Back 10 seconds",
-                                tint = PlayerChrome.Paper,
-                                modifier = Modifier.size(30.dp),
-                            )
-                        }
-                        ChromeDisc(
-                            onClick = {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(96.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF8A8A8A).copy(alpha = 0.42f))
+                            .clickable {
                                 activePlayer?.let {
                                     if (it.isPlaying) it.pause() else it.play()
                                 }
                                 controlsVisible = true
                             },
-                            size = 76.dp,
-                            large = true,
-                            accent = !playing,
-                        ) {
-                            Icon(
-                                if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                contentDescription = if (playing) "Pause" else "Play",
-                                tint = if (playing) PlayerChrome.Paper else PlayerChrome.Ink,
-                                modifier = Modifier.size(38.dp),
-                            )
-                        }
-                        ChromeDisc(onClick = { seekBy(10_000) }, size = 64.dp, large = true) {
-                            Icon(
-                                Icons.Rounded.Forward10,
-                                contentDescription = "Forward 10 seconds",
-                                tint = PlayerChrome.Paper,
-                                modifier = Modifier.size(30.dp),
-                            )
-                        }
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                            contentDescription = if (playing) "Pause" else "Play",
+                            tint = Color.White,
+                            modifier = Modifier.size(46.dp),
+                        )
                     }
                 }
 
@@ -1592,7 +1522,8 @@ fun PlayerScreen(
                         .windowInsetsPadding(
                             WindowInsets.navigationBars.union(WindowInsets.displayCutout),
                         )
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 22.dp)
+                        .padding(top = 18.dp, bottom = 20.dp),
                 ) {
                     LiveTimeline(
                         player = activePlayer,
@@ -1614,60 +1545,80 @@ fun PlayerScreen(
                         },
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        PlayerTool(
-                            label = "Speed",
-                            value = speedLabel(playbackSpeed),
-                            selected = panel == Panel.Speed,
-                            onClick = {
-                                panel = if (panel == Panel.Speed) Panel.None else Panel.Speed
-                                controlsVisible = true
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                        PlayerTool(
-                            label = "Quality",
-                            value = shortQuality(qualityLabel),
-                            selected = panel == Panel.Quality,
-                            onClick = {
-                                panel = if (panel == Panel.Quality) Panel.None else Panel.Quality
-                                controlsVisible = true
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                        PlayerTool(
-                            label = "Audio",
-                            value = audioLabel,
-                            selected = panel == Panel.Subs || panel == Panel.Style,
-                            onClick = {
-                                panel = if (panel == Panel.Subs || panel == Panel.Style) {
-                                    Panel.None
-                                } else {
-                                    Panel.Subs
-                                }
-                                controlsVisible = true
-                            },
-                            modifier = Modifier.weight(1f),
-                        )
-                        PlayerTool(
-                            label = "Episodes",
-                            value = if (isMovie) "Film" else "E$episode",
-                            onClick = { theater = false },
-                            modifier = Modifier.weight(1f),
-                        )
-                        PlayerTool(
-                            label = "Next",
-                            value = if (onNextEpisode != null && episode < totalEpisodes) "E${episode + 1}" else "—",
-                            enabled = onNextEpisode != null && episode < totalEpisodes,
-                            onClick = { goNextEpisode() },
-                            modifier = Modifier.weight(1f),
-                        )
+                        PlayerCapsule {
+                            PillIcon(
+                                icon = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                                description = if (playing) "Pause" else "Play",
+                                onClick = {
+                                    activePlayer?.let {
+                                        if (it.isPlaying) it.pause() else it.play()
+                                    }
+                                    controlsVisible = true
+                                },
+                            )
+                            PillIcon(
+                                icon = if (muted) Icons.AutoMirrored.Outlined.VolumeOff else Icons.AutoMirrored.Outlined.VolumeUp,
+                                description = if (muted) "Unmute" else "Mute",
+                                onClick = { toggleMute() },
+                            )
+                            LiveClockText(
+                                player = activePlayer,
+                                scrubbing = scrubbing,
+                                scrubValue = scrubValue,
+                                durationMs = durationMs,
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                            )
+                        }
+                        PlayerCapsule {
+                            PillIcon(
+                                icon = Icons.Outlined.Replay10,
+                                description = "Back 10 seconds",
+                                onClick = { seekBy(-10_000) },
+                            )
+                            PillIcon(
+                                icon = Icons.Outlined.Forward10,
+                                description = "Forward 10 seconds",
+                                onClick = { seekBy(10_000) },
+                            )
+                            PillLabel(
+                                label = "85",
+                                description = "Skip 85 seconds",
+                                onClick = { seekBy(85_000) },
+                            )
+                            PillIcon(
+                                icon = Icons.Outlined.PhotoCamera,
+                                description = "Screenshot",
+                                onClick = { capturePlayerFrame(context, playerViewRef) },
+                            )
+                            PillIcon(
+                                icon = Icons.Outlined.Settings,
+                                description = "Settings",
+                                onClick = {
+                                    panel = if (panel == Panel.Display) Panel.None else Panel.Display
+                                    controlsVisible = true
+                                },
+                            )
+                            PillIcon(
+                                icon = Icons.Outlined.PictureInPicture,
+                                description = "Picture in picture",
+                                onClick = { enterPip() },
+                            )
+                            PillIcon(
+                                icon = Icons.Outlined.FullscreenExit,
+                                description = "Exit full screen",
+                                onClick = { theater = false },
+                            )
+                            if (castHelper != null) {
+                                CastRouteButton(modifier = Modifier.size(40.dp))
+                            }
+                        }
                     }
                 }
 
@@ -1689,57 +1640,41 @@ fun PlayerScreen(
             }
         }
 
-        if (activeSkip != null && !isCasting) {
+        if (activeSkip != null && !isCasting && panel == Panel.None) {
             val (kind, iv) = activeSkip
             val label = when (kind) {
-                "intro" -> "Skip intro"
-                "credits" -> "Skip credits"
-                "recap" -> "Skip recap"
-                "preview" -> "Skip preview"
+                "intro" -> "Skip Intro"
+                "credits" -> "Skip Outro"
+                "recap" -> "Skip Recap"
+                "preview" -> "Skip Preview"
                 else -> "Skip"
             }
-            var skipFocused by remember { mutableStateOf(false) }
-            Row(
+            val chromeUp = theater && controlsVisible && !controlsLocked
+            val skipShape = RoundedCornerShape(12.dp)
+            Text(
+                label,
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = FontFamily.SansSerif,
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(Alignment.BottomStart)
                     .then(
                         if (theater) {
-                            Modifier.windowInsetsPadding(WindowInsets.navigationBars)
+                            Modifier.windowInsetsPadding(
+                                WindowInsets.navigationBars.union(WindowInsets.displayCutout),
+                            )
                         } else {
                             Modifier
                         },
                     )
-                    .padding(end = 12.dp, bottom = if (theater) 148.dp else 12.dp)
-                    .heightIn(min = 48.dp)
-                    .shadow(8.dp, RoundedCornerShape(12.dp))
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(PlayerChrome.Accent)
-                    .border(
-                        if (skipFocused) 3.dp else 0.dp,
-                        Color.Black,
-                        RoundedCornerShape(12.dp),
-                    )
-                    .onFocusChanged { skipFocused = it.isFocused }
-                    .clearAndSetSemantics { contentDescription = label }
+                    .padding(start = 22.dp, bottom = if (chromeUp) 118.dp else 22.dp)
+                    .clip(skipShape)
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .border(1.dp, Color(0xFFD0D0D0).copy(alpha = 0.7f), skipShape)
                     .clickable { skipTo(iv.endMs) }
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    Icons.Rounded.SkipNext,
-                    contentDescription = null,
-                    tint = PlayerChrome.Ink,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    label,
-                    color = PlayerChrome.Ink,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp,
-                )
-                LiveSkipSeconds(player = activePlayer, endMs = iv.endMs)
-            }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+            )
         }
     }
     }
@@ -2281,33 +2216,31 @@ private fun LiveTimeline(
     }
     val shown = if (scrubbing) (scrubValue * durationMs).toLong() else liveMs
     val dur = durationMs.coerceAtLeast(1L).toFloat()
+    var bufferedMs by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(player) {
+        val p = player ?: return@LaunchedEffect
+        while (true) {
+            val next = p.bufferedPosition.coerceAtLeast(0L)
+            if (next != bufferedMs) bufferedMs = next
+            delay(400)
+        }
+    }
+    val buffered = if (durationMs > 0L) {
+        (bufferedMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
     GlassScrubber(
         progress = if (durationMs > 0L) (shown / dur).coerceIn(0f, 1f) else 0f,
+        buffered = buffered,
         durationMs = durationMs,
         scrubbing = scrubbing,
         onScrub = onScrub,
         onScrubFinished = onScrubFinished,
-        formatClock = ::formatClock,
+        formatClock = ::formatClockPadded,
         skipTimes = skipTimes,
         modifier = Modifier.fillMaxWidth(),
     )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            formatClock(shown),
-            color = PlayerChrome.Paper,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-        )
-        Text(
-            "−${formatClock((durationMs - shown).coerceAtLeast(0L))}",
-            color = PlayerChrome.Paper,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-        )
-    }
 }
 
 @Composable
@@ -2344,25 +2277,6 @@ private fun LiveHairline(
                 .background(Color.White),
         )
     }
-}
-
-@Composable
-private fun LiveSkipSeconds(player: Player?, endMs: Long) {
-    var left by remember { mutableIntStateOf(0) }
-    LaunchedEffect(player, endMs) {
-        val p = player ?: return@LaunchedEffect
-        while (true) {
-            val sec = ((endMs - p.currentPosition.coerceAtLeast(0L)) / 1000L).toInt().coerceAtLeast(0)
-            if (sec != left) left = sec
-            delay(250)
-        }
-    }
-    Text(
-        "${left}s",
-        color = PlayerChrome.Ink.copy(alpha = 0.62f),
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 12.sp,
-    )
 }
 
 @Composable
@@ -2756,10 +2670,9 @@ private fun StyleSheet(
     ) {
         listOf(
             8f to "Tiny",
+            12f to "Small",
+            16f to "Medium",
             DEFAULT_SUB_SIZE_SP to "Default",
-            12f to "Medium",
-            14f to "Large",
-            18f to "XL",
             22f to "Max",
         ).forEach { (sp, label) ->
             ChoicePill(
@@ -2820,6 +2733,11 @@ private fun StyleSheet(
             label = "Bold",
             selected = style.bold,
             onClick = { onChange(style.copy(bold = true)) },
+        )
+        ChoicePill(
+            label = "Italic",
+            selected = style.italic,
+            onClick = { onChange(style.copy(italic = !style.italic)) },
         )
     }
 
@@ -2950,6 +2868,8 @@ private fun CaptionPreview(style: SubStyle) {
             color = Color(style.color),
             fontSize = style.sizeSp.sp,
             fontWeight = if (style.bold) FontWeight.Bold else FontWeight.Medium,
+            fontStyle = if (style.italic) FontStyle.Italic else FontStyle.Normal,
+            fontFamily = FontFamily.SansSerif,
             style = TextStyle(shadow = shadow),
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
@@ -2967,14 +2887,27 @@ private fun DisplaySheet(
     onImmersive: (Boolean) -> Unit,
     onSleep: () -> Unit,
     onLock: () -> Unit,
+    onQuality: () -> Unit,
+    onAudio: () -> Unit,
+    onSpeed: () -> Unit,
+    onEpisodes: () -> Unit,
+    onNext: () -> Unit,
+    nextEnabled: Boolean,
 ) {
     SheetTitle("Display")
     Spacer(modifier = Modifier.height(10.dp))
+    SheetRow(label = "Quality", selected = false, onClick = onQuality, initiallyFocused = true)
+    SheetRow(label = "Audio and subtitles", selected = false, onClick = onAudio)
+    SheetRow(label = "Speed", selected = false, onClick = onSpeed)
+    SheetRow(label = "Episodes", selected = false, onClick = onEpisodes)
+    if (nextEnabled) {
+        SheetRow(label = "Next episode", selected = false, onClick = onNext)
+    }
+    Spacer(modifier = Modifier.height(8.dp))
     SheetRow(
         label = "Fit (letterbox)",
         selected = resizeMode == AspectRatioFrameLayout.RESIZE_MODE_FIT,
         onClick = { onResize(AspectRatioFrameLayout.RESIZE_MODE_FIT) },
-        initiallyFocused = true,
     )
     SheetRow(
         label = "Fill (crop)",
@@ -3445,7 +3378,15 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
             window,
             style.edgeType,
             AndroidColor.BLACK,
-            if (style.bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT,
+            Typeface.create(
+                Typeface.SANS_SERIF,
+                when {
+                    style.bold && style.italic -> Typeface.BOLD_ITALIC
+                    style.bold -> Typeface.BOLD
+                    style.italic -> Typeface.ITALIC
+                    else -> Typeface.NORMAL
+                },
+            ),
         ),
     )
     val metrics = view.resources.displayMetrics
@@ -3458,6 +3399,7 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
 
 private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     val version = prefs.getInt("sub_style_v", 0)
+    if (version < SUB_STYLE_VERSION && stockCaptionLook(prefs)) return SubStyle()
     val bgMode = when (prefs.getString("sub_bg_mode", null)) {
         SubBgMode.None.name -> SubBgMode.None
         SubBgMode.Soft.name -> SubBgMode.Soft
@@ -3495,17 +3437,34 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
         bgMode = bgMode,
         edgeType = prefs.getInt("sub_edge", CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW),
         bold = prefs.getBoolean("sub_bold", false),
+        italic = prefs.getBoolean("sub_italic", false),
         bgAlpha = prefs.getFloat("sub_bg_alpha", 0.55f).let { if (it.isFinite()) it.coerceIn(0.15f, 1f) else 0.55f },
     )
 }
 
-/** Smaller default than the previous 10.5sp. A saved custom size is kept. */
-private const val SUB_STYLE_VERSION = 4
-private const val DEFAULT_SUB_SIZE_SP = 9f
+/** True when the saved look is still the previous stock caption style. */
+private fun stockCaptionLook(prefs: android.content.SharedPreferences): Boolean {
+    if (!prefs.contains("sub_size_sp") && !prefs.contains("sub_bg_mode")) return true
+    val size = prefs.getFloat("sub_size_sp", 9f)
+    val bg = prefs.getString("sub_bg_mode", SubBgMode.Soft.name)
+    val edge = prefs.getInt("sub_edge", CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW)
+    val color = prefs.getInt("sub_color", AndroidColor.WHITE)
+    val bold = prefs.getBoolean("sub_bold", false)
+    val previousSize = kotlin.math.abs(size - 9f) < 0.4f || kotlin.math.abs(size - 10.5f) < 0.25f
+    return previousSize &&
+        bg == SubBgMode.Soft.name &&
+        edge == CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW &&
+        color == AndroidColor.WHITE &&
+        !bold
+}
+
+/** Large italic captions, clear of the control pills. A saved custom look is kept. */
+private const val SUB_STYLE_VERSION = 5
+private const val DEFAULT_SUB_SIZE_SP = 20f
 private const val SUB_SIZE_SP_MIN = 8f
 private const val SUB_SIZE_SP_MAX = 24f
-/** Raised so captions clear the player chrome by default. */
-private const val DEFAULT_SUB_BOTTOM_PAD = 0.13f
+/** Sits the line just above the progress bar and control pills. */
+private const val DEFAULT_SUB_BOTTOM_PAD = 0.20f
 private const val SUB_BOTTOM_MIN = 0.03f
 private const val SUB_BOTTOM_MAX = 0.30f
 
@@ -3558,6 +3517,155 @@ private fun speedLabel(speed: Float): String {
     }
 }
 
+@Composable
+private fun LiveClockText(
+    player: Player?,
+    scrubbing: Boolean,
+    scrubValue: Float,
+    durationMs: Long,
+    modifier: Modifier = Modifier,
+) {
+    var liveMs by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(player, scrubbing) {
+        val p = player ?: return@LaunchedEffect
+        while (true) {
+            if (!scrubbing) {
+                val next = p.currentPosition.coerceAtLeast(0L)
+                if (next != liveMs) liveMs = next
+            }
+            delay(200)
+        }
+    }
+    val shown = if (scrubbing) (scrubValue * durationMs).toLong() else liveMs
+    Text(
+        "${formatClockPadded(shown)} / ${formatClockPadded(durationMs)}",
+        color = Color.White,
+        fontSize = 13.sp,
+        fontFamily = FontFamily.SansSerif,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun PlayerCapsule(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier
+            .height(48.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color.Black.copy(alpha = 0.58f))
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = content,
+    )
+}
+
+@Composable
+private fun PillIcon(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = description,
+            tint = Color.White,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+@Composable
+private fun PillLabel(
+    label: String,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .clearAndSetSemantics { contentDescription = description }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            label,
+            color = Color.White,
+            fontSize = 13.sp,
+            fontFamily = FontFamily.SansSerif,
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+private fun capturePlayerFrame(context: android.content.Context, playerView: PlayerView?) {
+    val surfaceView = playerView?.videoSurfaceView as? android.view.SurfaceView
+    val surface = surfaceView?.holder?.surface
+    if (surfaceView == null || surface == null || !surface.isValid ||
+        surfaceView.width <= 0 || surfaceView.height <= 0
+    ) {
+        Toast.makeText(context, "Couldn't capture this frame", Toast.LENGTH_SHORT).show()
+        return
+    }
+    val bitmap = android.graphics.Bitmap.createBitmap(
+        surfaceView.width,
+        surfaceView.height,
+        android.graphics.Bitmap.Config.ARGB_8888,
+    )
+    android.view.PixelCopy.request(
+        surfaceView,
+        bitmap,
+        { result ->
+            if (result != android.view.PixelCopy.SUCCESS) {
+                Toast.makeText(context, "Couldn't capture this frame", Toast.LENGTH_SHORT).show()
+                return@request
+            }
+            val dir = java.io.File(context.cacheDir, "frames").apply { mkdirs() }
+            val file = java.io.File(dir, "frame-${System.currentTimeMillis()}.png")
+            val wrote = runCatching {
+                file.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            }.isSuccess
+            if (!wrote) {
+                Toast.makeText(context, "Couldn't capture this frame", Toast.LENGTH_SHORT).show()
+                return@request
+            }
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+            val share = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                type = "image/png"
+                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(
+                android.content.Intent.createChooser(share, "Save frame")
+                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        },
+        android.os.Handler(android.os.Looper.getMainLooper()),
+    )
+}
+
 private fun formatClock(ms: Long): String {
     val total = TimeUnit.MILLISECONDS.toSeconds(ms.coerceAtLeast(0L))
     val h = total / 3600
@@ -3567,6 +3675,18 @@ private fun formatClock(ms: Long): String {
         String.format(Locale.US, "%d:%02d:%02d", h, m, s)
     } else {
         String.format(Locale.US, "%d:%02d", m, s)
+    }
+}
+
+private fun formatClockPadded(ms: Long): String {
+    val total = TimeUnit.MILLISECONDS.toSeconds(ms.coerceAtLeast(0L))
+    val h = total / 3600
+    val m = (total % 3600) / 60
+    val s = total % 60
+    return if (h > 0) {
+        String.format(Locale.US, "%d:%02d:%02d", h, m, s)
+    } else {
+        String.format(Locale.US, "%02d:%02d", m, s)
     }
 }
 

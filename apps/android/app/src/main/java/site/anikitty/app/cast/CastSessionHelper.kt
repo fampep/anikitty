@@ -47,6 +47,9 @@ class CastSessionHelper private constructor(
 
     private val main = Handler(Looper.getMainLooper())
     private val generation = AtomicInteger(0)
+    /** Applied again inside each Cast load, before playback starts. */
+    @Volatile var heldVolume: Float = 1f
+
     private val closed = AtomicBoolean(false)
     private val loadSettled = AtomicBoolean(false)
     private var statusCallback: RemoteMediaClient.Callback? = null
@@ -126,6 +129,7 @@ class CastSessionHelper private constructor(
             .build()
         castPlayer.setMediaItem(item, positionMs.coerceAtLeast(0L))
         castPlayer.prepare()
+        castPlayer.volume = heldVolume
         castPlayer.playWhenReady = true
         Log.i(TAG, "Cast load requested ${playback.url}")
     }
