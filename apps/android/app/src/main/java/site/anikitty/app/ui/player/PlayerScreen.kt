@@ -3399,7 +3399,7 @@ private fun applyCaptionStyle(playerView: PlayerView?, style: SubStyle) {
 
 private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     val version = prefs.getInt("sub_style_v", 0)
-    if (version < SUB_STYLE_VERSION && stockCaptionLook(prefs)) return SubStyle()
+    if (version < SUB_STYLE_VERSION && stockCaptionLook(prefs, version)) return SubStyle()
     val bgMode = when (prefs.getString("sub_bg_mode", null)) {
         SubBgMode.None.name -> SubBgMode.None
         SubBgMode.Soft.name -> SubBgMode.Soft
@@ -3412,9 +3412,10 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     } else {
         DEFAULT_SUB_SIZE_SP
     }
-    // v4 replaces the old 10.5 default with a smaller one and leaves a custom size alone.
+    // The 10.5 default rewrite is only for looks saved before the overlay.
+    // A size chosen on version 5 or later stays, even when it sits near 10.5.
     val sizeSp = when {
-        version >= SUB_STYLE_VERSION && prefs.contains("sub_size_sp") -> storedSize
+        version >= SUB_STYLE_OVERLAY && prefs.contains("sub_size_sp") -> storedSize
         !prefs.contains("sub_size_sp") -> DEFAULT_SUB_SIZE_SP
         kotlin.math.abs(storedSize - 10.5f) < 0.25f -> DEFAULT_SUB_SIZE_SP
         else -> storedSize
@@ -3442,10 +3443,15 @@ private fun loadSubStyle(prefs: android.content.SharedPreferences): SubStyle {
     )
 }
 
-/** True when the saved look is still a stock caption style we can replace. */
-private fun stockCaptionLook(prefs: android.content.SharedPreferences): Boolean {
+/**
+ * True when the saved look is still a stock caption style we can replace.
+ * The old 9/10.5sp soft-box fingerprint only applies before version 5.
+ * From the overlay onward, the only stock look we replace is the untouched
+ * drop-shadow default. A chosen size, box, or color stays.
+ */
+private fun stockCaptionLook(prefs: android.content.SharedPreferences, version: Int): Boolean {
+    if (version >= SUB_STYLE_OVERLAY) return shadowStockFromOverlay(prefs)
     if (!prefs.contains("sub_size_sp") && !prefs.contains("sub_bg_mode")) return true
-    if (shadowStockFromOverlay(prefs)) return true
     val size = prefs.getFloat("sub_size_sp", 9f)
     val bg = prefs.getString("sub_bg_mode", SubBgMode.Soft.name)
     val edge = prefs.getInt("sub_edge", CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW)
@@ -3480,6 +3486,8 @@ private fun shadowStockFromOverlay(prefs: android.content.SharedPreferences): Bo
 
 /** Italic outlined captions, clear of the control pills. A saved custom look is kept. */
 private const val SUB_STYLE_VERSION = 6
+/** First saved version that already records an intentional overlay caption look. */
+private const val SUB_STYLE_OVERLAY = 5
 private const val DEFAULT_SUB_SIZE_SP = 20f
 private const val SUB_SIZE_SP_MIN = 8f
 private const val SUB_SIZE_SP_MAX = 24f
