@@ -246,6 +246,9 @@ fun LocalFirstApp(
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
     var searchGenre by remember { mutableStateOf<String?>(null) }
     var libraryFilter by rememberSaveable { mutableStateOf("all") }
+    var homeShelfName by rememberSaveable { mutableStateOf(HomeShelf.All.name) }
+    var homeTopName by rememberSaveable { mutableStateOf(HomeTopWindow.Season.name) }
+    val homeListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     /** Prior detail frames when drilling into related / other seasons. */
     var detailBackStack by remember { mutableStateOf<List<Screen.Detail>>(emptyList()) }
     val storedHistory by historyDao.observeAll().collectAsState(initial = emptyList())
@@ -459,6 +462,11 @@ fun LocalFirstApp(
                     onOpenAccount = { tab = "settings" },
                     onSeeAllContinue = { screen = Screen.Continue },
                     homeLayout = homeLayout,
+                    shelfName = homeShelfName,
+                    onShelfName = { homeShelfName = it },
+                    topWindowName = homeTopName,
+                    onTopWindowName = { homeTopName = it },
+                    homeListState = homeListState,
                 )
                 "schedule" -> ScheduleFeed(
                     aniList = aniList,
@@ -873,6 +881,11 @@ private fun HomeFeed(
     onOpenAccount: () -> Unit,
     onSeeAllContinue: () -> Unit,
     homeLayout: HomeLayoutStore,
+    shelfName: String,
+    onShelfName: (String) -> Unit,
+    topWindowName: String,
+    onTopWindowName: (String) -> Unit,
+    homeListState: LazyListState,
 ) {
     val context = LocalContext.current
     var loading by remember { mutableStateOf(true) }
@@ -900,11 +913,8 @@ private fun HomeFeed(
             aniList.airingSchedule(from, from + 24 * 60 * 60)
         }.getOrDefault(emptyList())
     }
-    var shelfName by rememberSaveable { mutableStateOf(HomeShelf.All.name) }
     val shelf = HomeShelf.entries.firstOrNull { it.name == shelfName } ?: HomeShelf.All
-    var topWindowName by rememberSaveable { mutableStateOf(HomeTopWindow.Season.name) }
     val topWindow = HomeTopWindow.entries.firstOrNull { it.name == topWindowName } ?: HomeTopWindow.Season
-    val homeListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val hiddenContinue = ContinueHidden.ids
     val continueWatching = remember(history, hiddenContinue) {
         continueQueue(history, hiddenContinue).take(12)
@@ -1148,10 +1158,6 @@ private fun HomeFeed(
                 }
             }
             else -> {
-                val shelfCatalog = trending + seasonal + topTen + upcoming + topRated + forYou
-                val continueShown = continueWatching.filter { entry ->
-                    shelf == HomeShelf.All || shelfCatalog.any { it.id == entry.anilistId && it.onShelf(shelf) }
-                }
                 LazyColumn(
                     state = homeListState,
                     modifier = Modifier.nestedScroll(rememberDockScroll()),
@@ -1168,7 +1174,7 @@ private fun HomeFeed(
                         )
                     }
                     item(key = "shelves", contentType = "chips") {
-                        HomeShelfChips(selected = shelf, onSelect = { shelfName = it.name })
+                        HomeShelfChips(selected = shelf, onSelect = { onShelfName(it.name) })
                     }
                     val phoneSections = homeLayout.sections()
                     phoneSections.forEach { section ->
@@ -1181,8 +1187,8 @@ private fun HomeFeed(
                                 }
                             }
                             "continue" -> {
-                                if (continueShown.isNotEmpty() && LookState.abandonedReminders) {
-                                    val stale = continueShown.firstOrNull {
+                                if (continueWatching.isNotEmpty() && LookState.abandonedReminders) {
+                                    val stale = continueWatching.firstOrNull {
                                         System.currentTimeMillis() - it.updatedAtEpochMs >
                                             14L * 24 * 60 * 60 * 1000
                                     }
@@ -1196,14 +1202,14 @@ private fun HomeFeed(
                                         )
                                     }
                                 }
-                                if (continueShown.isNotEmpty()) item(key = "continue", contentType = "continue") {
+                                if (continueWatching.isNotEmpty()) item(key = "continue", contentType = "continue") {
                                     HomeBlock(
                                         title = "Continue watching",
                                         subtitle = "Where you left off",
                                         onMore = onSeeAllContinue,
                                     ) {
                                         ContinueWatchRow(
-                                            entries = continueShown,
+                                            entries = continueWatching,
                                             onOpen = { entry, episode ->
                                                 scope.launch {
                                                     val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
@@ -1241,7 +1247,7 @@ private fun HomeFeed(
                                     HomeBlock(title = "Top 10", subtitle = topWindow.label) {
                                         HomeTopWindowChips(
                                             selected = topWindow,
-                                            onSelect = { topWindowName = it.name },
+                                            onSelect = { onTopWindowName(it.name) },
                                         )
                                         HomeRankRow(items = ranked, onOpen = openCatalog)
                                     }
@@ -1375,7 +1381,7 @@ private fun HomeFeed(
                                     }
                                 }
                             }
-                            "plan" -> if (shelf == HomeShelf.All && planToWatch.isNotEmpty()) item(key = "plan", contentType = "posters") {
+                            "plan" -> if (planToWatch.isNotEmpty()) item(key = "plan", contentType = "posters") {
                                 HomeBlock(title = "Plan to watch") {
                                     HomePosterRow(
                                         items = planToWatch.map { entry ->
@@ -1432,8 +1438,7 @@ private fun HomeFeed(
                         } else {
                             topTen.ifEmpty { trending }
                         }
-                        val hasShelfRows = continueShown.isNotEmpty() ||
-                            trending.any { it.onShelf(shelf) } ||
+                        val hasShelfRows = trending.any { it.onShelf(shelf) } ||
                             rankedSource.any { it.onShelf(shelf) } ||
                             airingToday.any { it.anime.onShelf(shelf) } ||
                             upcoming.any { it.onShelf(shelf) } ||
