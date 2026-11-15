@@ -857,15 +857,14 @@ fun PlayerScreen(
     }
 
     fun toggleMute() {
-        val p = activePlayer ?: return
-        if (p.volume <= 0.01f) {
-            p.volume = 1f
-            muted = false
-        } else {
-            p.volume = 0f
-            muted = true
-        }
+        muted = !muted
+        activePlayer?.volume = if (muted) 0f else 1f
         controlsVisible = true
+    }
+
+    LaunchedEffect(player, isCasting, muted) {
+        val target = if (isCasting) castHelper?.castPlayer else player
+        target?.volume = if (muted) 0f else 1f
     }
 
     fun seekBy(deltaMs: Long) {
