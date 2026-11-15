@@ -67,11 +67,8 @@ import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.extensions.ExtensionManifest
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.StoreListing
+import site.anikitty.app.data.extensions.explainInstallFailure
 import site.anikitty.app.data.extensions.isRetiredExtension
-import site.anikitty.app.data.servers.MkissaServer
-import site.anikitty.app.data.servers.ReanimeServer
-import site.anikitty.app.data.servers.AnikotoServer
-import site.anikitty.app.data.servers.GotakuServer
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.data.servers.StreamServer
 import site.anikitty.app.ui.components.AnimatedSearchIcon
@@ -148,9 +145,7 @@ fun ExtensionStoreFeed(
             ?: resolvers.firstOrNull()?.server
     }
 
-    val bundledIds = remember {
-        setOf(AnikotoServer.ID, GotakuServer.ID, ReanimeServer.ID, MkissaServer.ID)
-    }
+    val bundledIds = catalog.bundledIds
 
     // Always surface on-device resolvers even if the remote index is stale/offline.
     // First-party fampep metadata only for known bundled ids — community installs
@@ -457,7 +452,7 @@ fun ExtensionStoreFeed(
                                         val m = catalog.updateExtension(listing.id)
                                         updates = updates - m.id
                                         "Updated ${m.name} to ${m.version}"
-                                    }.getOrElse { e -> e.message }
+                                    }.getOrElse { explainInstallFailure(it) }
                                     busy = false
                                 }
                             },
@@ -498,13 +493,10 @@ fun ExtensionStoreFeed(
                                     else -> scope.launch {
                                         busy = true
                                         status = runCatching {
-                                            val m = catalog.installStoreListing(
-                                                listing.github,
-                                                listing.manifestPath,
-                                            )
+                                            val m = catalog.installStoreListing(listing)
                                             catalog.select(m.id)
                                             "Installed ${m.name}"
-                                        }.getOrElse { e -> e.message }
+                                        }.getOrElse { explainInstallFailure(it) }
                                         busy = false
                                     }
                                 }
@@ -636,7 +628,7 @@ fun ExtensionStoreFeed(
                                         catalog.select(m.id)
                                         githubUrl = ""
                                         "Installed ${m.name} (${m.version})"
-                                    }.getOrElse { e -> e.message }
+                                    }.getOrElse { explainInstallFailure(it) }
                                     busy = false
                                 }
                             },

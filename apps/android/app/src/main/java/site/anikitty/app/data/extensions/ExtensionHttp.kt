@@ -6,7 +6,13 @@ package site.anikitty.app.data.extensions
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import java.io.IOException
 import java.util.concurrent.TimeUnit
+
+internal class ExtensionFetchException(
+    val code: Int,
+    val url: String,
+) : IOException("HTTP $code fetching $url")
 
 internal object ExtensionHttp {
     val client: OkHttpClient = OkHttpClient.Builder()
@@ -33,7 +39,7 @@ internal object ExtensionHttp {
         client.newCall(req).execute().use { resp ->
             val body = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) {
-                error("HTTP ${resp.code} fetching $url")
+                throw ExtensionFetchException(resp.code, url)
             }
             return body
         }

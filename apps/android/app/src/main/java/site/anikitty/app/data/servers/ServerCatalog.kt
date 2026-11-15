@@ -20,6 +20,9 @@ import site.anikitty.app.data.extensions.HttpExtensionResolver
 import site.anikitty.app.data.extensions.isRetiredExtension
 import site.anikitty.app.data.skip.SkipTimes
 import site.anikitty.app.data.extensions.StoreIndex
+import site.anikitty.app.data.extensions.StoreInstall
+import site.anikitty.app.data.extensions.StoreListing
+import site.anikitty.app.data.extensions.prepareStoreInstall
 
 /**
  * Stream sources = optional bundled resolver + user-installed HTTP extensions.
@@ -41,6 +44,7 @@ class ServerCatalog(context: Context) {
         ReanimeServer(cache = resolveCache),
         MkissaServer(cache = resolveCache),
     )
+    val bundledIds: Set<String> = bundled.map { it.server.id }.toSet()
 
     private val _resolvers = MutableStateFlow(buildResolvers(extensions.installed.value))
     val resolvers: StateFlow<List<StreamResolver>> = _resolvers.asStateFlow()
@@ -148,22 +152,12 @@ class ServerCatalog(context: Context) {
     suspend fun installFromGithub(url: String): ExtensionManifest =
         installer.installFromGithub(url)
 
-    suspend fun installStoreListing(
-        github: String,
-        manifestPath: String?,
-    ): ExtensionManifest {
-        // Nested monorepo paths: prefer tree URL so locator hits the right raw file.
-        val input = if (!manifestPath.isNullOrBlank() &&
-            github.contains("github.com") &&
-            !github.contains("/tree/") &&
-            !github.contains("/blob/")
-        ) {
-            val base = github.trimEnd('/')
-            "$base/tree/main/${manifestPath.removeSuffix("/anikitty-extension.json").trim('/')}"
-        } else {
-            github
+    suspend fun installStoreListing(listing: StoreListing): ExtensionManifest {
+        return when (val plan = prepareStoreInstall(listing, bundledIds)) {
+            is StoreInstall.OnDevice ->
+                error("${listing.name} ships with AniKitty. It is already on this phone.")
+            is StoreInstall.Fetch -> installer.installFromUrls(plan.urls, listing.github)
         }
-        return installer.installFromGithub(input)
     }
 
     suspend fun fetchStore(): StoreIndex = storeClient.fetchIndex()
@@ -175,8 +169,6 @@ class ServerCatalog(context: Context) {
 
     private fun buildResolvers(installed: List<ExtensionManifest>): List<StreamResolver> {
         val fromExt = installed.map { HttpExtensionResolver(it) }
-        // Bundled Anikoto remains available until users rely fully on BYO extensions.
-        val bundledIds = bundled.map { it.server.id }.toSet()
         val extras = fromExt.filterNot {
             it.server.id in bundledIds || isRetiredExtension(it.server.id, it.server.name)
         }
