@@ -4,10 +4,10 @@
 
 """Frame raw screenshots with Google's Pixel 8 device art.
 
-The README uses one unframed capture, docs/screenshots/app.png. This script
-is only for an optional device-art pass. Drop PNGs in docs/screenshots/raw/
-first. The bezel, mask, and layout are downloaded when this runs. They are
-not committed. Android Studio's device art is not for Play Store listings.
+Raw captures live in docs/screenshots/raw/. This writes transparent framed
+PNGs next to that folder. The README shows home and the title page. The
+bezel, mask, and layout are downloaded when this runs. They are not
+committed. Android Studio's device art is not for Play Store listings.
 """
 
 from __future__ import annotations
@@ -29,12 +29,6 @@ ART_BASE = (
     "artwork/resources/device-art-resources/pixel_8"
 )
 ART_FILES = ("back.webp", "mask.webp", "layout")
-
-# App page black.
-PAGE = (5, 5, 6, 255)
-HERO_SHOT = "home"
-HERO_W, HERO_H = 1600, 1280
-
 
 def fetch_art() -> None:
     CACHE.mkdir(parents=True, exist_ok=True)
@@ -89,66 +83,6 @@ def with_shadow(phone: Image.Image) -> Image.Image:
     return canvas
 
 
-def solve(a: list[list[float]], b: list[float]) -> list[float]:
-    n = len(b)
-    m = [row[:] + [b[i]] for i, row in enumerate(a)]
-    for col in range(n):
-        pivot = max(range(col, n), key=lambda r: abs(m[r][col]))
-        m[col], m[pivot] = m[pivot], m[col]
-        div = m[col][col]
-        if abs(div) < 1e-12:
-            raise SystemExit("perspective solve failed")
-        for j in range(col, n + 1):
-            m[col][j] /= div
-        for r in range(n):
-            if r == col:
-                continue
-            factor = m[r][col]
-            for j in range(col, n + 1):
-                m[r][j] -= factor * m[col][j]
-    return [m[i][n] for i in range(n)]
-
-
-def perspective(image: Image.Image) -> Image.Image:
-    """A slight lean back and turn, the way a product shot sits on a desk."""
-    w, h = image.size
-    # Source rectangle, then a trapezoid that is narrower at the top and shifted.
-    src = [(0, 0), (w, 0), (w, h), (0, h)]
-    inset = w * 0.045
-    lean = w * 0.03
-    dst = [
-        (inset + lean, h * 0.02),
-        (w - inset + lean, 0),
-        (w - w * 0.01, h),
-        (w * 0.015, h * 0.985),
-    ]
-    # Map output pixels back to the source.
-    matrix = []
-    flat = []
-    for (sx, sy), (dx, dy) in zip(src, dst):
-        matrix.append([dx, dy, 1, 0, 0, 0, -sx * dx, -sx * dy])
-        matrix.append([0, 0, 0, dx, dy, 1, -sy * dx, -sy * dy])
-        flat.extend([sx, sy])
-    coeffs = solve(matrix, flat)
-    warped = image.transform((w, h), Image.Transform.PERSPECTIVE, coeffs, Image.Resampling.BICUBIC)
-    turned = warped.rotate(-7, resample=Image.Resampling.BICUBIC, expand=True)
-    return turned
-
-
-def build_hero(phone: Image.Image) -> Image.Image:
-    hero = Image.new("RGBA", (HERO_W, HERO_H), PAGE)
-    shown = perspective(phone)
-    scale = min((HERO_W * 0.62) / shown.width, (HERO_H * 0.92) / shown.height)
-    sized = shown.resize(
-        (max(1, round(shown.width * scale)), max(1, round(shown.height * scale))),
-        Image.Resampling.LANCZOS,
-    )
-    x = (HERO_W - sized.width) // 2
-    y = (HERO_H - sized.height) // 2 + 10
-    hero.alpha_composite(sized, (x, y))
-    return hero
-
-
 def main() -> int:
     if not RAW.is_dir():
         print(f"missing {RAW}", file=sys.stderr)
@@ -164,18 +98,11 @@ def main() -> int:
         "back": Image.open(CACHE / "back.webp").convert("RGBA"),
         "mask": Image.open(CACHE / "mask.webp").convert("RGBA"),
     }
-    framed: dict[str, Image.Image] = {}
     for path in shots:
         phone = frame_screen(Image.open(path), art)
         dest = OUT / path.name
         phone.save(dest, "PNG", optimize=True)
-        framed[path.stem] = phone
         print(f"framed {dest.relative_to(ROOT)}")
-    hero_name = HERO_SHOT if HERO_SHOT in framed else next(iter(framed))
-    hero = build_hero(framed[hero_name])
-    hero_path = OUT / "hero.png"
-    hero.save(hero_path, "PNG", optimize=True)
-    print(f"hero {hero_path.relative_to(ROOT)} from {hero_name}")
     return 0
 
 
