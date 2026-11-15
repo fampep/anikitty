@@ -185,31 +185,30 @@ class AnikotoServer(
         for (q in titles.take(6)) {
             val data = runCatching {
                 fetchJson("$KOTOPLAY_BASE/data/suggest?q=${enc(q)}", "$KOTOPLAY_BASE/")
-            }.getOrNull() ?: continue
+            }.getOrElse { error ->
+                if (error is CancellationException) throw error
+                return@getOrElse null
+            } ?: continue
             hits += parseKotoSuggest(data)
         }
-        val hit = pickKotoHit(hits, anilistId, titles, malId)
-            ?: error("No watch page for AniList $anilistId")
-        val page = fetchJson(
-            "$KOTOPLAY_BASE/data/anime?slug=${enc(hit.slug)}",
-            "$KOTOPLAY_BASE/anime/${hit.slug}",
-        )
-        val anime = kotoAnimeObject(page) ?: error("Empty episode list")
-        val listedAni = anime.optInt("ani_id", 0)
-        if (listedAni > 0 && listedAni != anilistId) error("No watch page for AniList $anilistId")
-        val listedMal = anime.optInt("mal_id", 0)
-        if (malId != null && malId > 0 && listedMal > 0 && listedMal != malId) {
-            error("No watch page for AniList $anilistId")
-        }
-        val chapters = parseKotoChapters(anime)
-        if (chapters.isEmpty()) error("Empty episode list")
-        if (malId != null && malId > 0) {
-            val chapterMals = chapters.mapNotNull { it.malId }.filter { it > 0 }.toSet()
-            if (chapterMals.isNotEmpty() && malId !in chapterMals) {
-                error("No watch page for AniList $anilistId")
+        val ranked = rankKotoHits(hits, anilistId, titles, malId)
+        if (ranked.isEmpty()) error("No watch page for AniList $anilistId")
+        for (hit in ranked.take(8)) {
+            val page = try {
+                fetchJson(
+                    "$KOTOPLAY_BASE/data/anime?slug=${enc(hit.slug)}",
+                    "$KOTOPLAY_BASE/anime/${hit.slug}",
+                )
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                continue
             }
+            val anime = kotoAnimeObject(page) ?: continue
+            val chapters = kotoChaptersIfMatch(anime, anilistId, malId) ?: continue
+            return KotoShow(hit.slug, chapters)
         }
-        return KotoShow(hit.slug, chapters)
+        error("No watch page for AniList $anilistId")
     }
 
     private fun kotoplaySkip(anilistId: Int, episode: Int, titleHint: String?): SkipTimes {
@@ -1072,23 +1071,68 @@ class AnikotoServer(
         /**
          * Prefer the AniList id. When AniList sent a MAL id, the row must carry
          * that same id. A title match is only used when we have no MAL id.
+         * Several rows can pass; the page check walks them in this order.
          */
+        internal fun rankKotoHits(
+            hits: List<KotoHit>,
+            anilistId: Int,
+            titles: List<String>,
+            malId: Int?,
+        ): List<KotoHit> {
+            val best = LinkedHashMap<String, Pair<KotoHit, Int>>()
+            for (hit in hits) {
+                val score = kotoHitScore(hit, anilistId, titles, malId) ?: continue
+                val prev = best[hit.slug]
+                if (prev == null || score > prev.second) best[hit.slug] = hit to score
+            }
+            return best.values.sortedByDescending { it.second }.map { it.first }
+        }
+
         internal fun pickKotoHit(
             hits: List<KotoHit>,
             anilistId: Int,
             titles: List<String>,
             malId: Int?,
-        ): KotoHit? {
-            hits.firstOrNull { it.aniId == anilistId }?.let { return it }
+        ): KotoHit? = rankKotoHits(hits, anilistId, titles, malId).firstOrNull()
+
+        /**
+         * Null when this anime page is a different work. Empty chapters are a
+         * miss too, so the caller can open the next suggest row.
+         */
+        internal fun kotoChaptersIfMatch(
+            anime: JSONObject,
+            anilistId: Int,
+            malId: Int?,
+        ): List<KotoChapter>? {
+            val listedAni = anime.optInt("ani_id", 0)
+            if (listedAni > 0 && listedAni != anilistId) return null
+            val listedMal = anime.optInt("mal_id", 0)
+            if (malId != null && malId > 0 && listedMal > 0 && listedMal != malId) return null
+            val chapters = parseKotoChapters(anime)
+            if (chapters.isEmpty()) return null
             if (malId != null && malId > 0) {
-                return hits.firstOrNull { hit ->
-                    hit.malId == malId && (hit.aniId == null || hit.aniId == anilistId)
-                }
+                val chapterMals = chapters.mapNotNull { it.malId }.filter { it > 0 }.toSet()
+                if (chapterMals.isNotEmpty() && malId !in chapterMals) return null
             }
-            return hits.firstOrNull { hit ->
-                (hit.aniId == null || hit.aniId == anilistId) &&
-                    titlesIdentifySameWork(hit.title, titles)
+            return chapters
+        }
+
+        private fun kotoHitScore(
+            hit: KotoHit,
+            anilistId: Int,
+            titles: List<String>,
+            malId: Int?,
+        ): Int? {
+            if (hit.aniId != null && hit.aniId != anilistId) return null
+            val malKnown = malId != null && malId > 0
+            if (hit.aniId == anilistId) {
+                if (malKnown && hit.malId != null && hit.malId != malId) return null
+                return 300
             }
+            if (malKnown) {
+                return if (hit.malId == malId) 200 else null
+            }
+            return if (titlesIdentifySameWork(hit.title, titles)) 100 else null
         }
 
         private fun kotoFlag(row: JSONObject, key: String): Boolean {

@@ -77,4 +77,24 @@ class KotoplayFallbackTest {
         )
         assertEquals("film", AnikotoServer.pickKotoHit(hits, 43, listOf("Ghost in the Shell"), 43)?.slug)
     }
+
+    @Test
+    fun aLaterRowStaysAvailableWhenTheFirstPageDisagrees() {
+        val hits = listOf(
+            KotoHit("recap", "One Piece", aniId = 21, malId = null),
+            KotoHit("series", "One Piece", aniId = null, malId = 21),
+        )
+        assertEquals(
+            listOf("recap", "series"),
+            AnikotoServer.rankKotoHits(hits, 21, listOf("One Piece"), 21).map { it.slug },
+        )
+        val recap = JSONObject(
+            """{"ani_id":21,"chapters":[{"id":1,"chapter_number":"1","mal_id":1}]}""",
+        )
+        val series = JSONObject(
+            """{"mal_id":21,"chapters":[{"id":2,"chapter_number":"1","mal_id":21}]}""",
+        )
+        assertNull(AnikotoServer.kotoChaptersIfMatch(recap, 21, 21))
+        assertEquals(2, AnikotoServer.kotoChaptersIfMatch(series, 21, 21)?.single()?.chapterId)
+    }
 }
