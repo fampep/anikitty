@@ -299,7 +299,7 @@ internal fun TitleStage(
                         bannerUrl = pickedBackdrop ?: if (localArt) detail.coverImageUrl else detail.bannerImageUrl,
                         coverUrl = detail.coverImageUrl,
                         contentDescription = detail.title,
-                        contentScale = ContentScale.FillWidth,
+                        contentScale = ContentScale.Crop,
                         alignment = Alignment.TopCenter,
                         title = detail.title,
                         year = detail.seasonYear,
@@ -311,12 +311,9 @@ internal fun TitleStage(
                                 val drift = if (reduced || listState.firstVisibleItemIndex > 0) {
                                     0f
                                 } else {
-                                    listState.firstVisibleItemScrollOffset * 0.35f
+                                    listState.firstVisibleItemScrollOffset * 0.28f
                                 }
                                 translationY = drift
-                                val scale = if (localArt || reduced) 1f else 1.08f
-                                scaleX = scale
-                                scaleY = scale
                             },
                     )
                     Box(
