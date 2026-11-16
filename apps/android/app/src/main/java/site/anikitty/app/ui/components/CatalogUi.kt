@@ -137,12 +137,13 @@ fun KittyEmptyState(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
+    val palette = LocalKittyPalette.current
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0C0C10))
-            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .background(palette.surface)
+            .border(0.5.dp, palette.hairline, RoundedCornerShape(12.dp))
             .padding(horizontal = 18.dp, vertical = 26.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -154,7 +155,7 @@ fun KittyEmptyState(
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             title,
-            color = KittyText,
+            color = palette.text,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.titleSmall,
             textAlign = TextAlign.Center,
@@ -162,7 +163,7 @@ fun KittyEmptyState(
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             body,
-            color = KittyMuted,
+            color = palette.muted,
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
         )
@@ -171,13 +172,13 @@ fun KittyEmptyState(
             Button(
                 onClick = onAction,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = KittyAccent,
-                    contentColor = KittyOnAccent,
+                    containerColor = palette.accent,
+                    contentColor = palette.onAccent,
                 ),
                 shape = RoundedCornerShape(16.dp),
                 contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp),
             ) {
-                Text(actionLabel, fontWeight = FontWeight.SemiBold, color = Color.Black)
+                Text(actionLabel, fontWeight = FontWeight.SemiBold, color = palette.onAccent)
             }
         }
     }
