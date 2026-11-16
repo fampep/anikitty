@@ -184,12 +184,12 @@ fun GlassScrubber(
                 },
         ) {
             val cy = size.height / 2f
-            val trackH = 3.dp.toPx()
+            val trackH = (if (scrubbing) 5.dp else 4.dp).toPx()
             val radius = CornerRadius(trackH / 2f, trackH / 2f)
             val unplayed = Color(0xFF2C2C2C)
             val bufferedColor = Color(0xFF5A5A5A)
-            val played = Color(0xFFD4D4D4)
-            val marker = Color(0xFFFFE14A)
+            val played = Color(0xFFE8E8E8)
+            val marker = Color.White.copy(alpha = 0.55f)
 
             drawRoundRect(
                 color = unplayed,
@@ -234,8 +234,13 @@ fun GlassScrubber(
                 }
             }
 
-            val thumbR = 5.dp.toPx() * thumbScale
+            val thumbR = 6.dp.toPx() * thumbScale
             val thumbX = progressW.coerceIn(thumbR, (size.width - thumbR).coerceAtLeast(thumbR))
+            drawCircle(
+                color = Color.Black.copy(alpha = 0.28f),
+                radius = thumbR + 2.dp.toPx(),
+                center = Offset(thumbX, cy),
+            )
             drawCircle(
                 color = Color.White,
                 radius = thumbR,
