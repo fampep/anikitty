@@ -81,8 +81,11 @@ import androidx.compose.material.icons.outlined.Replay10
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.BrightnessHigh
+import androidx.compose.material.icons.outlined.BrightnessLow
+import androidx.compose.material.icons.outlined.BrightnessMedium
 import androidx.compose.material.icons.outlined.ClosedCaption
 import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.FormatColorFill
@@ -91,6 +94,7 @@ import androidx.compose.material.icons.outlined.AspectRatio
 import androidx.compose.material.icons.outlined.Title
 import androidx.compose.material.icons.outlined.Translate
 import androidx.compose.material.icons.outlined.VideoLibrary
+import androidx.compose.material.icons.automirrored.outlined.VolumeDown
 import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.rounded.Fullscreen
@@ -325,7 +329,9 @@ fun PlayerScreen(
     var holdBoost by remember { mutableStateOf(false) }
     var gestureHud by remember { mutableStateOf<GestureHud?>(null) }
     var controlsLocked by remember { mutableStateOf(false) }
-    var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
+    /** Signed seek HUD total — stacks on rapid double-taps (e.g. +20s). */
+    var seekFlashMs by remember { mutableLongStateOf(0L) }
+    var buffering by remember { mutableStateOf(false) }
     var isCasting by remember { mutableStateOf(false) }
     var castHint by remember { mutableStateOf<String?>(null) }
     // Next-episode UX: soft offer near the end, then 10s autoplay once ended.
@@ -614,14 +620,16 @@ fun PlayerScreen(
         playerPrefs.edit().putInt("resize_mode", resizeMode).apply()
     }
 
-    LaunchedEffect(seekFlashDir) {
-        if (seekFlashDir == 0) return@LaunchedEffect
-        delay(520)
-        seekFlashDir = 0
+    LaunchedEffect(seekFlashMs) {
+        if (seekFlashMs == 0L) return@LaunchedEffect
+        val shown = seekFlashMs
+        delay(720)
+        if (seekFlashMs == shown) seekFlashMs = 0L
     }
 
     DisposableEffect(playerBundle) {
         ready = false
+        buffering = false
         error = null
         textOptions = emptyList()
         videoOptions = emptyList()
@@ -630,6 +638,7 @@ fun PlayerScreen(
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 ready = playbackState == Player.STATE_READY || playbackState == Player.STATE_BUFFERING
+                buffering = playbackState == Player.STATE_BUFFERING
                 if (playbackState == Player.STATE_READY) {
                     durationMs = activePlayer?.duration?.coerceAtLeast(0L) ?: 0L
                     error = null
@@ -648,6 +657,7 @@ fun PlayerScreen(
                     }
                 }
                 if (playbackState == Player.STATE_ENDED) {
+                    buffering = false
                     playbackEnded = true
                     controlsVisible = true
                 }
@@ -948,7 +958,10 @@ fun PlayerScreen(
         p.seekTo(target)
         positionMs = target
         playhead.ms = target
-        seekFlashDir = if (deltaMs < 0) -1 else 1
+        val sameDir = seekFlashMs == 0L ||
+            (seekFlashMs > 0L && deltaMs > 0L) ||
+            (seekFlashMs < 0L && deltaMs < 0L)
+        seekFlashMs = if (sameDir) seekFlashMs + deltaMs else deltaMs
         if (!controlsLocked) controlsVisible = true
     }
 
@@ -1429,7 +1442,6 @@ fun PlayerScreen(
             .pointerInput(controlsLocked) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-                    if (controlsLocked) return@awaitEachGesture
                     val start = down.position
                     val slideLevel = start.x < size.width / 2f
                     var dragged = false
@@ -1446,7 +1458,9 @@ fun PlayerScreen(
                             }
                         }
                     }
+                    // Locked: still allow brightness / volume edge swipes; block 2× hold.
                     if (!dragged && releasedEarly == null) {
+                        if (controlsLocked) return@awaitEachGesture
                         holdBoost = true
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -1490,40 +1504,61 @@ fun PlayerScreen(
             exit = fadeOut(),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 28.dp),
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = 18.dp),
         ) {
-            Text(
-                "2×",
-                color = PlayerChrome.Ink,
-                fontWeight = FontWeight.Black,
-                fontSize = 14.sp,
+            Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(999.dp))
-                    .background(PlayerChrome.Accent)
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-            )
+                    .background(Color.White)
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Outlined.PlayCircle,
+                    contentDescription = null,
+                    tint = Color.Black,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    "2× speed",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                )
+            }
         }
         AnimatedVisibility(
-            visible = seekFlashDir != 0,
+            visible = seekFlashMs != 0L,
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier
-                .align(if (seekFlashDir < 0) Alignment.CenterStart else Alignment.CenterEnd)
-                .padding(horizontal = 36.dp),
+                .align(if (seekFlashMs < 0L) Alignment.CenterStart else Alignment.CenterEnd)
+                .padding(horizontal = 28.dp),
         ) {
-            Box(
+            val secs = (kotlin.math.abs(seekFlashMs) / 1000L).toInt().coerceAtLeast(1)
+            val label = if (seekFlashMs < 0L) "−${secs}s" else "+${secs}s"
+            Column(
                 modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(PlayerChrome.DiscLarge)
-                    .border(1.dp, PlayerChrome.Accent.copy(alpha = 0.55f), CircleShape),
-                contentAlignment = Alignment.Center,
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(18.dp))
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(
-                    if (seekFlashDir < 0) Icons.Outlined.Replay10 else Icons.Outlined.Forward10,
+                    if (seekFlashMs < 0L) Icons.Outlined.Replay10 else Icons.Outlined.Forward10,
                     contentDescription = null,
-                    tint = PlayerChrome.Accent,
-                    modifier = Modifier.size(30.dp),
+                    tint = Color.White,
+                    modifier = Modifier.size(28.dp),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    label,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
                 )
             }
         }
@@ -1618,12 +1653,16 @@ fun PlayerScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Icon(
-                    if (shown.kind == GestureHudKind.Brightness) {
-                        Icons.Outlined.BrightnessHigh
-                    } else if (shown.level <= 0.01f) {
-                        Icons.AutoMirrored.Outlined.VolumeOff
-                    } else {
-                        Icons.AutoMirrored.Outlined.VolumeUp
+                    when {
+                        shown.kind == GestureHudKind.Brightness && shown.level < 0.34f ->
+                            Icons.Outlined.BrightnessLow
+                        shown.kind == GestureHudKind.Brightness && shown.level < 0.67f ->
+                            Icons.Outlined.BrightnessMedium
+                        shown.kind == GestureHudKind.Brightness ->
+                            Icons.Outlined.BrightnessHigh
+                        shown.level <= 0.01f -> Icons.AutoMirrored.Outlined.VolumeOff
+                        shown.level < 0.45f -> Icons.AutoMirrored.Outlined.VolumeDown
+                        else -> Icons.AutoMirrored.Outlined.VolumeUp
                     },
                     contentDescription = null,
                     tint = Color.White,
@@ -1676,6 +1715,18 @@ fun PlayerScreen(
                     )
                 }
             }
+        } else if (
+            ready && buffering && error == null && !isCasting &&
+            seekFlashMs == 0L && !scrubbing && !holdBoost &&
+            !(theater && controlsVisible && !controlsLocked)
+        ) {
+            CircularProgressIndicator(
+                color = Color.White.copy(alpha = 0.9f),
+                strokeWidth = 2.5.dp,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(36.dp),
+            )
         }
 
         if (sleepNote != null) {
@@ -1875,6 +1926,19 @@ fun PlayerScreen(
                                 maxLines = 1,
                             )
                         }
+                        if (!isMovie && onPickEpisode != null && episode > 1) {
+                            ChromeDisc(
+                                onClick = { onPickEpisode.invoke(episode - 1) },
+                                size = 44.dp,
+                            ) {
+                                Icon(
+                                    Icons.Outlined.SkipPrevious,
+                                    contentDescription = "Previous episode",
+                                    tint = Color.White,
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                         if (onNextEpisode != null && episode < totalEpisodes) {
                             ChromeDisc(onClick = { goNextEpisode() }, size = 44.dp) {
                                 Icon(
@@ -1884,6 +1948,30 @@ fun PlayerScreen(
                                 )
                             }
                         }
+                    }
+
+                    // Large center play / pause — only while chrome is up.
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+                            .clickable {
+                                activePlayer?.let {
+                                    if (it.isPlaying) it.pause() else it.play()
+                                }
+                                controlsVisible = true
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                            contentDescription = if (playing) "Pause" else "Play",
+                            tint = Color.White,
+                            modifier = Modifier.size(34.dp),
+                        )
                     }
                 }
 
@@ -1965,6 +2053,18 @@ fun PlayerScreen(
                                 label = "+85",
                                 description = "Skip ahead 85 seconds",
                                 onClick = { seekBy(85_000) },
+                            )
+                            PillLabel(
+                                label = speedLabel(playbackSpeed),
+                                description = "Play speed",
+                                onClick = {
+                                    panel = if (panel == PlayerMenuPage.Speed) {
+                                        PlayerMenuPage.None
+                                    } else {
+                                        PlayerMenuPage.Speed
+                                    }
+                                    controlsVisible = true
+                                },
                             )
                             val compactPills = LocalConfiguration.current.screenWidthDp < 840
                             if (!compactPills) {
@@ -3508,8 +3608,9 @@ private fun LiveClockText(
         }
     }
     val shown = if (scrubbing) (scrubValue * durationMs).toLong() else liveMs
+    val remain = (durationMs - shown).coerceAtLeast(0L)
     Text(
-        "${formatClockPadded(shown)} / ${formatClockPadded(durationMs)}",
+        "${formatClockPadded(shown)}  −${formatClockPadded(remain)}",
         color = Color.White,
         fontSize = 13.sp,
         fontFamily = FontFamily.SansSerif,
