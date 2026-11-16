@@ -127,8 +127,13 @@ data class AnimeSummary(
     val status: String? = null,
     val season: String? = null,
     val seasonYear: Int? = null,
+    /** AniList startDate.day, 1–31. */
+    val startDay: Int? = null,
     /** AniList startDate.month, 1–12. */
     val startMonth: Int? = null,
+    val endDay: Int? = null,
+    val endMonth: Int? = null,
+    val endYear: Int? = null,
     val durationMinutes: Int? = null,
     val popularity: Int? = null,
     val genres: List<String> = emptyList(),
@@ -180,6 +185,24 @@ data class AnimeSummary(
             seasonYear != null -> seasonYear.toString()
             else -> null
         }
+    }
+
+    /** ISO-ish range for the About grid, e.g. "2002-10-03 – 2007-02-08". */
+    fun airedRangeLabel(): String? {
+        fun part(year: Int?, month: Int?, day: Int?): String? {
+            val y = year ?: return null
+            val m = month?.takeIf { it in 1..12 }
+            val d = day?.takeIf { it in 1..31 }
+            return when {
+                m != null && d != null -> "%04d-%02d-%02d".format(y, m, d)
+                m != null -> "%04d-%02d".format(y, m)
+                else -> y.toString()
+            }
+        }
+        val startYear = seasonYear ?: return part(endYear, endMonth, endDay)
+        val start = part(startYear, startMonth, startDay) ?: return null
+        val end = part(endYear, endMonth, endDay)
+        return if (end != null && end != start) "$start – $end" else start
     }
 
     fun seasonLabel(): String? {
