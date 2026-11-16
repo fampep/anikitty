@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items as lazyItems
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.ExpandLess
@@ -74,7 +75,6 @@ import site.anikitty.app.data.servers.StreamServer
 import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyEmptyState
-import site.anikitty.app.ui.components.KittyPageHeader
 import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyAccentGlow
@@ -94,12 +94,14 @@ import site.anikitty.app.ui.theme.KittyText
 @Composable
 fun ExtensionStoreFeed(
     catalog: ServerCatalog,
+    onBack: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val selectedId by catalog.selectedId.collectAsState()
     val installedExt by catalog.extensions.installed.collectAsState()
     val resolvers by catalog.resolvers.collectAsState()
+    BackHandler(onBack = onBack)
 
     var query by remember { mutableStateOf("") }
     var githubUrl by remember { mutableStateOf("") }
@@ -237,26 +239,33 @@ fun ExtensionStoreFeed(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            KittyPageHeader(
-                title = "Store",
-                subtitle = buildString {
-                    append(activeServer?.let { "Playing via ${it.name}" } ?: "Stream links only")
-                    append(" · AniList stays the catalog")
-                    append(" · v${BuildConfig.VERSION_NAME}")
-                },
-                trailing = {
-                    IconButton(
-                        onClick = { refreshStore() },
-                        enabled = !busy,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Refresh,
-                            contentDescription = "Refresh store",
-                            tint = if (busy) KittyFaint else KittyAccentGlow,
-                        )
-                    }
-                },
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    SpacePageHeader(
+                        title = "Extension store",
+                        subtitle = buildString {
+                            append(activeServer?.let { "Playing via ${it.name}" } ?: "Stream links only")
+                            append(" · AniList stays the catalog")
+                            append(" · v${BuildConfig.VERSION_NAME}")
+                        },
+                        onBack = onBack,
+                    )
+                }
+                IconButton(
+                    onClick = { refreshStore() },
+                    enabled = !busy,
+                    modifier = Modifier.padding(top = 36.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.Refresh,
+                        contentDescription = "Refresh store",
+                        tint = if (busy) KittyFaint else KittyAccentGlow,
+                    )
+                }
+            }
             if (status != null) {
                 Text(
                     status!!,

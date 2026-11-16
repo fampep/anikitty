@@ -1023,25 +1023,11 @@ fun PlayerScreen(
             onClick = { panel = PlayerMenuPage.Quality },
         )
         PlayerMenuRow(
-            label = "Subtitles",
-            value = subLabel,
-            icon = Icons.Outlined.ClosedCaption,
+            label = "Audio Tracks",
+            value = if (audio == "dub") "Dub" else "Sub",
+            icon = Icons.Outlined.Translate,
             showChevron = true,
-            onClick = { panel = PlayerMenuPage.Subs },
-        )
-        PlayerMenuRow(
-            label = "Subtitle Size",
-            value = "${subtitlePercent(subStyle.sizeSp)}%",
-            glyph = "T",
-            showChevron = true,
-            onClick = { panel = PlayerMenuPage.Size },
-        )
-        PlayerMenuRow(
-            label = "Subtitle Timing",
-            value = timingLabel(subStyle.bottomPad),
-            icon = Icons.Outlined.Schedule,
-            showChevron = true,
-            onClick = { panel = PlayerMenuPage.Timing },
+            onClick = { panel = PlayerMenuPage.Audio },
         )
         PlayerMenuRow(
             label = "Volume Boost",
@@ -1050,34 +1036,50 @@ fun PlayerScreen(
             showChevron = true,
             onClick = { panel = PlayerMenuPage.Volume },
         )
+        PlayerMenuSectionLabel("Captions")
         PlayerMenuRow(
-            label = "Audio Tracks",
-            value = if (audio == "dub") "Dub" else "Sub",
-            icon = Icons.Outlined.Translate,
+            label = "Subtitles",
+            value = subLabel,
+            icon = Icons.Outlined.ClosedCaption,
             showChevron = true,
-            onClick = { panel = PlayerMenuPage.Audio },
+            onClick = { panel = PlayerMenuPage.Subs },
         )
         PlayerMenuRow(
-            label = "Subtitle Color",
+            label = "Size",
+            value = "${subtitlePercent(subStyle.sizeSp)}%",
+            glyph = "T",
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Size },
+        )
+        PlayerMenuRow(
+            label = "Position",
+            value = timingLabel(subStyle.bottomPad),
+            icon = Icons.Outlined.Schedule,
+            showChevron = true,
+            onClick = { panel = PlayerMenuPage.Timing },
+        )
+        PlayerMenuRow(
+            label = "Color",
             value = captionColorLabel(subStyle.color),
             icon = Icons.Outlined.FormatColorText,
             showChevron = true,
             onClick = { panel = PlayerMenuPage.Color },
         )
         PlayerMenuRow(
-            label = "Subtitle Edge",
+            label = "Edge",
             value = edgeLabel(subStyle.edgeType),
             icon = Icons.Outlined.Title,
             showChevron = true,
             onClick = { panel = PlayerMenuPage.Edge },
         )
         PlayerMenuRow(
-            label = "Subtitle Background",
+            label = "Background",
             value = bgLabel(subStyle.bgMode),
             icon = Icons.Outlined.FormatColorFill,
             showChevron = true,
             onClick = { panel = PlayerMenuPage.Background },
         )
+        PlayerMenuSectionLabel("Watch")
         PlayerMenuRow(
             label = "Episodes",
             icon = Icons.Outlined.VideoLibrary,
@@ -1206,15 +1208,10 @@ fun PlayerScreen(
                 }
             }
             PlayerMenuPage.Size -> {
-                listOf(50, 75, 100, 125).forEach { percent ->
-                    val sp = (DEFAULT_SUB_SIZE_SP * percent / 100f)
-                        .coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX)
-                    PlayerMenuRow(
-                        label = "$percent%",
-                        selected = kotlin.math.abs(subStyle.sizeSp - sp) < 0.6f,
-                        onClick = { subStyle = subStyle.copy(sizeSp = sp) },
-                    )
-                }
+                SubtitleSizePanel(
+                    sizeSp = subStyle.sizeSp,
+                    onSize = { subStyle = subStyle.copy(sizeSp = it) },
+                )
             }
             PlayerMenuPage.Timing -> {
                 listOf(
@@ -1411,6 +1408,8 @@ fun PlayerScreen(
                         }
                         if (!theater) {
                             activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
+                        } else if (panel.isStickyStylePage()) {
+                            // Keep Size / Color / … open so captions can be previewed live.
                         } else if (panel != PlayerMenuPage.None) {
                             panel = PlayerMenuPage.None
                         } else {
@@ -3174,8 +3173,9 @@ private const val SUB_STYLE_VERSION = 6
 /** First saved version that already records an intentional overlay caption look. */
 private const val SUB_STYLE_OVERLAY = 5
 private const val DEFAULT_SUB_SIZE_SP = 20f
-private const val SUB_SIZE_SP_MIN = 8f
-private const val SUB_SIZE_SP_MAX = 24f
+/** Free-range caption size — small enough for dense lines, large enough for big-screen theater. */
+private const val SUB_SIZE_SP_MIN = 6f
+private const val SUB_SIZE_SP_MAX = 72f
 /** Sits the line just above the progress bar and control pills. */
 private const val DEFAULT_SUB_BOTTOM_PAD = 0.20f
 private const val SUB_BOTTOM_MIN = 0.03f
@@ -3228,7 +3228,111 @@ private fun menuQualityValue(raw: String): String {
 }
 
 private fun subtitlePercent(sizeSp: Float): Int =
-    (sizeSp / DEFAULT_SUB_SIZE_SP * 100f).toInt().coerceIn(40, 150)
+    (sizeSp / DEFAULT_SUB_SIZE_SP * 100f).toInt().coerceIn(30, 360)
+
+@Composable
+private fun PlayerMenuSectionLabel(label: String) {
+    Text(
+        label.uppercase(),
+        color = Color.White.copy(alpha = 0.45f),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.8.sp,
+        modifier = Modifier.padding(start = 16.dp, top = 14.dp, bottom = 4.dp, end = 16.dp),
+    )
+}
+
+@Composable
+private fun SubtitleSizePanel(
+    sizeSp: Float,
+    onSize: (Float) -> Unit,
+) {
+    val percent = subtitlePercent(sizeSp)
+    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color.White.copy(alpha = 0.06f))
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                "Sample subtitle · 字幕サンプル",
+                color = Color.White,
+                fontSize = sizeSp.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "A",
+                color = Color.White.copy(alpha = 0.7f),
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        onSize((sizeSp - 2f).coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX))
+                    }
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+            )
+            Slider(
+                value = sizeSp,
+                onValueChange = { onSize(it.coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX)) },
+                valueRange = SUB_SIZE_SP_MIN..SUB_SIZE_SP_MAX,
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                colors = SliderDefaults.colors(
+                    thumbColor = Color.White,
+                    activeTrackColor = Color.White,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.25f),
+                ),
+            )
+            Text(
+                "A",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        onSize((sizeSp + 2f).coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX))
+                    }
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
+        Text(
+            "$percent% · ${sizeSp.toInt()} sp",
+            color = Color.White.copy(alpha = 0.65f),
+            fontSize = 13.sp,
+            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+        ) {
+            listOf(50, 75, 100, 150, 200, 300).forEach { preset ->
+                val sp = (DEFAULT_SUB_SIZE_SP * preset / 100f)
+                    .coerceIn(SUB_SIZE_SP_MIN, SUB_SIZE_SP_MAX)
+                val selected = kotlin.math.abs(sizeSp - sp) < 0.8f
+                Text(
+                    "$preset%",
+                    color = if (selected) Color.Black else Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(if (selected) Color.White else Color.White.copy(alpha = 0.12f))
+                        .clickable { onSize(sp) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+    }
+}
 
 private fun timingLabel(pad: Float): String = when {
     pad <= 0.09f -> "Low"
