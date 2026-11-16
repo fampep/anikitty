@@ -2880,8 +2880,9 @@ private fun TitleDetailScreen(
                             listBadge = listStatusBadge(entry.status)
                         }
                         val freshMax = full.episodeItems().size.coerceAtLeast(1)
-                        val asked = (initialEpisode ?: episode).coerceAtLeast(1)
-                        episode = episode.coerceIn(1, maxOf(freshMax, asked))
+                        val requested = initialEpisode?.coerceAtLeast(1)
+                        val cap = if (requested != null) maxOf(freshMax, requested) else freshMax
+                        episode = episode.coerceIn(1, cap)
                     }
                 }
             detailLoading = false
