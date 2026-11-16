@@ -774,6 +774,7 @@ fun LocalFirstApp(
                 ).coerceAtLeast(0)
             }
             var reportedEpisode by remember(current.anime.id, current.episode) { mutableStateOf(false) }
+            var reportInFlight by remember(current.anime.id, current.episode) { mutableStateOf(false) }
             PlayerScreen(
                 title = current.anime.title,
                 episode = current.episode,
@@ -789,16 +790,20 @@ fun LocalFirstApp(
                 onDismiss = { screen = Screen.Tabs },
                 onToggleWatched = { number ->
                     if (!isolated(current.anime.id)) scope.launch {
+                        val before = historyDao.get(current.anime.id)
                         historyDao.markEpisode(current.anime, number)
                         val entry = historyDao.get(current.anime.id)
                         watchedThrough = maxOf(
                             current.anime.listState?.progress ?: 0,
                             (entry?.episode ?: 1) - 1,
                         ).coerceAtLeast(0)
-                        if (aniListAuth.isLinked && !demo) {
+                        val changed = before?.episode != entry?.episode ||
+                            before?.positionMs != entry?.positionMs
+                        if (changed && aniListAuth.isLinked && !demo) {
+                            val finished = ((entry?.episode ?: 1) - 1).coerceAtLeast(0)
                             aniListSync.pushProgress(
                                 anilistId = current.anime.id,
-                                episode = number,
+                                episode = finished,
                                 totalEpisodes = current.anime.episodes,
                             )
                         }
@@ -823,13 +828,24 @@ fun LocalFirstApp(
                         )
                         ContinueHidden.reveal(context, current.anime.id)
                         val ratio = if (dur > 0L) pos.toFloat() / dur else 0f
-                        if (!reportedEpisode && aniListAuth.isLinked && !demo && ratio >= 0.85f) {
-                            reportedEpisode = true
-                            aniListSync.pushProgress(
-                                anilistId = current.anime.id,
-                                episode = current.episode,
-                                totalEpisodes = current.anime.episodes,
-                            )
+                        if (
+                            !reportedEpisode &&
+                            !reportInFlight &&
+                            aniListAuth.isLinked &&
+                            !demo &&
+                            ratio >= 0.85f
+                        ) {
+                            reportInFlight = true
+                            val saved = try {
+                                aniListSync.pushProgress(
+                                    anilistId = current.anime.id,
+                                    episode = current.episode,
+                                    totalEpisodes = current.anime.episodes,
+                                )
+                            } finally {
+                                reportInFlight = false
+                            }
+                            if (saved) reportedEpisode = true
                         }
                     }
                 },
