@@ -141,6 +141,8 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import site.anikitty.app.data.tmdb.TmdbCatalog
 import site.anikitty.app.BuildConfig
@@ -688,6 +690,7 @@ fun LocalFirstApp(
             var watchedThrough by remember(current.anime.id) {
                 mutableIntStateOf(current.anime.listState?.progress ?: 0)
             }
+            val historyWrite = remember(current.anime.id) { Mutex() }
             var playerAudio by remember {
                 mutableStateOf(
                     context.getSharedPreferences("anikitty_watch", android.content.Context.MODE_PRIVATE)
@@ -727,21 +730,23 @@ fun LocalFirstApp(
                             )
                         }
                         if (!isolated(current.anime.id)) {
-                        val existing = historyDao.get(current.anime.id)
-                        val sameEpisode = nextEpisode == current.episode
-                        historyDao.upsert(
-                            WatchHistoryEntity(
-                                anilistId = current.anime.id,
-                                title = current.anime.title,
-                                coverImageUrl = current.anime.coverImageUrl,
-                                episode = nextEpisode,
-                                positionMs = if (sameEpisode) existing?.positionMs ?: 0L else 0L,
-                                durationMs = if (sameEpisode) existing?.durationMs ?: 0L else 0L,
-                                updatedAtEpochMs = System.currentTimeMillis(),
-                                listStatus = existing?.listStatus ?: "CURRENT",
-                                malId = current.anime.malId ?: existing?.malId,
-                            ),
-                        )
+                            historyWrite.withLock {
+                                val existing = historyDao.get(current.anime.id)
+                                val sameEpisode = nextEpisode == current.episode
+                                historyDao.upsert(
+                                    WatchHistoryEntity(
+                                        anilistId = current.anime.id,
+                                        title = current.anime.title,
+                                        coverImageUrl = current.anime.coverImageUrl,
+                                        episode = nextEpisode,
+                                        positionMs = if (sameEpisode) existing?.positionMs ?: 0L else 0L,
+                                        durationMs = if (sameEpisode) existing?.durationMs ?: 0L else 0L,
+                                        updatedAtEpochMs = System.currentTimeMillis(),
+                                        listStatus = existing?.listStatus ?: "CURRENT",
+                                        malId = current.anime.malId ?: existing?.malId,
+                                    ),
+                                )
+                            }
                         }
                         site.anikitty.app.data.servers.SourceBadgeCache.remember(
                             context,
@@ -790,17 +795,14 @@ fun LocalFirstApp(
                 onDismiss = { screen = Screen.Tabs },
                 onToggleWatched = { number ->
                     if (!isolated(current.anime.id)) scope.launch {
-                        val before = historyDao.get(current.anime.id)
-                        historyDao.markEpisode(current.anime, number)
-                        val entry = historyDao.get(current.anime.id)
+                        val finished = historyWrite.withLock {
+                            historyDao.markEpisode(current.anime, number)
+                        } ?: return@launch
                         watchedThrough = maxOf(
                             current.anime.listState?.progress ?: 0,
-                            (entry?.episode ?: 1) - 1,
-                        ).coerceAtLeast(0)
-                        val changed = before?.episode != entry?.episode ||
-                            before?.positionMs != entry?.positionMs
-                        if (changed && aniListAuth.isLinked && !demo) {
-                            val finished = ((entry?.episode ?: 1) - 1).coerceAtLeast(0)
+                            finished,
+                        )
+                        if (aniListAuth.isLinked && !demo) {
                             aniListSync.pushProgress(
                                 anilistId = current.anime.id,
                                 episode = finished,
@@ -811,37 +813,56 @@ fun LocalFirstApp(
                 },
                 onProgress = { pos, dur ->
                     if (!isolated(current.anime.id)) scope.launch {
-                        val existing = historyDao.get(current.anime.id)
-                        historyDao.upsert(
-                            WatchHistoryEntity(
-                                anilistId = current.anime.id,
-                                title = current.anime.title,
-                                coverImageUrl = current.anime.coverImageUrl
-                                    ?: existing?.coverImageUrl,
-                                episode = current.episode,
-                                positionMs = pos,
-                                durationMs = dur,
-                                updatedAtEpochMs = System.currentTimeMillis(),
-                                listStatus = existing?.listStatus ?: "CURRENT",
-                                malId = current.anime.malId ?: existing?.malId,
-                            ),
-                        )
+                        val existing = historyWrite.withLock {
+                            val row = historyDao.get(current.anime.id)
+                            // A watched toggle already moved this row to a later
+                            // episode. The playhead for the episode on screen
+                            // must not pull that frontier back.
+                            if ((row?.episode ?: 0) > current.episode) {
+                                row
+                            } else {
+                                val written = WatchHistoryEntity(
+                                    anilistId = current.anime.id,
+                                    title = current.anime.title,
+                                    coverImageUrl = current.anime.coverImageUrl
+                                        ?: row?.coverImageUrl,
+                                    episode = current.episode,
+                                    positionMs = pos,
+                                    durationMs = dur,
+                                    updatedAtEpochMs = System.currentTimeMillis(),
+                                    listStatus = row?.listStatus ?: "CURRENT",
+                                    malId = current.anime.malId ?: row?.malId,
+                                )
+                                historyDao.upsert(written)
+                                written
+                            }
+                        }
                         ContinueHidden.reveal(context, current.anime.id)
                         val ratio = if (dur > 0L) pos.toFloat() / dur else 0f
+                        val markedPastThis = (existing?.episode ?: 0) > current.episode + 1
                         if (
                             !reportedEpisode &&
                             !reportInFlight &&
                             aniListAuth.isLinked &&
                             !demo &&
-                            ratio >= 0.85f
+                            ratio >= 0.85f &&
+                            !markedPastThis
                         ) {
                             reportInFlight = true
                             val saved = try {
-                                aniListSync.pushProgress(
-                                    anilistId = current.anime.id,
-                                    episode = current.episode,
-                                    totalEpisodes = current.anime.episodes,
-                                )
+                                val stillThisEpisode = historyWrite.withLock {
+                                    (historyDao.get(current.anime.id)?.episode ?: 0) <=
+                                        current.episode + 1
+                                }
+                                if (stillThisEpisode) {
+                                    aniListSync.pushProgress(
+                                        anilistId = current.anime.id,
+                                        episode = current.episode,
+                                        totalEpisodes = current.anime.episodes,
+                                    )
+                                } else {
+                                    false
+                                }
                             } finally {
                                 reportInFlight = false
                             }
