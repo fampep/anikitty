@@ -75,7 +75,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.coroutines.cancellation.CancellationException
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AniListMediaListEntry
 import site.anikitty.app.data.anilist.AniListOAuth
@@ -246,7 +248,11 @@ fun MySpaceFeed(
         }
     }
 
-    LaunchedEffect(accessToken, syncLabel) {
+    val listStamp = remember(history) {
+        history.joinToString("|") { "${it.anilistId}:${it.listStatus}" }
+    }
+    LaunchedEffect(accessToken, syncLabel, listStamp, bulkBusy) {
+        if (bulkBusy) return@LaunchedEffect
         val token = accessToken
         if (!aniListLinked || token.isNullOrBlank()) {
             viewer = null
@@ -257,13 +263,18 @@ fun MySpaceFeed(
         }
         if (syncing) return@LaunchedEffect
         loadingCloud = viewer == null
-        val profile = runCatching { aniList.viewer(token) }.getOrNull()
-        viewer = profile
-        favourites = runCatching { aniList.favourites(token) }.getOrDefault(emptyList())
-        cloudLists = profile?.let { person ->
-            runCatching { aniList.mediaListEntries(token, person.id) }.getOrDefault(emptyList())
-        }.orEmpty()
-        loadingCloud = false
+        try {
+            val profile = aniList.viewer(token) ?: return@LaunchedEffect
+            viewer = profile
+            favourites = aniList.favourites(token)
+            cloudLists = aniList.mediaListEntries(token, profile.id)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // A failed refresh keeps the shelves already on screen.
+        } finally {
+            if (isActive) loadingCloud = false
+        }
     }
 
     var librarySort by rememberSaveable { mutableStateOf("newest") }
