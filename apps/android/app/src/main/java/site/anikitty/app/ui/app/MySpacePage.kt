@@ -480,6 +480,7 @@ fun MySpaceFeed(
                     favourites = favourites,
                     linked = aniListLinked,
                     onOpen = onOpen,
+                    onBrowse = onBrowse,
                     selection = selection,
                 )
             }
@@ -559,10 +560,9 @@ private fun CloudSyncBlock(
                 if (linked) {
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .clickable(enabled = !syncing, onClick = onSync)
-                            .padding(4.dp),
+                            .clickable(enabled = !syncing, onClick = onSync),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -579,9 +579,11 @@ private fun CloudSyncBlock(
             if (linked) {
                 Text(
                     text = "Logout",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
                     color = palette.text.copy(alpha = 0.55f),
-                    modifier = Modifier.clickable(onClick = onSignOut),
+                    modifier = Modifier
+                        .clickable(onClick = onSignOut)
+                        .padding(horizontal = 8.dp, vertical = 14.dp),
                 )
             }
         }
@@ -782,6 +784,7 @@ private fun FavoritesBlock(
     favourites: List<AnimeSummary>,
     linked: Boolean,
     onOpen: (AnimeSummary) -> Unit,
+    onBrowse: () -> Unit,
     selection: ShowSelection,
 ) {
     val palette = LocalKittyPalette.current
@@ -809,6 +812,8 @@ private fun FavoritesBlock(
                 } else {
                     "Sign in and your AniList favorites will land here."
                 },
+                action = "Browse",
+                onAction = onBrowse,
             )
         } else {
             Column(

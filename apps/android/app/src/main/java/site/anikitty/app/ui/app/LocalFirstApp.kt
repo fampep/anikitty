@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -127,6 +128,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -568,7 +570,7 @@ fun LocalFirstApp(
                             syncLabel = runCatching {
                                 val result = aniListSync.pull()
                                 "Synced ${result.imported} from AniList"
-                            }.getOrElse { e -> e.message }
+                            }.getOrElse { e -> friendlyFailure(e.message) }
                         }
                     },
                     onOpen = { openDetail(it) },
@@ -1723,23 +1725,27 @@ private fun LookSettings(onExport: () -> Unit) {
                 "−",
                 color = palette.text,
                 fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
                 modifier = Modifier
+                    .size(48.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .clickable {
                         LookState.setWeekGoal(context, LookState.weekGoalMinutes - 15)
                     }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .wrapContentHeight(),
             )
             Text(
                 "+",
                 color = palette.text,
                 fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
                 modifier = Modifier
+                    .size(48.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .clickable {
                         LookState.setWeekGoal(context, LookState.weekGoalMinutes + 15)
                     }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                    .wrapContentHeight(),
             )
         }
         Button(
@@ -2470,7 +2476,7 @@ internal fun SettingsFeed(
                                             runCatching {
                                                 val result = aniListSync.pull()
                                                 "Synced ${result.imported} titles"
-                                            }.getOrElse { e -> e.message },
+                                            }.getOrElse { e -> friendlyFailure(e.message) },
                                         )
                                     }
                                 },
@@ -2479,8 +2485,8 @@ internal fun SettingsFeed(
                                     .padding(horizontal = 20.dp),
                                 shape = RoundedCornerShape(14.dp),
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = KittyAccent,
-                                    contentColor = KittyOnAccent,
+                                    containerColor = palette.accent,
+                                    contentColor = palette.onAccent,
                                 ),
                             ) { Text("Sync now", fontWeight = FontWeight.Bold) }
                             if (!linkStatus.isNullOrBlank()) {
@@ -2544,8 +2550,8 @@ internal fun SettingsFeed(
                                 .padding(horizontal = 20.dp),
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
+                                containerColor = palette.accent,
+                                contentColor = palette.onAccent,
                             ),
                         ) {
                             Text("Open Extension Store", fontWeight = FontWeight.Bold)
@@ -2587,7 +2593,7 @@ internal fun SettingsFeed(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             server.name,
-                                            color = KittyText,
+                                            color = palette.text,
                                             fontWeight = FontWeight.SemiBold,
                                             modifier = Modifier.weight(1f, fill = false),
                                         )
@@ -2597,9 +2603,9 @@ internal fun SettingsFeed(
                                                 "ACTIVE",
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(999.dp))
-                                                    .background(KittyAccent)
+                                                    .background(palette.text)
                                                     .padding(horizontal = 8.dp, vertical = 3.dp),
-                                                color = KittyOnAccent,
+                                                color = palette.page,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 10.sp,
                                             )
@@ -2607,7 +2613,7 @@ internal fun SettingsFeed(
                                     }
                                     Text(
                                         if (isExtension) "Extension" else "Bundled",
-                                        color = KittyFaint,
+                                        color = palette.faint,
                                         style = MaterialTheme.typography.labelSmall,
                                     )
                                 }
@@ -2615,7 +2621,7 @@ internal fun SettingsFeed(
                             Text(
                                 server.description,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = KittyMuted,
+                                color = palette.muted,
                                 modifier = Modifier.padding(top = 8.dp),
                             )
                             if (isExtension) {
@@ -2627,7 +2633,7 @@ internal fun SettingsFeed(
                                     },
                                     contentPadding = PaddingValues(0.dp),
                                 ) {
-                                    Text("Uninstall", color = KittyFaint, fontSize = 12.sp)
+                                    Text("Uninstall", color = palette.muted, fontSize = 12.sp)
                                 }
                             }
                         }
