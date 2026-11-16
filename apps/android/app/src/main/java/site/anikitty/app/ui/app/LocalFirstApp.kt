@@ -897,9 +897,6 @@ private fun HomeFeed(
     var catalogJob by remember { mutableStateOf<Job?>(null) }
     val catalogBusy = loading || refreshing
     var airingToday by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
-    val airingClock = remember {
-        java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
-    }
     LaunchedEffect(Unit) {
         if (demo) return@LaunchedEffect
         val start = java.util.Calendar.getInstance().apply {
@@ -908,9 +905,9 @@ private fun HomeFeed(
             set(java.util.Calendar.SECOND, 0)
             set(java.util.Calendar.MILLISECOND, 0)
         }
-        val from = start.timeInMillis / 1000L
+        val dayStart = start.timeInMillis / 1000L
         airingToday = runCatching {
-            aniList.airingSchedule(from, from + 24 * 60 * 60)
+            aniList.airingSchedule(dayStart - 36 * 60 * 60, dayStart + 24 * 60 * 60)
         }.getOrDefault(emptyList())
     }
     val shelf = HomeShelf.entries.firstOrNull { it.name == shelfName } ?: HomeShelf.All
@@ -957,6 +954,9 @@ private fun HomeFeed(
             trending = site.anikitty.app.data.demo.DemoLibrary.featured
             seasonal = site.anikitty.app.data.demo.DemoLibrary.seasonal
             airingToday = site.anikitty.app.data.demo.DemoLibrary.airing(System.currentTimeMillis() / 1000L)
+            val film = site.anikitty.app.data.demo.DemoLibrary.catalog.firstOrNull { it.format == "MOVIE" }
+            upcoming = listOfNotNull(film)
+            upcomingDates = film?.let { mapOf(it.id to "2026") }.orEmpty()
             site.anikitty.app.data.demo.DemoLibrary.catalog.forEach { anime ->
                 val clip = site.anikitty.app.data.demo.DemoLibrary.clip(context, anime.id) ?: return@forEach
                 site.anikitty.app.data.servers.SourceBadgeCache.remember(context, anime.id, 0, listOf(clip))
@@ -1091,16 +1091,6 @@ private fun HomeFeed(
         val pool = (trending + seasonal).filter { it.onShelf(shelf) }.distinctBy { it.id }
         if (pool.isNotEmpty()) openCatalog(pool.random())
     }
-    fun freshLabel(slot: AiringSlot): String {
-        val now = System.currentTimeMillis() / 1000L
-        val clock = airingClock.format(java.util.Date(slot.airingAtEpochSec * 1000L))
-        val whenLabel = if (slot.airingAtEpochSec <= now) {
-            watchedAgo(slot.airingAtEpochSec * 1000L).ifBlank { clock }
-        } else {
-            airingLabel(slot.airingAtEpochSec, now, clock)
-        }
-        return "Episode ${slot.episode} · $whenLabel"
-    }
 
     val pageColor = LocalKittyPalette.current.page
     Box(modifier = Modifier.fillMaxSize().background(pageColor)) {
@@ -1130,9 +1120,10 @@ private fun HomeFeed(
                     }
                     ShimmerBox(
                         modifier = Modifier
+                            .padding(horizontal = 16.dp)
                             .fillMaxWidth()
-                            .height(292.dp)
-                            .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)),
+                            .height(376.dp)
+                            .clip(RoundedCornerShape(22.dp)),
                     )
                     Spacer(modifier = Modifier.height(KittySpace.lg))
                     ContinueSkeletonRow()
@@ -1158,6 +1149,66 @@ private fun HomeFeed(
                 }
             }
             else -> {
+                val nowSec = System.currentTimeMillis() / 1000L
+                val latestSlots = airingToday
+                    .filter { it.airingAtEpochSec <= nowSec && it.anime.onShelf(shelf) }
+                    .sortedByDescending { it.airingAtEpochSec }
+                val heroItems = trending.filter { it.onShelf(shelf) }
+                val topAiringItems = (seasonal + trending)
+                    .filter { it.status.equals("RELEASING", ignoreCase = true) && it.onShelf(shelf) }
+                    .distinctBy { it.id }
+                    .take(8)
+                val upcomingItems = upcoming.filter { it.onShelf(shelf) }.take(8)
+                val listedIds = history.mapNotNull { entry ->
+                    entry.anilistId.takeIf { !entry.listStatus.isNullOrBlank() }
+                }.toSet()
+                var listedExtra by remember { mutableStateOf(setOf<Int>()) }
+                val savedIds = listedIds + listedExtra
+                fun addToPlan(anime: AnimeSummary) {
+                    if (anime.id in savedIds) return
+                    listedExtra = listedExtra + anime.id
+                    if (demo || site.anikitty.app.data.demo.DemoLibrary.find(anime.id) != null) return
+                    scope.launch {
+                        val existing = historyDao.get(anime.id)
+                        historyDao.upsert(
+                            WatchHistoryEntity(
+                                anilistId = anime.id,
+                                title = anime.title,
+                                coverImageUrl = anime.coverImageUrl ?: existing?.coverImageUrl,
+                                episode = existing?.episode ?: 1,
+                                positionMs = existing?.positionMs ?: 0L,
+                                durationMs = existing?.durationMs ?: 0L,
+                                updatedAtEpochMs = System.currentTimeMillis(),
+                                listStatus = "PLANNING",
+                                malId = anime.malId ?: existing?.malId,
+                            ),
+                        )
+                        val token = aniListAuth.accessToken
+                        if (token != null) {
+                            aniList.saveList(token, anime.id, status = "PLANNING")
+                        }
+                    }
+                }
+                val openAt: (AnimeSummary, Int?) -> Unit = { anime, episode ->
+                    val known = site.anikitty.app.data.demo.DemoLibrary.find(anime.id)
+                    if (!demo && known == null) {
+                        scope.launch { historyDao.touchFromCatalog(anime) }
+                    }
+                    onOpen(known ?: anime, episode)
+                }
+                fun railEntries(items: List<AnimeSummary>, dates: Map<Int, String> = emptyMap()) =
+                    items.map { anime ->
+                        HomeRailEntry(
+                            id = anime.id,
+                            title = anime.title,
+                            imageUrl = anime.coverImageUrl,
+                            meta = homeRailMeta(anime, dates[anime.id]),
+                            live = anime.status.equals("RELEASING", ignoreCase = true),
+                            onClick = { openAt(anime, null) },
+                        )
+                    }
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val wideHome = maxWidth >= 600.dp
                 LazyColumn(
                     state = homeListState,
                     modifier = Modifier.nestedScroll(rememberDockScroll()),
@@ -1177,13 +1228,58 @@ private fun HomeFeed(
                         HomeShelfChips(selected = shelf, onSelect = { onShelfName(it.name) })
                     }
                     val phoneSections = homeLayout.sections()
+                    val stageIds = setOf("featured", "fresh", "airing", "upcoming")
+                    var stagePlaced = false
                     phoneSections.forEach { section ->
                         if (!section.enabled) return@forEach
+                        if (wideHome && section.id in stageIds) {
+                            if (!stagePlaced) {
+                                stagePlaced = true
+                                item(key = "miruro-stage", contentType = "stage") {
+                                    val enabled = phoneSections.filter { it.enabled }.map { it.id }.toSet()
+                                    HomeMiruroStage(
+                                        hero = heroItems,
+                                        showHero = "featured" in enabled,
+                                        latest = latestSlots,
+                                        showLatest = "fresh" in enabled,
+                                        airing = railEntries(topAiringItems),
+                                        showAiring = "airing" in enabled,
+                                        upcoming = railEntries(upcomingItems, upcomingDates),
+                                        showUpcoming = "upcoming" in enabled,
+                                        logos = heroLogos,
+                                        savedIds = savedIds,
+                                        onOpen = { openAt(it, null) },
+                                        onWatch = { anime ->
+                                            val episode = history.firstOrNull { it.anilistId == anime.id }
+                                                ?.episode
+                                                ?.takeIf { it > 0 }
+                                                ?: 1
+                                            openAt(anime, episode)
+                                        },
+                                        onAdd = ::addToPlan,
+                                        onLatest = { slot -> openAt(slot.anime, slot.episode) },
+                                    )
+                                }
+                            }
+                            return@forEach
+                        }
                         when (section.id) {
                             "featured" -> {
-                                val hero = trending.filter { it.onShelf(shelf) }
-                                if (hero.isNotEmpty()) item(key = "featured", contentType = "hero") {
-                                    HomeFeatured(items = hero, onOpen = openCatalog, logos = heroLogos)
+                                if (heroItems.isNotEmpty()) item(key = "featured", contentType = "hero") {
+                                    HomeFeatured(
+                                        items = heroItems,
+                                        onOpen = { openAt(it, null) },
+                                        onWatch = { anime ->
+                                            val episode = history.firstOrNull { it.anilistId == anime.id }
+                                                ?.episode
+                                                ?.takeIf { it > 0 }
+                                                ?: 1
+                                            openAt(anime, episode)
+                                        },
+                                        onAdd = ::addToPlan,
+                                        savedIds = savedIds,
+                                        logos = heroLogos,
+                                    )
                                 }
                             }
                             "continue" -> {
@@ -1254,35 +1350,19 @@ private fun HomeFeed(
                                 }
                             }
                             "fresh" -> {
-                                val nowSec = System.currentTimeMillis() / 1000L
-                                val fresh = airingToday.filter {
-                                    it.airingAtEpochSec < nowSec - 20 * 60 && it.anime.onShelf(shelf)
-                                }
-                                if (fresh.isNotEmpty()) item(key = "fresh", contentType = "fresh") {
-                                    HomeBlock(title = "New episodes", subtitle = "Stills from today's airings") {
-                                        HomeContinueRow(
-                                            fresh.take(8).map { slot ->
-                                                HomeContinueCard(
-                                                    id = slot.anime.id * 1000 + slot.episode,
-                                                    title = slot.anime.title,
-                                                    imageUrl = stills["air-${slot.anime.id}-${slot.episode}"]
-                                                        ?: slot.anime.bannerImageUrl
-                                                        ?: slot.anime.coverImageUrl,
-                                                    label = freshLabel(slot),
-                                                    progress = 0f,
-                                                    onClick = { openCatalog(slot.anime) },
-                                                )
-                                            },
-                                        )
-                                    }
+                                if (latestSlots.isNotEmpty()) item(key = "fresh", contentType = "fresh") {
+                                    HomeLatestEpisodes(
+                                        slots = latestSlots,
+                                        onOpen = { slot -> openAt(slot.anime, slot.episode) },
+                                    )
                                 }
                             }
                             "upcoming" -> {
-                                val shownUpcoming = upcoming.filter { it.onShelf(shelf) }
-                                if (shownUpcoming.isNotEmpty()) item(key = "upcoming", contentType = "upcoming") {
-                                    HomeBlock(title = "Upcoming", subtitle = "TMDB release dates") {
-                                        HomePosterRow(items = shownUpcoming, onOpen = openCatalog, captions = upcomingDates)
-                                    }
+                                if (upcomingItems.isNotEmpty()) item(key = "upcoming", contentType = "upcoming") {
+                                    HomeRail(
+                                        title = "Upcoming",
+                                        entries = railEntries(upcomingItems, upcomingDates),
+                                    )
                                 }
                             }
                             "rated" -> {
@@ -1329,33 +1409,11 @@ private fun HomeFeed(
                                 }
                             }
                             "airing" -> {
-                                val now = System.currentTimeMillis() / 1000L
-                                val airingShelf = airingToday.filter {
-                                    it.airingAtEpochSec >= now - 20 * 60 && it.anime.onShelf(shelf)
-                                }
-                                if (airingShelf.isNotEmpty()) item(key = "airing", contentType = "airing") {
-                                val shown = airingShelf.take(5)
-                                HomeBlock(
-                                    title = "Airing today",
-                                    onMore = onOpenSchedule,
-                                ) {
-                                    HomeAiringRow(
-                                        shown.map { slot ->
-                                            HomeAiringCard(
-                                                key = "${slot.anime.id}-${slot.episode}-${slot.airingAtEpochSec}",
-                                                title = slot.anime.title,
-                                                imageUrl = slot.anime.coverImageUrl,
-                                                whenLabel = airingLabel(
-                                                    slot.airingAtEpochSec,
-                                                    now,
-                                                    airingClock.format(java.util.Date(slot.airingAtEpochSec * 1000L)),
-                                                ),
-                                                episodeLabel = "Episode ${slot.episode}",
-                                                onClick = { openCatalog(slot.anime) },
-                                            )
-                                        },
+                                if (topAiringItems.isNotEmpty()) item(key = "airing", contentType = "airing") {
+                                    HomeRail(
+                                        title = "Top airing",
+                                        entries = railEntries(topAiringItems),
                                     )
-                                }
                                 }
                             }
                             "season" -> {
@@ -1457,6 +1515,7 @@ private fun HomeFeed(
                             }
                         }
                     }
+                }
                 }
             }
         }
