@@ -263,7 +263,7 @@ internal fun HomeFeatured(
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .padding(start = 16.dp, end = 16.dp, bottom = 14.dp, top = 16.dp)
+                        .padding(start = 16.dp, end = 16.dp, bottom = 28.dp, top = 16.dp)
                         .fillMaxWidth(),
                 ) {
                     val logo = logos[anime.id]
@@ -356,27 +356,27 @@ internal fun HomeFeatured(
                             )
                         }
                     }
-                    if (pages.size > 1) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            repeat(pages.size) { index ->
-                                val selected = pagerState.currentPage == index
-                                Box(
-                                    modifier = Modifier
-                                        .padding(horizontal = 3.dp)
-                                        .size(if (selected) 7.dp else 5.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (selected) Color.White else Color.White.copy(alpha = 0.35f),
-                                        ),
-                                )
-                            }
-                        }
-                    }
+                }
+            }
+        }
+        if (pages.size > 1) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                repeat(pages.size) { index ->
+                    val selected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (selected) 7.dp else 5.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selected) Color.White else Color.White.copy(alpha = 0.35f),
+                            ),
+                    )
                 }
             }
         }
