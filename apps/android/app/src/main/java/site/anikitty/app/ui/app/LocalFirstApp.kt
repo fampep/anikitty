@@ -158,6 +158,7 @@ import site.anikitty.app.data.local.continueQueue
 import site.anikitty.app.data.local.markEpisode
 import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.data.servers.PlayableSource
+import site.anikitty.app.data.servers.ProviderLatestMapper
 import site.anikitty.app.data.servers.ServerCatalog
 import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.EpisodeCarousel
@@ -449,6 +450,7 @@ fun LocalFirstApp(
                     demo = demo,
                     history = history,
                     historyDao = historyDao,
+                    streamServers = streamServers,
                     onOpen = { anime, ep -> openDetail(anime, ep) },
                     onOpenSearch = { tab = "search" },
                     onOpenGenre = { genre ->
@@ -874,6 +876,7 @@ private fun HomeFeed(
     demo: Boolean = false,
     history: List<WatchHistoryEntity>,
     historyDao: WatchHistoryDao,
+    streamServers: ServerCatalog,
     onOpen: (AnimeSummary, Int?) -> Unit,
     onOpenSearch: () -> Unit,
     onOpenGenre: (String) -> Unit,
@@ -897,12 +900,48 @@ private fun HomeFeed(
     var catalogJob by remember { mutableStateOf<Job?>(null) }
     val catalogBusy = loading || refreshing
     var airingToday by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        if (demo) return@LaunchedEffect
-        val now = System.currentTimeMillis() / 1000L
-        airingToday = runCatching {
-            aniList.airingSchedule(now - 36 * 60 * 60, now, newestFirst = true)
-        }.getOrDefault(emptyList())
+    var latestDub by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
+    LaunchedEffect(demo) {
+        if (demo) {
+            val now = System.currentTimeMillis() / 1000L
+            val demoSlots = site.anikitty.app.data.demo.DemoLibrary.airing(now)
+            airingToday = demoSlots
+            latestDub = demoSlots.filter { (it.dubEpisodes ?: 0) > 0 }.map { slot ->
+                slot.copy(episode = slot.dubEpisodes ?: slot.episode)
+            }
+            return@LaunchedEffect
+        }
+        val known = (trending + seasonal).associateBy { it.id }
+        val (subItems, dubItems) = coroutineScope {
+            val scrapedSub = async {
+                runCatching { streamServers.anikotoLatestUpdates("sub") }.getOrDefault(emptyList())
+            }
+            val scrapedDub = async {
+                runCatching { streamServers.anikotoLatestUpdates("dub") }.getOrDefault(emptyList())
+            }
+            scrapedSub.await() to scrapedDub.await()
+        }
+        val mappedSub = if (subItems.isNotEmpty()) {
+            ProviderLatestMapper.toSlots(subItems, "sub", aniList, known)
+        } else {
+            emptyList()
+        }
+        val mappedDub = if (dubItems.isNotEmpty()) {
+            ProviderLatestMapper.toSlots(dubItems, "dub", aniList, known)
+        } else {
+            emptyList()
+        }
+        if (mappedSub.isNotEmpty() || mappedDub.isNotEmpty()) {
+            // Keep Sub and Dub lists separate — never show Dub cards under Sub.
+            airingToday = mappedSub
+            latestDub = mappedDub
+        } else {
+            val now = System.currentTimeMillis() / 1000L
+            airingToday = runCatching {
+                aniList.airingSchedule(now - 36 * 60 * 60, now, newestFirst = true)
+            }.getOrDefault(emptyList())
+            latestDub = emptyList()
+        }
     }
     val shelf = HomeShelf.entries.firstOrNull { it.name == shelfName } ?: HomeShelf.All
     val topWindow = HomeTopWindow.entries.firstOrNull { it.name == topWindowName } ?: HomeTopWindow.Season
@@ -1128,9 +1167,12 @@ private fun HomeFeed(
             }
             else -> {
                 val nowSec = System.currentTimeMillis() / 1000L
-                val latestSlots = airingToday
-                    .filter { it.airingAtEpochSec <= nowSec && it.anime.onShelf(shelf) }
-                    .sortedByDescending { it.airingAtEpochSec }
+                fun AiringSlot.onLatestShelf(): Boolean {
+                    val aired = airingAtEpochSec <= 0L || airingAtEpochSec <= nowSec
+                    return aired && anime.onShelf(shelf)
+                }
+                val latestSlots = airingToday.filter { it.onLatestShelf() }
+                val latestDubSlots = latestDub.filter { it.onLatestShelf() }
                 val heroItems = trending.filter { it.onShelf(shelf) }
                 val topAiringItems = (seasonal + trending)
                     .filter { it.status.equals("RELEASING", ignoreCase = true) && it.onShelf(shelf) }
@@ -1226,6 +1268,7 @@ private fun HomeFeed(
                                         hero = heroItems,
                                         showHero = "featured" in enabled,
                                         latest = latestSlots,
+                                        latestDub = latestDubSlots,
                                         showLatest = "fresh" in enabled,
                                         airing = railEntries(topAiringItems),
                                         showAiring = "airing" in enabled,
@@ -1323,11 +1366,14 @@ private fun HomeFeed(
                                 }
                             }
                             "fresh" -> {
-                                if (latestSlots.isNotEmpty()) item(key = "fresh", contentType = "fresh") {
-                                    HomeLatestEpisodes(
-                                        slots = latestSlots,
-                                        onOpen = { slot -> openAt(slot.anime, slot.episode) },
-                                    )
+                                if (latestSlots.isNotEmpty() || latestDubSlots.isNotEmpty()) {
+                                    item(key = "fresh", contentType = "fresh") {
+                                        HomeLatestEpisodes(
+                                            slots = latestSlots,
+                                            dubSlots = latestDubSlots,
+                                            onOpen = { slot -> openAt(slot.anime, slot.episode) },
+                                        )
+                                    }
                                 }
                             }
                             "upcoming" -> {
@@ -3045,6 +3091,13 @@ private fun TitleDetailScreen(
             )
         },
         onOpenGenre = onOpenGenre,
+        loadAudioAvailability = if (sampleTitle) {
+            null
+        } else {
+            { title ->
+                streamServers.anikotoAudioAvailability(title.id, title.streamTitleHint())
+            }
+        },
     )
 }
 

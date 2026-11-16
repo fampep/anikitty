@@ -1,18 +1,27 @@
 <div align="center">
-  <img src="docs/brand/anikitty-icon-512.png" alt="AniKitty" width="120" height="120">
+  <img src="docs/brand/anikitty-icon-512.png" alt="AniKitty" width="96" height="96">
 
   <h1>AniKitty</h1>
 
-  <p>Your AniList, on the phone. The catalog comes from AniList. The video plays with Media3.</p>
+  <p><strong>Your AniList, on the phone.</strong><br>
+  Catalog from AniList. Playback with Media3. Progress stays on device.</p>
 
   <p>
-    <a href="https://github.com/fampep/anikitty/releases/latest"><img src="https://img.shields.io/github/v/release/fampep/anikitty?display_name=tag&style=for-the-badge&label=stable&labelColor=black&color=white" alt="Latest stable release"></a>
-    <a href="https://github.com/fampep/anikitty/releases"><img src="https://img.shields.io/github/v/release/fampep/anikitty?include_prereleases&display_name=tag&style=for-the-badge&label=dev&labelColor=black&color=white" alt="Latest release, including dev builds"></a>
-    <a href="https://github.com/fampep/anikitty/releases"><img src="https://img.shields.io/github/downloads/fampep/anikitty/total?style=for-the-badge&label=downloads&labelColor=black&color=white" alt="Downloads"></a>
-    <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-white?labelColor=black&style=for-the-badge" alt="Apache License 2.0"></a>
-    <img src="https://img.shields.io/badge/platform-Android_8%2B-white?labelColor=black&style=for-the-badge" alt="Android 8 or newer">
+    <a href="https://github.com/fampep/anikitty/releases/latest"><img src="https://img.shields.io/github/v/release/fampep/anikitty?display_name=tag&style=for-the-badge&label=stable&labelColor=0a0a0a&color=f5f5f5" alt="Latest stable release"></a>
+    <a href="https://github.com/fampep/anikitty/releases"><img src="https://img.shields.io/github/v/release/fampep/anikitty?include_prereleases&display_name=tag&style=for-the-badge&label=dev&labelColor=0a0a0a&color=f5f5f5" alt="Latest release, including dev builds"></a>
+    <a href="https://github.com/fampep/anikitty/releases"><img src="https://img.shields.io/github/downloads/fampep/anikitty/total?style=for-the-badge&label=downloads&labelColor=0a0a0a&color=f5f5f5" alt="Downloads"></a>
+    <a href="https://github.com/fampep/anikitty/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache_2.0-f5f5f5?labelColor=0a0a0a&style=for-the-badge" alt="Apache License 2.0"></a>
+    <img src="https://img.shields.io/badge/Android-8%2B-f5f5f5?labelColor=0a0a0a&style=for-the-badge" alt="Android 8 or newer">
   </p>
 </div>
+
+<p align="center">
+  <img src="docs/screenshots/home.png" alt="Home" width="260">
+  &nbsp;
+  <img src="docs/screenshots/title.png" alt="Title page" width="260">
+</p>
+
+<p align="center">Home and a title page on Pixel 8 — AniList catalog, true Sub / Dub latest.</p>
 
 > [!WARNING]
 > **Unofficial.** AniKitty is not affiliated with AniList, MyAnimeList, any studio, or any streaming site.
@@ -23,43 +32,42 @@
 >
 > **No warranty. Use at your own risk.** Sideload APKs only from the [official releases](https://github.com/fampep/anikitty/releases) of this repository. A file from anywhere else is not this project. Dev builds are unstable and can break from one day to the next.
 
-<p align="center">
-  <img src="docs/screenshots/home.png" alt="Home" width="260">
-  &nbsp;
-  <img src="docs/screenshots/title.png" alt="Title page" width="260">
-</p>
+## Get the APK
 
-<p align="center">Home and a title page, in Pixel frames.</p>
-
-## Download
-
-Package `site.anikitty.app`. Android 8 or newer.
+Package `site.anikitty.app` · Android 8+
 
 <p align="center">
-  <a href="https://github.com/fampep/anikitty/releases/latest"><img src="https://img.shields.io/badge/download-stable-white?style=for-the-badge&labelColor=black" alt="Download the latest stable release"></a>
+  <a href="https://github.com/fampep/anikitty/releases/latest"><img src="https://img.shields.io/badge/download-stable-f5f5f5?style=for-the-badge&labelColor=0a0a0a" alt="Download the latest stable release"></a>
   &nbsp;
-  <a href="https://github.com/fampep/anikitty/releases/download/dev/anikitty-dev.apk"><img src="https://img.shields.io/badge/download-dev-white?style=for-the-badge&labelColor=black" alt="Download the latest dev build"></a>
+  <a href="https://github.com/fampep/anikitty/releases/download/dev/anikitty-dev.apk"><img src="https://img.shields.io/badge/download-dev-f5f5f5?style=for-the-badge&labelColor=0a0a0a" alt="Download the latest dev build"></a>
 </p>
 
-Stable is the latest stable release. Dev is the rolling `anikitty-dev.apk`. A push to `main` publishes a signed dev build. Dev builds are newer and unstable.
+Stable is the latest tagged release. Dev is the rolling `anikitty-dev.apk` — every push to `main` publishes a signed build. Prefer stable unless you want the newest (and breakiest) bits.
 
-## What it does
+## What you get
 
-- The catalog is AniList. Search, the season, and a title page use it.
-- The player is Media3, on the phone. Watch progress stays on the device.
-- **Anikoto**, **Gotaku**, **reanime**, and **mkissa** ship in the app. Anything else is an extension you add. The app does not preload one. Anikoto tries anikoto.cz first and [kotoplay.to](https://kotoplay.to/) when Anikoto is down or has no source. Those sites can change their player without notice, and a title can stop playing when they do.
-- The phone asks a resolver for a URL and plays that URL. It does not upload an episode and it does not keep a copy.
+| | |
+| --- | --- |
+| **Catalog** | AniList search, season, schedule, and title pages |
+| **Series** | Related TV / ONA entries the AniList way (prequel / sequel). TMDB is for banner, logo, and stills |
+| **Latest** | True Sub / Dub episode counts from the scrape widgets, not just air dates |
+| **Player** | Media3 on-device. Watch progress stays on the phone |
+| **Sources** | **Anikoto**, **Gotaku**, **reanime**, and **mkissa** ship in-app. Anything else is an extension you add |
+
+Anikoto tries anikoto.cz first and [kotoplay.to](https://kotoplay.to/) when Anikoto is down or has no source. Sites change their players without notice — a title can stop playing when they do. The phone asks a resolver for a URL and plays that URL. It does not upload an episode and it does not keep a copy.
+
+## Build
 
 ```bash
 cd apps/android
 ./gradlew :app:assembleRelease
 ```
 
-The version comes from [`VERSION`](VERSION). Extension authors: [`extensions/GUIDE.md`](extensions/GUIDE.md).
+Version comes from [`VERSION`](VERSION). Extension authors: [`extensions/GUIDE.md`](extensions/GUIDE.md).
 
 ## License
 
-Copyright 2026 fampep. [Apache License 2.0](LICENSE).
+Copyright 2026 fampep · [Apache License 2.0](LICENSE)
 
 ## Disclaimer
 
@@ -77,4 +85,4 @@ Community extensions are not part of this repository. See [`extensions/DISCLAIME
 
 This product uses the TMDB API but is not endorsed or certified by TMDB.
 
-Questions and bugs go in [GitHub issues](https://github.com/fampep/anikitty/issues). Pull requests: [CONTRIBUTING.md](CONTRIBUTING.md).
+Questions and bugs → [GitHub issues](https://github.com/fampep/anikitty/issues). Pull requests → [CONTRIBUTING.md](CONTRIBUTING.md).
