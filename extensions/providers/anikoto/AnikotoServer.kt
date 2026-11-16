@@ -226,6 +226,51 @@ class AnikotoServer(
     }
 
     /**
+     * Home "Latest Episode" cards from Anikoto, with true Sub / Dub download counts.
+     * [kind] is `all`, `sub`, or `dub` (Anikoto widget names `updated-*`).
+     */
+    suspend fun latestUpdates(kind: String = "all", page: Int = 1): List<AnikotoLatestItem> =
+        withContext(Dispatchers.IO) {
+            if (!hostAnswers(ANIKOTO_BASE)) return@withContext emptyList()
+            val tab = when (kind.lowercase()) {
+                "sub" -> "updated-sub"
+                "dub" -> "updated-dub"
+                else -> "updated-all"
+            }
+            val safePage = page.coerceIn(1, 8)
+            runCatching {
+                val data = fetchJson(
+                    "$ANIKOTO_BASE/ajax/home/widget/$tab?page=$safePage",
+                    "$ANIKOTO_BASE/",
+                )
+                val statusOk = data.optInt("status", 0) == 200 ||
+                    data.optString("status") == "200"
+                if (!statusOk) return@runCatching emptyList()
+                AnikotoLatestParser.parseWidgetHtml(data.optString("result"))
+            }.getOrDefault(emptyList())
+        }
+
+    /**
+     * Highest Sub / Dub episode numbers Anikoto actually hosts for this title.
+     * Used by the title About grid ("7 Sub · 4 Dub").
+     */
+    suspend fun audioAvailability(
+        anilistId: Int,
+        titleHint: String?,
+    ): AnikotoAudioAvailability? = withContext(Dispatchers.IO) {
+        if (anilistId <= 0 || !hostAnswers(ANIKOTO_BASE)) return@withContext null
+        runCatching {
+            val (titles, malId) = hintParts(titleHint)
+            val mapped = mapWatchPage(anilistId, titles, malId)
+            val eps = fetchEpisodes(mapped.siteId, mapped.watchUrl)
+            val sub = eps.filter { it.hasSub }.maxOfOrNull { it.number } ?: 0
+            val dub = eps.filter { it.hasDub }.maxOfOrNull { it.number } ?: 0
+            if (sub <= 0 && dub <= 0) null
+            else AnikotoAudioAvailability(latestSub = sub, latestDub = dub)
+        }.getOrNull()
+    }
+
+    /**
      * Intro and credits published by Anikoto for this episode.
      * Used for every stream provider — playback can be Gotaku or anything else,
      * the skip window still comes from Anikoto's episode page.

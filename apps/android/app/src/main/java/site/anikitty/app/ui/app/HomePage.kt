@@ -815,8 +815,9 @@ internal fun HomeLatestEpisodes(
     slots: List<AiringSlot>,
     onOpen: (AiringSlot) -> Unit,
     inset: Boolean = true,
+    /** When set, Sub / Dub switches between true scrape-site lists. */
+    dubSlots: List<AiringSlot> = emptyList(),
 ) {
-    if (slots.isEmpty()) return
     val palette = LocalKittyPalette.current
     val context = LocalContext.current
     val prefs = remember {
@@ -826,6 +827,13 @@ internal fun HomeLatestEpisodes(
         mutableStateOf(prefs.getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub")
     }
     var page by rememberSaveable { mutableIntStateOf(0) }
+    val active = when {
+        audio == "dub" && dubSlots.isNotEmpty() -> dubSlots
+        else -> slots
+    }
+    if (active.isEmpty() && slots.isEmpty() && dubSlots.isEmpty()) return
+    // Reset paging when the audio list changes length.
+    LaunchedEffect(audio, active.size) { page = 0 }
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
@@ -838,7 +846,7 @@ internal fun HomeLatestEpisodes(
             else -> 3
         }
         val pageSize = columns * 2
-        val paged = slots.take(pageSize * 4)
+        val paged = active.take(pageSize * 4)
         val pageCount = ((paged.size + pageSize - 1) / pageSize).coerceAtLeast(1)
         val safePage = page.coerceIn(0, pageCount - 1)
         val shown = paged.drop(safePage * pageSize).take(pageSize)
@@ -858,7 +866,11 @@ internal fun HomeLatestEpisodes(
                     prefs.edit().putString("audio", "sub").apply()
                 }
                 Spacer(modifier = Modifier.width(6.dp))
-                HomeAudioChip(label = "Dub", selected = audio == "dub") {
+                HomeAudioChip(
+                    label = "Dub",
+                    selected = audio == "dub",
+                    enabled = dubSlots.isNotEmpty() || slots.any { (it.dubEpisodes ?: 0) > 0 },
+                ) {
                     audio = "dub"
                     prefs.edit().putString("audio", "dub").apply()
                 }
@@ -885,18 +897,29 @@ internal fun HomeLatestEpisodes(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                shown.chunked(columns).forEach { row ->
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        row.forEach { slot ->
-                            HomeLatestCell(
-                                slot = slot,
-                                onOpen = onOpen,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        repeat(columns - row.size) {
-                            Spacer(modifier = Modifier.weight(1f))
+            if (shown.isEmpty()) {
+                Text(
+                    if (audio == "dub") "No dubbed episodes on the scrape site yet."
+                    else "No recent subbed episodes yet.",
+                    color = palette.muted,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(vertical = 8.dp),
+                )
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    shown.chunked(columns).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            row.forEach { slot ->
+                                HomeLatestCell(
+                                    slot = slot.forAudio(audio),
+                                    audio = audio,
+                                    onOpen = onOpen,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            repeat(columns - row.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -905,23 +928,38 @@ internal fun HomeLatestEpisodes(
     }
 }
 
+private fun AiringSlot.forAudio(audio: String): AiringSlot {
+    val dub = audio.equals("dub", ignoreCase = true)
+    val preferred = if (dub) dubEpisodes else subEpisodes
+    return if (preferred != null && preferred > 0 && preferred != episode) {
+        copy(episode = preferred)
+    } else {
+        this
+    }
+}
+
 @Composable
 private fun HomeAudioChip(
     label: String,
     selected: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     val palette = LocalKittyPalette.current
     Text(
         label,
-        color = if (selected) palette.page else palette.text,
+        color = when {
+            selected -> palette.page
+            enabled -> palette.text
+            else -> palette.faint
+        },
         fontWeight = FontWeight.SemiBold,
         fontSize = 12.sp,
         modifier = Modifier
             .clip(RoundedCornerShape(14.dp))
             .background(if (selected) palette.text else Color.Transparent)
             .border(1.dp, if (selected) palette.text else Hairline, RoundedCornerShape(14.dp))
-            .spacePress(onClick)
+            .then(if (enabled) Modifier.spacePress(onClick) else Modifier)
             .padding(horizontal = 10.dp, vertical = 5.dp),
     )
 }
@@ -955,10 +993,12 @@ private fun HomeLatestCell(
     slot: AiringSlot,
     onOpen: (AiringSlot) -> Unit,
     modifier: Modifier = Modifier,
+    audio: String = "sub",
 ) {
     val palette = LocalKittyPalette.current
     val anime = slot.anime
     val ago = watchedAgo(slot.airingAtEpochSec * 1000L)
+    val audioTag = if (audio.equals("dub", true)) "Dub" else "Sub"
     Column(modifier = modifier.spacePress { onOpen(slot) }) {
         Box(
             modifier = Modifier
@@ -972,6 +1012,18 @@ private fun HomeLatestCell(
                 widthPx = 360,
                 heightPx = 540,
                 modifier = Modifier.fillMaxSize().sharedPoster(anime.id),
+            )
+            Text(
+                audioTag,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(6.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = 6.dp, vertical = 3.dp),
             )
             Row(
                 modifier = Modifier
@@ -1164,8 +1216,10 @@ internal fun HomeMiruroStage(
     onWatch: (AnimeSummary) -> Unit,
     onAdd: (AnimeSummary) -> Unit,
     onLatest: (AiringSlot) -> Unit,
+    latestDub: List<AiringSlot> = emptyList(),
 ) {
-    val showLeft = (showHero && hero.isNotEmpty()) || (showLatest && latest.isNotEmpty())
+    val hasLatest = latest.isNotEmpty() || latestDub.isNotEmpty()
+    val showLeft = (showHero && hero.isNotEmpty()) || (showLatest && hasLatest)
     val showRight = (showAiring && airing.isNotEmpty()) || (showUpcoming && upcoming.isNotEmpty())
     if (!showLeft && !showRight) return
     Row(
@@ -1188,8 +1242,13 @@ internal fun HomeMiruroStage(
                         inset = false,
                     )
                 }
-                if (showLatest && latest.isNotEmpty()) {
-                    HomeLatestEpisodes(slots = latest, onOpen = onLatest, inset = false)
+                if (showLatest && hasLatest) {
+                    HomeLatestEpisodes(
+                        slots = latest,
+                        dubSlots = latestDub,
+                        onOpen = onLatest,
+                        inset = false,
+                    )
                 }
             }
         }

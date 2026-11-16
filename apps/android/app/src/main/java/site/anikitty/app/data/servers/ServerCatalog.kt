@@ -83,6 +83,23 @@ class ServerCatalog(context: Context) {
         return anikoto.loadSkipTimes(anilistId, episode, titleHint)
     }
 
+    /** Latest Sub/Dub cards scraped from Anikoto's home widgets. */
+    suspend fun anikotoLatestUpdates(kind: String = "all"): List<AnikotoLatestItem> {
+        val anikoto = bundled.filterIsInstance<AnikotoServer>().firstOrNull()
+            ?: return emptyList()
+        return anikoto.latestUpdates(kind)
+    }
+
+    /** True Sub/Dub episode counts hosted on Anikoto for one title. */
+    suspend fun anikotoAudioAvailability(
+        anilistId: Int,
+        titleHint: String?,
+    ): AnikotoAudioAvailability? {
+        val anikoto = bundled.filterIsInstance<AnikotoServer>().firstOrNull()
+            ?: return null
+        return anikoto.audioAvailability(anilistId, titleHint)
+    }
+
     fun selectedResolver(): StreamResolver {
         val list = _resolvers.value
         return list.firstOrNull { it.server.id == _selectedId.value }

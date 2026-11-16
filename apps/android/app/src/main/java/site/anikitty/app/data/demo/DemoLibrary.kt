@@ -218,11 +218,11 @@ object DemoLibrary {
     fun find(id: Int): AnimeSummary? = catalog.firstOrNull { it.id == id }
 
     fun airing(nowEpochSec: Long): List<AiringSlot> = listOf(
-        AiringSlot(glass, 7, nowEpochSec - 6 * 60 * 60),
-        AiringSlot(garden, 3, nowEpochSec - 2 * 60 * 60),
-        AiringSlot(tide, 4, nowEpochSec - 50 * 60),
-        AiringSlot(harbor, 5, nowEpochSec + 50 * 60),
-        AiringSlot(night, 8, nowEpochSec + 3 * 60 * 60),
+        AiringSlot(glass, 7, nowEpochSec - 6 * 60 * 60, subEpisodes = 7, dubEpisodes = 4),
+        AiringSlot(garden, 3, nowEpochSec - 2 * 60 * 60, subEpisodes = 3, dubEpisodes = 3),
+        AiringSlot(tide, 4, nowEpochSec - 50 * 60, subEpisodes = 4, dubEpisodes = null),
+        AiringSlot(harbor, 5, nowEpochSec + 50 * 60, subEpisodes = 5, dubEpisodes = 2),
+        AiringSlot(night, 8, nowEpochSec + 3 * 60 * 60, subEpisodes = 8, dubEpisodes = 8),
     )
 
     private fun row(

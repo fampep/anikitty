@@ -84,14 +84,11 @@ import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.anilist.MediaRank
 import site.anikitty.app.data.tmdb.EpisodeDetail
 import site.anikitty.app.data.tmdb.PersonProfile
-import site.anikitty.app.data.tmdb.SeasonChip
 import site.anikitty.app.data.tmdb.TitleArt
 import site.anikitty.app.data.tmdb.TmdbCatalog
 import site.anikitty.app.data.tmdb.tmdbEpisodeNumber
 import site.anikitty.app.data.tmdb.preferEpisodeTitle
 import site.anikitty.app.data.tmdb.preferStill
-import site.anikitty.app.data.tmdb.seasonNumberFromTitle
-import site.anikitty.app.data.tmdb.seasonSelectorLabel
 import site.anikitty.app.data.tmdb.transparentLogo
 import site.anikitty.app.data.tmdb.VideoClip
 import site.anikitty.app.data.servers.StreamServer
@@ -160,6 +157,7 @@ internal fun TitleStage(
     onOpenRelated: (AnimeSummary) -> Unit,
     onOpenRelation: (AnimeRelation) -> Unit,
     onOpenGenre: (String) -> Unit,
+    loadAudioAvailability: (suspend (AnimeSummary) -> site.anikitty.app.data.servers.AnikotoAudioAvailability?)? = null,
 ) {
     val palette = LocalKittyPalette.current
     val reduced = prefersReducedMotion()
@@ -167,71 +165,49 @@ internal fun TitleStage(
     val tmdb = remember { TmdbCatalog(context) }
     var art by remember(detail.id) { mutableStateOf<TitleArt?>(null) }
     var backdropIndex by remember(detail.id) { mutableStateOf(0) }
-    var shelfSeason by remember(detail.id) { mutableStateOf<Int?>(null) }
-    var shelf by remember(detail.id) { mutableStateOf<Map<Int, site.anikitty.app.data.tmdb.TmdbEpisode>>(emptyMap()) }
     var episodeSheet by remember(detail.id) { mutableStateOf<EpisodeSlide?>(null) }
     var episodeDetail by remember(detail.id) { mutableStateOf<EpisodeDetail?>(null) }
     var tmdbPersonId by remember(detail.id) { mutableStateOf<Int?>(null) }
     var personProfile by remember(detail.id) { mutableStateOf<PersonProfile?>(null) }
     var showCast by remember(detail.id) { mutableStateOf(false) }
+    var audioAvailability by remember(detail.id) {
+        mutableStateOf<site.anikitty.app.data.servers.AnikotoAudioAvailability?>(null)
+    }
+    LaunchedEffect(detail.id, detail.streamTitleHint(), loadAudioAvailability) {
+        audioAvailability = null
+        val loader = loadAudioAvailability ?: return@LaunchedEffect
+        audioAvailability = runCatching { loader(detail) }.getOrNull()
+    }
     LaunchedEffect(detail.id, detail.title, detail.seasonYear, detail.format, detail.detailLoaded) {
         art = withContext(Dispatchers.IO) { tmdb.load(detail) }
-        shelfSeason = null
-        shelf = emptyMap()
     }
-    LaunchedEffect(art?.tmdbId, shelfSeason) {
-        val current = art ?: return@LaunchedEffect
-        val season = shelfSeason ?: return@LaunchedEffect
-        if (season == current.seasonNumber) {
-            shelf = emptyMap()
-            return@LaunchedEffect
-        }
-        shelf = withContext(Dispatchers.IO) { tmdb.seasonShelf(current.tmdbId, season) }
-    }
-    LaunchedEffect(episodeSheet?.number, art?.tmdbId, shelfSeason, art?.seasonNumber, art?.episodeOffset) {
+    LaunchedEffect(episodeSheet?.number, art?.tmdbId, art?.seasonNumber, art?.episodeOffset) {
         val slide = episodeSheet ?: return@LaunchedEffect
         val current = art ?: return@LaunchedEffect
         if (current.tmdbId <= 0) return@LaunchedEffect
-        val season = shelfSeason ?: current.seasonNumber ?: return@LaunchedEffect
-        val number = if (season == current.seasonNumber) {
-            tmdbEpisodeNumber(slide.number, current.episodeOffset)
-        } else {
-            slide.number
-        }
+        val season = current.seasonNumber ?: return@LaunchedEffect
+        val number = tmdbEpisodeNumber(slide.number, current.episodeOffset)
         episodeDetail = withContext(Dispatchers.IO) { tmdb.episodeDetail(current.tmdbId, season, number) }
     }
     LaunchedEffect(tmdbPersonId) {
         val id = tmdbPersonId ?: return@LaunchedEffect
         personProfile = withContext(Dispatchers.IO) { tmdb.person(id) }
     }
-    val slides = remember(episodeSlides, art, shelf, shelfSeason) {
-        val browsing = shelfSeason != null && shelfSeason != art?.seasonNumber && shelf.isNotEmpty()
-        if (browsing) {
-            shelf.entries.sortedBy { it.key }.map { (number, episode) ->
-                EpisodeSlide(
-                    number = number,
-                    title = episode.title.ifBlank { "Episode $number" },
-                    imageUrl = episode.stillUrl,
-                    airLabel = episode.airLabel,
-                    overview = episode.overview,
-                    runtimeMinutes = episode.runtimeMinutes,
-                )
-            }
+    // Episode list stays on AniList media. TMDB only enriches stills/titles for this title.
+    val slides = remember(episodeSlides, art) {
+        val episodes = art?.episodes.orEmpty()
+        if (episodes.isEmpty()) {
+            episodeSlides
         } else {
-            val episodes = art?.episodes.orEmpty()
-            if (episodes.isEmpty()) {
-                episodeSlides
-            } else {
-                episodeSlides.map { slide ->
-                    val episodeArt = episodes[slide.number]
-                    slide.copy(
-                        title = preferEpisodeTitle(slide.title, slide.number, episodeArt?.title),
-                        imageUrl = preferStill(slide.imageUrl, episodeArt?.stillUrl),
-                        airLabel = episodeArt?.airLabel ?: slide.airLabel,
-                        overview = episodeArt?.overview,
-                        runtimeMinutes = episodeArt?.runtimeMinutes ?: slide.runtimeMinutes,
-                    )
-                }
+            episodeSlides.map { slide ->
+                val episodeArt = episodes[slide.number]
+                slide.copy(
+                    title = preferEpisodeTitle(slide.title, slide.number, episodeArt?.title),
+                    imageUrl = preferStill(slide.imageUrl, episodeArt?.stillUrl),
+                    airLabel = episodeArt?.airLabel ?: slide.airLabel,
+                    overview = episodeArt?.overview,
+                    runtimeMinutes = episodeArt?.runtimeMinutes ?: slide.runtimeMinutes,
+                )
             }
         }
     }
@@ -576,7 +552,7 @@ internal fun TitleStage(
                         }
                     }
                 } else {
-                    AboutAnimeBlock(detail)
+                    AboutAnimeBlock(detail, audioAvailability)
                 }
             }
             item(key = "episodes", contentType = "episodes") {
@@ -608,15 +584,11 @@ internal fun TitleStage(
                         onToggleWatched = onToggleWatched,
                         onOpenRelation = onOpenRelation,
                         activeServer = activeServer,
-                        tmdbSeasons = art?.seasons.orEmpty(),
-                        selectedSeason = shelfSeason ?: art?.seasonNumber,
-                        onSeason = { shelfSeason = it },
                         episodeNote = slides.firstOrNull { it.number == episode }?.overview,
                         onInspect = { episodeSheet = it },
                         fallbackArt = art?.backdrops?.firstOrNull()
                             ?: detail.bannerImageUrl
                             ?: detail.coverImageUrl,
-                        homeSeason = art?.seasonNumber,
                     )
                 }
             }
@@ -1136,88 +1108,24 @@ private data class SeasonChoice(
     val label: String,
     val selected: Boolean,
     val relation: AnimeRelation? = null,
-    val tmdbSeason: Int? = null,
 )
 
+/**
+ * AniList season switcher only: PREQUEL/SEQUEL TV/ONA chain from [seasonTabs].
+ * TMDB season lists are never shown here — TMDB stays for banner / logo / stills.
+ */
 private fun seasonChoices(
     detail: AnimeSummary,
     seasonTabs: List<AnimeRelation>,
-    tmdbSeasons: List<SeasonChip>,
-    selectedSeason: Int?,
-    homeSeason: Int?,
 ): List<SeasonChoice> {
-    val currentNumber = seasonNumberFromTitle(detail.title) ?: homeSeason?.takeIf { it > 0 } ?: 1
-    if (seasonTabs.size > 1) {
-        val numbered = seasonTabs.map { tab ->
-            val number = if (tab.id == detail.id) {
-                currentNumber
-            } else {
-                seasonNumberFromTitle(tab.title) ?: 0
-            }
-            tab to number
-        }
-        val used = numbered.map { it.second }.filter { it > 0 }.toMutableSet()
-        var next = 1
-        val rows = numbered.map { (tab, raw) ->
-            val number = if (raw > 0) {
-                raw
-            } else {
-                while (next in used) next += 1
-                val assigned = next
-                used += assigned
-                next += 1
-                assigned
-            }
-            val tmdbName = if (tab.id == detail.id) {
-                tmdbSeasons.firstOrNull { it.number == number }?.name
-            } else {
-                null
-            }
-            SeasonChoice(
-                label = seasonSelectorLabel(number, tmdbName ?: tab.title),
-                selected = tab.id == detail.id,
-                relation = tab.takeIf { it.id != detail.id },
-                tmdbSeason = if (tab.id == detail.id) number else null,
-            )
-        }.toMutableList()
-        tmdbSeasons.firstOrNull { it.number <= 0 }?.let { specials ->
-            rows += SeasonChoice(
-                label = seasonSelectorLabel(0, specials.name),
-                selected = false,
-                tmdbSeason = specials.number,
-            )
-        }
-        val viewingSpecials = selectedSeason != null && selectedSeason <= 0
-        return rows
-            .map { choice ->
-                choice.copy(
-                    selected = if (viewingSpecials) choice.tmdbSeason != null && choice.tmdbSeason <= 0 else choice.selected,
-                )
-            }
-            .sortedBy { choice ->
-                when {
-                    choice.tmdbSeason != null && choice.tmdbSeason <= 0 -> 100
-                    else -> seasonNumberFromTitle(choice.label) ?: 50
-                }
-            }
-    }
-    if (tmdbSeasons.size > 1) {
-        val active = selectedSeason ?: homeSeason
-        return tmdbSeasons.map { season ->
-            SeasonChoice(
-                label = seasonSelectorLabel(season.number, season.name),
-                selected = season.number == active,
-                tmdbSeason = season.number,
-            )
-        }
-    }
-    return listOf(
+    if (seasonTabs.size <= 1) return emptyList()
+    return seasonTabs.map { tab ->
         SeasonChoice(
-            label = seasonSelectorLabel(currentNumber, detail.title),
-            selected = true,
-            tmdbSeason = currentNumber,
-        ),
-    )
+            label = tab.seriesSwitcherLabel(),
+            selected = tab.id == detail.id,
+            relation = tab.takeIf { it.id != detail.id },
+        )
+    }
 }
 
 @Composable
@@ -1312,26 +1220,23 @@ private fun EpisodeBlock(
     onToggleWatched: (Int) -> Unit,
     onOpenRelation: (AnimeRelation) -> Unit,
     activeServer: StreamServer?,
-    tmdbSeasons: List<SeasonChip> = emptyList(),
-    selectedSeason: Int? = null,
-    onSeason: (Int) -> Unit = {},
     episodeNote: String? = null,
     onInspect: (EpisodeSlide) -> Unit = {},
     fallbackArt: String? = null,
-    homeSeason: Int? = null,
 ) {
     val palette = LocalKittyPalette.current
-    val choices = remember(detail.id, seasonTabs, tmdbSeasons, selectedSeason, homeSeason) {
-        seasonChoices(detail, seasonTabs, tmdbSeasons, selectedSeason, homeSeason)
+    val choices = remember(detail.id, seasonTabs) {
+        seasonChoices(detail, seasonTabs)
     }
     val currentLabel = choices.firstOrNull { it.selected }?.label
         ?: choices.firstOrNull()?.label
+        ?: detail.seasonLabel()
     var seasonOpen by remember(detail.id) { mutableStateOf(false) }
     Column {
         KittySectionHeading(
             title = "Episodes",
             subtitle = when {
-                choices.size <= 1 && !currentLabel.isNullOrBlank() -> "$currentLabel · $maxEp"
+                !currentLabel.isNullOrBlank() -> "$currentLabel · $maxEp"
                 else -> "$maxEp"
             },
         )
@@ -1359,13 +1264,13 @@ private fun EpisodeBlock(
                 )
                 Icon(
                     Icons.Filled.KeyboardArrowDown,
-                    contentDescription = "Choose a season",
+                    contentDescription = "Choose related show",
                     tint = palette.text,
                 )
             }
         }
         if (seasonOpen) {
-            KittyBottomSheet(title = "Season", onDismiss = { seasonOpen = false }) {
+            KittyBottomSheet(title = "Related shows", onDismiss = { seasonOpen = false }) {
                 choices.forEach { choice ->
                     Text(
                         choice.label,
@@ -1377,10 +1282,7 @@ private fun EpisodeBlock(
                             .padding(vertical = 12.dp)
                             .spacePress {
                                 seasonOpen = false
-                                when {
-                                    choice.relation != null -> onOpenRelation(choice.relation)
-                                    choice.tmdbSeason != null -> onSeason(choice.tmdbSeason)
-                                }
+                                choice.relation?.let(onOpenRelation)
                             },
                     )
                 }
@@ -1712,10 +1614,17 @@ private fun PeopleRow(title: String, people: List<AnimePerson>, onOpen: (AnimePe
 }
 
 @Composable
-private fun AboutAnimeBlock(detail: AnimeSummary) {
+private fun AboutAnimeBlock(
+    detail: AnimeSummary,
+    audioAvailability: site.anikitty.app.data.servers.AnikotoAudioAvailability? = null,
+) {
     val episodeCount = detail.releasedEpisodeCount().takeIf { it > 0 } ?: detail.episodes
-    val episodeValue = episodeCount?.takeIf { it > 0 }?.let { count ->
-        if (detail.format.equals("MOVIE", true)) "1" else "$count"
+    val scrapeLabel = audioAvailability?.label()?.takeIf { it.isNotBlank() }
+    val episodeValue = when {
+        !scrapeLabel.isNullOrBlank() -> scrapeLabel
+        detail.format.equals("MOVIE", true) -> "1"
+        episodeCount != null && episodeCount > 0 -> "$episodeCount"
+        else -> null
     }
     val studios = detail.studios.filter { it.isNotBlank() }
     val studioValue = when {

@@ -77,6 +77,15 @@ data class AnimeRelation(
             else -> null
         }
     }
+
+    /**
+     * Title-page series switcher label (AniList media, not TMDB seasons).
+     * Prefer airing season + media title, e.g. "Fall 2023 · Jujutsu Kaisen 2nd Season".
+     */
+    fun seriesSwitcherLabel(): String {
+        val whenLabel = seasonLabel()
+        return if (whenLabel != null) "$whenLabel · $title" else title
+    }
 }
 
 @Immutable
@@ -106,6 +115,10 @@ data class AiringSlot(
     val anime: AnimeSummary,
     val episode: Int,
     val airingAtEpochSec: Long,
+    /** Highest Sub episode hosted on the scrape site, when known. */
+    val subEpisodes: Int? = null,
+    /** Highest Dub episode hosted on the scrape site, when known. */
+    val dubEpisodes: Int? = null,
 )
 
 @Immutable
