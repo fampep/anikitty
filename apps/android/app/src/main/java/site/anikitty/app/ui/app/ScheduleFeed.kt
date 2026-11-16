@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -68,6 +69,7 @@ fun ScheduleFeed(
     showBack: Boolean = true,
     bottomInset: Dp = 12.dp,
     followedEpisodes: Map<Int, Int> = emptyMap(),
+    inProgressIds: Set<Int> = emptySet(),
 ) {
     val days = remember { upcomingDays(5) }
     var selected by remember { mutableIntStateOf(0) }
@@ -159,8 +161,9 @@ fun ScheduleFeed(
                         .clip(shape)
                         .background(if (onlyMine) palette.text else palette.surface)
                         .border(1.dp, if (onlyMine) palette.text else palette.hairline, shape)
+                        .defaultMinSize(minHeight = 48.dp)
                         .clickable { onlyMine = !onlyMine }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                 )
             }
         }
@@ -183,7 +186,8 @@ fun ScheduleFeed(
                             if (on) palette.text else palette.hairline,
                             RoundedCornerShape(12.dp),
                         )
-                        .padding(vertical = 8.dp),
+                        .defaultMinSize(minHeight = 48.dp)
+                        .padding(vertical = 10.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
@@ -266,7 +270,11 @@ fun ScheduleFeed(
                     ScheduleRow(
                         slot,
                         clock.format(Date(slot.airingAtEpochSec * 1000L)),
-                        catchUpLabel(slot.episode, followedEpisodes[slot.anime.id]),
+                        catchUpLabel(
+                            slot.episode,
+                            followedEpisodes[slot.anime.id],
+                            inProgress = slot.anime.id in inProgressIds,
+                        ),
                         onOpen,
                     )
                 }
@@ -275,13 +283,14 @@ fun ScheduleFeed(
     }
 }
 
-/** [watchedEpisode] is episodes finished. 0 means on the list but nothing finished, so episode 1 is New. */
-private fun catchUpLabel(airingEpisode: Int, watchedEpisode: Int?): String? {
+/** [watchedEpisode] is the stored frontier. 0 means on the list but nothing finished, so episode 1 is New. */
+private fun catchUpLabel(airingEpisode: Int, watchedEpisode: Int?, inProgress: Boolean): String? {
     if (watchedEpisode == null) return null
     val behind = airingEpisode - watchedEpisode.coerceAtLeast(0)
     return when {
         behind > 1 -> "$behind behind"
         behind == 1 -> "New"
+        behind <= 0 && inProgress -> "Resume"
         else -> "On list"
     }
 }

@@ -28,8 +28,15 @@ interface WatchHistoryDao {
     suspend fun clear()
 }
 
-/** Mark [number] watched and point the series at the following episode. */
-suspend fun WatchHistoryDao.markEpisode(anime: AnimeSummary, number: Int) {
+/**
+ * Mark [number] watched and point the series at the following episode.
+ *
+ * Returns the completed episode count just stored, or null when this toggle
+ * did not move the frontier. AniList must use that count. Reading the row
+ * again can see a playhead save that landed in between and would send the
+ * wrong episode.
+ */
+suspend fun WatchHistoryDao.markEpisode(anime: AnimeSummary, number: Int): Int? {
     val existing = get(anime.id)
     val frontier = existing?.episode ?: 0
     val finishedThrough = (frontier - 1).coerceAtLeast(0)
@@ -37,7 +44,7 @@ suspend fun WatchHistoryDao.markEpisode(anime: AnimeSummary, number: Int) {
     val nextEpisode: Int
     val nextPosition: Long
     if (already) {
-        if (number != finishedThrough) return
+        if (number != finishedThrough) return null
         nextEpisode = number.coerceAtLeast(1)
         nextPosition = 0L
     } else {
@@ -57,6 +64,7 @@ suspend fun WatchHistoryDao.markEpisode(anime: AnimeSummary, number: Int) {
             malId = anime.malId ?: existing?.malId,
         ),
     )
+    return (nextEpisode - 1).coerceAtLeast(0)
 }
 
 /**

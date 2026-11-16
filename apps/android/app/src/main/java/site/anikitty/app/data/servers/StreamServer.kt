@@ -28,7 +28,32 @@ data class SubtitleTrack(
     val label: String,
     val language: String? = null,
     val mimeType: String? = null,
-)
+) {
+    /** Absolute http, file, or content URI the player can open. Relative paths stay unset. */
+    fun playableUri(): android.net.Uri? {
+        val trimmed = url.trim()
+        if (trimmed.isEmpty()) return null
+        return when {
+            trimmed.startsWith("https://", ignoreCase = true) ||
+                trimmed.startsWith("http://", ignoreCase = true) ||
+                trimmed.startsWith("file:", ignoreCase = true) ||
+                trimmed.startsWith("content:", ignoreCase = true) -> android.net.Uri.parse(trimmed)
+            trimmed.startsWith("/") -> android.net.Uri.fromFile(java.io.File(trimmed))
+            else -> null
+        }
+    }
+
+    /** MIME for sidecar captions. Declared type wins, then the URL suffix. */
+    fun resolvedMime(): String {
+        mimeType?.takeIf { it.isNotBlank() }?.let { return it }
+        val probe = url.lowercase()
+        return when {
+            ".srt" in probe -> "application/x-subrip"
+            ".ass" in probe || ".ssa" in probe -> "text/x-ssa"
+            else -> "text/vtt"
+        }
+    }
+}
 
 @Immutable
 data class PlayableSource(

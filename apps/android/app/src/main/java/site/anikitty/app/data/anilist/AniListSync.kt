@@ -55,16 +55,29 @@ class AniListSync(
     }
 
     /**
-     * Push episode progress to AniList. Completes the list entry when finished.
+     * Push episodes finished to AniList. [episode] is the completed count, so 0
+     * clears progress after unwatching the first episode. Returns false when
+     * nothing was saved, including a failed request.
      */
-    suspend fun pushProgress(anilistId: Int, episode: Int, totalEpisodes: Int?) {
-        val token = auth.accessToken ?: return
-        if (anilistId <= 0 || episode <= 0) return
+    suspend fun pushProgress(anilistId: Int, episode: Int, totalEpisodes: Int?): Boolean {
+        val token = auth.accessToken ?: return false
+        if (anilistId <= 0 || episode < 0) return false
         val completed = totalEpisodes != null && totalEpisodes > 0 && episode >= totalEpisodes
         val status = if (completed) "COMPLETED" else "CURRENT"
         val progress = if (completed) (totalEpisodes ?: episode) else episode
-        runCatching { aniList.saveProgress(token, anilistId, progress, status) }
-        val existing = historyDao.get(anilistId) ?: return
-        historyDao.upsert(existing.copy(listStatus = status, episode = progress))
+        val saved = aniList.saveProgress(token, anilistId, progress, status)
+        if (!saved) return false
+        val existing = historyDao.get(anilistId) ?: return true
+        // A failed save used to still rewrite the phone. A later frontier
+        // (mark watched stores the next episode) or a live playhead stays put.
+        val keepFrontier = existing.episode > progress || existing.positionMs > 2_000L
+        historyDao.upsert(
+            if (keepFrontier) {
+                existing.copy(listStatus = status)
+            } else {
+                existing.copy(listStatus = status, episode = progress.coerceAtLeast(existing.episode))
+            },
+        )
+        return true
     }
 }

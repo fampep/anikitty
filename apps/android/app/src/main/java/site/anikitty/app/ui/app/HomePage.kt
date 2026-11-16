@@ -166,7 +166,7 @@ internal fun HomeBar(
         }
         ProfileMark(
             imageUrl = avatarUrl,
-            size = 32.dp,
+            size = 36.dp,
             modifier = Modifier.padding(start = 4.dp).spacePress(onOpenAccount),
         )
     }
@@ -179,8 +179,8 @@ private fun HomeBarIcon(
 ) {
     Box(
         modifier = Modifier
-            .height(36.dp)
-            .width(36.dp)
+            .height(48.dp)
+            .width(48.dp)
             .spacePress(onClick),
         contentAlignment = Alignment.Center,
     ) {

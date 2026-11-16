@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -1028,7 +1029,7 @@ private fun PlayButton(
                 )
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = palette.onAccent)
+                    Icon(Icons.Filled.PlayArrow, contentDescription = label, tint = palette.onAccent)
                     Spacer(Modifier.width(6.dp))
                     Text(
                         label,
@@ -1067,6 +1068,7 @@ private fun TitleAction(
     val palette = LocalKittyPalette.current
     Column(
         modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
             .clip(RoundedCornerShape(KittyRadius.md))
             .background(palette.surface)
             .spacePress(onClick)
@@ -1110,6 +1112,7 @@ private fun Synopsis(text: String) {
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
                 modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
                     .padding(top = 8.dp)
                     .spacePress { open = !open },
             )
