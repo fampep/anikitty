@@ -899,15 +899,9 @@ private fun HomeFeed(
     var airingToday by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
     LaunchedEffect(Unit) {
         if (demo) return@LaunchedEffect
-        val start = java.util.Calendar.getInstance().apply {
-            set(java.util.Calendar.HOUR_OF_DAY, 0)
-            set(java.util.Calendar.MINUTE, 0)
-            set(java.util.Calendar.SECOND, 0)
-            set(java.util.Calendar.MILLISECOND, 0)
-        }
-        val dayStart = start.timeInMillis / 1000L
+        val now = System.currentTimeMillis() / 1000L
         airingToday = runCatching {
-            aniList.airingSchedule(dayStart - 36 * 60 * 60, dayStart + 24 * 60 * 60)
+            aniList.airingSchedule(now - 36 * 60 * 60, now, newestFirst = true)
         }.getOrDefault(emptyList())
     }
     val shelf = HomeShelf.entries.firstOrNull { it.name == shelfName } ?: HomeShelf.All
@@ -926,7 +920,6 @@ private fun HomeFeed(
     var because by remember { mutableStateOf<Pair<String, List<AnimeSummary>>?>(null) }
     var networkRow by remember { mutableStateOf<Triple<String, String?, List<AnimeSummary>>?>(null) }
     var heroLogos by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
-    var stills by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var collection by remember { mutableStateOf<Pair<String, List<AnimeSummary>>?>(null) }
     var forYou by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var forYouFrom by remember { mutableStateOf<String?>(null) }
@@ -1022,21 +1015,6 @@ private fun HomeFeed(
                         if (backdrop != null) anime.copy(bannerImageUrl = backdrop) else anime
                     }
                 }
-                val stillMap = LinkedHashMap<String, String>()
-                withContext(Dispatchers.IO) {
-                    continueWatching.take(6).forEach { entry ->
-                        val episode = playbackTarget(entry)
-                        catalog.episodeStill(entry.anilistId, episode)?.let {
-                            stillMap["${entry.anilistId}-$episode"] = it
-                        }
-                    }
-                    airingToday.take(8).forEach { slot ->
-                        catalog.episodeStill(slot.anime.id, slot.episode)?.let {
-                            stillMap["air-${slot.anime.id}-${slot.episode}"] = it
-                        }
-                    }
-                }
-                stills = stillMap
                 suspend fun showsFor(ids: List<Int>): List<AnimeSummary> {
                     return ids.take(8).mapNotNull { id ->
                         shown.firstOrNull { it.id == id } ?: runCatching { aniList.media(id) }.getOrNull()
@@ -1196,6 +1174,10 @@ private fun HomeFeed(
                     }
                     onOpen(known ?: anime, episode)
                 }
+                fun watchEpisode(anime: AnimeSummary): Int {
+                    val entry = history.firstOrNull { it.anilistId == anime.id } ?: return 1
+                    return continueCue(entry)?.episode ?: entry.episode.coerceAtLeast(1)
+                }
                 fun railEntries(items: List<AnimeSummary>, dates: Map<Int, String> = emptyMap()) =
                     items.map { anime ->
                         HomeRailEntry(
@@ -1252,13 +1234,7 @@ private fun HomeFeed(
                                         logos = heroLogos,
                                         savedIds = savedIds,
                                         onOpen = { openAt(it, null) },
-                                        onWatch = { anime ->
-                                            val episode = history.firstOrNull { it.anilistId == anime.id }
-                                                ?.episode
-                                                ?.takeIf { it > 0 }
-                                                ?: 1
-                                            openAt(anime, episode)
-                                        },
+                                        onWatch = { anime -> openAt(anime, watchEpisode(anime)) },
                                         onAdd = ::addToPlan,
                                         onLatest = { slot -> openAt(slot.anime, slot.episode) },
                                     )
@@ -1272,13 +1248,7 @@ private fun HomeFeed(
                                     HomeFeatured(
                                         items = heroItems,
                                         onOpen = { openAt(it, null) },
-                                        onWatch = { anime ->
-                                            val episode = history.firstOrNull { it.anilistId == anime.id }
-                                                ?.episode
-                                                ?.takeIf { it > 0 }
-                                                ?: 1
-                                            openAt(anime, episode)
-                                        },
+                                        onWatch = { anime -> openAt(anime, watchEpisode(anime)) },
                                         onAdd = ::addToPlan,
                                         savedIds = savedIds,
                                         logos = heroLogos,
@@ -1539,7 +1509,6 @@ private fun prefetchCovers(context: android.content.Context, animes: List<AnimeS
     }
 }
 
-/** Resume the episode still in progress; otherwise play the one after the last finished. */
 private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
     id = entry.anilistId,
     title = entry.title,
@@ -1549,10 +1518,6 @@ private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
     averageScore = null,
     malId = entry.malId,
 )
-
-private fun playbackTarget(entry: WatchHistoryEntity): Int {
-    return continueCue(entry)?.episode ?: entry.episode.coerceAtLeast(1)
-}
 
 @Composable
 private fun LookSettings(onExport: () -> Unit) {
