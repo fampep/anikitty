@@ -1693,7 +1693,11 @@ fun PlayerScreen(
                         shown.level < 0.45f -> Icons.AutoMirrored.Outlined.VolumeDown
                         else -> Icons.AutoMirrored.Outlined.VolumeUp
                     },
-                    contentDescription = null,
+                    contentDescription = if (shown.kind == GestureHudKind.Brightness) {
+                        "Brightness $pct percent"
+                    } else {
+                        "Volume $pct percent"
+                    },
                     tint = Color.White,
                     modifier = Modifier.size(22.dp),
                 )
@@ -3033,16 +3037,9 @@ private fun subtitleConfig(
     track: SubtitleTrack,
     default: Boolean = false,
 ): MediaItem.SubtitleConfiguration? {
-    if (!track.url.startsWith("http")) return null
-    val mime = track.mimeType
-        ?: when {
-            track.url.contains(".vtt", ignoreCase = true) -> MimeTypes.TEXT_VTT
-            track.url.contains(".srt", ignoreCase = true) -> MimeTypes.APPLICATION_SUBRIP
-            track.url.contains(".ass", ignoreCase = true) ||
-                track.url.contains(".ssa", ignoreCase = true) -> MimeTypes.TEXT_SSA
-            else -> MimeTypes.TEXT_VTT
-        }
-    return MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(track.url))
+    val uri = track.playableUri() ?: return null
+    val mime = track.resolvedMime()
+    return MediaItem.SubtitleConfiguration.Builder(uri)
         .setMimeType(mime)
         .setLanguage(track.language ?: "en")
         .setLabel(track.label)

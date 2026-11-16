@@ -63,8 +63,18 @@ class AniListSync(
         val completed = totalEpisodes != null && totalEpisodes > 0 && episode >= totalEpisodes
         val status = if (completed) "COMPLETED" else "CURRENT"
         val progress = if (completed) (totalEpisodes ?: episode) else episode
-        runCatching { aniList.saveProgress(token, anilistId, progress, status) }
+        val saved = aniList.saveProgress(token, anilistId, progress, status)
+        if (!saved) return
         val existing = historyDao.get(anilistId) ?: return
-        historyDao.upsert(existing.copy(listStatus = status, episode = progress))
+        // A failed save used to still rewrite the phone. A later frontier
+        // (mark watched stores the next episode) or a live playhead stays put.
+        val keepFrontier = existing.episode > progress || existing.positionMs > 2_000L
+        historyDao.upsert(
+            if (keepFrontier) {
+                existing.copy(listStatus = status)
+            } else {
+                existing.copy(listStatus = status, episode = progress.coerceAtLeast(existing.episode))
+            },
+        )
     }
 }

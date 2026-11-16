@@ -266,12 +266,20 @@ fun LocalFirstApp(
     val history = if (demo) site.anikitty.app.data.demo.DemoLibrary.history else storedHistory
     fun isolated(id: Int) = demo || site.anikitty.app.data.demo.DemoLibrary.find(id) != null
     val listMarks = remember(history) {
-        history.associate { entry ->
-            entry.anilistId to (listStatusBadge(entry.listStatus) ?: "On list")
-        }
+        history.mapNotNull { entry ->
+            val badge = listStatusBadge(entry.listStatus)
+                ?: if (entry.positionMs > 2_000L || entry.episodesFinished() > 1) "Continue" else null
+            badge?.let { entry.anilistId to it }
+        }.toMap()
     }
     val followedEpisodes = remember(history) {
         history.associate { it.anilistId to it.episodesFinished() }
+    }
+    val inProgressIds = remember(history) {
+        history.mapNotNull { entry ->
+            val ratio = if (entry.durationMs > 0L) entry.positionMs.toFloat() / entry.durationMs else 0f
+            entry.anilistId.takeIf { entry.positionMs > 2_000L && ratio < 0.9f }
+        }.toSet()
     }
     val scope = rememberCoroutineScope()
     var syncLabel by remember { mutableStateOf<String?>(null) }
@@ -428,6 +436,7 @@ fun LocalFirstApp(
                     onBack = { screen = Screen.Tabs },
                     onOpen = { anime, episode -> openDetail(anime, episode) },
                     followedEpisodes = followedEpisodes,
+                    inProgressIds = inProgressIds,
                 )
                 DockOverlay(
                     tabs = tabs,
@@ -540,6 +549,7 @@ fun LocalFirstApp(
                     showBack = false,
                     bottomInset = 100.dp,
                     followedEpisodes = followedEpisodes,
+                    inProgressIds = inProgressIds,
                 )
                 "search" -> SearchFeed(
                     aniList = aniList,
@@ -733,13 +743,6 @@ fun LocalFirstApp(
                             ),
                         )
                         }
-                        if (aniListAuth.isLinked && !demo) {
-                            aniListSync.pushProgress(
-                                anilistId = current.anime.id,
-                                episode = nextEpisode,
-                                totalEpisodes = current.anime.episodes,
-                            )
-                        }
                         site.anikitty.app.data.servers.SourceBadgeCache.remember(
                             context,
                             current.anime.id,
@@ -769,14 +772,8 @@ fun LocalFirstApp(
                     current.anime.listState?.progress ?: 0,
                     ((sample?.episode ?: entry?.episode ?: 1) - 1),
                 ).coerceAtLeast(0)
-                if (aniListAuth.isLinked && !demo) {
-                    aniListSync.pushProgress(
-                        anilistId = current.anime.id,
-                        episode = current.episode,
-                        totalEpisodes = current.anime.episodes,
-                    )
-                }
             }
+            var reportedEpisode by remember(current.anime.id, current.episode) { mutableStateOf(false) }
             PlayerScreen(
                 title = current.anime.title,
                 episode = current.episode,
@@ -798,6 +795,13 @@ fun LocalFirstApp(
                             current.anime.listState?.progress ?: 0,
                             (entry?.episode ?: 1) - 1,
                         ).coerceAtLeast(0)
+                        if (aniListAuth.isLinked && !demo) {
+                            aniListSync.pushProgress(
+                                anilistId = current.anime.id,
+                                episode = number,
+                                totalEpisodes = current.anime.episodes,
+                            )
+                        }
                     }
                 },
                 onProgress = { pos, dur ->
@@ -818,6 +822,15 @@ fun LocalFirstApp(
                             ),
                         )
                         ContinueHidden.reveal(context, current.anime.id)
+                        val ratio = if (dur > 0L) pos.toFloat() / dur else 0f
+                        if (!reportedEpisode && aniListAuth.isLinked && !demo && ratio >= 0.85f) {
+                            reportedEpisode = true
+                            aniListSync.pushProgress(
+                                anilistId = current.anime.id,
+                                episode = current.episode,
+                                totalEpisodes = current.anime.episodes,
+                            )
+                        }
                     }
                 },
                 onNextEpisode = run {
@@ -1580,7 +1593,7 @@ private fun HomeFeed(
                         item(key = "empty-home", contentType = "note") {
                             Text(
                                 "Every home row is turned off. Turn them back on in Settings.",
-                                color = KittyMuted,
+                                color = LocalKittyPalette.current.muted,
                                 fontSize = 14.sp,
                                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
                             )
