@@ -111,7 +111,7 @@ class CastRelay(context: Context) {
         val playlist = readPlaylist(next.url)
         val mime = when {
             playlist != null -> HLS_MIME
-            next.gotakuObf != null -> HLS_MIME
+            next.gotakuObf != null || next.hls -> HLS_MIME
             next.url.contains(".m3u8", ignoreCase = true) -> HLS_MIME
             next.url.contains("/p/1") -> HLS_MIME
             else -> "video/mp4"

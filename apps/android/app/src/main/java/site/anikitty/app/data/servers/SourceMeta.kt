@@ -49,6 +49,9 @@ object BuiltInSourceMeta {
     /** kaa.lt states resolution on the vidstream master playlist. */
     fun kaa(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
 
+    /** animex.one states resolution on the master playlist, including deeznuts.txt. */
+    fun animex(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
+
     /** HTTP extensions: copy the optional JSON fields and nothing else. */
     fun fromExtension(quality: String?, audio: String?, qualityRating: String?): SourceFields =
         SourceFields(
