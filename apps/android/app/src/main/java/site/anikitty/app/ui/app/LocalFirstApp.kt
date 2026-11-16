@@ -716,14 +716,15 @@ fun LocalFirstApp(
                         }
                         if (!isolated(current.anime.id)) {
                         val existing = historyDao.get(current.anime.id)
+                        val sameEpisode = nextEpisode == current.episode
                         historyDao.upsert(
                             WatchHistoryEntity(
                                 anilistId = current.anime.id,
                                 title = current.anime.title,
                                 coverImageUrl = current.anime.coverImageUrl,
                                 episode = nextEpisode,
-                                positionMs = 0L,
-                                durationMs = 0L,
+                                positionMs = if (sameEpisode) existing?.positionMs ?: 0L else 0L,
+                                durationMs = if (sameEpisode) existing?.durationMs ?: 0L else 0L,
                                 updatedAtEpochMs = System.currentTimeMillis(),
                                 listStatus = existing?.listStatus ?: "CURRENT",
                                 malId = current.anime.malId ?: existing?.malId,
@@ -3027,9 +3028,12 @@ private fun TitleDetailScreen(
                     },
                 )
                 historyDao.get(detail.id)?.let {
+                    val sameEpisode = it.episode == playEpisode
                     historyDao.upsert(
                         it.copy(
                             episode = playEpisode,
+                            positionMs = if (sameEpisode) it.positionMs else 0L,
+                            durationMs = if (sameEpisode) it.durationMs else 0L,
                             updatedAtEpochMs = System.currentTimeMillis(),
                         ),
                     )

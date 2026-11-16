@@ -478,6 +478,7 @@ fun PlayerScreen(
     val playhead = remember { Playhead() }
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
+    val latestOnProgress by rememberUpdatedState(onProgress)
     val mutedNow = rememberUpdatedState(muted)
 
     fun pushMute() {
@@ -620,9 +621,11 @@ fun PlayerScreen(
         if (castHint == message) castHint = null
     }
 
-    LaunchedEffect(player, playbackSpeed, holdBoost) {
+    LaunchedEffect(player, playbackSpeed, holdBoost, isCasting) {
         val speed = if (holdBoost) 2f else playbackSpeed
-        player?.playbackParameters = PlaybackParameters(speed)
+        val rate = PlaybackParameters(speed)
+        player?.playbackParameters = rate
+        if (isCasting) castHelper?.castPlayer?.playbackParameters = rate
     }
     LaunchedEffect(playbackSpeed) {
         playerPrefs.edit().putFloat("playback_speed", playbackSpeed).apply()
@@ -824,7 +827,7 @@ fun PlayerScreen(
                     val waitingHistory =
                         !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
                     if (!waitingHistory) {
-                        onProgress?.invoke(pos, dur)
+                        latestOnProgress?.invoke(pos, dur)
                     }
                 }
             }
@@ -841,9 +844,12 @@ fun PlayerScreen(
         if (!loaded.isEmpty) skipTimes = loaded
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(episode) {
+        // Capture this episode's saver. rememberUpdatedState would already
+        // point at the next episode by the time dispose runs.
+        val flush = onProgress
         onDispose {
-            onProgress?.invoke(playhead.ms, durationMs)
+            flush?.invoke(playhead.ms, durationMs)
         }
     }
 
@@ -859,7 +865,7 @@ fun PlayerScreen(
         sleepArmedAt = System.currentTimeMillis()
         delay(minutes * 60_000L)
         if (sleepChoice != minutes) return@LaunchedEffect
-        latestPlayer?.pause()
+        activePlayer?.pause()
         playing = false
         controlsVisible = true
         sleepNote = "Sleep timer paused playback"
