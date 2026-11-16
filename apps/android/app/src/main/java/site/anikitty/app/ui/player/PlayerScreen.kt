@@ -82,6 +82,7 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material.icons.outlined.Bedtime
+import androidx.compose.material.icons.outlined.BrightnessHigh
 import androidx.compose.material.icons.outlined.ClosedCaption
 import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.FormatColorFill
@@ -322,7 +323,7 @@ fun PlayerScreen(
     val loudnessHold = remember { LoudnessHold() }
     var autoNext by remember { mutableStateOf(playerPrefs.getBoolean("auto_next", true)) }
     var holdBoost by remember { mutableStateOf(false) }
-    var gestureHud by remember { mutableStateOf<Pair<String, Float>?>(null) }
+    var gestureHud by remember { mutableStateOf<GestureHud?>(null) }
     var controlsLocked by remember { mutableStateOf(false) }
     var seekFlashDir by remember { mutableIntStateOf(0) } // -1 left, +1 right, 0 none
     var isCasting by remember { mutableStateOf(false) }
@@ -877,8 +878,10 @@ fun PlayerScreen(
         nextTriggered = false
     }
 
-    LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting, nearEndOffer, showEndAutoplay, chromeFocused) {
+    LaunchedEffect(controlsVisible, playing, scrubbing, panel, isCasting, nearEndOffer, showEndAutoplay, chromeFocused, controlsLocked) {
         if (nearEndOffer || showEndAutoplay) return@LaunchedEffect
+        // Keep chrome up while locked so the unlock control stays reachable.
+        if (controlsLocked) return@LaunchedEffect
         if (controlsVisible && playing && !scrubbing && panel == PlayerMenuPage.None && !chromeFocused) {
             delay(if (isCasting) 5_500 else 3_600)
             controlsVisible = false
@@ -1052,7 +1055,7 @@ fun PlayerScreen(
             onClick = { panel = PlayerMenuPage.Size },
         )
         PlayerMenuRow(
-            label = "Position",
+            label = "Timing",
             value = timingLabel(subStyle.bottomPad),
             icon = Icons.Outlined.Schedule,
             showChevron = true,
@@ -1209,7 +1212,7 @@ fun PlayerScreen(
             }
             PlayerMenuPage.Size -> {
                 SubtitleSizePanel(
-                    sizeSp = subStyle.sizeSp,
+                    style = subStyle,
                     onSize = { subStyle = subStyle.copy(sizeSp = it) },
                 )
             }
@@ -1460,16 +1463,27 @@ fun PlayerScreen(
                             previous = change.position.y
                             change.consume()
                             if (slideLevel) {
-                                gestureHud = "Brightness" to nudgeBrightness(context, view, delta)
+                                gestureHud = GestureHud(
+                                    kind = GestureHudKind.Brightness,
+                                    level = nudgeBrightness(context, view, delta),
+                                )
                             } else {
-                                gestureHud = "Volume" to nudgeVolume(context, view, delta)
+                                gestureHud = GestureHud(
+                                    kind = GestureHudKind.Volume,
+                                    level = nudgeVolume(context, view, delta),
+                                )
                             }
                         }
-                        gestureHud = null
+                        // Cleared by LaunchedEffect below so the HUD can linger briefly.
                     }
                 }
             },
     ) {
+        LaunchedEffect(gestureHud) {
+            val shown = gestureHud ?: return@LaunchedEffect
+            delay(700)
+            if (gestureHud == shown) gestureHud = null
+        }
         AnimatedVisibility(
             visible = holdBoost,
             enter = fadeIn(),
@@ -1581,42 +1595,63 @@ fun PlayerScreen(
         }
 
         val hud = gestureHud
-        var heldHud by remember { mutableStateOf<Pair<String, Float>?>(null) }
+        var heldHud by remember { mutableStateOf<GestureHud?>(null) }
         if (hud != null) heldHud = hud
         val reducedHud = site.anikitty.app.ui.theme.prefersReducedMotion()
         AnimatedVisibility(
             visible = hud != null,
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier
+                .align(if (heldHud?.kind == GestureHudKind.Brightness) Alignment.CenterStart else Alignment.CenterEnd)
+                .padding(horizontal = 28.dp),
             enter = fadeIn(tween(if (reducedHud) 0 else 140)),
             exit = fadeOut(tween(if (reducedHud) 0 else 180)),
         ) {
-            val (label, level) = heldHud ?: return@AnimatedVisibility
-            val hudShape = RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.lg)
+            val shown = heldHud ?: return@AnimatedVisibility
+            val pct = (shown.level.coerceIn(0f, 1f) * 100f).toInt()
+            val hudShape = RoundedCornerShape(16.dp)
             Column(
                 modifier = Modifier
                     .clip(hudShape)
-                    .background(Color.Black.copy(alpha = 0.78f))
-                    .border(0.5.dp, Color.White.copy(alpha = 0.35f), hudShape)
-                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                    .background(Color.Black.copy(alpha = 0.82f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.28f), hudShape)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                Spacer(modifier = Modifier.height(8.dp))
+                Icon(
+                    if (shown.kind == GestureHudKind.Brightness) {
+                        Icons.Outlined.BrightnessHigh
+                    } else if (shown.level <= 0.01f) {
+                        Icons.AutoMirrored.Outlined.VolumeOff
+                    } else {
+                        Icons.AutoMirrored.Outlined.VolumeUp
+                    },
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp),
+                )
+                Spacer(modifier = Modifier.height(10.dp))
                 Box(
                     modifier = Modifier
-                        .width(8.dp)
-                        .height(96.dp)
+                        .width(7.dp)
+                        .height(110.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(Color.White.copy(alpha = 0.18f)),
+                        .background(Color.White.copy(alpha = 0.16f)),
                 ) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .fillMaxWidth()
-                            .fillMaxHeight(level.coerceIn(0f, 1f))
+                            .fillMaxHeight(shown.level.coerceIn(0f, 1f))
                             .background(Color.White),
                     )
                 }
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    "$pct%",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp,
+                )
             }
         }
 
@@ -1755,19 +1790,35 @@ fun PlayerScreen(
             }
         }
 
-        if (controlsLocked && controlsVisible) {
-            Box(
+        if (controlsLocked) {
+            Row(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopCenter)
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .padding(16.dp),
+                    .padding(top = 16.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(999.dp))
+                    .clickable {
+                        controlsLocked = false
+                        controlsVisible = true
+                    }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                ChromeDisc(onClick = {
-                    controlsLocked = false
-                    controlsVisible = true
-                }, size = 48.dp) {
-                    Icon(Icons.Outlined.LockOpen, contentDescription = "Unlock", tint = Color.White)
-                }
+                Icon(
+                    Icons.Outlined.LockOpen,
+                    contentDescription = "Unlock controls",
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    "Controls locked · tap to unlock",
+                    color = Color.White,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                )
             }
         }
 
@@ -1790,27 +1841,49 @@ fun PlayerScreen(
                         ),
                 )
 
+                // Title strip — only when settings sheet is closed.
                 if (panel == PlayerMenuPage.None) {
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(96.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF8A8A8A).copy(alpha = 0.42f))
-                            .clickable {
-                                activePlayer?.let {
-                                    if (it.isPlaying) it.pause() else it.play()
-                                }
-                                controlsVisible = true
-                            },
-                        contentAlignment = Alignment.Center,
+                            .align(Alignment.TopStart)
+                            .fillMaxWidth()
+                            .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(
-                            if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                            contentDescription = if (playing) "Pause" else "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(46.dp),
-                        )
+                        ChromeDisc(onClick = { theater = false }, size = 44.dp) {
+                            Icon(
+                                Icons.Outlined.FullscreenExit,
+                                contentDescription = "Exit full screen",
+                                tint = Color.White,
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                title,
+                                color = Color.White,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 15.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                if (isMovie) "Movie" else "Episode $episode of $totalEpisodes",
+                                color = Color.White.copy(alpha = 0.65f),
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                            )
+                        }
+                        if (onNextEpisode != null && episode < totalEpisodes) {
+                            ChromeDisc(onClick = { goNextEpisode() }, size = 44.dp) {
+                                Icon(
+                                    Icons.Outlined.SkipNext,
+                                    contentDescription = "Next episode",
+                                    tint = Color.White,
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -1889,8 +1962,8 @@ fun PlayerScreen(
                                 onClick = { seekBy(10_000) },
                             )
                             PillLabel(
-                                label = "85",
-                                description = "Skip 85 seconds",
+                                label = "+85",
+                                description = "Skip ahead 85 seconds",
                                 onClick = { seekBy(85_000) },
                             )
                             val compactPills = LocalConfiguration.current.screenWidthDp < 840
@@ -1955,6 +2028,7 @@ fun PlayerScreen(
                 else -> "Skip"
             }
             val chromeUp = theater && controlsVisible && !controlsLocked
+            val avoidNextCard = nearEndOffer || showEndAutoplay
             val skipShape = RoundedCornerShape(12.dp)
             Text(
                 label,
@@ -1963,7 +2037,7 @@ fun PlayerScreen(
                 fontWeight = FontWeight.Medium,
                 fontFamily = FontFamily.SansSerif,
                 modifier = Modifier
-                    .align(Alignment.BottomStart)
+                    .align(if (avoidNextCard) Alignment.BottomEnd else Alignment.BottomStart)
                     .then(
                         if (theater) {
                             Modifier.windowInsetsPadding(
@@ -1973,10 +2047,14 @@ fun PlayerScreen(
                             Modifier
                         },
                     )
-                    .padding(start = 22.dp, bottom = if (chromeUp) 118.dp else 22.dp)
+                    .padding(
+                        start = if (avoidNextCard) 0.dp else 22.dp,
+                        end = if (avoidNextCard) 22.dp else 0.dp,
+                        bottom = if (chromeUp) 118.dp else 22.dp,
+                    )
                     .clip(skipShape)
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .border(1.dp, Color(0xFFD0D0D0).copy(alpha = 0.7f), skipShape)
+                    .background(Color.Black.copy(alpha = 0.62f))
+                    .border(1.dp, Color.White.copy(alpha = 0.35f), skipShape)
                     .clickable { skipTo(iv.endMs) }
                     .padding(horizontal = 16.dp, vertical = 10.dp),
             )
@@ -2113,13 +2191,13 @@ fun PlayerScreen(
                 onSpeed = { panel = if (panel == PlayerMenuPage.Speed) PlayerMenuPage.None else PlayerMenuPage.Speed },
                 onQuality = { panel = if (panel == PlayerMenuPage.Quality) PlayerMenuPage.None else PlayerMenuPage.Quality },
                 onAudio = {
-                    panel = if (panel == PlayerMenuPage.Subs) PlayerMenuPage.None else PlayerMenuPage.Subs
+                    panel = if (panel == PlayerMenuPage.Audio) PlayerMenuPage.None else PlayerMenuPage.Audio
                 },
                 onNext = { goNextEpisode() },
                 nextEnabled = onNextEpisode != null && episode < totalEpisodes,
                 speedSelected = panel == PlayerMenuPage.Speed,
                 qualitySelected = panel == PlayerMenuPage.Quality,
-                audioSelected = panel == PlayerMenuPage.Subs,
+                audioSelected = panel == PlayerMenuPage.Audio,
                 modifier = Modifier.weight(1f).dismissDrag(),
             )
         }
@@ -3244,26 +3322,39 @@ private fun PlayerMenuSectionLabel(label: String) {
 
 @Composable
 private fun SubtitleSizePanel(
-    sizeSp: Float,
+    style: SubStyle,
     onSize: (Float) -> Unit,
 ) {
+    val sizeSp = style.sizeSp
     val percent = subtitlePercent(sizeSp)
+    val previewColor = Color(style.color)
+    val previewBg = when (style.bgMode) {
+        SubBgMode.None -> Color.Transparent
+        SubBgMode.Soft -> Color.Black.copy(alpha = style.bgAlpha * 0.55f)
+        SubBgMode.Blur -> Color.Black.copy(alpha = style.bgAlpha * 0.7f)
+        SubBgMode.Solid -> Color.Black.copy(alpha = style.bgAlpha.coerceAtLeast(0.75f))
+    }
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 72.dp)
+                .heightIn(min = 80.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color.White.copy(alpha = 0.06f))
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
                 "Sample subtitle · 字幕サンプル",
-                color = Color.White,
-                fontSize = sizeSp.sp,
-                fontWeight = FontWeight.Medium,
+                color = previewColor,
+                fontSize = sizeSp.coerceIn(12f, 40f).sp,
+                fontWeight = if (style.bold) FontWeight.Bold else FontWeight.Medium,
+                fontStyle = if (style.italic) androidx.compose.ui.text.font.FontStyle.Italic else androidx.compose.ui.text.font.FontStyle.Normal,
                 maxLines = 2,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(previewBg)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -3333,6 +3424,13 @@ private fun SubtitleSizePanel(
         Spacer(modifier = Modifier.height(8.dp))
     }
 }
+
+private enum class GestureHudKind { Brightness, Volume }
+
+private data class GestureHud(
+    val kind: GestureHudKind,
+    val level: Float,
+)
 
 private fun timingLabel(pad: Float): String = when {
     pad <= 0.09f -> "Low"
