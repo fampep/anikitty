@@ -121,6 +121,7 @@ fun ScheduleFeed(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(palette.page)
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(bottom = bottomInset),
     ) {
@@ -305,8 +306,8 @@ private fun ScheduleRow(
             .fillMaxWidth()
             .spacePress { onOpen(slot.anime, slot.episode) }
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF0C0C10))
-            .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .background(LocalKittyPalette.current.surface)
+            .border(0.5.dp, LocalKittyPalette.current.hairline, RoundedCornerShape(12.dp))
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -327,7 +328,7 @@ private fun ScheduleRow(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 slot.anime.title,
-                color = KittyText,
+                color = LocalKittyPalette.current.text,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -335,7 +336,7 @@ private fun ScheduleRow(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 "Episode ${slot.episode}",
-                color = KittyMuted,
+                color = LocalKittyPalette.current.muted,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -369,7 +370,7 @@ private fun ScheduleRow(
             } else if (aired) {
                 Text(
                     "Aired",
-                    color = KittyFaint,
+                    color = LocalKittyPalette.current.muted,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -377,12 +378,12 @@ private fun ScheduleRow(
             }
             Text(
                 timeLabel,
-                color = if (aired) KittyFaint else KittyText,
+                color = if (aired) LocalKittyPalette.current.muted else LocalKittyPalette.current.text,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (aired) KittySurface else KittyAccent.copy(alpha = 0.12f))
+                    .background(if (aired) LocalKittyPalette.current.hairline else LocalKittyPalette.current.text.copy(alpha = 0.12f))
                     .padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
