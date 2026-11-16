@@ -853,7 +853,7 @@ private fun DockOverlay(
 ) {
     val reduced = prefersReducedMotion()
     val shift by animateDpAsState(
-        targetValue = if (KittyDock.shown) 0.dp else 92.dp,
+        targetValue = if (KittyDock.shown) 0.dp else 108.dp,
         animationSpec = if (reduced) snap() else tween(220, easing = FastOutSlowInEasing),
         label = "dock",
     )
@@ -1212,7 +1212,7 @@ private fun HomeFeed(
                 LazyColumn(
                     state = homeListState,
                     modifier = Modifier.nestedScroll(rememberDockScroll()),
-                    contentPadding = PaddingValues(bottom = 110.dp),
+                    contentPadding = PaddingValues(bottom = 124.dp),
                 ) {
                     item(key = "bar", contentType = "bar") {
                         HomeBar(
@@ -1226,6 +1226,9 @@ private fun HomeFeed(
                     }
                     item(key = "shelves", contentType = "chips") {
                         HomeShelfChips(selected = shelf, onSelect = { onShelfName(it.name) })
+                    }
+                    item(key = "shelf-gap", contentType = "gap") {
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
                     val phoneSections = homeLayout.sections()
                     val stageIds = setOf("featured", "fresh", "airing", "upcoming")

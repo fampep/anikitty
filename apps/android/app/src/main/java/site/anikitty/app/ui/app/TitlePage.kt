@@ -554,10 +554,30 @@ internal fun TitleStage(
                 } else if (!synopsis.isNullOrBlank()) {
                     Synopsis(synopsis)
                 }
-                if (!art?.keywords.isNullOrEmpty()) {
-                    KeywordRow(art?.keywords.orEmpty())
+            }
+            item(key = "about", contentType = "about") {
+                if (detailLoading && !detail.detailLoaded) {
+                    Column(Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.md)) {
+                        ShimmerBox(
+                            Modifier
+                                .padding(bottom = 12.dp)
+                                .fillMaxWidth(0.45f)
+                                .height(18.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                        )
+                        repeat(4) {
+                            ShimmerBox(
+                                Modifier
+                                    .padding(bottom = 10.dp)
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                            )
+                        }
+                    }
+                } else {
+                    AboutAnimeBlock(detail)
                 }
-                art?.let { FactLine(it) }
             }
             item(key = "episodes", contentType = "episodes") {
                 if (detailLoading && episodeSlides.size <= 1 && detail.streamingEpisodes.isEmpty()) {
@@ -713,13 +733,9 @@ internal fun TitleStage(
                     )
                 }
             }
-            if (
-                detail.scoreDistribution.isNotEmpty() ||
-                detail.rankings.isNotEmpty() ||
-                (detail.popularity ?: 0) > 0
-            ) {
+            if (detail.scoreDistribution.isNotEmpty() || detail.rankings.isNotEmpty()) {
                 item(key = "stats", contentType = "stats") {
-                    StatsBlock(detail)
+                    ScoreBreakdown(detail)
                 }
             }
             item(key = "links", contentType = "links") {
@@ -1091,14 +1107,12 @@ private fun Synopsis(text: String) {
     var canExpand by remember(text) { mutableStateOf(false) }
     val palette = LocalKittyPalette.current
     Column(Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.md)) {
-        KittySectionHeading(title = "Synopsis", padded = false)
-        Spacer(Modifier.height(KittySpace.sm))
         Text(
             text,
             color = palette.text.copy(alpha = 0.78f),
             fontSize = 15.sp,
             lineHeight = 22.sp,
-            maxLines = if (open) Int.MAX_VALUE else 4,
+            maxLines = if (open) Int.MAX_VALUE else 5,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { result ->
                 if (result.hasVisualOverflow) canExpand = true
@@ -1698,21 +1712,107 @@ private fun PeopleRow(title: String, people: List<AnimePerson>, onOpen: (AnimePe
 }
 
 @Composable
-private fun StatsBlock(detail: AnimeSummary) {
+private fun AboutAnimeBlock(detail: AnimeSummary) {
+    val episodeCount = detail.releasedEpisodeCount().takeIf { it > 0 } ?: detail.episodes
+    val episodeValue = episodeCount?.takeIf { it > 0 }?.let { count ->
+        if (detail.format.equals("MOVIE", true)) "1" else "$count"
+    }
+    val studios = detail.studios.filter { it.isNotBlank() }
+    val studioValue = when {
+        studios.isEmpty() -> null
+        studios.size <= 2 -> studios.joinToString(" ")
+        else -> studios.take(2).joinToString(" ") + " +${studios.size - 2} more"
+    }
+    val compact = listOfNotNull(
+        detail.statusLabel()?.let { "Status" to it },
+        episodeValue?.let { "Episodes" to it },
+        detail.scoreLabel()?.let { "AniList score" to it },
+        detail.airedRangeLabel()?.let { "Aired" to it },
+        detail.popularity?.takeIf { it > 0 }?.let {
+            "Popularity" to "#${"%,d".format(it)}"
+        },
+        detail.favourites?.takeIf { it > 0 }?.let {
+            "Favorites" to compactCount(it)
+        },
+    )
+    val wide = listOfNotNull(
+        detail.nativeTitle?.takeIf { it.isNotBlank() }?.let { "Native" to it },
+        detail.genres.takeIf { it.isNotEmpty() }?.let {
+            "Genres" to it.joinToString(" ")
+        },
+        studioValue?.let { "Studios" to it },
+    )
+    if (compact.isEmpty() && wide.isEmpty()) return
+    Column(Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.md)) {
+        KittySectionHeading(title = "About this anime", padded = false)
+        Spacer(Modifier.height(KittySpace.md))
+        compact.chunked(2).forEach { pair ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                pair.forEach { (label, value) ->
+                    AboutFact(
+                        label = label,
+                        value = value,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (pair.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        wide.forEach { (label, value) ->
+            AboutFact(
+                label = label,
+                value = value,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 14.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun AboutFact(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    val palette = LocalKittyPalette.current
+    Column(modifier = modifier) {
+        Text(
+            label,
+            color = palette.muted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            value,
+            color = palette.text,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            lineHeight = 20.sp,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun ScoreBreakdown(detail: AnimeSummary) {
     val palette = LocalKittyPalette.current
     val max = detail.scoreDistribution.maxOfOrNull { it.amount }?.coerceAtLeast(1) ?: 1
     Column(Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.lg)) {
-        KittySectionHeading(title = "Stats", padded = false)
+        KittySectionHeading(title = "Score breakdown", padded = false)
         Spacer(Modifier.height(KittySpace.sm))
-        Row(horizontalArrangement = Arrangement.spacedBy(KittySpace.lg)) {
-            detail.scoreLabel()?.let { score ->
-                StatFigure(score, "Score")
-            }
-            detail.popularity?.takeIf { it > 0 }?.let { StatFigure(compactCount(it), "Popularity") }
-            detail.favourites?.takeIf { it > 0 }?.let { StatFigure(compactCount(it), "Favorites") }
-        }
         if (detail.rankings.isNotEmpty()) {
-            Spacer(Modifier.height(KittySpace.sm))
             detail.rankings.take(4).forEach { rank ->
                 Text(
                     rank.line(),
@@ -1721,44 +1821,33 @@ private fun StatsBlock(detail: AnimeSummary) {
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
-        }
-        if (detail.scoreDistribution.isNotEmpty()) {
             Spacer(Modifier.height(KittySpace.md))
-            detail.scoreDistribution.forEach { bucket ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "${bucket.score}",
-                        color = palette.muted,
-                        fontSize = 11.sp,
-                        modifier = Modifier.width(28.dp),
-                    )
+        }
+        detail.scoreDistribution.forEach { bucket ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "${bucket.score}",
+                    color = palette.muted,
+                    fontSize = 11.sp,
+                    modifier = Modifier.width(28.dp),
+                )
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(KittyRadius.pill))
+                        .background(palette.text.copy(alpha = 0.08f)),
+                ) {
                     Box(
                         Modifier
-                            .weight(1f)
+                            .fillMaxWidth(bucket.amount.toFloat() / max)
                             .height(6.dp)
-                            .clip(RoundedCornerShape(KittyRadius.pill))
-                            .background(palette.text.copy(alpha = 0.08f)),
-                    ) {
-                        Box(
-                            Modifier
-                                .fillMaxWidth(bucket.amount.toFloat() / max)
-                                .height(6.dp)
-                                .background(palette.text),
-                        )
-                    }
+                            .background(palette.text),
+                    )
                 }
-                Spacer(Modifier.height(4.dp))
             }
+            Spacer(Modifier.height(4.dp))
         }
-    }
-}
-
-@Composable
-private fun StatFigure(value: String, label: String) {
-    val palette = LocalKittyPalette.current
-    Column {
-        Text(value, color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 22.sp)
-        Text(label, color = palette.muted, fontSize = 12.sp)
     }
 }
 

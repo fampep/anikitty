@@ -211,172 +211,193 @@ internal fun HomeFeatured(
         }
     }
     val cardShape = RoundedCornerShape(22.dp)
-    Box(
+    Column(
         modifier = Modifier
             .padding(horizontal = if (inset) 16.dp else 0.dp)
-            .fillMaxWidth()
-            .height(376.dp)
-            .clip(cardShape)
-            .clipToBounds(),
+            .fillMaxWidth(),
     ) {
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.fillMaxSize(),
-        ) { page ->
-            val anime = pages[page]
-            val saved = anime.id in savedIds
-            Box(modifier = Modifier.fillMaxSize()) {
-                HeroBanner(
-                    anilistId = anime.id,
-                    bannerUrl = anime.bannerImageUrl,
-                    coverUrl = anime.coverImageUrl,
-                    contentDescription = anime.title,
-                    title = anime.title,
-                    year = anime.seasonYear,
-                    movie = anime.format.equals("MOVIE", true),
-                    alignment = Alignment.TopCenter,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            val offset = (pagerState.currentPage - page) +
-                                pagerState.currentPageOffsetFraction
-                            translationX = if (reducedMotion) 0f else offset * -32f
-                            alpha = if (reducedMotion) {
-                                1f
-                            } else {
-                                1f - kotlin.math.abs(offset).coerceIn(0f, 1f) * 0.25f
-                            }
-                        },
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0f to Color.Black.copy(alpha = 0.15f),
-                                0.28f to Color.Transparent,
-                                0.55f to Color.Black.copy(alpha = 0.55f),
-                                1f to Color.Black.copy(alpha = 0.92f),
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(420.dp)
+                .clip(cardShape)
+                .border(1.dp, Color.White.copy(alpha = 0.10f), cardShape)
+                .clipToBounds(),
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+            ) { page ->
+                val anime = pages[page]
+                val saved = anime.id in savedIds
+                Box(modifier = Modifier.fillMaxSize()) {
+                    HeroBanner(
+                        anilistId = anime.id,
+                        bannerUrl = anime.bannerImageUrl,
+                        coverUrl = anime.coverImageUrl,
+                        contentDescription = anime.title,
+                        title = anime.title,
+                        year = anime.seasonYear,
+                        movie = anime.format.equals("MOVIE", true),
+                        alignment = Alignment.TopCenter,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                val offset = (pagerState.currentPage - page) +
+                                    pagerState.currentPageOffsetFraction
+                                translationX = if (reducedMotion) 0f else offset * -32f
+                                alpha = if (reducedMotion) {
+                                    1f
+                                } else {
+                                    1f - kotlin.math.abs(offset).coerceIn(0f, 1f) * 0.25f
+                                }
+                            },
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Black.copy(alpha = 0.22f),
+                                    0.35f to Color.Transparent,
+                                    0.58f to Color.Black.copy(alpha = 0.55f),
+                                    1f to Color.Black.copy(alpha = 0.94f),
+                                ),
                             ),
-                        ),
-                )
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(start = 16.dp, end = 16.dp, bottom = 14.dp, top = 16.dp)
-                        .fillMaxWidth(),
-                ) {
-                    val logo = logos[anime.id]
-                    if (logo != null) {
-                        AsyncImage(
-                            model = logo,
-                            contentDescription = anime.title,
-                            contentScale = ContentScale.Fit,
-                            alignment = Alignment.CenterStart,
-                            modifier = Modifier
-                                .height(64.dp)
-                                .fillMaxWidth(0.78f),
-                        )
-                    } else {
-                        Text(
-                            anime.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 30.sp,
-                            lineHeight = 34.sp,
-                            letterSpacing = (-0.6).sp,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    HeroChips(anime)
-                    val synopsis = anime.description?.trim().orEmpty()
-                    if (synopsis.isNotEmpty()) {
-                        Text(
-                            synopsis,
-                            color = Color.White.copy(alpha = 0.82f),
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.padding(top = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 22.dp),
                     ) {
+                        Spacer(modifier = Modifier.weight(1f))
+                        val logo = logos[anime.id]
+                        if (logo != null) {
+                            AsyncImage(
+                                model = logo,
+                                contentDescription = anime.title,
+                                contentScale = ContentScale.Fit,
+                                alignment = Alignment.CenterStart,
+                                modifier = Modifier
+                                    .height(56.dp)
+                                    .fillMaxWidth(0.78f),
+                            )
+                        } else {
+                            Text(
+                                anime.title,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 24.sp,
+                                lineHeight = 28.sp,
+                                letterSpacing = (-0.5).sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        HeroChips(anime)
+                        val synopsis = anime.description?.trim().orEmpty()
+                        if (synopsis.isNotEmpty()) {
+                            Text(
+                                synopsis,
+                                color = Color.White.copy(alpha = 0.82f),
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                         Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color.White)
-                                .spacePress { onWatch(anime) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(
-                                Icons.Rounded.PlayArrow,
-                                contentDescription = null,
-                                tint = Color.Black,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                "Watch Now",
-                                color = Color.Black,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                                modifier = Modifier.padding(start = 4.dp),
-                            )
-                        }
-                        Text(
-                            "Details",
-                            color = Color.White,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 13.sp,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(20.dp))
-                                .border(1.dp, Color.White.copy(alpha = 0.72f), RoundedCornerShape(20.dp))
-                                .spacePress { onOpen(anime) }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(CircleShape)
-                                .border(1.dp, Color.White.copy(alpha = 0.72f), CircleShape)
-                                .spacePress { if (!saved) onAdd(anime) },
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                if (saved) Icons.Rounded.Check else Icons.Rounded.Add,
-                                contentDescription = if (saved) "On your list" else "Add to list",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp),
-                            )
-                        }
-                    }
-                    if (pages.size > 1) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 12.dp),
-                            horizontalArrangement = Arrangement.Center,
-                        ) {
-                            repeat(pages.size) { index ->
-                                val selected = pagerState.currentPage == index
-                                Box(
-                                    modifier = Modifier
-                                        .padding(horizontal = 3.dp)
-                                        .size(if (selected) 7.dp else 5.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (selected) Color.White else Color.White.copy(alpha = 0.35f),
-                                        ),
+                            Row(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Color.White)
+                                    .spacePress { onWatch(anime) }
+                                    .padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                            ) {
+                                Icon(
+                                    Icons.Rounded.PlayArrow,
+                                    contentDescription = null,
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Text(
+                                    "Watch Now",
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    modifier = Modifier.padding(start = 4.dp),
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
+                                    .background(Color.Black.copy(alpha = 0.40f))
+                                    .spacePress { onOpen(anime) }
+                                    .padding(horizontal = 16.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    "Details",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .border(1.dp, Color.White.copy(alpha = 0.45f), CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.40f))
+                                    .spacePress { if (!saved) onAdd(anime) },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    if (saved) Icons.Rounded.Check else Icons.Rounded.Add,
+                                    contentDescription = if (saved) "On your list" else "Add to list",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp),
                                 )
                             }
                         }
                     }
+                }
+            }
+        }
+        // Dots sit under the card so they never cover Watch Now / Details.
+        if (pages.size > 1) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                repeat(pages.size) { index ->
+                    val selected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .height(4.dp)
+                            .width(if (selected) 18.dp else 5.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selected) Color.White else Color.White.copy(alpha = 0.34f),
+                            ),
+                    )
                 }
             }
         }
@@ -402,6 +423,7 @@ private fun HeroChips(anime: AnimeSummary) {
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color.White.copy(alpha = 0.16f))
@@ -1213,9 +1235,11 @@ internal fun HomeShelfChips(
     onSelect: (HomeShelf) -> Unit,
 ) {
     val palette = LocalKittyPalette.current
+    // Keep clear air under the pill bar and above the hero so chips never sit on the art.
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         items(HomeShelf.entries, key = { it.name }, contentType = { "shelf" }) { shelf ->
             val on = shelf == selected
@@ -1224,9 +1248,11 @@ internal fun HomeShelfChips(
                 color = if (on) palette.page else palette.text,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (on) palette.text else Color.Transparent)
+                    .background(if (on) palette.text else Color(0xFF121216))
                     .border(1.dp, if (on) palette.text else Hairline, RoundedCornerShape(16.dp))
                     .spacePress { onSelect(shelf) }
                     .padding(horizontal = 14.dp, vertical = 9.dp),

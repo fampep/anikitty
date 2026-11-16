@@ -270,7 +270,7 @@ fun SearchFeed(
                 end = 16.dp,
                 top = (if (chips.isNotEmpty()) 188.dp else 148.dp) +
                     if (suggestions.isNotEmpty()) 44.dp else 0.dp,
-                bottom = 110.dp,
+                bottom = 124.dp,
             ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(if (asGrid) 16.dp else 10.dp),

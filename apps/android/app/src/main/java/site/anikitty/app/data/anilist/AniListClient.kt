@@ -48,7 +48,8 @@ class AniListClient(
         status
         season
         seasonYear
-        startDate { month year }
+        startDate { day month year }
+        endDate { day month year }
         duration
         popularity
         averageScore
@@ -970,7 +971,11 @@ class AniListClient(
             season = item.nullableString("season"),
             seasonYear = item.nullableInt("seasonYear")
                 ?: item.optJSONObject("startDate")?.nullableInt("year"),
+            startDay = item.optJSONObject("startDate")?.nullableInt("day"),
             startMonth = item.optJSONObject("startDate")?.nullableInt("month"),
+            endDay = item.optJSONObject("endDate")?.nullableInt("day"),
+            endMonth = item.optJSONObject("endDate")?.nullableInt("month"),
+            endYear = item.optJSONObject("endDate")?.nullableInt("year"),
             durationMinutes = item.nullableInt("duration"),
             popularity = item.nullableInt("popularity"),
             genres = genres,
