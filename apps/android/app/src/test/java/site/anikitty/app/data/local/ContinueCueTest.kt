@@ -67,6 +67,20 @@ class ContinueCueTest {
         assertEquals("Newer", queue.first().title)
     }
 
+    @Test
+    fun queueDropsAFinishedLastEpisode() {
+        val done = row(
+            id = 7,
+            episode = 12,
+            positionMs = 23 * 60_000L,
+            durationMs = 24 * 60_000L,
+            updated = 20L,
+        )
+        val mid = row(id = 8, episode = 3, positionMs = 5 * 60_000L, durationMs = 24 * 60_000L, updated = 10L)
+        val queue = continueQueue(listOf(done, mid), releasedEpisodes = mapOf(7 to 12))
+        assertEquals(listOf(8), queue.map { it.anilistId })
+    }
+
     private fun row(
         id: Int = 10,
         episode: Int = 1,

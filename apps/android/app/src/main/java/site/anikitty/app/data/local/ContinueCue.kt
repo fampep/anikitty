@@ -61,13 +61,14 @@ fun continueCue(entry: WatchHistoryEntity, releasedEpisodes: Int? = null): Conti
 fun continueQueue(
     history: List<WatchHistoryEntity>,
     hidden: Set<Int> = emptySet(),
+    releasedEpisodes: Map<Int, Int> = emptyMap(),
 ): List<WatchHistoryEntity> {
     val seen = HashSet<Int>()
     return history
         .sortedByDescending { it.updatedAtEpochMs }
         .filter { entry ->
             if (entry.anilistId in hidden || entry.anilistId in seen) return@filter false
-            if (continueCue(entry) == null) return@filter false
+            if (continueCue(entry, releasedEpisodes[entry.anilistId]) == null) return@filter false
             seen.add(entry.anilistId)
             true
         }

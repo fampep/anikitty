@@ -74,6 +74,8 @@ fun ContinueWatchRow(
     onOpen: (WatchHistoryEntity, Int) -> Unit,
     onRemove: (WatchHistoryEntity) -> Unit,
     onMarkWatched: (WatchHistoryEntity, Int) -> Unit,
+    onOpenTitle: (WatchHistoryEntity) -> Unit = { entry -> onOpen(entry, entry.episode) },
+    releasedEpisodes: Map<Int, Int> = emptyMap(),
 ) {
     if (entries.isEmpty()) return
     LazyRow(
@@ -83,7 +85,9 @@ fun ContinueWatchRow(
         items(entries, key = { it.anilistId }, contentType = { "continue" }) { entry ->
             ContinueWatchCard(
                 entry = entry,
+                releasedEpisodes = releasedEpisodes[entry.anilistId],
                 onOpen = { episode -> onOpen(entry, episode) },
+                onOpenTitle = { onOpenTitle(entry) },
                 onRemove = { onRemove(entry) },
                 onMarkWatched = { episode -> onMarkWatched(entry, episode) },
             )
@@ -132,10 +136,14 @@ fun ContinueAllPage(
     onOpen: (WatchHistoryEntity, Int) -> Unit,
     onRemove: (WatchHistoryEntity) -> Unit,
     onMarkWatched: (WatchHistoryEntity, Int) -> Unit,
+    onOpenTitle: (WatchHistoryEntity) -> Unit = { entry -> onOpen(entry, entry.episode) },
+    releasedEpisodes: Map<Int, Int> = emptyMap(),
 ) {
     val palette = LocalKittyPalette.current
     val hidden = ContinueHidden.ids
-    val queue = remember(history, hidden) { continueQueue(history, hidden) }
+    val queue = remember(history, hidden, releasedEpisodes) {
+        continueQueue(history, hidden, releasedEpisodes)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -169,7 +177,9 @@ fun ContinueAllPage(
                     ContinueWatchCard(
                         entry = entry,
                         fillWidth = true,
+                        releasedEpisodes = releasedEpisodes[entry.anilistId],
                         onOpen = { episode -> onOpen(entry, episode) },
+                        onOpenTitle = { onOpenTitle(entry) },
                         onRemove = { onRemove(entry) },
                         onMarkWatched = { episode -> onMarkWatched(entry, episode) },
                     )
@@ -185,11 +195,13 @@ fun ContinueWatchCard(
     entry: WatchHistoryEntity,
     fillWidth: Boolean = false,
     showWithoutCue: Boolean = false,
+    releasedEpisodes: Int? = null,
     onOpen: (Int) -> Unit,
+    onOpenTitle: () -> Unit = { onOpen(entry.episode.coerceAtLeast(1)) },
     onRemove: (() -> Unit)? = null,
     onMarkWatched: ((Int) -> Unit)? = null,
 ) {
-    val cue = continueCue(entry)
+    val cue = continueCue(entry, releasedEpisodes)
     if (cue == null && !showWithoutCue) return
     val shown = cue ?: libraryCue(entry)
     val palette = LocalKittyPalette.current
@@ -199,7 +211,7 @@ fun ContinueWatchCard(
     var menu by remember(entry.anilistId) { mutableStateOf(false) }
     LaunchedEffect(entry.anilistId, shown.episode) {
         frame = withContext(Dispatchers.IO) {
-            TmdbCatalog(context).episodeFrame(entry.anilistId, shown.episode)
+            TmdbCatalog.shared(context).episodeFrame(entry.anilistId, shown.episode)
         }
     }
     val image = frame?.stillUrl ?: frame?.backdropUrl ?: entry.coverImageUrl
@@ -226,7 +238,7 @@ fun ContinueWatchCard(
     val entries = buildList {
         if (onRemove != null) add(KittyMenuEntry("Remove from row", onRemove))
         if (onMarkWatched != null) add(KittyMenuEntry("Mark watched") { onMarkWatched(shown.episode) })
-        add(KittyMenuEntry("Go to title") { onOpen(shown.episode) })
+        add(KittyMenuEntry("Go to title") { onOpenTitle() })
     }
     Column(
         modifier = (if (fillWidth) Modifier.fillMaxWidth() else Modifier.width(ContinueCardWidth))
@@ -279,15 +291,19 @@ fun ContinueWatchCard(
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 )
             }
-            Box(modifier = Modifier.align(Alignment.TopEnd)) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(48.dp)
+                    .spacePress { menu = true },
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(
                     Icons.Outlined.MoreVert,
                     contentDescription = "More actions for ${entry.title}",
                     tint = Color.White,
-                    modifier = Modifier
-                        .padding(4.dp)
-                        .size(28.dp)
-                        .spacePress { menu = true },
+                    modifier = Modifier.size(22.dp),
                 )
                 KittyMenu(expanded = menu, onDismiss = { menu = false }, entries = entries)
             }

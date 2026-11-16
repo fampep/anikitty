@@ -144,6 +144,8 @@ data class AnimeSummary(
     val startDay: Int? = null,
     /** AniList startDate.month, 1–12. */
     val startMonth: Int? = null,
+    /** AniList startDate.year. Winter shows can premiere in the previous calendar year. */
+    val startYear: Int? = null,
     val endDay: Int? = null,
     val endMonth: Int? = null,
     val endYear: Int? = null,
@@ -192,10 +194,11 @@ data class AnimeSummary(
             "July", "August", "September", "October", "November", "December",
         )
         val month = startMonth?.takeIf { it in 1..12 }?.let { months[it - 1] }
+        val year = startYear ?: seasonYear
         return when {
-            month != null && seasonYear != null -> "$month $seasonYear"
+            month != null && year != null -> "$month $year"
             month != null -> month
-            seasonYear != null -> seasonYear.toString()
+            year != null -> year.toString()
             else -> null
         }
     }
@@ -212,8 +215,8 @@ data class AnimeSummary(
                 else -> y.toString()
             }
         }
-        val startYear = seasonYear ?: return part(endYear, endMonth, endDay)
-        val start = part(startYear, startMonth, startDay) ?: return null
+        val year = startYear ?: seasonYear ?: return part(endYear, endMonth, endDay)
+        val start = part(year, startMonth, startDay) ?: return null
         val end = part(endYear, endMonth, endDay)
         return if (end != null && end != start) "$start – $end" else start
     }

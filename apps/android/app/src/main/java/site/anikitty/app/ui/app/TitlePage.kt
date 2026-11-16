@@ -55,6 +55,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -144,6 +145,7 @@ internal fun TitleStage(
     onJumpCommit: () -> Unit,
     onBrowseRange: (Int) -> Unit,
     onPickEpisode: (Int) -> Unit,
+    onPlayEpisode: (Int) -> Unit = onPickEpisode,
     onToggleWatched: (Int) -> Unit,
     onPlay: () -> Unit,
     onBack: () -> Unit,
@@ -162,13 +164,15 @@ internal fun TitleStage(
     val palette = LocalKittyPalette.current
     val reduced = prefersReducedMotion()
     val context = LocalContext.current
-    val tmdb = remember { TmdbCatalog(context) }
+    val tmdb = remember { TmdbCatalog.shared(context) }
     var art by remember(detail.id) { mutableStateOf<TitleArt?>(null) }
     var backdropIndex by remember(detail.id) { mutableStateOf(0) }
     var episodeSheet by remember(detail.id) { mutableStateOf<EpisodeSlide?>(null) }
     var episodeDetail by remember(detail.id) { mutableStateOf<EpisodeDetail?>(null) }
     var tmdbPersonId by remember(detail.id) { mutableStateOf<Int?>(null) }
     var personProfile by remember(detail.id) { mutableStateOf<PersonProfile?>(null) }
+    var personFailed by remember(detail.id) { mutableStateOf(false) }
+    var personAttempt by remember(detail.id) { mutableIntStateOf(0) }
     var showCast by remember(detail.id) { mutableStateOf(false) }
     var audioAvailability by remember(detail.id) {
         mutableStateOf<site.anikitty.app.data.servers.AnikotoAudioAvailability?>(null)
@@ -189,9 +193,13 @@ internal fun TitleStage(
         val number = tmdbEpisodeNumber(slide.number, current.episodeOffset)
         episodeDetail = withContext(Dispatchers.IO) { tmdb.episodeDetail(current.tmdbId, season, number) }
     }
-    LaunchedEffect(tmdbPersonId) {
+    LaunchedEffect(tmdbPersonId, personAttempt) {
         val id = tmdbPersonId ?: return@LaunchedEffect
-        personProfile = withContext(Dispatchers.IO) { tmdb.person(id) }
+        personFailed = false
+        val loaded = withContext(Dispatchers.IO) { tmdb.person(id) }
+        if (tmdbPersonId != id) return@LaunchedEffect
+        personProfile = loaded
+        personFailed = loaded == null
     }
     // Episode list stays on AniList media. TMDB only enriches stills/titles for this title.
     val slides = remember(episodeSlides, art) {
@@ -792,7 +800,8 @@ internal fun TitleStage(
     }
 
     episodeSheet?.let { slide ->
-        val shown = episodeDetail?.takeIf { it.number == slide.number || it.title == slide.title } ?: null
+        val requested = tmdbEpisodeNumber(slide.number, art?.episodeOffset ?: 0)
+        val shown = episodeDetail?.takeIf { it.number == requested || it.number == slide.number }
         val sheetTitle = slide.title.trim().let { title ->
             if (title.isEmpty() || title.equals("Episode ${slide.number}", ignoreCase = true)) {
                 "E${slide.number}"
@@ -861,7 +870,7 @@ internal fun TitleStage(
             }
             Spacer(Modifier.height(KittySpace.md))
             KittyChip(label = "Play episode ${slide.number}", selected = true, onClick = {
-                onPickEpisode(slide.number)
+                onPlayEpisode(slide.number)
                 episodeSheet = null
             })
         }
@@ -905,12 +914,16 @@ internal fun TitleStage(
                     )
                 }
                 Text(
-                    profile?.name ?: "Loading",
+                    profile?.name ?: if (personFailed) "Couldn't load this person" else "Loading",
                     color = palette.text,
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 18.sp,
                     modifier = Modifier.padding(start = KittySpace.md),
                 )
+            }
+            if (personFailed && profile == null) {
+                Spacer(Modifier.height(KittySpace.md))
+                KittyChip(label = "Try again", selected = false, onClick = { personAttempt++ })
             }
             profile?.bio?.let { bio ->
                 Text(
@@ -1638,7 +1651,7 @@ private fun AboutAnimeBlock(
         detail.scoreLabel()?.let { "AniList score" to it },
         detail.airedRangeLabel()?.let { "Aired" to it },
         detail.popularity?.takeIf { it > 0 }?.let {
-            "Popularity" to "#${"%,d".format(it)}"
+            "Popularity" to "%,d".format(it)
         },
         detail.favourites?.takeIf { it > 0 }?.let {
             "Favorites" to compactCount(it)
@@ -1827,7 +1840,7 @@ private fun HeaderIcon(
 ) {
     Box(
         modifier = modifier
-            .size(36.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(Color.Black.copy(alpha = 0.45f))
             .spacePress(onClick),

@@ -48,7 +48,7 @@ class TmdbCatalog(context: Context) {
         if (anilistId <= 0) return null
         val key = apiKey()
         if (key.isBlank()) return null
-        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull()
+        val mapped = runCatching { AnimeListIndex.get(app).find(anilistId) }.getOrNull()
         if (mapped != null) {
             rememberId(anilistId, mapped.tmdbId)
             return mapped.tmdbId
@@ -75,7 +75,7 @@ class TmdbCatalog(context: Context) {
     fun discoverAnilistIds(limit: Int = 12): List<Int> {
         val key = apiKey()
         if (key.isBlank()) return emptyList()
-        val index = AnimeListIndex(app)
+        val index = AnimeListIndex.get(app)
         val body = get(
             api(
                 "discover/tv",
@@ -101,16 +101,17 @@ class TmdbCatalog(context: Context) {
     fun episodeStill(anilistId: Int, episode: Int): String? {
         val key = apiKey()
         if (key.isBlank() || anilistId <= 0 || episode <= 0) return null
-        val cached = prefs.getString("still$anilistId-$episode", null)
+        val stillKey = "still$anilistId-$episode"
+        val cached = freshString(stillKey, WEEK_MS)
         if (cached == "none") return null
         if (cached?.startsWith("http") == true) return cached
-        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull() ?: return null
+        val mapped = runCatching { AnimeListIndex.get(app).find(anilistId) }.getOrNull() ?: return null
         if (mapped.movie) return null
         val season = mapped.season ?: 1
         val number = tmdbEpisodeNumber(episode, mapped.episodeOffset)
         val body = get(api("tv/${mapped.tmdbId}/season/$season/episode/$number", key)) ?: return null
         val still = imageUrl(JSONObject(body).optString("still_path"), "w780")
-        prefs.edit().putString("still$anilistId-$episode", still ?: "none").apply()
+        rememberTimed("still$anilistId-$episode", still ?: "none")
         return still
     }
 
@@ -123,7 +124,7 @@ class TmdbCatalog(context: Context) {
         val apiKey = apiKey()
         if (apiKey.isBlank() || anilistId <= 0 || episode <= 0) return blank
         val cacheKey = "frame3$anilistId-$episode"
-        prefs.getString(cacheKey, null)?.let { raw ->
+        freshString(cacheKey, WEEK_MS)?.let { raw ->
             val parts = raw.split("\t")
             if (parts.size >= 5) {
                 return EpisodeFrame(
@@ -135,7 +136,7 @@ class TmdbCatalog(context: Context) {
                 )
             }
         }
-        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull() ?: return blank
+        val mapped = runCatching { AnimeListIndex.get(app).find(anilistId) }.getOrNull() ?: return blank
         val art = cached(anilistId)
         val season = mapped.season ?: art?.seasonNumber
         var still: String? = null
@@ -183,10 +184,10 @@ class TmdbCatalog(context: Context) {
                 logo.orEmpty(),
                 season?.toString().orEmpty(),
             ).joinToString("\t")
-            prefs.edit().putString(cacheKey, packed).apply()
+            rememberTimed(cacheKey, packed)
         }
         if (still != null) {
-            prefs.edit().putString("still$anilistId-$episode", still).apply()
+            rememberTimed("still$anilistId-$episode", still)
         }
         return EpisodeFrame(still, title, season, backdrop, logo)
     }
@@ -209,7 +210,7 @@ class TmdbCatalog(context: Context) {
     fun heroArt(anilistIds: List<Int>): Map<Int, Pair<String?, String?>> {
         val key = apiKey()
         if (key.isBlank()) return emptyMap()
-        val index = AnimeListIndex(app)
+        val index = AnimeListIndex.get(app)
         return buildMap {
             anilistIds.distinct().take(5).forEach { anilistId ->
                 cached(anilistId)?.let { art ->
@@ -233,7 +234,7 @@ class TmdbCatalog(context: Context) {
     }
 
     fun collection(anilistId: Int): Pair<String, List<Int>>? {
-        return runCatching { AnimeListIndex(app).collectionFor(anilistId) }.getOrNull()
+        return runCatching { AnimeListIndex.get(app).collectionFor(anilistId) }.getOrNull()
     }
 
     /** Shows that have not premiered yet, with the TMDB date. */
@@ -274,17 +275,17 @@ class TmdbCatalog(context: Context) {
     fun becauseYouWatched(anilistId: Int, limit: Int = 12): List<Int> {
         val key = apiKey()
         if (key.isBlank() || anilistId <= 0) return emptyList()
-        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull() ?: return emptyList()
+        val mapped = runCatching { AnimeListIndex.get(app).find(anilistId) }.getOrNull() ?: return emptyList()
         val kind = if (mapped.movie) "movie" else "tv"
         val body = get(api("$kind/${mapped.tmdbId}/recommendations", key)) ?: return emptyList()
-        return suggestionIds(JSONObject(body), mapped.movie, AnimeListIndex(app), limit)
+        return suggestionIds(JSONObject(body), mapped.movie, AnimeListIndex.get(app), limit)
             .filter { it != anilistId }
     }
 
     fun networkShelf(anilistId: Int): NetworkShelf? {
         val key = apiKey()
         if (key.isBlank() || anilistId <= 0) return null
-        val mapped = runCatching { AnimeListIndex(app).find(anilistId) }.getOrNull() ?: return null
+        val mapped = runCatching { AnimeListIndex.get(app).find(anilistId) }.getOrNull() ?: return null
         if (mapped.movie) return null
         val body = get(api("tv/${mapped.tmdbId}", key)) ?: return null
         val networks = JSONObject(body).optJSONArray("networks") ?: return null
@@ -348,7 +349,7 @@ class TmdbCatalog(context: Context) {
             name = name,
             bio = json.optString("biography").trim().take(700).takeIf { it.isNotEmpty() },
             photoUrl = imageUrl(json.optString("profile_path"), "w185"),
-            knownFor = knownFor(json.optJSONObject("combined_credits"), AnimeListIndex(app)),
+            knownFor = knownFor(json.optJSONObject("combined_credits"), AnimeListIndex.get(app)),
         )
         prefs.edit().putString(cacheKey, encodePerson(profile)).apply()
         return profile
@@ -361,7 +362,7 @@ class TmdbCatalog(context: Context) {
     ): List<Pair<Int, JSONObject>> {
         val key = apiKey()
         if (key.isBlank()) return emptyList()
-        val index = AnimeListIndex(app)
+        val index = AnimeListIndex.get(app)
         val path = if (movie) "discover/movie" else "discover/tv"
         val body = get(api(path, key, *query.toTypedArray())) ?: return emptyList()
         val list = JSONObject(body).optJSONArray("results") ?: return emptyList()
@@ -384,7 +385,7 @@ class TmdbCatalog(context: Context) {
     }
 
     private fun fetch(detail: AnimeSummary, key: String): TitleArt? {
-        val mapped = runCatching { AnimeListIndex(app).find(detail.id) }.getOrNull()
+        val mapped = runCatching { AnimeListIndex.get(app).find(detail.id) }.getOrNull()
         val movie = mapped?.movie ?: detail.format.equals("MOVIE", true)
         val id = mapped?.tmdbId
             ?: findId(detail.id, detail.searchTitles().firstOrNull() ?: detail.title, detail.seasonYear, movie)
@@ -427,7 +428,7 @@ class TmdbCatalog(context: Context) {
         }
         val backdrops = backdropUrls(images?.optJSONArray("backdrops"))
         val keywords = keywordNames(json.optJSONObject("keywords"), movie)
-        val index = AnimeListIndex(app)
+        val index = AnimeListIndex.get(app)
         val suggestions = suggestions(json.optJSONObject("recommendations"), movie, index)
         val posters = gallery(images?.optJSONArray("posters"), "w342", 8)
         val offers = watchOffers(json.optJSONObject("watch/providers"))
@@ -572,9 +573,7 @@ class TmdbCatalog(context: Context) {
     }
 
     private fun cached(anilistId: Int): TitleArt? {
-        val raw = prefs.getString("art4$anilistId", null) ?: return null
-        val age = System.currentTimeMillis() - prefs.getLong("art4At$anilistId", 0L)
-        if (age > TimeUnit.DAYS.toMillis(7)) return null
+        val raw = freshString("art4$anilistId", WEEK_MS) ?: return null
         return runCatching { decode(raw) }.getOrNull()
     }
 
@@ -586,11 +585,58 @@ class TmdbCatalog(context: Context) {
     }
 
     private fun cachedId(anilistId: Int): Int? {
+        val at = prefs.getLong("tmdbAt$anilistId", 0L)
         val id = prefs.getInt("tmdb$anilistId", 0)
         if (id <= 0) return null
-        val age = System.currentTimeMillis() - prefs.getLong("tmdbAt$anilistId", 0L)
-        if (age > TimeUnit.DAYS.toMillis(14)) return null
+        if (at == 0L || System.currentTimeMillis() - at > TWO_WEEKS_MS) {
+            prefs.edit().remove("tmdb$anilistId").remove("tmdbAt$anilistId").apply()
+            return null
+        }
         return id
+    }
+
+    private fun stampKey(key: String): String = when {
+        key.startsWith("art4") -> "art4At${key.removePrefix("art4")}"
+        key.startsWith("tmdb") -> "tmdbAt${key.removePrefix("tmdb")}"
+        else -> "${key}At"
+    }
+
+    private fun freshString(key: String, maxAgeMs: Long): String? {
+        val raw = prefs.getString(key, null) ?: return null
+        val stamp = stampKey(key)
+        val at = prefs.getLong(stamp, 0L)
+        if (at == 0L || System.currentTimeMillis() - at > maxAgeMs) {
+            prefs.edit().remove(key).remove(stamp).apply()
+            return null
+        }
+        return raw
+    }
+
+    private fun rememberTimed(key: String, value: String) {
+        prefs.edit()
+            .putString(key, value)
+            .putLong(stampKey(key), System.currentTimeMillis())
+            .apply()
+    }
+
+    private fun pruneExpired() {
+        val now = System.currentTimeMillis()
+        val editor = prefs.edit()
+        var changed = false
+        prefs.all.keys.toList().forEach { key ->
+            if (key.startsWith("art4At") || key.startsWith("tmdbAt") || key.endsWith("At")) return@forEach
+            val maxAge = if (key.startsWith("tmdb")) TWO_WEEKS_MS else WEEK_MS
+            val tracked = key.startsWith("art4") || key.startsWith("frame3") ||
+                key.startsWith("still") || key.startsWith("tmdb")
+            if (!tracked) return@forEach
+            val stamp = stampKey(key)
+            val at = prefs.getLong(stamp, 0L)
+            if (at == 0L || now - at > maxAge) {
+                editor.remove(key).remove(stamp)
+                changed = true
+            }
+        }
+        if (changed) editor.apply()
     }
 
     private fun rememberId(anilistId: Int, tmdbId: Int) {
@@ -620,7 +666,21 @@ class TmdbCatalog(context: Context) {
     }
 
     companion object {
+        @Volatile private var sharedCatalog: TmdbCatalog? = null
+
+        fun shared(context: Context): TmdbCatalog {
+            sharedCatalog?.let { return it }
+            return synchronized(this) {
+                sharedCatalog ?: TmdbCatalog(context.applicationContext).also {
+                    it.pruneExpired()
+                    sharedCatalog = it
+                }
+            }
+        }
+
         private const val PREFS = "anikitty_tmdb"
+        private val WEEK_MS = TimeUnit.DAYS.toMillis(7)
+        private val TWO_WEEKS_MS = TimeUnit.DAYS.toMillis(14)
     }
 }
 
@@ -858,19 +918,24 @@ private fun gallery(list: JSONArray?, size: String, limit: Int, pngOnly: Boolean
 private fun watchOffers(providers: JSONObject?): Pair<List<WatchOffer>, String?> {
     val results = providers?.optJSONObject("results") ?: return emptyList<WatchOffer>() to null
     val region = java.util.Locale.getDefault().country.uppercase()
-    val block = results.optJSONObject(region)
-        ?: results.optJSONObject("US")
-        ?: results.optJSONObject("JP")
-        ?: return emptyList<WatchOffer>() to null
+    if (region.isBlank()) return emptyList<WatchOffer>() to null
+    val block = results.optJSONObject(region) ?: return emptyList<WatchOffer>() to null
     val link = block.optString("link").takeIf { it.startsWith("http") }
     val seen = HashSet<String>()
     val offers = buildList {
-        for (bucket in listOf("flatrate", "free", "ads")) {
+        for (bucket in listOf("flatrate", "free", "ads", "rent", "buy")) {
             val list = block.optJSONArray(bucket) ?: continue
+            val kind = when (bucket) {
+                "rent" -> "Rent"
+                "buy" -> "Buy"
+                else -> null
+            }
             for (i in 0 until list.length()) {
                 val item = list.optJSONObject(i) ?: continue
-                val name = item.optString("provider_name").trim()
-                if (name.isEmpty() || !seen.add(name.lowercase())) continue
+                val provider = item.optString("provider_name").trim()
+                if (provider.isEmpty()) continue
+                val name = if (kind == null) provider else "$provider · $kind"
+                if (!seen.add(name.lowercase())) continue
                 add(WatchOffer(name, imageUrl(item.optString("logo_path"), "w92")))
                 if (size >= 8) return@buildList
             }

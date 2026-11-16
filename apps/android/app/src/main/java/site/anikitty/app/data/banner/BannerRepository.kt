@@ -69,7 +69,7 @@ class BannerRepository(context: Context) {
         val tmdbKey = key("tmdb", BuildConfig.TMDB_API_KEY)
         val fanartKey = key("fanart", BuildConfig.FANART_API_KEY)
         val mapped = if (tmdbKey.isNotBlank() || fanartKey.isNotBlank()) {
-            runCatching { site.anikitty.app.data.tmdb.AnimeListIndex(app).find(id) }.getOrNull()
+            runCatching { site.anikitty.app.data.tmdb.AnimeListIndex.get(app).find(id) }.getOrNull()
         } else {
             null
         }
@@ -82,7 +82,7 @@ class BannerRepository(context: Context) {
         } else {
             arm(id)
         }
-        val tmdbId = ids?.tmdb ?: TmdbCatalog(app).findId(id, title, year, movie)?.toString()
+        val tmdbId = ids?.tmdb ?: TmdbCatalog.shared(app).findId(id, title, year, movie)?.toString()
         val tmdbPath = tmdbId?.let { tmdbBackdrop(it, tmdbKey) }
         val fanart = ids?.tvdb?.let { fanartBackground(it, fanartKey) }
         val kitsu = ids?.kitsu?.let { kitsuLarge(it) }

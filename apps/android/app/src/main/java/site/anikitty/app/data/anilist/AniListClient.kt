@@ -978,10 +978,10 @@ class AniListClient(
             malId = item.nullableInt("idMal"),
             status = item.nullableString("status"),
             season = item.nullableString("season"),
-            seasonYear = item.nullableInt("seasonYear")
-                ?: item.optJSONObject("startDate")?.nullableInt("year"),
+            seasonYear = item.nullableInt("seasonYear"),
             startDay = item.optJSONObject("startDate")?.nullableInt("day"),
             startMonth = item.optJSONObject("startDate")?.nullableInt("month"),
+            startYear = item.optJSONObject("startDate")?.nullableInt("year"),
             endDay = item.optJSONObject("endDate")?.nullableInt("day"),
             endMonth = item.optJSONObject("endDate")?.nullableInt("month"),
             endYear = item.optJSONObject("endDate")?.nullableInt("year"),
