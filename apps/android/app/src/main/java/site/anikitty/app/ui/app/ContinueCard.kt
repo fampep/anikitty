@@ -233,7 +233,8 @@ fun ContinueWatchCard(
     val time = when {
         shown.minutesLeft != null -> "${shown.minutesLeft} min left"
         shown.next -> "Next"
-        else -> " "
+        shown.progress > 0f -> "Resume"
+        else -> null
     }
     val entries = buildList {
         if (onRemove != null) add(KittyMenuEntry("Remove from row", onRemove))
@@ -364,14 +365,16 @@ fun ContinueWatchCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        Text(
-            time,
-            color = palette.muted,
-            fontSize = 12.sp,
-            lineHeight = 16.sp,
-            maxLines = 1,
-            modifier = Modifier.padding(top = 2.dp),
-        )
+        if (time != null) {
+            Text(
+                time,
+                color = palette.muted,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                maxLines = 1,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+        }
     }
 }
 

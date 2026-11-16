@@ -76,16 +76,8 @@ import site.anikitty.app.ui.components.AnimatedSearchIcon
 import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.components.KittyEmptyState
 import site.anikitty.app.ui.components.KittySectionHeading
-import site.anikitty.app.ui.theme.KittyAccent
-import site.anikitty.app.ui.theme.KittyAccentGlow
-import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyGlassShape
-import site.anikitty.app.ui.theme.KittyMuted
-import site.anikitty.app.ui.theme.KittyOnAccent
-import site.anikitty.app.ui.theme.KittyOutlineSoft
-import site.anikitty.app.ui.theme.KittySurface
-import site.anikitty.app.ui.theme.KittySurfaceElevated
-import site.anikitty.app.ui.theme.KittyText
+import site.anikitty.app.ui.theme.LocalKittyPalette
 
 /**
  * Extension Store — black glass panels, white selection.
@@ -97,6 +89,7 @@ fun ExtensionStoreFeed(
     onBack: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val palette = LocalKittyPalette.current
     val scope = rememberCoroutineScope()
     val selectedId by catalog.selectedId.collectAsState()
     val installedExt by catalog.extensions.installed.collectAsState()
@@ -108,6 +101,7 @@ fun ExtensionStoreFeed(
     var listings by remember { mutableStateOf<List<StoreListing>>(emptyList()) }
     var status by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var busyId by remember { mutableStateOf<String?>(null) }
     var showGithub by remember { mutableStateOf(false) }
     var updates by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
@@ -233,6 +227,7 @@ fun ExtensionStoreFeed(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
+            .background(palette.page)
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(bottom = 100.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
@@ -262,7 +257,7 @@ fun ExtensionStoreFeed(
                     Icon(
                         Icons.Rounded.Refresh,
                         contentDescription = "Refresh store",
-                        tint = if (busy) KittyFaint else KittyAccentGlow,
+                        tint = if (busy) palette.faint else palette.text,
                     )
                 }
             }
@@ -270,13 +265,13 @@ fun ExtensionStoreFeed(
                 Text(
                     status!!,
                     style = MaterialTheme.typography.labelSmall,
-                    color = KittyMuted,
+                    color = palette.muted,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .padding(top = 8.dp)
                         .clip(RoundedCornerShape(999.dp))
-                        .background(KittySurface)
-                        .border(1.dp, KittyOutlineSoft, RoundedCornerShape(999.dp))
+                        .background(palette.surface)
+                        .border(1.dp, palette.hairline, RoundedCornerShape(999.dp))
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                 )
             }
@@ -288,26 +283,26 @@ fun ExtensionStoreFeed(
                 onValueChange = { query = it.take(80) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                placeholder = { Text("Search extensions", color = KittyFaint) },
+                placeholder = { Text("Search extensions", color = palette.faint) },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = KittyText,
-                    unfocusedTextColor = KittyText,
-                    cursorColor = KittyAccent,
-                    focusedBorderColor = KittyAccent,
-                    unfocusedBorderColor = KittyOutlineSoft,
-                    focusedContainerColor = KittySurface,
-                    unfocusedContainerColor = KittySurface,
+                    focusedTextColor = palette.text,
+                    unfocusedTextColor = palette.text,
+                    cursorColor = palette.accent,
+                    focusedBorderColor = palette.accent,
+                    unfocusedBorderColor = palette.hairline,
+                    focusedContainerColor = palette.surface,
+                    unfocusedContainerColor = palette.surface,
                 ),
                 leadingIcon = {
                     AnimatedSearchIcon(
-                        tint = if (query.isNotBlank()) KittyAccentGlow else KittyMuted,
+                        tint = if (query.isNotBlank()) palette.text else palette.muted,
                         active = query.isBlank(),
                     )
                 },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { query = "" }) {
-                            Icon(Icons.Rounded.Clear, contentDescription = "Clear", tint = KittyMuted)
+                            Icon(Icons.Rounded.Clear, contentDescription = "Clear", tint = palette.muted)
                         }
                     }
                 },
@@ -358,10 +353,10 @@ fun ExtensionStoreFeed(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(KittyGlassShape)
-                    .background(if (selected) KittySurfaceElevated else KittySurface)
+                    .background(if (selected) palette.text.copy(alpha = 0.08f) else palette.surface)
                     .border(
                         1.dp,
-                        if (selected) KittyAccent else KittyOutlineSoft,
+                        if (selected) palette.accent else palette.hairline,
                         KittyGlassShape,
                     )
                     .padding(14.dp),
@@ -377,7 +372,7 @@ fun ExtensionStoreFeed(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 listing.name,
-                                color = KittyText,
+                                color = palette.text,
                                 fontWeight = FontWeight.SemiBold,
                                 modifier = Modifier.weight(1f, fill = false),
                             )
@@ -387,9 +382,9 @@ fun ExtensionStoreFeed(
                                     "ACTIVE",
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(999.dp))
-                                        .background(KittyAccent)
+                                        .background(palette.accent)
                                         .padding(horizontal = 8.dp, vertical = 3.dp),
-                                    color = KittyOnAccent,
+                                    color = palette.onAccent,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
                                 )
@@ -399,7 +394,7 @@ fun ExtensionStoreFeed(
                             Text(
                                 listing.description,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = KittyMuted,
+                                color = palette.muted,
                                 maxLines = 2,
                             )
                         }
@@ -443,7 +438,7 @@ fun ExtensionStoreFeed(
                                 }
                             },
                             style = MaterialTheme.typography.labelSmall,
-                            color = KittyFaint,
+                            color = palette.faint,
                         )
                     }
                 }
@@ -457,23 +452,31 @@ fun ExtensionStoreFeed(
                             onClick = {
                                 scope.launch {
                                     busy = true
-                                    status = runCatching {
-                                        val m = catalog.updateExtension(listing.id)
-                                        updates = updates - m.id
-                                        "Updated ${m.name} to ${m.version}"
-                                    }.getOrElse { explainInstallFailure(it) }
-                                    busy = false
+                                    busyId = listing.id
+                                    try {
+                                        status = runCatching {
+                                            val m = catalog.updateExtension(listing.id)
+                                            updates = updates - m.id
+                                            "Updated ${m.name} to ${m.version}"
+                                        }.getOrElse { explainInstallFailure(it) }
+                                    } finally {
+                                        busy = false
+                                        busyId = null
+                                    }
                                 }
                             },
                             enabled = !busy,
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
+                                containerColor = palette.accent,
+                                contentColor = palette.onAccent,
                             ),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         ) {
-                            Text("Update", fontWeight = FontWeight.Bold)
+                            Text(
+                                if (busy && busyId == listing.id) "Updating…" else "Update",
+                                fontWeight = FontWeight.Bold,
+                            )
                         }
                     }
                     if (selected) {
@@ -481,8 +484,8 @@ fun ExtensionStoreFeed(
                             onClick = { status = "Already using ${listing.name}" },
                             enabled = !busy,
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, KittyAccent),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyAccent),
+                            border = BorderStroke(1.dp, palette.accent),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.accent),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text("Selected", fontWeight = FontWeight.Bold)
@@ -501,25 +504,31 @@ fun ExtensionStoreFeed(
                                     }
                                     else -> scope.launch {
                                         busy = true
-                                        status = runCatching {
-                                            val m = catalog.installStoreListing(listing)
-                                            catalog.select(m.id)
-                                            "Installed ${m.name}"
-                                        }.getOrElse { explainInstallFailure(it) }
-                                        busy = false
+                                        busyId = listing.id
+                                        try {
+                                            status = runCatching {
+                                                val m = catalog.installStoreListing(listing)
+                                                catalog.select(m.id)
+                                                "Installed ${m.name}"
+                                            }.getOrElse { explainInstallFailure(it) }
+                                        } finally {
+                                            busy = false
+                                            busyId = null
+                                        }
                                     }
                                 }
                             },
                             enabled = !busy && !(sample && !onDevice && !isBundled),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
+                                containerColor = palette.accent,
+                                contentColor = palette.onAccent,
                             ),
                             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                         ) {
                             Text(
                                 when {
+                                    busy && busyId == listing.id -> "Installing…"
                                     onDevice || isBundled -> "Use"
                                     sample -> "Example"
                                     else -> "Install"
@@ -538,7 +547,7 @@ fun ExtensionStoreFeed(
                                 )
                             },
                         ) {
-                            Text("Source", color = KittyMuted, fontSize = 12.sp)
+                            Text("Source", color = palette.muted, fontSize = 12.sp)
                         }
                     }
                     if (listing.siteUrl != null) {
@@ -549,7 +558,7 @@ fun ExtensionStoreFeed(
                                 )
                             },
                         ) {
-                            Text("Site", color = KittyMuted, fontSize = 12.sp)
+                            Text("Site", color = palette.muted, fontSize = 12.sp)
                         }
                     }
                     if (installed && !isBundled) {
@@ -560,7 +569,7 @@ fun ExtensionStoreFeed(
                             },
                             enabled = !busy,
                         ) {
-                            Text("Remove", color = KittyFaint, fontSize = 12.sp)
+                            Text("Remove", color = palette.faint, fontSize = 12.sp)
                         }
                     }
                 }
@@ -572,10 +581,10 @@ fun ExtensionStoreFeed(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(KittyGlassShape)
-                    .background(if (showGithub) KittySurfaceElevated else KittySurface)
+                    .background(if (showGithub) palette.text.copy(alpha = 0.08f) else palette.surface)
                     .border(
                         1.dp,
-                        if (showGithub) KittyAccent.copy(alpha = 0.55f) else KittyOutlineSoft,
+                        if (showGithub) palette.accent.copy(alpha = 0.55f) else palette.hairline,
                         KittyGlassShape,
                     )
                     .clickable { showGithub = !showGithub }
@@ -585,19 +594,19 @@ fun ExtensionStoreFeed(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             "Add from GitHub",
-                            color = KittyText,
+                            color = palette.text,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
                             "Paste a repo with anikitty-extension.json",
-                            color = KittyFaint,
+                            color = palette.faint,
                             style = MaterialTheme.typography.labelSmall,
                         )
                     }
                     Icon(
                         if (showGithub) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                         contentDescription = null,
-                        tint = if (showGithub) KittyAccentGlow else KittyMuted,
+                        tint = if (showGithub) palette.text else palette.muted,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -613,15 +622,15 @@ fun ExtensionStoreFeed(
                             onValueChange = { githubUrl = it.take(300) },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            placeholder = { Text("https://github.com/owner/repo", color = KittyFaint) },
+                            placeholder = { Text("https://github.com/owner/repo", color = palette.faint) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = KittyText,
-                                unfocusedTextColor = KittyText,
-                                cursorColor = KittyAccent,
-                                focusedBorderColor = KittyAccent,
-                                unfocusedBorderColor = KittyOutlineSoft,
-                                focusedContainerColor = KittySurfaceElevated,
-                                unfocusedContainerColor = KittySurfaceElevated,
+                                focusedTextColor = palette.text,
+                                unfocusedTextColor = palette.text,
+                                cursorColor = palette.accent,
+                                focusedBorderColor = palette.accent,
+                                unfocusedBorderColor = palette.hairline,
+                                focusedContainerColor = palette.surface,
+                                unfocusedContainerColor = palette.surface,
                             ),
                             shape = RoundedCornerShape(14.dp),
                         )
@@ -632,24 +641,29 @@ fun ExtensionStoreFeed(
                                 if (url.length < 3) return@Button
                                 scope.launch {
                                     busy = true
-                                    status = runCatching {
-                                        val m = catalog.installFromGithub(url)
-                                        catalog.select(m.id)
-                                        githubUrl = ""
-                                        "Installed ${m.name} (${m.version})"
-                                    }.getOrElse { explainInstallFailure(it) }
-                                    busy = false
+                                    busyId = "github"
+                                    try {
+                                        status = runCatching {
+                                            val m = catalog.installFromGithub(url)
+                                            catalog.select(m.id)
+                                            githubUrl = ""
+                                            "Installed ${m.name} (${m.version})"
+                                        }.getOrElse { explainInstallFailure(it) }
+                                    } finally {
+                                        busy = false
+                                        busyId = null
+                                    }
                                 }
                             },
                             enabled = !busy && githubUrl.trim().length >= 3,
                             shape = RoundedCornerShape(14.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
+                                containerColor = palette.accent,
+                                contentColor = palette.onAccent,
                             ),
                         ) {
                             Text(
-                                if (busy) "Installing…" else "Install",
+                                if (busyId == "github") "Installing…" else "Install",
                                 fontWeight = FontWeight.Bold,
                             )
                         }
@@ -673,7 +687,7 @@ fun ExtensionStoreFeed(
             ) {
                 Text(
                     "Submit an extension",
-                    color = KittyMuted,
+                    color = palette.muted,
                     fontWeight = FontWeight.Medium,
                 )
             }
