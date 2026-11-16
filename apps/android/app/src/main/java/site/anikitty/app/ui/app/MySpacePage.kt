@@ -246,7 +246,10 @@ fun MySpaceFeed(
         }
     }
 
-    LaunchedEffect(accessToken, syncLabel) {
+    val listStamp = remember(history) {
+        history.joinToString("|") { "${it.anilistId}:${it.listStatus}:${it.episode}" }
+    }
+    LaunchedEffect(accessToken, syncLabel, listStamp) {
         val token = accessToken
         if (!aniListLinked || token.isNullOrBlank()) {
             viewer = null

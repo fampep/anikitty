@@ -320,28 +320,22 @@ fun LocalFirstApp(
                 screen = Screen.Tabs
                 tab = "settings"
                 openAccountTick++
-                if (aniListAuth.isLinked) {
+                aniLinkStatus = "Signing in…"
+                aniLinkStatus = runCatching {
+                    val viewer = aniList.viewer(pendingAniListToken)
+                        ?: error("AniList did not accept that sign-in")
+                    aniListAuth.saveViewer(pendingAniListToken, viewer)
                     onAniListReady()
-                    aniLinkStatus = "Signed in as @${aniListAuth.username ?: "anilist"}"
-                    onConsumedAniListToken()
-                } else {
-                    aniLinkStatus = "Signing in…"
-                    aniLinkStatus = runCatching {
-                        val viewer = aniList.viewer(pendingAniListToken)
-                            ?: error("AniList did not accept that sign-in")
-                        aniListAuth.saveViewer(pendingAniListToken, viewer)
-                        onAniListReady()
-                        val synced = runCatching { aniListSync.pull() }.getOrNull()
-                        aniLinkTick++
-                        if (synced != null) {
-                            syncLabel = "Synced ${synced.imported} from AniList"
-                            "Signed in as @${viewer.name}"
-                        } else {
-                            "Signed in as @${viewer.name}"
-                        }
-                    }.getOrElse { e -> "Error: ${e.message}" }
-                    onConsumedAniListToken()
-                }
+                    val synced = runCatching { aniListSync.pull() }.getOrNull()
+                    aniLinkTick++
+                    if (synced != null) {
+                        syncLabel = "Synced ${synced.imported} from AniList"
+                        "Signed in as @${viewer.name}"
+                    } else {
+                        "Signed in as @${viewer.name}"
+                    }
+                }.getOrElse { e -> friendlyFailure(e.message) }
+                onConsumedAniListToken()
             }
         }
     }
@@ -354,7 +348,7 @@ fun LocalFirstApp(
                 val result = aniListSync.pull()
                 syncLabel = "Synced ${result.imported} from AniList"
             }.onFailure { e ->
-                syncLabel = e.message
+                syncLabel = friendlyFailure(e.message)
             }
             delay(5 * 60_000L)
         }
@@ -410,10 +404,16 @@ fun LocalFirstApp(
         }
         if (found.isNotEmpty()) releasedById = releasedById + found
     }
-    BackHandler(enabled = screen is Screen.Detail || screen == Screen.Continue) {
-        when (screen) {
-            is Screen.Detail -> popDetailOrTabs()
-            Screen.Continue -> screen = Screen.Tabs
+    BackHandler(
+        enabled = screen is Screen.Detail ||
+            screen == Screen.Continue ||
+            screen == Screen.Schedule ||
+            (screen == Screen.Tabs && tab != "home"),
+    ) {
+        when {
+            screen is Screen.Detail -> popDetailOrTabs()
+            screen == Screen.Continue || screen == Screen.Schedule -> screen = Screen.Tabs
+            screen == Screen.Tabs && tab != "home" -> tab = "home"
             else -> Unit
         }
     }
@@ -424,7 +424,7 @@ fun LocalFirstApp(
                 ScheduleFeed(
                     aniList = aniList,
                     onBack = { screen = Screen.Tabs },
-                    onOpen = { openDetail(it) },
+                    onOpen = { anime, episode -> openDetail(anime, episode) },
                     followedEpisodes = followedEpisodes,
                 )
                 DockOverlay(
@@ -534,7 +534,7 @@ fun LocalFirstApp(
                     aniList = aniList,
                     demo = demo,
                     onBack = { tab = "home" },
-                    onOpen = { openDetail(it) },
+                    onOpen = { anime, episode -> openDetail(anime, episode) },
                     showBack = false,
                     bottomInset = 100.dp,
                     followedEpisodes = followedEpisodes,
@@ -974,7 +974,8 @@ private fun HomeFeed(
     val catalogBusy = loading || refreshing
     var airingToday by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
     var latestDub by remember { mutableStateOf<List<AiringSlot>>(emptyList()) }
-    LaunchedEffect(demo) {
+    var latestTick by remember { mutableIntStateOf(0) }
+    LaunchedEffect(demo, latestTick) {
         if (demo) {
             val now = System.currentTimeMillis() / 1000L
             val demoSlots = site.anikitty.app.data.demo.DemoLibrary.airing(now)
@@ -1080,6 +1081,7 @@ private fun HomeFeed(
             error = null
             return
         }
+        if (fromPull) latestTick++
         if (catalogJob?.isActive == true) {
             if (!fromPull) return
             catalogJob?.cancel()
@@ -1299,7 +1301,9 @@ private fun HomeFeed(
                 }
                 fun watchEpisode(anime: AnimeSummary): Int {
                     val entry = history.firstOrNull { it.anilistId == anime.id } ?: return 1
-                    return continueCue(entry)?.episode ?: entry.episode.coerceAtLeast(1)
+                    val cap = releasedEpisodes[anime.id]
+                    val raw = continueCue(entry, cap)?.episode ?: entry.episode.coerceAtLeast(1)
+                    return if (cap != null && cap > 0) raw.coerceAtMost(cap) else raw
                 }
                 fun railEntries(items: List<AnimeSummary>, dates: Map<Int, String> = emptyMap()) =
                     items.map { anime ->
@@ -2917,6 +2921,42 @@ private fun TitleDetailScreen(
         }
     }
 
+    fun removeFromList() {
+        if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) != null) {
+            listStatus = null
+            listBadge = null
+            return
+        }
+        val token = aniListAuth.accessToken ?: run {
+            status = "Sign in to edit your list"
+            return
+        }
+        if (listBusy) return
+        val previous = listStatus
+        listBusy = true
+        listStatus = null
+        listBadge = null
+        scope.launch {
+            val entryId = aniList.listEntryId(token, detail.id)
+            val ok = entryId == null || aniList.deleteListEntry(token, entryId)
+            listBusy = false
+            if (ok) {
+                historyDao.get(detail.id)?.let { existing ->
+                    historyDao.upsert(
+                        existing.copy(
+                            listStatus = null,
+                            updatedAtEpochMs = System.currentTimeMillis(),
+                        ),
+                    )
+                }
+            } else {
+                listStatus = previous
+                listBadge = listStatusBadge(previous)
+                status = "Could not update your list"
+            }
+        }
+    }
+
     fun applyListStatus(next: String) {
         if (site.anikitty.app.data.demo.DemoLibrary.find(detail.id) != null) {
             if (listStatus.equals(next, ignoreCase = true)) {
@@ -3141,11 +3181,7 @@ private fun TitleDetailScreen(
         onPlay = { playSelected() },
         onBack = onBack,
         onMyList = {
-            if (listStatus == null) {
-                applyListStatus("PLANNING")
-            } else if (sampleTitle) {
-                applyListStatus(listStatus!!)
-            }
+            if (listStatus == null) applyListStatus("PLANNING") else removeFromList()
         },
         onListStatus = { applyListStatus(it) },
         onScore = { applyScore(it) },

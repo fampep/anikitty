@@ -82,8 +82,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
@@ -183,48 +185,53 @@ fun SearchFeed(
         val nextPage = if (more) page + 1 else 1
         searchJob?.cancel()
         searchJob = scope.launch {
-            if (demo) {
-                val base = if (q.length >= 2) {
-                    site.anikitty.app.data.demo.DemoLibrary.search(q)
-                } else {
-                    site.anikitty.app.data.demo.DemoLibrary.catalog
+            try {
+                if (demo) {
+                    val base = if (q.length >= 2) {
+                        site.anikitty.app.data.demo.DemoLibrary.search(q)
+                    } else {
+                        site.anikitty.app.data.demo.DemoLibrary.catalog
+                    }
+                    val genres = filters.genres
+                    items = if (genres.isEmpty()) base else base.filter { anime -> genres.all { it in anime.genres } }
+                    page = 1
+                    end = true
+                    error = null
+                    return@launch
                 }
-                val genres = filters.genres
-                items = if (genres.isEmpty()) base else base.filter { anime -> genres.all { it in anime.genres } }
-                page = 1
-                end = true
-                loading = false
-                error = null
-                return@launch
+                if (!more) delay(280)
+                loading = true
+                if (!more) error = null
+                runCatching {
+                    aniList.browse(
+                        query = q,
+                        format = filters.format,
+                        status = filters.status,
+                        season = filters.season,
+                        genres = filters.genres.toList(),
+                        tags = filters.tags.toList(),
+                        country = filters.country,
+                        yearFrom = filters.yearFrom,
+                        yearTo = filters.yearTo,
+                        episodesFrom = filters.episodesFrom,
+                        episodesTo = filters.episodesTo,
+                        durationFrom = filters.durationFrom,
+                        durationTo = filters.durationTo,
+                        sort = if (q.length >= 2 && filters.sort == "POPULARITY_DESC") "SEARCH_MATCH" else filters.sort,
+                        page = nextPage,
+                    )
+                }.onSuccess { found ->
+                    items = if (more) (items + found).distinctBy { it.id } else found
+                    page = nextPage
+                    end = found.size < 24
+                    if (q.length >= 2 && found.isNotEmpty()) rememberQuery(q)
+                }.onFailure {
+                    if (it is CancellationException) throw it
+                    error = friendlyFailure(it.message)
+                }
+            } finally {
+                if (isActive) loading = false
             }
-            if (!more) delay(280)
-            loading = true
-            if (!more) error = null
-            runCatching {
-                aniList.browse(
-                    query = q,
-                    format = filters.format,
-                    status = filters.status,
-                    season = filters.season,
-                    genres = filters.genres.toList(),
-                    tags = filters.tags.toList(),
-                    country = filters.country,
-                    yearFrom = filters.yearFrom,
-                    yearTo = filters.yearTo,
-                    episodesFrom = filters.episodesFrom,
-                    episodesTo = filters.episodesTo,
-                    durationFrom = filters.durationFrom,
-                    durationTo = filters.durationTo,
-                    sort = if (q.length >= 2 && filters.sort == "POPULARITY_DESC") "SEARCH_MATCH" else filters.sort,
-                    page = nextPage,
-                )
-            }.onSuccess { found ->
-                items = if (more) (items + found).distinctBy { it.id } else found
-                page = nextPage
-                end = found.size < 24
-                if (q.length >= 2 && found.isNotEmpty()) rememberQuery(q)
-            }.onFailure { error = friendlyFailure(it.message) }
-            loading = false
         }
     }
 
@@ -368,6 +375,18 @@ fun SearchFeed(
                     }
                     if (asGrid) SearchPoster(anime, listMarks[anime.id], open)
                     else SearchListRow(anime, listMarks[anime.id], open)
+                }
+                if (error != null && items.isNotEmpty() && !loading) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Text(
+                            error ?: "Couldn't load more",
+                            color = palette.muted,
+                            fontSize = 13.sp,
+                            modifier = Modifier
+                                .padding(vertical = 8.dp)
+                                .spacePress { runSearch(query, more = true) },
+                        )
+                    }
                 }
                 if (loading && items.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {

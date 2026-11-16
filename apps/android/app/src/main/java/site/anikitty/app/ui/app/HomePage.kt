@@ -731,6 +731,7 @@ internal fun HomeGenreRow(
     names: List<String>,
     onOpen: (String) -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     LazyRow(
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -738,12 +739,13 @@ internal fun HomeGenreRow(
         items(names, key = { it }, contentType = { "genre" }) { name ->
             Text(
                 name,
-                color = Color.White.copy(alpha = 0.85f),
+                color = palette.text,
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp,
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .border(1.dp, Hairline, RoundedCornerShape(16.dp))
+                    .background(palette.surface)
+                    .border(1.dp, palette.hairline, RoundedCornerShape(16.dp))
                     .spacePress { onOpen(name) }
                     .padding(horizontal = 14.dp, vertical = 9.dp),
             )

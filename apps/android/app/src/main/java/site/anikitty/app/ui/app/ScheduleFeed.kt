@@ -55,6 +55,7 @@ import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.ui.theme.KittyAccent
+import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.ui.theme.KittyOnAccent
@@ -71,7 +72,7 @@ fun ScheduleFeed(
     aniList: AniListClient,
     demo: Boolean = false,
     onBack: () -> Unit,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, Int) -> Unit,
     showBack: Boolean = true,
     bottomInset: Dp = 12.dp,
     followedEpisodes: Map<Int, Int> = emptyMap(),
@@ -116,6 +117,7 @@ fun ScheduleFeed(
         onDay && mine
     }
 
+    val palette = LocalKittyPalette.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -130,7 +132,7 @@ fun ScheduleFeed(
         ) {
             if (showBack) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = KittyText)
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back", tint = palette.text)
                 }
             } else {
                 Spacer(modifier = Modifier.width(8.dp))
@@ -138,14 +140,14 @@ fun ScheduleFeed(
             Column(modifier = Modifier.padding(start = 8.dp)) {
                 Text(
                     "Schedule",
-                    color = Color.White,
+                    color = palette.text,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-0.4).sp,
                 )
                 Text(
                     "The next five days",
-                    color = Color.White.copy(alpha = 0.45f),
+                    color = palette.muted,
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -182,10 +184,10 @@ fun ScheduleFeed(
                         .weight(1f)
                         .spacePress { selected = index }
                         .clip(RoundedCornerShape(12.dp))
-                        .background(if (on) Color.White else Color(0xFF0C0C10))
+                        .background(if (on) palette.text else palette.surface)
                         .border(
                             0.5.dp,
-                            if (on) Color.White else Color.White.copy(alpha = 0.08f),
+                            if (on) palette.text else palette.hairline,
                             RoundedCornerShape(12.dp),
                         )
                         .padding(vertical = 8.dp),
@@ -199,13 +201,13 @@ fun ScheduleFeed(
                                 .orEmpty()
                                 .uppercase(Locale.getDefault())
                         },
-                        color = if (on) KittyOnAccent else KittyFaint,
+                        color = if (on) palette.page else palette.muted,
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
                         day.get(Calendar.DAY_OF_MONTH).toString(),
-                        color = if (on) KittyOnAccent else KittyText,
+                        color = if (on) palette.page else palette.text,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                     )
@@ -296,12 +298,12 @@ private fun ScheduleRow(
     slot: AiringSlot,
     timeLabel: String,
     listLabel: String?,
-    onOpen: (AnimeSummary) -> Unit,
+    onOpen: (AnimeSummary, Int) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .spacePress { onOpen(slot.anime) }
+            .spacePress { onOpen(slot.anime, slot.episode) }
             .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF0C0C10))
             .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
