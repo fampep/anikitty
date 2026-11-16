@@ -43,6 +43,7 @@ class ServerCatalog(context: Context) {
         GotakuServer(cache = resolveCache),
         ReanimeServer(cache = resolveCache),
         MkissaServer(cache = resolveCache),
+        KaaServer(cache = resolveCache),
     )
     val bundledIds: Set<String> = bundled.map { it.server.id }.toSet()
 

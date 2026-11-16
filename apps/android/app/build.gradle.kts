@@ -135,6 +135,7 @@ android {
             java.srcDir("../../../extensions/providers/gotaku")
             java.srcDir("../../../extensions/providers/reanime")
             java.srcDir("../../../extensions/providers/mkissa")
+            java.srcDir("../../../extensions/providers/kaa")
         }
     }
 }

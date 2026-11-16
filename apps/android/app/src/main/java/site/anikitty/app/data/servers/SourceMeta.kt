@@ -46,6 +46,9 @@ object BuiltInSourceMeta {
     fun gotaku(streamInf: String, audioMode: String, audioMedia: String? = null): SourceFields =
         fromHls(streamInf, audioMode, audioMedia)
 
+    /** kaa.lt states resolution on the vidstream master playlist. */
+    fun kaa(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
+
     /** HTTP extensions: copy the optional JSON fields and nothing else. */
     fun fromExtension(quality: String?, audio: String?, qualityRating: String?): SourceFields =
         SourceFields(

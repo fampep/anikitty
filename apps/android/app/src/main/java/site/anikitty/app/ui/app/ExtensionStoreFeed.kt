@@ -752,6 +752,7 @@ private fun StreamServer.toStoreListing(
 private fun bundledStoreVersion(id: String): String = when (id) {
     "reanime" -> "1.0.0"
     "mkissa" -> "1.0.0"
+    "kaa" -> "1.0.0"
     else -> "1.1.1"
 }
 
@@ -765,5 +766,6 @@ private fun providerSource(id: String): String = when (id) {
     "gotaku" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/gotaku"
     "reanime" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/reanime"
     "mkissa" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/mkissa"
+    "kaa" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/kaa"
     else -> "https://github.com/fampep/anikitty-extensions"
 }

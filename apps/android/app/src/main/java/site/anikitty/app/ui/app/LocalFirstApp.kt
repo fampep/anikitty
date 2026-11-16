@@ -2592,7 +2592,7 @@ internal fun SettingsFeed(
                     item {
                         SpacePageHeader(
                             title = "Sources",
-                            subtitle = "Anikoto (kotoplay.to if Anikoto is down), Gotaku, reanime, and mkissa ship in the app.",
+                            subtitle = "Anikoto (kotoplay.to if Anikoto is down), Gotaku, reanime, mkissa, and kaa ship in the app.",
                             onBack = { page = "hub" },
                         )
                     }
