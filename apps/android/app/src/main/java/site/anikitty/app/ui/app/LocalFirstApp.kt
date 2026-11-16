@@ -839,22 +839,26 @@ fun LocalFirstApp(
                         }
                         ContinueHidden.reveal(context, current.anime.id)
                         val ratio = if (dur > 0L) pos.toFloat() / dur else 0f
-                        val markedPastThis = (existing?.episode ?: 0) > current.episode + 1
+                        // One ahead is already past this episode. A mark stores
+                        // the next episode, and a sync stores the completed
+                        // count. Reporting the on-screen number would move
+                        // AniList backward.
+                        val alreadyAhead = (existing?.episode ?: 0) > current.episode
                         if (
                             !reportedEpisode &&
                             !reportInFlight &&
                             aniListAuth.isLinked &&
                             !demo &&
                             ratio >= 0.85f &&
-                            !markedPastThis
+                            !alreadyAhead
                         ) {
                             reportInFlight = true
                             val saved = try {
-                                val stillThisEpisode = historyWrite.withLock {
+                                val stillOnThisEpisode = historyWrite.withLock {
                                     (historyDao.get(current.anime.id)?.episode ?: 0) <=
-                                        current.episode + 1
+                                        current.episode
                                 }
-                                if (stillThisEpisode) {
+                                if (stillOnThisEpisode) {
                                     aniListSync.pushProgress(
                                         anilistId = current.anime.id,
                                         episode = current.episode,
