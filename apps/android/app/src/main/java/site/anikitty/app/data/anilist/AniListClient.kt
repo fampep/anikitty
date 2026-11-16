@@ -521,12 +521,21 @@ class AniListClient(
         )
     }
 
-    /** Episodes airing between [fromSec] and [toSec] (unix seconds), soonest first. */
-    suspend fun airingSchedule(fromSec: Long, toSec: Long): List<AiringSlot> = withContext(Dispatchers.IO) {
+    /**
+     * Episodes airing between [fromSec] and [toSec] (unix seconds).
+     * [newestFirst] asks AniList for the latest airings on page 1, so a short
+     * page cap does not fill up with the oldest slots in a long window.
+     */
+    suspend fun airingSchedule(
+        fromSec: Long,
+        toSec: Long,
+        newestFirst: Boolean = false,
+    ): List<AiringSlot> = withContext(Dispatchers.IO) {
+        val sort = if (newestFirst) "TIME_DESC" else "TIME"
         val graphql = """
             query (${'$'}page: Int, ${'$'}perPage: Int, ${'$'}from: Int, ${'$'}to: Int) {
               Page(page: ${'$'}page, perPage: ${'$'}perPage) {
-                airingSchedules(airingAt_greater: ${'$'}from, airingAt_lesser: ${'$'}to, sort: TIME) {
+                airingSchedules(airingAt_greater: ${'$'}from, airingAt_lesser: ${'$'}to, sort: $sort) {
                   episode
                   airingAt
                   media { $mediaFields isAdult }
@@ -569,7 +578,7 @@ class AniListClient(
             }
             if (rows.length() < 50) break
         }
-        slots.sortedBy { it.airingAtEpochSec }
+        if (newestFirst) slots.sortedByDescending { it.airingAtEpochSec } else slots.sortedBy { it.airingAtEpochSec }
     }
 
     suspend fun media(id: Int, accessToken: String? = null): AnimeSummary? = withContext(Dispatchers.IO) {
