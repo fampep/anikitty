@@ -189,7 +189,8 @@ fun GlassScrubber(
             val unplayed = Color(0xFF2C2C2C)
             val bufferedColor = Color(0xFF5A5A5A)
             val played = Color(0xFFE8E8E8)
-            val marker = Color.White.copy(alpha = 0.55f)
+            // Amber stays visible on both the light played rail and the dark remainder.
+            val marker = Color(0xFFFFB020)
 
             drawRoundRect(
                 color = unplayed,

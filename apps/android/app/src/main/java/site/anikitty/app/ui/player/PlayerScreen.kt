@@ -327,7 +327,10 @@ fun PlayerScreen(
     val loudnessHold = remember { LoudnessHold() }
     var autoNext by remember { mutableStateOf(playerPrefs.getBoolean("auto_next", true)) }
     var holdBoost by remember { mutableStateOf(false) }
+    /** A center hold already used this gesture, so the play disc must not toggle on release. */
+    var swallowCenterClick by remember { mutableStateOf(false) }
     var gestureHud by remember { mutableStateOf<GestureHud?>(null) }
+    var gestureDragging by remember { mutableStateOf(false) }
     var controlsLocked by remember { mutableStateOf(false) }
     /** Signed seek HUD total — stacks on rapid double-taps (e.g. +20s). */
     var seekFlashMs by remember { mutableLongStateOf(0L) }
@@ -489,6 +492,14 @@ fun PlayerScreen(
         val next = latestOnNextEpisode ?: return
         nextTriggered = true
         next()
+    }
+
+    fun goPreviousEpisode() {
+        if (nextTriggered || episode <= 1) return
+        val pick = onPickEpisode ?: return
+        nextTriggered = true
+        autoplayCancelled = true
+        pick(episode - 1)
     }
 
     var nearEndOffer by remember { mutableStateOf(false) }
@@ -1462,12 +1473,14 @@ fun PlayerScreen(
                     if (!dragged && releasedEarly == null) {
                         if (controlsLocked) return@awaitEachGesture
                         holdBoost = true
+                        swallowCenterClick = true
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
                             if (event.changes.none { it.pressed }) break
                         }
                         holdBoost = false
                     } else if (dragged) {
+                        gestureDragging = true
                         var previous = start.y
                         while (true) {
                             val event = awaitPointerEvent(PointerEventPass.Initial)
@@ -1488,15 +1501,21 @@ fun PlayerScreen(
                                 )
                             }
                         }
-                        // Cleared by LaunchedEffect below so the HUD can linger briefly.
+                        gestureDragging = false
                     }
                 }
             },
     ) {
-        LaunchedEffect(gestureHud) {
+        LaunchedEffect(holdBoost) {
+            if (holdBoost) return@LaunchedEffect
+            delay(350)
+            swallowCenterClick = false
+        }
+        LaunchedEffect(gestureHud, gestureDragging) {
+            if (gestureDragging) return@LaunchedEffect
             val shown = gestureHud ?: return@LaunchedEffect
             delay(700)
-            if (gestureHud == shown) gestureHud = null
+            if (!gestureDragging && gestureHud == shown) gestureHud = null
         }
         AnimatedVisibility(
             visible = holdBoost,
@@ -1928,7 +1947,7 @@ fun PlayerScreen(
                         }
                         if (!isMovie && onPickEpisode != null && episode > 1) {
                             ChromeDisc(
-                                onClick = { onPickEpisode.invoke(episode - 1) },
+                                onClick = { goPreviousEpisode() },
                                 size = 44.dp,
                             ) {
                                 Icon(
@@ -1950,7 +1969,8 @@ fun PlayerScreen(
                         }
                     }
 
-                    // Large center play / pause — only while chrome is up.
+                    // Hidden while the ended up-next card owns the center.
+                    if (!showEndAutoplay) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -1959,8 +1979,12 @@ fun PlayerScreen(
                             .background(Color.Black.copy(alpha = 0.55f))
                             .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
                             .clickable {
-                                activePlayer?.let {
-                                    if (it.isPlaying) it.pause() else it.play()
+                                if (swallowCenterClick) return@clickable
+                                val current = activePlayer
+                                if (current != null && playbackEnded && onNextEpisode != null) {
+                                    goNextEpisode()
+                                } else {
+                                    current?.let { if (it.isPlaying) it.pause() else it.play() }
                                 }
                                 controlsVisible = true
                             },
@@ -1972,6 +1996,7 @@ fun PlayerScreen(
                             tint = Color.White,
                             modifier = Modifier.size(34.dp),
                         )
+                    }
                     }
                 }
 
