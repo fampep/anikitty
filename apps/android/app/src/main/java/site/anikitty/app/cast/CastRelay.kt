@@ -461,24 +461,22 @@ class CastRelay(context: Context) {
         }
     }
 
-    private fun looksLikePlaylist(url: String, headers: Map<String, List<String>>): Boolean {
-        val lower = url.lowercase()
-        if (lower.contains(".m3u8") || lower.contains("/p/1")) return true
-        val type = headers["Content-Type"]?.joinToString(",").orEmpty().lowercase()
-        return type.contains("mpegurl") || type.contains("mpegURL".lowercase()) || type.contains("m3u")
-    }
+    private fun looksLikePlaylist(url: String, headers: Map<String, List<String>>): Boolean =
+        castRelayLooksLikePlaylist(url, headers)
 
     private fun contentType(url: String, headers: Map<String, List<String>>): String {
+        if (castRelayPlaylistUrl(url)) return HLS_MIME
         val lower = url.lowercase()
         return when {
-            lower.contains(".m3u8") || lower.contains("/p/1") -> HLS_MIME
             lower.contains(".m4s") || lower.contains(".mp4") || lower.contains(".m4a") -> "video/mp4"
             lower.contains(".aac") -> "audio/aac"
             lower.contains(".vtt") -> "text/vtt"
             lower.contains(".ts") || lower.contains("/s/1") -> "video/mp2t"
             else -> {
-                val raw = headers["Content-Type"]?.firstOrNull()?.substringBefore(';')?.trim().orEmpty()
-                if (raw.startsWith("image/") || raw.isBlank() || raw.contains("octet-stream")) {
+                val raw = castRelayHeader(headers, "Content-Type")
+                if (raw.contains("mpegurl", ignoreCase = true) || raw.contains("m3u", ignoreCase = true)) {
+                    HLS_MIME
+                } else if (raw.startsWith("image/") || raw.isBlank() || raw.contains("octet-stream")) {
                     "video/mp2t"
                 } else {
                     raw
@@ -697,6 +695,29 @@ internal fun castRelayCorsLines(): List<String> = listOf(
     "Access-Control-Expose-Headers: Content-Length, Content-Range, Content-Type, Accept-Ranges",
     "Access-Control-Max-Age: 86400",
 )
+
+/**
+ * AnimeX names the master `deeznuts.txt` and each variant `nut-1.txt`.
+ * Those are playlists. Media segments on that host are `.jpg`.
+ */
+internal fun castRelayPlaylistUrl(url: String): Boolean {
+    val path = url.substringBefore('?').lowercase()
+    if (path.contains(".m3u8") || path.contains("/p/1")) return true
+    val file = path.substringAfterLast('/')
+    return file == "deeznuts.txt" || (file.startsWith("nut-") && file.endsWith(".txt"))
+}
+
+internal fun castRelayHeader(headers: Map<String, List<String>>, name: String): String {
+    val values = headers[name]
+        ?: headers.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
+    return values?.joinToString(",")?.substringBefore(';')?.trim().orEmpty()
+}
+
+internal fun castRelayLooksLikePlaylist(url: String, headers: Map<String, List<String>>): Boolean {
+    if (castRelayPlaylistUrl(url)) return true
+    val type = castRelayHeader(headers, "Content-Type").lowercase()
+    return type.contains("mpegurl") || type.contains("m3u")
+}
 
 /** "fmp4" or "ts" when this playlist names its segments. Null when it does not. */
 internal fun certainHlsPack(text: String): String? {
