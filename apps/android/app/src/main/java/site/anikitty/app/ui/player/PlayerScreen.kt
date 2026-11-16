@@ -471,6 +471,7 @@ fun PlayerScreen(
     val trackSelector = playerBundle?.trackSelector
     val activePlayer: Player? = if (isCasting) castHelper?.castPlayer else player
     val latestPlayer by rememberUpdatedState(player)
+    val latestActive by rememberUpdatedState(activePlayer)
     val latestSources by rememberUpdatedState(sources)
     val latestSourceIndex by rememberUpdatedState(sourceIndex)
     val latestTitle by rememberUpdatedState(title)
@@ -478,6 +479,7 @@ fun PlayerScreen(
     val playhead = remember { Playhead() }
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
+    val latestOnProgress by rememberUpdatedState(onProgress)
     val mutedNow = rememberUpdatedState(muted)
 
     fun pushMute() {
@@ -620,9 +622,11 @@ fun PlayerScreen(
         if (castHint == message) castHint = null
     }
 
-    LaunchedEffect(player, playbackSpeed, holdBoost) {
+    LaunchedEffect(player, playbackSpeed, holdBoost, isCasting) {
         val speed = if (holdBoost) 2f else playbackSpeed
-        player?.playbackParameters = PlaybackParameters(speed)
+        val rate = PlaybackParameters(speed)
+        player?.playbackParameters = rate
+        if (isCasting) castHelper?.castPlayer?.playbackParameters = rate
     }
     LaunchedEffect(playbackSpeed) {
         playerPrefs.edit().putFloat("playback_speed", playbackSpeed).apply()
@@ -721,10 +725,13 @@ fun PlayerScreen(
     }
 
     LaunchedEffect(sources, playAttempt) {
+        val live = playhead.ms
         sourceIndex = 0
-        resumeAtMs = startPositionMs
+        // A Sub/Dub reload reuses this screen. Keep the live playhead instead of
+        // seeking back to the position from when playback first started.
+        resumeAtMs = if (live > 1_500L) live else startPositionMs
         didSeekStart = false
-        allowHistoryFallback = true
+        allowHistoryFallback = live <= 1_500L
         if (sources.isEmpty()) error = "No playable source"
     }
 
@@ -824,7 +831,7 @@ fun PlayerScreen(
                     val waitingHistory =
                         !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
                     if (!waitingHistory) {
-                        onProgress?.invoke(pos, dur)
+                        latestOnProgress?.invoke(pos, dur)
                     }
                 }
             }
@@ -841,9 +848,12 @@ fun PlayerScreen(
         if (!loaded.isEmpty) skipTimes = loaded
     }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(episode) {
+        // Capture this episode's saver. rememberUpdatedState would already
+        // point at the next episode by the time dispose runs.
+        val flush = onProgress
         onDispose {
-            onProgress?.invoke(playhead.ms, durationMs)
+            flush?.invoke(playhead.ms, durationMs)
         }
     }
 
@@ -859,7 +869,7 @@ fun PlayerScreen(
         sleepArmedAt = System.currentTimeMillis()
         delay(minutes * 60_000L)
         if (sleepChoice != minutes) return@LaunchedEffect
-        latestPlayer?.pause()
+        latestActive?.pause()
         playing = false
         controlsVisible = true
         sleepNote = "Sleep timer paused playback"
