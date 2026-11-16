@@ -131,8 +131,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -209,7 +211,11 @@ import site.anikitty.app.ui.theme.KittyText
 
 private sealed class Screen {
     data object Tabs : Screen()
-    data class Detail(val anime: AnimeSummary, val startEpisode: Int? = null) : Screen()
+    data class Detail(
+        val anime: AnimeSummary,
+        val startEpisode: Int? = null,
+        val autoPlay: Boolean = false,
+    ) : Screen()
     data class Player(
         val anime: AnimeSummary,
         val episode: Int,
@@ -271,8 +277,13 @@ fun LocalFirstApp(
     var aniLinkTick by remember { mutableIntStateOf(0) }
     var openAccountTick by remember { mutableIntStateOf(0) }
 
-    fun openDetail(anime: AnimeSummary, startEpisode: Int? = null, pushCurrent: Boolean = false) {
-        val next = Screen.Detail(anime, startEpisode)
+    fun openDetail(
+        anime: AnimeSummary,
+        startEpisode: Int? = null,
+        pushCurrent: Boolean = false,
+        autoPlay: Boolean = false,
+    ) {
+        val next = Screen.Detail(anime, startEpisode, autoPlay)
         if (pushCurrent) {
             val current = screen
             if (current is Screen.Detail) {
@@ -358,17 +369,53 @@ fun LocalFirstApp(
         )
     }
 
-    suspend fun openHistory(entry: WatchHistoryEntity, episode: Int?) {
+    suspend fun openHistory(entry: WatchHistoryEntity, episode: Int?, autoPlay: Boolean = false) {
         val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
             ?: aniList.media(entry.anilistId)
             ?: summaryFrom(entry)
         val total = detail.releasedEpisodeCount().takeIf { it > 0 }
+        if (episode != null && total != null && episode > total) {
+            openDetail(detail, null, autoPlay = false)
+            return
+        }
         val play = when {
             episode == null -> null
             total != null -> episode.coerceAtMost(total)
             else -> episode
         }
-        openDetail(detail, play)
+        openDetail(detail, play, autoPlay = autoPlay && play != null)
+    }
+
+    var releasedById by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
+    LaunchedEffect(demo, history.map { it.anilistId }) {
+        if (demo) {
+            releasedById = site.anikitty.app.data.demo.DemoLibrary.catalog
+                .mapNotNull { anime ->
+                    anime.releasedEpisodeCount().takeIf { it > 0 }?.let { anime.id to it }
+                }
+                .toMap()
+            return@LaunchedEffect
+        }
+        val missing = history.map { it.anilistId }.distinct().filter { it !in releasedById }.take(24)
+        if (missing.isEmpty()) return@LaunchedEffect
+        val found = coroutineScope {
+            missing.map { id ->
+                async {
+                    val count = runCatching { aniList.media(id) }.getOrNull()
+                        ?.releasedEpisodeCount()
+                        ?.takeIf { it > 0 }
+                    if (count != null) id to count else null
+                }
+            }.awaitAll().filterNotNull()
+        }
+        if (found.isNotEmpty()) releasedById = releasedById + found
+    }
+    BackHandler(enabled = screen is Screen.Detail || screen == Screen.Continue) {
+        when (screen) {
+            is Screen.Detail -> popDetailOrTabs()
+            Screen.Continue -> screen = Screen.Tabs
+            else -> Unit
+        }
     }
 
     when (screen) {
@@ -397,9 +444,13 @@ fun LocalFirstApp(
             Box(modifier = Modifier.fillMaxSize()) {
                 ContinueAllPage(
                     history = history,
+                    releasedEpisodes = releasedById,
                     onBack = { screen = Screen.Tabs },
                     onOpen = { entry, episode ->
-                        scope.launch { openHistory(entry, episode) }
+                        scope.launch { openHistory(entry, episode, autoPlay = true) }
+                    },
+                    onOpenTitle = { entry ->
+                        scope.launch { openHistory(entry, null) }
                     },
                     onRemove = { entry -> ContinueHidden.hide(context, entry.anilistId) },
                     onMarkWatched = { entry, episode ->
@@ -471,6 +522,13 @@ fun LocalFirstApp(
                     topWindowName = homeTopName,
                     onTopWindowName = { homeTopName = it },
                     homeListState = homeListState,
+                    releasedEpisodes = releasedById,
+                    onResumeContinue = { entry, episode ->
+                        scope.launch { openHistory(entry, episode, autoPlay = true) }
+                    },
+                    onOpenContinueTitle = { entry ->
+                        scope.launch { openHistory(entry, null) }
+                    },
                 )
                 "schedule" -> ScheduleFeed(
                     aniList = aniList,
@@ -794,6 +852,7 @@ fun LocalFirstApp(
             TitleDetailScreen(
                 anime = current.anime,
                 initialEpisode = current.startEpisode,
+                autoPlay = current.autoPlay,
                 streamServers = streamServers,
                 historyDao = historyDao,
                 aniList = aniList,
@@ -899,6 +958,9 @@ private fun HomeFeed(
     topWindowName: String,
     onTopWindowName: (String) -> Unit,
     homeListState: LazyListState,
+    releasedEpisodes: Map<Int, Int> = emptyMap(),
+    onResumeContinue: (WatchHistoryEntity, Int) -> Unit,
+    onOpenContinueTitle: (WatchHistoryEntity) -> Unit,
 ) {
     val context = LocalContext.current
     var loading by remember { mutableStateOf(true) }
@@ -956,8 +1018,8 @@ private fun HomeFeed(
     val shelf = HomeShelf.entries.firstOrNull { it.name == shelfName } ?: HomeShelf.All
     val topWindow = HomeTopWindow.entries.firstOrNull { it.name == topWindowName } ?: HomeTopWindow.Season
     val hiddenContinue = ContinueHidden.ids
-    val continueWatching = remember(history, hiddenContinue) {
-        continueQueue(history, hiddenContinue).take(12)
+    val continueWatching = remember(history, hiddenContinue, releasedEpisodes) {
+        continueQueue(history, hiddenContinue, releasedEpisodes).take(12)
     }
     val planToWatch = remember(history) {
         history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.take(12)
@@ -1017,7 +1079,10 @@ private fun HomeFeed(
             error = null
             return
         }
-        if (catalogJob?.isActive == true) return
+        if (catalogJob?.isActive == true) {
+            if (!fromPull) return
+            catalogJob?.cancel()
+        }
         catalogJob = scope.launch {
             if (fromPull) refreshing = true else loading = true
             error = null
@@ -1048,13 +1113,16 @@ private fun HomeFeed(
                     topTen = seasonTop.await().ifEmpty { trending }.take(10)
                     prefetchCovers(context, trending + seasonal + topTen)
                 }
-            }.onFailure { error = friendlyFailure(it.message) }
+            }.onFailure {
+                if (it is CancellationException) throw it
+                error = friendlyFailure(it.message)
+            }
             loading = false
             refreshing = false
             if (error != null && trending.isEmpty()) return@launch
             runCatching {
                 val shown = trending + seasonal + topTen
-                val catalog = TmdbCatalog(context)
+                val catalog = TmdbCatalog.shared(context)
                 val heroes = trending.take(5).map { it.id }
                 val art = runCatching { withContext(Dispatchers.IO) { catalog.heroArt(heroes) } }.getOrDefault(emptyMap())
                 if (art.isNotEmpty()) {
@@ -1101,6 +1169,8 @@ private fun HomeFeed(
                     }
                     collection = if (group != null && shows.isNotEmpty()) group.first to shows else null
                 }
+            }.onFailure {
+                if (it is CancellationException) throw it
             }
         }
     }
@@ -1332,20 +1402,9 @@ private fun HomeFeed(
                                     ) {
                                         ContinueWatchRow(
                                             entries = continueWatching,
-                                            onOpen = { entry, episode ->
-                                                scope.launch {
-                                                    val detail = site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
-                                                        ?: aniList.media(entry.anilistId)
-                                                        ?: summaryFrom(entry)
-                                                    val total = detail.releasedEpisodeCount().takeIf { it > 0 }
-                                                    val play = if (total != null) {
-                                                        episode.coerceAtMost(total)
-                                                    } else {
-                                                        episode
-                                                    }
-                                                    onOpen(detail, play)
-                                                }
-                                            },
+                                            releasedEpisodes = releasedEpisodes,
+                                            onOpen = onResumeContinue,
+                                            onOpenTitle = onOpenContinueTitle,
                                             onRemove = { entry ->
                                                 ContinueHidden.hide(context, entry.anilistId)
                                             },
@@ -2712,6 +2771,7 @@ private fun SettingsHubRow(
 private fun TitleDetailScreen(
     anime: AnimeSummary,
     initialEpisode: Int?,
+    autoPlay: Boolean = false,
     streamServers: ServerCatalog,
     historyDao: WatchHistoryDao,
     aniList: AniListClient,
@@ -2932,7 +2992,9 @@ private fun TitleDetailScreen(
         }
     }
 
-    fun playSelected() {
+    fun playSelected(number: Int = episode) {
+        val playEpisode = number.coerceAtLeast(1)
+        episode = playEpisode
         scope.launch {
             resolving = true
             status = "Getting stream…"
@@ -2941,10 +3003,10 @@ private fun TitleDetailScreen(
                 site.anikitty.app.data.servers.SourceBadgeCache.remember(
                     context,
                     detail.id,
-                    episode,
+                    playEpisode,
                     listOf(sample),
                 )
-                onPlay(episode, listOf(sample), detail)
+                onPlay(playEpisode, listOf(sample), detail)
                 status = null
                 resolving = false
                 return@launch
@@ -2953,7 +3015,7 @@ private fun TitleDetailScreen(
                 historyDao.touchFromCatalog(detail)
                 val resolved = streamServers.resolveWithFailover(
                     anilistId = detail.id,
-                    episode = episode,
+                    episode = playEpisode,
                     audio = audio,
                     titleHint = detail.streamTitleHint(),
                     onAttempt = { name, index, total ->
@@ -2967,19 +3029,19 @@ private fun TitleDetailScreen(
                 historyDao.get(detail.id)?.let {
                     historyDao.upsert(
                         it.copy(
-                            episode = episode,
+                            episode = playEpisode,
                             updatedAtEpochMs = System.currentTimeMillis(),
                         ),
                     )
                 }
-                lastWatchedEp = episode
+                lastWatchedEp = playEpisode
                 site.anikitty.app.data.servers.SourceBadgeCache.remember(
                     context,
                     detail.id,
-                    episode,
+                    playEpisode,
                     resolved.sources,
                 )
-                onPlay(episode, resolved.sources, detail)
+                onPlay(playEpisode, resolved.sources, detail)
                 status = if (resolved.usedFallback) {
                     "Playing via ${resolved.server.name}"
                 } else {
@@ -2990,6 +3052,10 @@ private fun TitleDetailScreen(
             }
             resolving = false
         }
+    }
+
+    LaunchedEffect(anime.id, autoPlay) {
+        if (autoPlay) playSelected(initialEpisode ?: episode)
     }
 
     fun openUrl(url: String) {
@@ -3059,6 +3125,7 @@ private fun TitleDetailScreen(
         },
         onBrowseRange = { browseRange = it },
         onPickEpisode = { episode = it },
+        onPlayEpisode = { playSelected(it) },
         onToggleWatched = { number ->
             if (!sampleTitle) {
                 scope.launch {

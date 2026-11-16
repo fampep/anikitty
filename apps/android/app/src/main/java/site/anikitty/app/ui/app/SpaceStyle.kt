@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -117,6 +118,7 @@ fun SpacePageHeader(
     subtitle: String,
     onBack: (() -> Unit)? = null,
 ) {
+    val palette = LocalKittyPalette.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -125,20 +127,21 @@ fun SpacePageHeader(
         if (onBack != null) {
             Row(
                 modifier = Modifier
-                    .padding(bottom = 12.dp)
+                    .defaultMinSize(minHeight = 48.dp)
+                    .padding(bottom = 4.dp)
                     .spacePress(onBack),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = "Back",
-                    tint = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.size(18.dp),
+                    tint = palette.text,
+                    modifier = Modifier.size(22.dp),
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
                     "Back",
-                    color = Color.White.copy(alpha = 0.55f),
+                    color = palette.muted,
                     style = MaterialTheme.typography.labelMedium,
                 )
             }
@@ -155,13 +158,13 @@ fun SpacePageHeader(
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = (-0.5).sp,
             ),
-            color = Color.White,
+            color = palette.text,
             )
         }
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.45f),
+            color = palette.muted,
             modifier = Modifier.padding(top = 2.dp),
         )
     }

@@ -200,6 +200,7 @@ internal fun HomeFeatured(
 ) {
     val pages = items.take(5)
     if (pages.isEmpty()) return
+    val palette = LocalKittyPalette.current
     val reducedMotion = prefersReducedMotion()
     val pagerState = rememberPagerState(pageCount = { pages.size })
     LaunchedEffect(pages.size, reducedMotion) {
@@ -395,7 +396,7 @@ internal fun HomeFeatured(
                             .width(if (selected) 18.dp else 5.dp)
                             .clip(CircleShape)
                             .background(
-                                if (selected) Color.White else Color.White.copy(alpha = 0.34f),
+                                if (selected) palette.text else palette.text.copy(alpha = 0.34f),
                             ),
                     )
                 }
@@ -823,21 +824,17 @@ internal fun HomeLatestEpisodes(
     val prefs = remember {
         context.getSharedPreferences("anikitty_watch", android.content.Context.MODE_PRIVATE)
     }
-    var audio by remember {
+    var audioPref by remember {
         mutableStateOf(prefs.getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub")
     }
     var page by rememberSaveable { mutableIntStateOf(0) }
+    // An empty Dub list only changes this row. The player preference stays put.
+    val audio = if (audioPref == "dub" && dubSlots.isEmpty()) "sub" else audioPref
     // Sub and Dub are separate scrape lists — never fall back across audio.
     val active = if (audio == "dub") dubSlots else slots
     if (slots.isEmpty() && dubSlots.isEmpty()) return
     // Reset paging when the audio list changes length.
     LaunchedEffect(audio, active.size) { page = 0 }
-    LaunchedEffect(dubSlots.isEmpty()) {
-        if (audio == "dub" && dubSlots.isEmpty()) {
-            audio = "sub"
-            prefs.edit().putString("audio", "sub").apply()
-        }
-    }
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
@@ -866,7 +863,7 @@ internal fun HomeLatestEpisodes(
                     modifier = Modifier.weight(1f),
                 )
                 HomeAudioChip(label = "Sub", selected = audio == "sub") {
-                    audio = "sub"
+                    audioPref = "sub"
                     prefs.edit().putString("audio", "sub").apply()
                 }
                 Spacer(modifier = Modifier.width(6.dp))
@@ -875,7 +872,7 @@ internal fun HomeLatestEpisodes(
                     selected = audio == "dub",
                     enabled = dubSlots.isNotEmpty(),
                 ) {
-                    audio = "dub"
+                    audioPref = "dub"
                     prefs.edit().putString("audio", "dub").apply()
                 }
                 if (pageCount > 1) {
@@ -1315,8 +1312,8 @@ internal fun HomeShelfChips(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .clip(RoundedCornerShape(16.dp))
-                    .background(if (on) palette.text else Color(0xFF121216))
-                    .border(1.dp, if (on) palette.text else Hairline, RoundedCornerShape(16.dp))
+                    .background(if (on) palette.text else palette.surface)
+                    .border(1.dp, if (on) palette.text else palette.hairline, RoundedCornerShape(16.dp))
                     .spacePress { onSelect(shelf) }
                     .padding(horizontal = 14.dp, vertical = 9.dp),
             )

@@ -46,4 +46,22 @@ class AniListSeasonEntriesTest {
         assertTrue(entries.any { it.id == 2 && it.relationType == "Current" })
         assertEquals("Fall 2020 · Show S1", entries.first { it.id == 1 }.seriesSwitcherLabel())
     }
+
+    @Test
+    fun airedRangeUsesThePremiereYearNotTheSeasonYear() {
+        val winter = AnimeSummary(
+            id = 9,
+            title = "December premiere",
+            coverImageUrl = null,
+            episodes = 12,
+            format = "TV",
+            averageScore = 70,
+            season = "WINTER",
+            seasonYear = 2024,
+            startDay = 28,
+            startMonth = 12,
+            startYear = 2023,
+        )
+        assertEquals("2023-12-28", winter.airedRangeLabel())
+    }
 }

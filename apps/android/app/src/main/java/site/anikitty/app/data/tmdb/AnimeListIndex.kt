@@ -10,6 +10,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
 import java.io.InputStreamReader
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.concurrent.TimeUnit
 
 /**
@@ -17,7 +19,7 @@ import java.util.concurrent.TimeUnit
  * to the fields we use, and cached on the phone. It is not shipped in the APK.
  * Refresh is about once a week, sooner when the server ETag changes.
  */
-class AnimeListIndex(context: Context) {
+class AnimeListIndex private constructor(context: Context) {
     private val app = context.applicationContext
     private val prefs = app.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     private val http = OkHttpClient.Builder()
@@ -27,6 +29,7 @@ class AnimeListIndex(context: Context) {
 
     @Volatile private var byAnilist: Map<Int, MappedShow>? = null
     @Volatile private var byTmdb: Map<String, Int>? = null
+    @Volatile private var collections: Map<Int, Pair<String, List<Int>>>? = null
 
     fun find(anilistId: Int): MappedShow? {
         if (anilistId <= 0) return null
@@ -43,13 +46,10 @@ class AnimeListIndex(context: Context) {
     fun collectionFor(anilistId: Int): Pair<String, List<Int>>? {
         if (anilistId <= 0) return null
         ensureCollections()
-        val raw = prefs.getString("col$anilistId", null) ?: return null
-        val split = raw.indexOf('\t')
-        if (split <= 0) return null
-        val name = raw.substring(0, split)
-        val ids = raw.substring(split + 1).split(',').mapNotNull { it.toIntOrNull() }.filter { it != anilistId }
+        val hit = collections?.get(anilistId) ?: return null
+        val ids = hit.second.filter { it != anilistId }
         if (ids.isEmpty()) return null
-        return name to ids.take(18)
+        return hit.first to ids.take(18)
     }
 
     private fun ensure() {
@@ -68,10 +68,15 @@ class AnimeListIndex(context: Context) {
     private fun ensureCollections() {
         val file = File(app.cacheDir, COLLECTION_FILE)
         val stale = System.currentTimeMillis() - prefs.getLong(COLLECTION_AT, 0L) > WEEK
-        if (file.exists() && !stale && prefs.contains("colready")) return
+        if (collections != null && file.exists() && !stale) return
         synchronized(this) {
-            if (file.exists() && !stale && prefs.contains("colready")) return
-            runCatching { refreshCollections(file) }
+            if (collections != null && file.exists() && !stale) return
+            if (!file.exists() || stale) {
+                runCatching { refreshCollections(file) }
+            }
+            if (collections == null && file.exists()) {
+                collections = parseCollections(file.readText())
+            }
         }
     }
 
@@ -90,23 +95,24 @@ class AnimeListIndex(context: Context) {
             }
             if (!response.isSuccessful) return
             val body = response.body ?: return
-            val tmp = File(app.cacheDir, "$FILE.tmp")
-            body.byteStream().use { input ->
-                JsonReader(InputStreamReader(input, Charsets.UTF_8)).use { reader ->
-                    tmp.bufferedWriter().use { out ->
-                        reader.beginArray()
-                        while (reader.hasNext()) {
-                            readShow(reader)?.let { out.append(writeMapped(it)).append('\n') }
+            val tmp = File.createTempFile("anilist-tmdb-", ".tmp", app.cacheDir)
+            try {
+                body.byteStream().use { input ->
+                    JsonReader(InputStreamReader(input, Charsets.UTF_8)).use { reader ->
+                        tmp.bufferedWriter().use { out ->
+                            reader.beginArray()
+                            while (reader.hasNext()) {
+                                readShow(reader)?.let { out.append(writeMapped(it)).append('\n') }
+                            }
+                            reader.endArray()
                         }
-                        reader.endArray()
                     }
                 }
-            }
-            if (tmp.length() > 0L) {
-                if (file.exists()) file.delete()
-                tmp.renameTo(file)
-            } else {
-                tmp.delete()
+                if (tmp.length() > 0L) {
+                    replaceFile(tmp, file)
+                }
+            } finally {
+                if (tmp.exists()) tmp.delete()
             }
             prefs.edit()
                 .putString(ETAG, response.header("ETag"))
@@ -125,24 +131,56 @@ class AnimeListIndex(context: Context) {
             if (!response.isSuccessful) return
             val text = response.body?.string().orEmpty()
             if (text.isBlank()) return
-            file.writeText(text)
-            val editor = prefs.edit()
-            val array = org.json.JSONArray(text)
-            for (i in 0 until array.length()) {
-                val item = array.optJSONObject(i) ?: continue
-                val name = item.optString("name").trim()
-                val ids = item.optJSONArray("ids") ?: continue
-                if (name.isEmpty() || ids.length() < 2) continue
-                val numbers = buildList {
-                    for (n in 0 until ids.length()) {
-                        val id = ids.optInt(n)
-                        if (id > 0) add(id)
-                    }
-                }
-                val packed = name.replace('\t', ' ') + "\t" + numbers.joinToString(",")
-                numbers.forEach { id -> editor.putString("col$id", packed) }
+            val tmp = File.createTempFile("anilist-collections-", ".tmp", app.cacheDir)
+            try {
+                tmp.writeText(text)
+                replaceFile(tmp, file)
+            } finally {
+                if (tmp.exists()) tmp.delete()
             }
-            editor.putBoolean("colready", true).putLong(COLLECTION_AT, System.currentTimeMillis()).apply()
+            collections = parseCollections(text)
+            val editor = prefs.edit().putLong(COLLECTION_AT, System.currentTimeMillis())
+            // Old builds stored one `col<anilistId>` entry per show. Leave etag and collectionsAt.
+            prefs.all.keys.filter { key ->
+                key.removePrefix("col").toIntOrNull() != null
+            }.forEach { editor.remove(it) }
+            editor.apply()
+        }
+    }
+
+    private fun parseCollections(text: String): Map<Int, Pair<String, List<Int>>> {
+        if (text.isBlank()) return emptyMap()
+        val array = org.json.JSONArray(text)
+        val out = HashMap<Int, Pair<String, List<Int>>>()
+        for (i in 0 until array.length()) {
+            val item = array.optJSONObject(i) ?: continue
+            val name = item.optString("name").trim()
+            val ids = item.optJSONArray("ids") ?: continue
+            if (name.isEmpty() || ids.length() < 2) continue
+            val numbers = buildList {
+                for (n in 0 until ids.length()) {
+                    val id = ids.optInt(n)
+                    if (id > 0) add(id)
+                }
+            }
+            if (numbers.size < 2) continue
+            val packed = name to numbers
+            numbers.forEach { id -> out.putIfAbsent(id, packed) }
+        }
+        return out
+    }
+
+    private fun replaceFile(tmp: File, dest: File) {
+        try {
+            Files.move(
+                tmp.toPath(),
+                dest.toPath(),
+                StandardCopyOption.REPLACE_EXISTING,
+                StandardCopyOption.ATOMIC_MOVE,
+            )
+        } catch (_: Exception) {
+            if (dest.exists()) dest.delete()
+            if (!tmp.renameTo(dest)) tmp.copyTo(dest, overwrite = true)
         }
     }
 
@@ -261,8 +299,17 @@ class AnimeListIndex(context: Context) {
 
     private fun key(tmdbId: Int, movie: Boolean) = if (movie) "m$tmdbId" else "t$tmdbId"
 
-    private companion object {
-        const val PREFS = "anikitty_animemap"
+    companion object {
+        @Volatile private var instance: AnimeListIndex? = null
+
+        fun get(context: Context): AnimeListIndex {
+            instance?.let { return it }
+            return synchronized(this) {
+                instance ?: AnimeListIndex(context.applicationContext).also { instance = it }
+            }
+        }
+
+        private const val PREFS = "anikitty_animemap"
         const val FILE = "anilist-tmdb.tsv"
         const val COLLECTION_FILE = "anilist-collections.json"
         const val ETAG = "etag"
