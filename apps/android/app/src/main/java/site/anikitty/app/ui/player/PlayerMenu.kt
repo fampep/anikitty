@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
@@ -82,7 +83,19 @@ internal fun playerMenuTitle(page: PlayerMenuPage): String = when (page) {
     PlayerMenuPage.Background -> "Subtitle Background"
     PlayerMenuPage.Resize -> "Picture"
     PlayerMenuPage.Sleep -> "Sleep timer"
-    PlayerMenuPage.None, PlayerMenuPage.Root -> ""
+    PlayerMenuPage.None, PlayerMenuPage.Root -> "Settings"
+}
+
+/** Caption look pages stay open while you tweak — no accidental dimmer dismiss. */
+internal fun PlayerMenuPage.isStickyStylePage(): Boolean = when (this) {
+    PlayerMenuPage.Size,
+    PlayerMenuPage.Timing,
+    PlayerMenuPage.Color,
+    PlayerMenuPage.Edge,
+    PlayerMenuPage.Background,
+    PlayerMenuPage.Subs,
+    -> true
+    else -> false
 }
 
 private val LocalMenuCompact = staticCompositionLocalOf { false }
@@ -116,29 +129,38 @@ internal fun PlayerMenuFrame(
             val tablet = shortSide >= 600.dp
             val compactHeight = maxHeight < 480.dp
             val sheet = !tablet && !landscape
-            val floating = !sheet
+            val sticky = page.isStickyStylePage()
             if (sheet) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.28f))
-                        .clickable(onClick = onDismiss),
+                        .background(Color.Black.copy(alpha = 0.34f))
+                        .then(
+                            if (sticky) {
+                                // Keep Size / Color / … open while previewing on the video.
+                                Modifier.pointerInput(page) { detectTapGestures { } }
+                            } else {
+                                Modifier.clickable(onClick = onDismiss)
+                            },
+                        ),
                 )
             }
-            val aboveControls = if (compactHeight) 112.dp else 120.dp
+            val aboveControls = if (compactHeight) 104.dp else 116.dp
             val room = maxHeight - aboveControls - 8.dp
-            val panelMax = if (sheet) maxHeight * 0.60f else room.coerceAtLeast(48.dp)
-            val panelWidth = if (tablet) {
-                360.dp
-            } else if (sheet) {
-                maxWidth
-            } else {
-                maxWidth * 0.45f
+            val panelMax = when {
+                sheet && sticky -> maxHeight * 0.72f
+                sheet -> maxHeight * 0.64f
+                else -> room.coerceAtLeast(56.dp)
+            }
+            val panelWidth = when {
+                tablet -> 400.dp
+                sheet -> maxWidth
+                else -> (maxWidth * 0.52f).coerceAtMost(420.dp)
             }
             val shape = if (sheet) {
-                RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+                RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
             } else {
-                RoundedCornerShape(16.dp)
+                RoundedCornerShape(18.dp)
             }
             Column(
                 modifier = Modifier
@@ -151,34 +173,56 @@ internal fun PlayerMenuFrame(
                     .then(if (sheet) Modifier.fillMaxWidth() else Modifier.width(panelWidth))
                     .heightIn(max = panelMax)
                     .clip(shape)
-                    .background(Color.Black.copy(alpha = 0.78f))
+                    .background(Color.Black.copy(alpha = 0.88f))
                     .pointerInput(Unit) { detectTapGestures { } },
             ) {
-                if (page != PlayerMenuPage.Root && page != PlayerMenuPage.None) {
+                if (page != PlayerMenuPage.None) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (compactHeight) 48.dp else 56.dp)
-                            .clickable(onClick = onBack)
-                            .padding(end = 12.dp),
+                            .height(if (compactHeight) 48.dp else 52.dp)
+                            .padding(end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                            Icon(
-                                Icons.AutoMirrored.Outlined.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color.White,
-                                modifier = Modifier.size(if (compactHeight) 20.dp else 22.dp),
-                            )
+                        if (page != PlayerMenuPage.Root) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clickable(onClick = onBack),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.AutoMirrored.Outlined.ArrowBack,
+                                    contentDescription = "Back",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(if (compactHeight) 20.dp else 22.dp),
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(16.dp))
                         }
                         Text(
                             playerMenuTitle(page),
                             color = Color.White,
-                            fontSize = if (compactHeight) 14.sp else 16.sp,
-                            fontWeight = FontWeight.Normal,
+                            fontSize = if (compactHeight) 15.sp else 16.sp,
+                            fontWeight = FontWeight.SemiBold,
                             fontFamily = FontFamily.SansSerif,
                             maxLines = 1,
+                            modifier = Modifier.weight(1f),
                         )
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clickable(onClick = onDismiss),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                "Done",
+                                color = Color.White.copy(alpha = 0.85f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                            )
+                        }
                     }
                 }
                 Column(

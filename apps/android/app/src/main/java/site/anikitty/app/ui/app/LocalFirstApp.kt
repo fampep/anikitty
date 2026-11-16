@@ -244,6 +244,8 @@ fun LocalFirstApp(
     var tab by rememberSaveable {
         mutableStateOf("home")
     }
+    /** Where Extension store Back returns — Settings or Home. */
+    var storeReturnTab by rememberSaveable { mutableStateOf("settings") }
     var screen by remember { mutableStateOf<Screen>(Screen.Tabs) }
     var searchGenre by remember { mutableStateOf<String?>(null) }
     var libraryFilter by rememberSaveable { mutableStateOf("all") }
@@ -488,7 +490,10 @@ fun LocalFirstApp(
                     listMarks = listMarks,
                     onOpen = { openDetail(it) },
                 )
-                "store" -> ExtensionStoreFeed(catalog = streamServers)
+                "store" -> ExtensionStoreFeed(
+                    catalog = streamServers,
+                    onBack = { tab = storeReturnTab },
+                )
                 "history" -> MySpaceFeed(
                     history = history,
                     historyDao = historyDao,
@@ -530,7 +535,11 @@ fun LocalFirstApp(
                     onLinkTick = { aniLinkTick++ },
                     onAccountReady = onAniListReady,
                     onSignOut = onSignOut,
-                    onOpenStore = { tab = "store" },
+                    onOpenStore = {
+                        storeReturnTab = "settings"
+                        tab = "store"
+                    },
+                    onClose = { tab = "home" },
                     onOpenBuilds = { screen = Screen.Builds },
                     openAccountTick = openAccountTick,
                     onOpenLibrary = { filter ->
@@ -792,6 +801,7 @@ fun LocalFirstApp(
                 onChangeSource = {
                     detailBackStack = emptyList()
                     screen = Screen.Tabs
+                    storeReturnTab = "home"
                     tab = "store"
                 },
                 onOpenRelated = { related ->
@@ -2240,6 +2250,7 @@ internal fun SettingsFeed(
     onAccountReady: () -> Unit = {},
     onSignOut: () -> Unit,
     onOpenStore: () -> Unit,
+    onClose: () -> Unit = {},
     onOpenBuilds: () -> Unit,
     onOpenLibrary: (String) -> Unit = {},
     homeLayout: HomeLayoutStore,
@@ -2260,7 +2271,9 @@ internal fun SettingsFeed(
     LaunchedEffect(openAccountTick) {
         if (openAccountTick > 0) page = "account"
     }
-    BackHandler(enabled = page != "hub") { page = "hub" }
+    BackHandler {
+        if (page != "hub") page = "hub" else onClose()
+    }
     val selectedName = resolvers.firstOrNull { it.server.id == selectedId }?.server?.name ?: "None selected"
     val homeShown = homeLayout.sections().count { it.enabled }
     Column(
@@ -2283,7 +2296,7 @@ internal fun SettingsFeed(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             when (current) {
                 "hub" -> {
@@ -2293,12 +2306,13 @@ internal fun SettingsFeed(
                             subtitle = if (demo) {
                                 "Sample library. Not your AniList account."
                             } else {
-                                "Account, home, sources, and the app."
+                                "Account, home layout, sources, and app look."
                             },
+                            onBack = onClose,
                         )
                     }
                     item {
-                        Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
                             SettingsGroup(title = "You") {
                                 SettingsHubRow(
                                     icon = FluentuiSystemIconsPersonOutline,
@@ -2318,7 +2332,7 @@ internal fun SettingsFeed(
                             SettingsGroup(title = "Library") {
                                 SettingsHubRow(
                                     icon = FluentuiSystemIconsHomeOutline,
-                                    title = "Home",
+                                    title = "Home layout",
                                     detail = "$homeShown rows showing",
                                     plain = true,
                                     onClick = { page = "home" },
@@ -2327,7 +2341,7 @@ internal fun SettingsFeed(
                             SettingsGroup(title = "Playback") {
                                 SettingsHubRow(
                                     icon = Icons.Outlined.Extension,
-                                    title = "Sources",
+                                    title = "Sources & store",
                                     detail = selectedName,
                                     plain = true,
                                     onClick = { page = "sources" },
@@ -2336,7 +2350,7 @@ internal fun SettingsFeed(
                             SettingsGroup(title = "App") {
                                 SettingsHubRow(
                                     icon = FluentuiSystemIconsSettingsOutline,
-                                    title = "App",
+                                    title = "Appearance",
                                     detail = "Version ${BuildConfig.VERSION_NAME}",
                                     plain = true,
                                     onClick = { page = "app" },
@@ -2644,26 +2658,29 @@ private fun SettingsHubRow(
 ) {
     val palette = LocalKittyPalette.current
     val row: @Composable () -> Unit = {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(horizontal = 2.dp),
+        ) {
             if (useAvatar) {
-                ProfileMark(imageUrl = avatarUrl, size = 36.dp)
+                ProfileMark(imageUrl = avatarUrl, size = 40.dp)
             } else {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(palette.surface),
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(palette.page),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(icon, contentDescription = null, tint = palette.text, modifier = Modifier.size(18.dp))
+                    Icon(icon, contentDescription = null, tint = palette.text, modifier = Modifier.size(20.dp))
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
                     color = palette.text,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp,
                 )
                 Text(
@@ -2677,12 +2694,15 @@ private fun SettingsHubRow(
             Icon(
                 Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                 contentDescription = null,
-                tint = palette.muted,
+                tint = palette.faint,
+                modifier = Modifier.size(22.dp),
             )
         }
     }
     if (plain) {
-        Box(modifier = Modifier.fillMaxWidth().spacePress(onClick).padding(14.dp)) { row() }
+        Box(modifier = Modifier.fillMaxWidth().spacePress(onClick).padding(horizontal = 14.dp, vertical = 15.dp)) {
+            row()
+        }
     } else {
         SpaceCard(onClick = onClick) { row() }
     }
