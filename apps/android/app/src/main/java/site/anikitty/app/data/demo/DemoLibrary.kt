@@ -51,6 +51,7 @@ object DemoLibrary {
         scoreDistribution: List<ScoreBucket> = emptyList(),
         rankings: List<MediaRank> = emptyList(),
         recapEpisode: Int? = null,
+        status: String? = null,
     ): AnimeSummary = AnimeSummary(
         id = id,
         title = title,
@@ -82,6 +83,7 @@ object DemoLibrary {
         scoreDistribution = scoreDistribution,
         rankings = rankings,
         recommendations = recommendations,
+        status = status,
         detailLoaded = true,
     )
 
@@ -97,6 +99,7 @@ object DemoLibrary {
         genres = listOf("Drama", "Mystery"),
         studio = "Demo Studio",
         year = 2024,
+        status = "RELEASING",
     )
     private val glass = show(
         id = 910003,
@@ -163,6 +166,7 @@ object DemoLibrary {
             MediaRank(4, "RATED", "season", "SPRING", 2025, false),
             MediaRank(28, "POPULAR", "season", "SPRING", 2025, false),
         ),
+        status = "RELEASING",
     )
 
     private val tide = show(
@@ -190,6 +194,7 @@ object DemoLibrary {
         genres = listOf("Comedy"),
         studio = "Demo Studio",
         year = 2025,
+        status = "RELEASING",
     )
     private val window = show(
         id = 910006,
@@ -213,6 +218,9 @@ object DemoLibrary {
     fun find(id: Int): AnimeSummary? = catalog.firstOrNull { it.id == id }
 
     fun airing(nowEpochSec: Long): List<AiringSlot> = listOf(
+        AiringSlot(glass, 7, nowEpochSec - 6 * 60 * 60),
+        AiringSlot(garden, 3, nowEpochSec - 2 * 60 * 60),
+        AiringSlot(tide, 4, nowEpochSec - 50 * 60),
         AiringSlot(harbor, 5, nowEpochSec + 50 * 60),
         AiringSlot(night, 8, nowEpochSec + 3 * 60 * 60),
     )
