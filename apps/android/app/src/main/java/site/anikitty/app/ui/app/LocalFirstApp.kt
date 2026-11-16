@@ -2881,7 +2881,17 @@ private fun TitleDetailScreen(
                         }
                         val freshMax = full.episodeItems().size.coerceAtLeast(1)
                         val requested = initialEpisode?.coerceAtLeast(1)
-                        val cap = if (requested != null) maxOf(freshMax, requested) else freshMax
+                        val watched = history?.episode?.coerceAtLeast(0) ?: 0
+                        // stored+1 is the unreleased "next" after a finished episode.
+                        // The episode someone was actually on, or a schedule slot they
+                        // tapped, stays selected even when AniList's shelf is shorter.
+                        val syntheticNext = requested == null && cue != null && cue.episode > watched
+                        val keep = when {
+                            requested != null -> requested
+                            cue != null && !syntheticNext -> cue.episode
+                            else -> 1
+                        }
+                        val cap = if (syntheticNext) freshMax else maxOf(freshMax, keep)
                         episode = episode.coerceIn(1, cap)
                     }
                 }
