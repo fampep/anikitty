@@ -153,6 +153,8 @@ fun SearchFeed(
     var error by remember { mutableStateOf<String?>(null) }
     var items by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var discover by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
+    var discoverError by remember { mutableStateOf<String?>(null) }
+    var discoverTick by remember { mutableIntStateOf(0) }
     var page by remember { mutableIntStateOf(1) }
     var end by remember { mutableStateOf(false) }
     var recentRaw by rememberSaveable { mutableStateOf("") }
@@ -241,12 +243,19 @@ fun SearchFeed(
         runSearch(query, filters = next)
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(discoverTick) {
         if (demo) {
             discover = site.anikitty.app.data.demo.DemoLibrary.catalog
+            discoverError = null
             return@LaunchedEffect
         }
-        runCatching { aniList.trending(perPage = 12) }.onSuccess { discover = it }
+        discoverError = null
+        runCatching { aniList.trending(perPage = 12) }
+            .onSuccess { discover = it }
+            .onFailure {
+                if (it is CancellationException) throw it
+                discoverError = friendlyFailure(it.message)
+            }
     }
     LaunchedEffect(requestedGenre) {
         val next = requestedGenre ?: return@LaunchedEffect
@@ -323,6 +332,28 @@ fun SearchFeed(
                     }
                 }
             } else {
+                if (!showingResults && discover.isEmpty() && discoverError != null && !loading) {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(top = 28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                discoverError ?: "Couldn't load suggestions",
+                                color = palette.text,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            Button(
+                                onClick = { discoverTick++ },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.text,
+                                    contentColor = palette.onAccent,
+                                ),
+                            ) { Text("Retry", fontWeight = FontWeight.Bold) }
+                        }
+                    }
+                }
                 if (!showingResults && recent.isNotEmpty()) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
                         Row(
@@ -448,7 +479,7 @@ fun SearchFeed(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .height(38.dp)
+                    .height(48.dp)
                     .semantics { contentDescription = "Search titles" },
                 decorationBox = { inner ->
                     Row(
@@ -473,10 +504,13 @@ fun SearchFeed(
                                 Icons.Filled.Close,
                                 contentDescription = "Clear search",
                                 tint = palette.text.copy(alpha = 0.6f),
-                                modifier = Modifier.size(16.dp).clickable {
-                                    query = ""
-                                    runSearch("")
-                                },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clickable {
+                                        query = ""
+                                        runSearch("")
+                                    }
+                                    .padding(10.dp),
                             )
                         }
                     }
