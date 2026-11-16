@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -53,6 +54,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -92,7 +94,6 @@ import site.anikitty.app.data.anilist.AnimeSummary
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.touchFromCatalog
-import site.anikitty.app.ui.theme.KittyText
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.ShimmerBox
 import kotlin.math.roundToInt
@@ -285,8 +286,8 @@ fun SearchFeed(
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                top = (if (chips.isNotEmpty()) 188.dp else 148.dp) +
-                    if (suggestions.isNotEmpty()) 44.dp else 0.dp,
+                top = (if (chips.isNotEmpty()) 208.dp else 164.dp) +
+                    if (suggestions.isNotEmpty()) 56.dp else 0.dp,
                 bottom = 124.dp,
             ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -410,14 +411,25 @@ fun SearchFeed(
                 }
                 if (error != null && items.isNotEmpty() && !loading) {
                     item(span = { GridItemSpan(maxLineSpan) }) {
-                        Text(
-                            error ?: "Couldn't load more",
-                            color = palette.muted,
-                            fontSize = 13.sp,
-                            modifier = Modifier
-                                .padding(vertical = 8.dp)
-                                .spacePress { runSearch(query, more = true) },
-                        )
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                error ?: "Couldn't load more",
+                                color = palette.text,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = { runSearch(query, more = true) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = palette.accent,
+                                    contentColor = palette.onAccent,
+                                ),
+                            ) { Text("Retry", fontWeight = FontWeight.Bold) }
+                        }
                     }
                 }
                 if (loading && items.isNotEmpty()) {
@@ -491,7 +503,7 @@ fun SearchFeed(
                             .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Icon(Icons.Filled.Search, contentDescription = null, tint = palette.text.copy(alpha = 0.5f), modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.Search, contentDescription = "Search", tint = palette.text.copy(alpha = 0.5f), modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Box(Modifier.weight(1f)) {
                             if (query.isEmpty()) {
@@ -563,7 +575,7 @@ fun SearchFeed(
         ModalBottomSheet(
             onDismissRequest = { filtersOpen = false },
             sheetState = sheetState,
-            containerColor = Color(0xFF09090B),
+            containerColor = palette.page,
             dragHandle = null,
         ) {
             Column(
@@ -745,6 +757,11 @@ private fun RangeBlock(
             onValueChange = { local = it },
             valueRange = range,
             onValueChangeFinished = { onFinish(local.start.roundToInt(), local.endInclusive.roundToInt()) },
+            colors = SliderDefaults.colors(
+                thumbColor = palette.text,
+                activeTrackColor = palette.text,
+                inactiveTrackColor = palette.hairline,
+            ),
         )
     }
 }
@@ -758,11 +775,12 @@ private fun SearchFilterChip(text: String, selected: Boolean, onClick: () -> Uni
         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
         fontSize = 11.sp,
         modifier = Modifier
+            .defaultMinSize(minHeight = 40.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(if (selected) palette.text.copy(alpha = 0.16f) else palette.text.copy(alpha = 0.04f))
             .border(0.5.dp, palette.text.copy(alpha = if (selected) 0.4f else 0.08f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     )
 }
 
@@ -771,7 +789,7 @@ private fun HeaderDisc(onClick: () -> Unit, selected: Boolean = false, content: 
     val palette = LocalKittyPalette.current
     Box(
         modifier = Modifier
-            .size(34.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(if (selected) palette.text.copy(alpha = 0.16f) else palette.text.copy(alpha = 0.05f))
             .border(1.dp, palette.text.copy(alpha = if (selected) 0.35f else 0.08f), CircleShape)
