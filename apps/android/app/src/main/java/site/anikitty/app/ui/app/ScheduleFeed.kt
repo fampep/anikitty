@@ -39,7 +39,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -54,14 +53,7 @@ import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
-import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.LocalKittyPalette
-import site.anikitty.app.ui.theme.KittyFaint
-import site.anikitty.app.ui.theme.KittyMuted
-import site.anikitty.app.ui.theme.KittyOnAccent
-import site.anikitty.app.ui.theme.KittyOutlineSoft
-import site.anikitty.app.ui.theme.KittySurface
-import site.anikitty.app.ui.theme.KittyText
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -160,13 +152,13 @@ fun ScheduleFeed(
                 val shape = RoundedCornerShape(999.dp)
                 Text(
                     if (onlyMine) "My list" else "All airing",
-                    color = if (onlyMine) KittyOnAccent else KittyText,
+                    color = if (onlyMine) palette.page else palette.text,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
                     modifier = Modifier
                         .clip(shape)
-                        .background(if (onlyMine) KittyAccent else KittySurface)
-                        .border(1.dp, if (onlyMine) KittyAccent else KittyOutlineSoft, shape)
+                        .background(if (onlyMine) palette.text else palette.surface)
+                        .border(1.dp, if (onlyMine) palette.text else palette.hairline, shape)
                         .clickable { onlyMine = !onlyMine }
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                 )
@@ -217,18 +209,18 @@ fun ScheduleFeed(
         }
         when {
             loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = KittyAccent)
+                CircularProgressIndicator(color = palette.text)
             }
             error != null && slots.isEmpty() -> Column(Modifier.padding(16.dp)) {
                 Text(error!!, color = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     "Retry",
-                    color = KittyOnAccent,
+                    color = palette.page,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .background(KittyAccent)
+                        .background(palette.text)
                         .clickable { reloadTick++ }
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                 )
@@ -258,7 +250,7 @@ fun ScheduleFeed(
                 }
                 Text(
                     hint,
-                    color = KittyMuted,
+                    color = palette.muted,
                     modifier = Modifier
                         .padding(16.dp)
                         .clickable(enabled = nextIndex != null) {
@@ -319,7 +311,7 @@ private fun ScheduleRow(
                 .width(48.dp)
                 .height(68.dp)
                 .clip(RoundedCornerShape(10.dp))
-                .background(KittyOutlineSoft),
+                .background(LocalKittyPalette.current.hairline),
         )
         Spacer(modifier = Modifier.width(12.dp))
         val now = System.currentTimeMillis() / 1000L
@@ -344,12 +336,12 @@ private fun ScheduleRow(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     listLabel,
-                    color = KittyOnAccent,
+                    color = LocalKittyPalette.current.page,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(KittyAccent)
+                        .background(LocalKittyPalette.current.text)
                         .padding(horizontal = 7.dp, vertical = 2.dp),
                 )
             }
@@ -358,12 +350,12 @@ private fun ScheduleRow(
             if (relative != timeLabel) {
                 Text(
                     relative,
-                    color = KittyOnAccent,
+                    color = LocalKittyPalette.current.page,
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .clip(RoundedCornerShape(999.dp))
-                        .background(KittyAccent)
+                        .background(LocalKittyPalette.current.text)
                         .padding(horizontal = 8.dp, vertical = 3.dp),
                 )
                 Spacer(modifier = Modifier.height(4.dp))

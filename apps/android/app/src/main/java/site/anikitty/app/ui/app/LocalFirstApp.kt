@@ -2880,7 +2880,8 @@ private fun TitleDetailScreen(
                             listBadge = listStatusBadge(entry.status)
                         }
                         val freshMax = full.episodeItems().size.coerceAtLeast(1)
-                        episode = episode.coerceIn(1, freshMax)
+                        val asked = (initialEpisode ?: episode).coerceAtLeast(1)
+                        episode = episode.coerceIn(1, maxOf(freshMax, asked))
                     }
                 }
             detailLoading = false
@@ -2937,8 +2938,11 @@ private fun TitleDetailScreen(
         listStatus = null
         listBadge = null
         scope.launch {
-            val entryId = aniList.listEntryId(token, detail.id)
-            val ok = entryId == null || aniList.deleteListEntry(token, entryId)
+            val lookup = aniList.lookupListEntryId(token, detail.id)
+            val ok = lookup.fold(
+                onSuccess = { id -> id == null || aniList.deleteListEntry(token, id) },
+                onFailure = { false },
+            )
             listBusy = false
             if (ok) {
                 historyDao.get(detail.id)?.let { existing ->

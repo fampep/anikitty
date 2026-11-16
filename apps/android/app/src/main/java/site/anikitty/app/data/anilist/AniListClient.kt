@@ -297,6 +297,31 @@ class AniListClient(
         }.getOrDefault(false)
     }
 
+    /**
+     * List-entry id, or null when the show is not on the list.
+     * A network or GraphQL failure is a failed [Result], not a missing entry.
+     */
+    suspend fun lookupListEntryId(accessToken: String, mediaId: Int): Result<Int?> = withContext(Dispatchers.IO) {
+        runCatching {
+            val graphql = """
+                query (${'$'}id: Int) {
+                  Media(id: ${'$'}id, type: ANIME) {
+                    mediaListEntry { id }
+                  }
+                }
+            """.trimIndent()
+            val payload = JSONObject()
+                .put("query", graphql)
+                .put("variables", JSONObject().put("id", mediaId))
+                .toString()
+            val root = JSONObject(execute(payload, accessToken))
+            if (root.optJSONArray("errors") != null) error("AniList list lookup failed")
+            val media = root.optJSONObject("data")?.optJSONObject("Media")
+                ?: error("AniList list lookup failed")
+            media.optJSONObject("mediaListEntry")?.optInt("id", 0)?.takeIf { it > 0 }
+        }
+    }
+
     /** List-entry id for this show, when it is on the signed-in user's list. */
     suspend fun listEntryId(accessToken: String, mediaId: Int): Int? = withContext(Dispatchers.IO) {
         val graphql = """

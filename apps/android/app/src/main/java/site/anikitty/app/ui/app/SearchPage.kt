@@ -221,6 +221,7 @@ fun SearchFeed(
                         page = nextPage,
                     )
                 }.onSuccess { found ->
+                    error = null
                     items = if (more) (items + found).distinctBy { it.id } else found
                     page = nextPage
                     end = found.size < 24
