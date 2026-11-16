@@ -30,9 +30,8 @@ object ProviderLatestMapper {
         known: Map<Int, AnimeSummary> = emptyMap(),
     ): List<AiringSlot> = withContext(Dispatchers.IO) {
         if (items.isEmpty()) return@withContext emptyList()
-        val now = System.currentTimeMillis() / 1000L
         coroutineScope {
-            items.mapIndexed { index, item ->
+            items.map { item ->
                 async {
                     val anime = resolveAnime(item, aniList, known) ?: return@async null
                     val episode = item.episodeFor(audio).coerceAtLeast(1)
@@ -41,8 +40,8 @@ object ProviderLatestMapper {
                             coverImageUrl = anime.coverImageUrl ?: item.posterUrl,
                         ),
                         episode = episode,
-                        // Preserve widget order: newer cards first.
-                        airingAtEpochSec = now - index * 60L,
+                        // Unknown scrape timestamp — blank relative time in the UI.
+                        airingAtEpochSec = 0L,
                         subEpisodes = item.latestSub.takeIf { it > 0 },
                         dubEpisodes = item.latestDub.takeIf { it > 0 },
                     )
@@ -56,9 +55,13 @@ object ProviderLatestMapper {
         aniList: AniListClient,
         known: Map<Int, AnimeSummary>,
     ): AnimeSummary? {
-        tipCache[item.siteId]?.let { id ->
-            known[id]?.let { return it }
-            runCatching { aniList.media(id) }.getOrNull()?.let { return it }
+        tipCache[item.siteId]?.let { cachedId ->
+            val cached = known[cachedId] ?: runCatching { aniList.media(cachedId) }.getOrNull()
+            if (cached != null && mediaMatchesTitle(item.title, cached)) {
+                return cached
+            }
+            // Stale or wrong cache (same-named film / recap) — search again.
+            tipCache.remove(item.siteId)
         }
         val hits = runCatching { aniList.search(item.title, perPage = 8) }.getOrDefault(emptyList())
         val match = pickMatch(item.title, hits) ?: return null
@@ -66,14 +69,31 @@ object ProviderLatestMapper {
         return match
     }
 
+    /**
+     * Exact normalized title / romaji / synonym only.
+     * Never substring or “first hit” — those open the wrong AniList media.
+     */
     internal fun pickMatch(title: String, hits: List<AnimeSummary>): AnimeSummary? {
         if (hits.isEmpty()) return null
         val needle = normalize(title)
-        hits.firstOrNull { normalize(it.title) == needle }?.let { return it }
-        hits.firstOrNull { normalize(it.romajiTitle.orEmpty()) == needle }?.let { return it }
-        hits.firstOrNull { normalize(it.title).contains(needle) || needle.contains(normalize(it.title)) }
-            ?.let { return it }
-        return hits.firstOrNull()
+        if (needle.isBlank()) return null
+        return hits.firstOrNull { mediaMatchesTitle(needle, it, alreadyNormalized = true) }
+    }
+
+    private fun mediaMatchesTitle(
+        titleOrNeedle: String,
+        anime: AnimeSummary,
+        alreadyNormalized: Boolean = false,
+    ): Boolean {
+        val needle = if (alreadyNormalized) titleOrNeedle else normalize(titleOrNeedle)
+        if (needle.isBlank()) return false
+        val candidates = buildList {
+            add(anime.title)
+            anime.romajiTitle?.let { add(it) }
+            anime.nativeTitle?.let { add(it) }
+            addAll(anime.synonyms)
+        }
+        return candidates.any { normalize(it) == needle }
     }
 
     private fun normalize(raw: String): String =

@@ -827,13 +827,17 @@ internal fun HomeLatestEpisodes(
         mutableStateOf(prefs.getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub")
     }
     var page by rememberSaveable { mutableIntStateOf(0) }
-    val active = when {
-        audio == "dub" && dubSlots.isNotEmpty() -> dubSlots
-        else -> slots
-    }
-    if (active.isEmpty() && slots.isEmpty() && dubSlots.isEmpty()) return
+    // Sub and Dub are separate scrape lists — never fall back across audio.
+    val active = if (audio == "dub") dubSlots else slots
+    if (slots.isEmpty() && dubSlots.isEmpty()) return
     // Reset paging when the audio list changes length.
     LaunchedEffect(audio, active.size) { page = 0 }
+    LaunchedEffect(dubSlots.isEmpty()) {
+        if (audio == "dub" && dubSlots.isEmpty()) {
+            audio = "sub"
+            prefs.edit().putString("audio", "sub").apply()
+        }
+    }
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
@@ -869,7 +873,7 @@ internal fun HomeLatestEpisodes(
                 HomeAudioChip(
                     label = "Dub",
                     selected = audio == "dub",
-                    enabled = dubSlots.isNotEmpty() || slots.any { (it.dubEpisodes ?: 0) > 0 },
+                    enabled = dubSlots.isNotEmpty(),
                 ) {
                     audio = "dub"
                     prefs.edit().putString("audio", "dub").apply()

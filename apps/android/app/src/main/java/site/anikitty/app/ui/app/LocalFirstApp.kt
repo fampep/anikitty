@@ -932,7 +932,8 @@ private fun HomeFeed(
             emptyList()
         }
         if (mappedSub.isNotEmpty() || mappedDub.isNotEmpty()) {
-            airingToday = mappedSub.ifEmpty { mappedDub }
+            // Keep Sub and Dub lists separate — never show Dub cards under Sub.
+            airingToday = mappedSub
             latestDub = mappedDub
         } else {
             val now = System.currentTimeMillis() / 1000L
@@ -1166,10 +1167,12 @@ private fun HomeFeed(
             }
             else -> {
                 val nowSec = System.currentTimeMillis() / 1000L
-                val latestSlots = airingToday
-                val latestDubSlots = latestDub
-                    .filter { it.airingAtEpochSec <= nowSec && it.anime.onShelf(shelf) }
-                    .sortedByDescending { it.airingAtEpochSec }
+                fun AiringSlot.onLatestShelf(): Boolean {
+                    val aired = airingAtEpochSec <= 0L || airingAtEpochSec <= nowSec
+                    return aired && anime.onShelf(shelf)
+                }
+                val latestSlots = airingToday.filter { it.onLatestShelf() }
+                val latestDubSlots = latestDub.filter { it.onLatestShelf() }
                 val heroItems = trending.filter { it.onShelf(shelf) }
                 val topAiringItems = (seasonal + trending)
                     .filter { it.status.equals("RELEASING", ignoreCase = true) && it.onShelf(shelf) }

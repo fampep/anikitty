@@ -44,5 +44,5 @@ The script fetches the Pixel 8 `layout`, `back.webp`, and `mask.webp` from the A
 
 | File | Screen |
 | --- | --- |
-| `raw/home.png` | Home: featured title and continue watching |
+| `raw/home.png` | Home: featured title and Latest Episodes (Sub / Dub) |
 | `raw/title.png` | Title page |
