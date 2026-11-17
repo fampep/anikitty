@@ -82,7 +82,28 @@ data class PlayableSource(
      * AnimeX names the master `deeznuts.txt`.
      */
     val hls: Boolean = false,
+    /**
+     * ISO 639-1 audio to prefer when one playlist lists several renditions.
+     * "ja" is the original track and "en" is the English dub. Null leaves the
+     * playlist default alone.
+     */
+    val audioLanguage: String? = null,
 )
+
+/**
+ * Language the Sub / Dub control asked for. Providers that already know a
+ * more specific code keep it.
+ */
+internal fun requestedAudioLanguage(audio: String): String =
+    if (audio.equals("dub", ignoreCase = true)) "en" else "ja"
+
+internal fun playbackAudioLanguage(sources: List<PlayableSource>, audio: String): List<PlayableSource> {
+    val language = requestedAudioLanguage(audio)
+    return sources.map { source ->
+        if (!source.audioLanguage.isNullOrBlank()) source
+        else source.copy(audioLanguage = language)
+    }
+}
 
 /** Thumbnail VTT plus the headers its sprite sheets require. */
 @Immutable

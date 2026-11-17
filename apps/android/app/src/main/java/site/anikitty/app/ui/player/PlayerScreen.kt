@@ -196,6 +196,7 @@ import site.anikitty.app.data.servers.FlixUnwrapDataSource
 import site.anikitty.app.data.servers.PlaybackHttp
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
+import site.anikitty.app.data.servers.requestedAudioLanguage
 import site.anikitty.app.data.servers.SubtitleTrack
 import site.anikitty.app.data.skip.SkipTimes
 import site.anikitty.app.ui.theme.KittyInk
@@ -437,7 +438,10 @@ fun PlayerScreen(
             .setBufferDurationsMs(2_500, 40_000, 1_500, 2_000)
             .build()
         val selector = DefaultTrackSelector(context).apply {
+            // Device locale is the default preference. A Danish phone then keeps
+            // the Japanese DEFAULT rendition on a shared sub/dub master.
             parameters = buildUponParameters()
+                .setPreferredAudioLanguage(requestedAudioLanguage(audio))
                 .setPreferredTextLanguage("en")
                 .setSelectUndeterminedTextLanguage(true)
                 .build()
@@ -469,6 +473,14 @@ fun PlayerScreen(
     }
     val player = playerBundle?.player
     val trackSelector = playerBundle?.trackSelector
+    // Kaa uses one master for Sub and Dub, so the player is not rebuilt.
+    // The preference still has to move onto the English or Japanese rendition.
+    LaunchedEffect(trackSelector, audio) {
+        val selector = trackSelector ?: return@LaunchedEffect
+        selector.parameters = selector.buildUponParameters()
+            .setPreferredAudioLanguage(requestedAudioLanguage(audio))
+            .build()
+    }
     val activePlayer: Player? = if (isCasting) castHelper?.castPlayer else player
     val latestPlayer by rememberUpdatedState(player)
     val latestActive by rememberUpdatedState(activePlayer)
@@ -584,9 +596,10 @@ fun PlayerScreen(
         }
     }
 
-    // When quality/episode changes mid-cast, push the new URL to the TV.
-    // First load is handled by SessionAvailabilityListener.
-    LaunchedEffect(source?.url, episode) {
+    // When quality, episode, or the selected audio language changes mid-cast,
+    // push a new load. A shared master keeps the same URL, so the language
+    // has to be its own key. First load is handled by SessionAvailabilityListener.
+    LaunchedEffect(source?.url, source?.audioLanguage, episode) {
         if (!isCasting) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect
         val src = source ?: return@LaunchedEffect

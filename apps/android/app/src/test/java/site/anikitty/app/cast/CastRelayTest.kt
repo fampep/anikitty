@@ -46,6 +46,69 @@ class CastRelayTest {
     }
 
     @Test
+    fun castContentKeepsTheLanguageQuery() {
+        val dub = castRelayContent("http://192.168.1.8:4321/index.m3u8?pack=ts&lang=en")
+        assertEquals("http://192.168.1.8:4321/index.m3u8?lang=en", dub.url)
+        assertEquals("ts", dub.pack)
+        val sub = castRelayContent("http://192.168.1.8:4321/index.m3u8?lang=ja&pack=fmp4")
+        assertEquals("http://192.168.1.8:4321/index.m3u8?lang=ja", sub.url)
+        assertEquals("fmp4", sub.pack)
+        val plain = castRelayContent("http://192.168.1.8:4321/index.m3u8")
+        assertEquals("http://192.168.1.8:4321/index.m3u8", plain.url)
+        assertEquals(null, plain.pack)
+    }
+
+    @Test
+    fun castUrlChangesWhenTheAudioLanguageChanges() {
+        assertEquals("index.m3u8", castRelayPlaybackName(hls = true, segmentPack = null, audioLanguage = null))
+        assertEquals("index.m3u8?pack=ts", castRelayPlaybackName(hls = true, segmentPack = "ts", audioLanguage = null))
+        assertEquals(
+            "index.m3u8?pack=ts&lang=en",
+            castRelayPlaybackName(hls = true, segmentPack = "ts", audioLanguage = "en"),
+        )
+        assertEquals("index.m3u8?lang=ja", castRelayPlaybackName(hls = true, segmentPack = null, audioLanguage = "ja"))
+        assertEquals("video.mp4", castRelayPlaybackName(hls = false, segmentPack = "ts", audioLanguage = "en"))
+    }
+
+    @Test
+    fun sharedMasterFollowsTheSelectedAudio() {
+        val master = """
+            #EXTM3U
+            #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",LANGUAGE="eng",DEFAULT=YES,URI="s.vtt"
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="stereo",NAME="Spanish",LANGUAGE="spa",DEFAULT=NO,AUTOSELECT=YES
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="stereo",NAME="English",LANGUAGE="eng",DEFAULT=NO,AUTOSELECT=YES
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="stereo",NAME="Japanese",LANGUAGE="jpn",DEFAULT=YES,AUTOSELECT=YES
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="commentary",NAME="Spanish",LANGUAGE="spa",DEFAULT=YES
+            #EXT-X-STREAM-INF:BANDWIDTH=1,AUDIO="stereo"
+            video.m3u8
+        """.trimIndent()
+        val dub = castRelayPreferAudio(master, "en")
+        assertTrue(dub.contains("NAME=\"English\",LANGUAGE=\"eng\",DEFAULT=YES"))
+        assertTrue(dub.contains("NAME=\"Japanese\",LANGUAGE=\"jpn\",DEFAULT=NO"))
+        assertTrue(dub.contains("NAME=\"Spanish\",LANGUAGE=\"spa\",DEFAULT=NO,AUTOSELECT=YES"))
+        assertTrue(dub.contains("GROUP-ID=\"commentary\",NAME=\"Spanish\",LANGUAGE=\"spa\",DEFAULT=YES"))
+        assertTrue(dub.contains("TYPE=SUBTITLES,GROUP-ID=\"subs\",NAME=\"English\",LANGUAGE=\"eng\",DEFAULT=YES"))
+        assertTrue(dub.endsWith("video.m3u8"))
+        val sub = castRelayPreferAudio(master, "ja")
+        assertTrue(sub.contains("LANGUAGE=\"jpn\",DEFAULT=YES"))
+        assertTrue(sub.contains("LANGUAGE=\"eng\",DEFAULT=NO"))
+        assertEquals(master, castRelayPreferAudio(master, "da"))
+        assertEquals(master, castRelayPreferAudio(master, null))
+    }
+
+    @Test
+    fun namedAudioRenditionIsEnoughWhenLanguageIsMissing() {
+        val master = """
+            #EXTM3U
+            #EXT-X-MEDIA:TYPE=AUDIO,NAME="Japanese",DEFAULT=YES,URI="ja.m3u8"
+            #EXT-X-MEDIA:TYPE=AUDIO,NAME="English",DEFAULT=NO,URI="en.m3u8"
+        """.trimIndent()
+        val dub = castRelayPreferAudio(master, "en")
+        assertTrue(dub.contains("NAME=\"English\",DEFAULT=YES"))
+        assertTrue(dub.contains("NAME=\"Japanese\",DEFAULT=NO"))
+    }
+
+    @Test
     fun segmentFormatIsOmittedUnlessThePlaylistProvesIt() {
         assertEquals("fmp4", certainHlsPack("#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\nseg.m4s\n"))
         assertEquals("ts", certainHlsPack("#EXTM3U\n#EXTINF:6,\nseg-1.ts\n"))
