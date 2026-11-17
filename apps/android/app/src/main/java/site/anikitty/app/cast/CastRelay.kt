@@ -708,6 +708,32 @@ internal fun castRelayPlaybackName(hls: Boolean, segmentPack: String?, audioLang
     return "index.m3u8${castRelayPlaybackQuery(segmentPack, audioLanguage)}"
 }
 
+/**
+ * Address Chromecast should open. `pack` stays a segment-format hint and is
+ * not part of the fetch. `lang` stays on the URL so Sub and Dub are different
+ * media items and the receiver cannot reuse the previous master.
+ */
+internal fun castRelayContent(raw: String): CastRelayContent {
+    val query = raw.substringAfter('?', "")
+    val pack = queryValue(query, "pack")?.takeIf { it == "ts" || it == "fmp4" }
+    val lang = queryValue(query, "lang")?.takeIf { value ->
+        value.length == 2 && value.all { it in 'a'..'z' }
+    }
+    val base = raw.substringBefore('?')
+    val url = if (lang == null) base else "$base?lang=$lang"
+    return CastRelayContent(url = url, pack = pack)
+}
+
+internal data class CastRelayContent(val url: String, val pack: String?)
+
+private fun queryValue(query: String, name: String): String? {
+    for (part in query.split('&')) {
+        val key = part.substringBefore('=')
+        if (key == name) return part.substringAfter('=', "").takeIf { it.isNotEmpty() }
+    }
+    return null
+}
+
 internal fun castRelayPlaybackQuery(segmentPack: String?, audioLanguage: String?): String {
     val parts = ArrayList<String>(2)
     segmentPack?.trim()?.takeIf { it.isNotEmpty() }?.let { parts += "pack=$it" }

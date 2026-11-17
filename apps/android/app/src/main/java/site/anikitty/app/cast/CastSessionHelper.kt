@@ -239,8 +239,7 @@ private class RelayMediaItemConverter : MediaItemConverter {
         val raw = local.uri.toString()
         val hls = local.mimeType?.contains("mpegurl", ignoreCase = true) == true || raw.contains(".m3u8", ignoreCase = true)
         if (!hls) return fallback.toMediaQueueItem(mediaItem)
-        val contentUrl = raw.substringBefore('?')
-        val pack = raw.substringAfter("pack=", "").substringBefore('&').takeIf { it == "ts" || it == "fmp4" }
+        val content = castRelayContent(raw)
         val metadata = com.google.android.gms.cast.MediaMetadata(
             com.google.android.gms.cast.MediaMetadata.MEDIA_TYPE_MOVIE,
         ).apply {
@@ -253,13 +252,13 @@ private class RelayMediaItemConverter : MediaItemConverter {
                 mediaItem.mediaMetadata.artist?.toString().orEmpty(),
             )
         }
-        val info = MediaInfo.Builder(contentUrl)
-            .setContentUrl(contentUrl)
+        val info = MediaInfo.Builder(content.url)
+            .setContentUrl(content.url)
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
             .setContentType("application/x-mpegURL")
             .setMetadata(metadata)
             .apply {
-                when (pack) {
+                when (content.pack) {
                     "fmp4" -> {
                         setHlsSegmentFormat(HlsSegmentFormat.FMP4)
                         setHlsVideoSegmentFormat(HlsVideoSegmentFormat.FMP4)

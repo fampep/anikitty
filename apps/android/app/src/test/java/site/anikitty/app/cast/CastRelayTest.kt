@@ -46,6 +46,19 @@ class CastRelayTest {
     }
 
     @Test
+    fun castContentKeepsTheLanguageQuery() {
+        val dub = castRelayContent("http://192.168.1.8:4321/index.m3u8?pack=ts&lang=en")
+        assertEquals("http://192.168.1.8:4321/index.m3u8?lang=en", dub.url)
+        assertEquals("ts", dub.pack)
+        val sub = castRelayContent("http://192.168.1.8:4321/index.m3u8?lang=ja&pack=fmp4")
+        assertEquals("http://192.168.1.8:4321/index.m3u8?lang=ja", sub.url)
+        assertEquals("fmp4", sub.pack)
+        val plain = castRelayContent("http://192.168.1.8:4321/index.m3u8")
+        assertEquals("http://192.168.1.8:4321/index.m3u8", plain.url)
+        assertEquals(null, plain.pack)
+    }
+
+    @Test
     fun castUrlChangesWhenTheAudioLanguageChanges() {
         assertEquals("index.m3u8", castRelayPlaybackName(hls = true, segmentPack = null, audioLanguage = null))
         assertEquals("index.m3u8?pack=ts", castRelayPlaybackName(hls = true, segmentPack = "ts", audioLanguage = null))
