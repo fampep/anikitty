@@ -906,8 +906,8 @@ fun LocalFirstApp(
                         }
                         ContinueHidden.reveal(context, current.anime.id)
                         val stored = existing?.episode ?: 0
-                        // Retry the count from this session's mark only. A later
-                        // toggle that moved the row further owns AniList.
+                        // Retry only while the row is still the next episode. A later
+                        // mark, or an unwatch that put it back, owns AniList.
                         val decision = autoMarkDecision(stored, current.episode, localMarked)
                         val due = decision == AutoMarkDecision.RetryPush ||
                             shouldMarkWatched(pos, dur, skip)

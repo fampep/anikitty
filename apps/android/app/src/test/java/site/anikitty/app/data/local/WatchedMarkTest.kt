@@ -54,6 +54,8 @@ class WatchedMarkTest {
         assertEquals(AutoMarkDecision.Stop, autoMarkDecision(7, currentEpisode = 5, localMarked = true))
         assertEquals(AutoMarkDecision.Stop, autoMarkDecision(6, currentEpisode = 5, localMarked = false))
         assertEquals(AutoMarkDecision.MarkLocal, autoMarkDecision(5, currentEpisode = 5, localMarked = false))
+        assertEquals(AutoMarkDecision.Stop, autoMarkDecision(5, currentEpisode = 5, localMarked = true))
+        assertEquals(AutoMarkDecision.Stop, autoMarkDecision(4, currentEpisode = 5, localMarked = true))
     }
 
     @Test
