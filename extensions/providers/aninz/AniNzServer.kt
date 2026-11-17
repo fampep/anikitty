@@ -17,10 +17,13 @@ import java.util.concurrent.TimeUnit
 /**
  * On-device ani.nz resolve.
  *
- * Search is `GET /api/anime/search`. The episode is
- * `GET /api/anime/playback-bootstrap/{source}/{id}`. That reply's selection
- * opens `embed.settlar.io`, whose session is an HLS master. Playback stays
- * on this phone. Intro and credits come from the bootstrap when present.
+ * Search is `GET /api/anime/search`. The episode is the site's full
+ * `GET /api/anime/playback-bootstrap/{source}/{id}` call, using the episode
+ * route id when the site sends one. That selection opens ani.nz's own
+ * settlar server. The playable file is the HLS master on `media.settlar.io`.
+ * A third-party host is dropped. Playback stays on this phone. Intro and
+ * credits come from the bootstrap when present. The quality label is the
+ * tallest rung on that master.
  */
 class AniNzServer(
     private val cache: ResolveCache? = null,
@@ -52,7 +55,7 @@ class AniNzServer(
         val show = findShow(anilistId, titleHint)
         val lang = if (dub) "dub" else "sub"
         val boot = openBootstrap(show, episode, lang)
-        val token = openSession(boot.selection, episode, lang)
+        val token = openSession(boot, episode, lang)
         listOf(openPlaylist(token, boot.skip, dub))
     }
 
@@ -76,19 +79,28 @@ class AniNzServer(
     }
 
     private fun openBootstrap(show: AninzShow, episode: Int, lang: String): AninzBootstrap {
+        val numbered = loadBootstrap(show, episode.toString(), lang) ?: error(MISSING)
+        val route = numbered.routeId?.takeIf { it.isNotEmpty() && it != episode.toString() }
+            ?: return numbered
+        return loadBootstrap(show, route, lang) ?: numbered
+    }
+
+    /** Full bootstrap. `core=0` is the site's lean call and drops the episode route. */
+    private fun loadBootstrap(show: AninzShow, episodeKey: String, lang: String): AninzBootstrap? {
         val source = if (show.source == "anilist") "anilist" else "settlar"
         val body = get(
-            "$ORIGIN/api/anime/playback-bootstrap/$source/${enc(show.id)}?ep=$episode&lang=$lang&core=0",
+            "$ORIGIN/api/anime/playback-bootstrap/$source/${enc(show.id)}?ep=${enc(episodeKey)}&lang=$lang",
             siteHeaders(),
         )
         if (aninzBlocked(body.code, body.text)) error(BLOCKED)
-        if (body.code == 404) error(MISSING)
+        if (body.code == 404) return null
         if (body.code !in 200..299) error(BLOCKED)
-        return aninzBootstrap(body.text, lang) ?: error(MISSING)
+        return aninzBootstrap(body.text, lang)
     }
 
-    private fun openSession(selection: String, episode: Int, lang: String): String {
-        val query = "selection=${enc(selection)}&provider=anipm&ep=$episode&channel=$lang&telemetry=0"
+    private fun openSession(boot: AninzBootstrap, fallbackEpisode: Int, lang: String): String {
+        val episode = if (boot.episode > 0) boot.episode else fallbackEpisode
+        val query = "selection=${enc(boot.selection)}&provider=$OWN_SESSION&ep=$episode&channel=$lang&telemetry=0"
         val body = get("$ORIGIN/api/anime/settlar/session?$query", siteHeaders())
         if (aninzBlocked(body.code, body.text)) error(BLOCKED)
         if (body.code !in 200..299) error(BLOCKED)
@@ -151,6 +163,13 @@ class AniNzServer(
         const val BLOCKED = "ani.nz could not be reached."
         const val ORIGIN = "https://ani.nz"
         const val EMBED_ORIGIN = "https://embed.settlar.io"
+        const val MEDIA_HOST = "media.settlar.io"
+
+        /**
+         * Session name ani.nz uses for its own settlar server.
+         * Backup embeds are a different host and are not requested.
+         */
+        const val OWN_SESSION = "anipm"
         const val USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
     }
@@ -167,6 +186,8 @@ internal data class AninzBootstrap(
     val selection: String,
     val language: String,
     val skip: SkipTimes,
+    val episode: Int = 0,
+    val routeId: String? = null,
 )
 
 internal data class AninzPending(
@@ -209,7 +230,9 @@ internal fun aninzBootstrap(payload: String, want: String): AninzBootstrap? {
     if (language != want) return null
     val selection = root.optString("settlarSelection").trim()
     if (selection.isEmpty()) return null
-    return AninzBootstrap(selection, language, aninzSkip(root.optJSONObject("skip")))
+    val episode = root.optInt("episode", 0).takeIf { it > 0 } ?: 0
+    val route = root.optString("episodeRouteId").trim().ifEmpty { null }
+    return AninzBootstrap(selection, language, aninzSkip(root.optJSONObject("skip")), episode, route)
 }
 
 internal fun aninzEmbedToken(payload: String): String? {
@@ -217,7 +240,7 @@ internal fun aninzEmbedToken(payload: String): String? {
         ?.optString("embedUrl")
         ?.trim()
         .orEmpty()
-    if (!url.startsWith("https://")) return null
+    if (!url.startsWith("${AniNzServer.EMBED_ORIGIN}/")) return null
     val query = url.substringAfter('?', "")
     for (part in query.split('&')) {
         if (part.substringBefore('=') != "t") continue
@@ -232,8 +255,15 @@ internal fun aninzPending(payload: String): AninzPending? {
     val root = runCatching { JSONObject(payload) }.getOrNull() ?: return null
     if (root.optString("kind") != "hls") return null
     val url = root.optString("source").trim()
-    if (!url.startsWith("https://")) return null
+    if (!aninzOwnMedia(url)) return null
     return AninzPending(url, aninzSubtitles(root))
+}
+
+/** ani.nz plays from its own settlar media host. Any other host is refused. */
+internal fun aninzOwnMedia(url: String): Boolean {
+    if (!url.startsWith("https://")) return false
+    val host = runCatching { java.net.URI(url).host }.getOrNull() ?: return false
+    return host.equals(AniNzServer.MEDIA_HOST, ignoreCase = true)
 }
 
 internal fun aninzPlayable(
@@ -260,6 +290,7 @@ internal fun aninzPlayable(
         audio = fields.audio,
         hls = true,
         skip = skip,
+        audioLanguage = requestedAudioLanguage(mode),
     )
 }
 

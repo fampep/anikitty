@@ -762,7 +762,7 @@ private fun bundledStoreVersion(id: String): String = when (id) {
     "kaa" -> "1.0.0"
     "animex" -> "1.0.0"
     "xanime" -> "1.0.0"
-    "aninz" -> "1.0.0"
+    "aninz" -> "1.1.0"
     else -> "1.1.1"
 }
 
