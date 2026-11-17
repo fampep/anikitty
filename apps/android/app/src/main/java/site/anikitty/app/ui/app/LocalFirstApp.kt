@@ -140,7 +140,10 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -697,16 +700,27 @@ fun LocalFirstApp(
                         .getString("audio", "sub")?.takeIf { it == "dub" } ?: "sub",
                 )
             }
+            // Last language a resolve actually loaded. Optimistic UI updates
+            // must not become the rollback target for an older request.
+            var committedAudio by remember { mutableStateOf(playerAudio) }
+            val audioGeneration = remember { AtomicInteger(0) }
+            val audioResolveJob = remember { AtomicReference<Job?>(null) }
             fun openResolved(nextEpisode: Int, nextAudio: String) {
-                scope.launch {
+                val request = audioGeneration.incrementAndGet()
+                val rollbackTo = committedAudio
+                audioResolveJob.get()?.cancel()
+                audioResolveJob.set(scope.launch {
                     val watchPrefs = context.getSharedPreferences(
                         "anikitty_watch",
                         android.content.Context.MODE_PRIVATE,
                     )
-                    val previousAudio = playerAudio
-                    watchPrefs.edit().putString("audio", nextAudio).apply()
+                    fun persist(audio: String) {
+                        watchPrefs.edit().putString("audio", audio).apply()
+                        committedAudio = audio
+                        playerAudio = audio
+                    }
                     playerAudio = nextAudio
-                    runCatching {
+                    try {
                         val demoClip = if (demo) {
                             site.anikitty.app.data.demo.DemoLibrary.clip(context, current.anime.id)
                         } else {
@@ -731,6 +745,15 @@ fun LocalFirstApp(
                                 titleHint = current.anime.streamTitleHint(),
                             )
                         }
+                        ensureActive()
+                        val succeeded = site.anikitty.app.data.servers.audioToPersist(
+                            request = request,
+                            latest = audioGeneration.get(),
+                            cancelled = false,
+                            failed = false,
+                            requested = nextAudio,
+                            committed = rollbackTo,
+                        ) ?: return@launch
                         if (!isolated(current.anime.id)) {
                             historyWrite.withLock {
                                 val existing = historyDao.get(current.anime.id)
@@ -750,18 +773,33 @@ fun LocalFirstApp(
                                 )
                             }
                         }
+                        ensureActive()
+                        if (audioGeneration.get() != request) return@launch
                         site.anikitty.app.data.servers.SourceBadgeCache.remember(
                             context,
                             current.anime.id,
                             nextEpisode,
                             resolved.sources,
                         )
+                        persist(succeeded)
                         screen = Screen.Player(current.anime, nextEpisode, resolved.sources)
-                    }.onFailure {
-                        playerAudio = previousAudio
-                        watchPrefs.edit().putString("audio", previousAudio).apply()
+                    } catch (cancelled: CancellationException) {
+                        // Cancellation is not a failed switch. A newer request
+                        // already owns the choice; leaving the player must not
+                        // write the language this attempt captured.
+                        if (audioGeneration.get() == request) playerAudio = rollbackTo
+                        throw cancelled
+                    } catch (_: Exception) {
+                        site.anikitty.app.data.servers.audioToPersist(
+                            request = request,
+                            latest = audioGeneration.get(),
+                            cancelled = false,
+                            failed = true,
+                            requested = nextAudio,
+                            committed = rollbackTo,
+                        )?.let(::persist)
                     }
-                }
+                })
             }
             LaunchedEffect(current.anime.id, current.episode) {
                 val entry = if (demo) {
