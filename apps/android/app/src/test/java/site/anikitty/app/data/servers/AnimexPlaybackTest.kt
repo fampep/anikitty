@@ -68,7 +68,8 @@ class AnimexPlaybackTest {
         val payload = """
             {"sources":[{"url":"https://cdn.example/s/deeznuts.txt","quality":"auto","type":"application/vnd.apple.mpegurl"}],
              "headers":{"Referer":"https://animex.one/","Host":"cdn.example"},
-             "tracks":[{"url":"https://subs.example/en.vtt","lang":"en","label":"English","kind":"captions"}]}
+             "tracks":[{"url":"https://subs.example/en.vtt","lang":"en","label":"English","kind":"captions"}],
+             "intro":{"start":12,"end":90},"outro":[1300,1400]}
         """.trimIndent()
         val link = animexLink(payload, AnimexServer.USER_AGENT)
         assertEquals("https://cdn.example/s/deeznuts.txt", link?.url)
@@ -76,6 +77,8 @@ class AnimexPlaybackTest {
         assertEquals(AnimexServer.USER_AGENT, link?.headers?.get("User-Agent"))
         assertFalse(link?.headers?.containsKey("Host") == true)
         assertEquals("English", link?.subtitles?.single()?.label)
+        assertEquals(12.0, link?.skip?.intro?.startSec ?: -1.0, 0.01)
+        assertEquals(1300.0, link?.skip?.outro?.startSec ?: -1.0, 0.01)
     }
 
     @Test

@@ -196,6 +196,7 @@ class ReanimeServer(
                 englishAudio = mode == "dub",
             ),
             thumbnails = thumbnailTrackFromJson(data, playbackHeaders()),
+            skip = site.anikitty.app.data.skip.skipTimesFromJson(data),
         )
     }
 

@@ -254,6 +254,8 @@ internal fun mkissaDirectSource(episode: JSONObject, mode: String): PlayableSour
         stripBytes = 0,
         quality = fields.quality,
         audio = fields.audio,
+        skip = site.anikitty.app.data.skip.skipTimesFromJson(row).takeUnless { it.isEmpty }
+            ?: site.anikitty.app.data.skip.skipTimesFromJson(episode),
     )
 }
 

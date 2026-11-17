@@ -199,7 +199,10 @@ import site.anikitty.app.data.servers.SegmentStripDataSource
 import site.anikitty.app.data.servers.audioSwitchLabel
 import site.anikitty.app.data.servers.requestedAudioLanguage
 import site.anikitty.app.data.servers.SubtitleTrack
+import site.anikitty.app.data.skip.AniSkipStamp
 import site.anikitty.app.data.skip.SkipTimes
+import site.anikitty.app.data.skip.chooseSkip
+import site.anikitty.app.data.skip.malIdFromTitleHint
 import site.anikitty.app.ui.theme.KittyInk
 import site.anikitty.app.ui.app.spacePress
 import site.anikitty.app.ui.theme.PlayerChrome
@@ -262,8 +265,8 @@ fun PlayerScreen(
     sources: List<PlayableSource>,
     anilistId: Int = 0,
     titleHint: String? = null,
-    loadSkip: suspend (anilistId: Int, episode: Int, titleHint: String?) -> SkipTimes =
-        { _, _, _ -> SkipTimes() },
+    loadAniSkip: suspend (malId: Int, episode: Int) -> List<AniSkipStamp> =
+        { _, _ -> emptyList() },
     startPositionMs: Long = 0L,
     onClose: () -> Unit,
     onDismiss: () -> Unit = onClose,
@@ -884,13 +887,22 @@ fun PlayerScreen(
         }
     }
 
-    LaunchedEffect(anilistId, episode, titleHint) {
+    LaunchedEffect(source?.url, episode) {
         autoSkippedRecap = false
-        val fromSource = sources.firstOrNull { !it.skip.isEmpty }?.skip ?: SkipTimes()
-        skipTimes = fromSource
-        if (anilistId <= 0 || episode <= 0) return@LaunchedEffect
-        val loaded = runCatching { loadSkip(anilistId, episode, titleHint) }.getOrDefault(SkipTimes())
-        if (!loaded.isEmpty) skipTimes = loaded
+    }
+
+    LaunchedEffect(source?.url, source?.skip, durationMs, episode, titleHint) {
+        val durationSec = if (durationMs > 0L) durationMs / 1000.0 else 0.0
+        val provider = source?.skip ?: SkipTimes()
+        val own = chooseSkip(provider, durationSec = durationSec)
+        val malId = malIdFromTitleHint(titleHint)
+        val stamps = if ((own.intro == null || own.outro == null) && durationSec > 0.0 && malId > 0 && episode > 0) {
+            runCatching { loadAniSkip(malId, episode) }.getOrDefault(emptyList())
+        } else {
+            emptyList()
+        }
+        // This source's markers win. AniSkip fills a side this stream did not send.
+        skipTimes = chooseSkip(provider, stamps, durationSec)
     }
 
     LaunchedEffect(nearEndOffer, showEndAutoplay) {

@@ -18,6 +18,8 @@ import site.anikitty.app.data.extensions.ExtensionRepository
 import site.anikitty.app.data.extensions.ExtensionStoreClient
 import site.anikitty.app.data.extensions.HttpExtensionResolver
 import site.anikitty.app.data.extensions.isRetiredExtension
+import site.anikitty.app.data.skip.AniSkipClient
+import site.anikitty.app.data.skip.AniSkipStamp
 import site.anikitty.app.data.skip.SkipTimes
 import site.anikitty.app.data.extensions.StoreIndex
 import site.anikitty.app.data.extensions.StoreInstall
@@ -34,6 +36,7 @@ class ServerCatalog(context: Context) {
     private val megaPlayCrypto = MegaPlayCrypto(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
+    private val aniSkip = AniSkipClient()
     val extensions = ExtensionRepository(context)
     val installer = ExtensionInstaller(extensions)
     val storeClient = ExtensionStoreClient()
@@ -73,8 +76,14 @@ class ServerCatalog(context: Context) {
     }
 
     /**
-     * Intro and credits for any playing provider. The timestamps always come
-     * from Anikoto's episode page, not from a separate skip service.
+     * AniSkip openings and endings for this MAL episode. The player lines
+     * them up with the stream that is playing.
+     */
+    suspend fun aniSkipStamps(malId: Int, episode: Int): List<AniSkipStamp> =
+        aniSkip.load(malId, episode)
+
+    /**
+     * Intro and credits published on Anikoto's own episode page.
      */
     suspend fun anikotoSkipTimes(
         anilistId: Int,

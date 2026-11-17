@@ -29,7 +29,7 @@ Maintainer notes: [public GitHub setup](https://github.com/fampep/anikitty/blob/
 | Doc | Purpose |
 |---|---|
 | [GUIDE.md](./GUIDE.md) | Author an extension |
-| [spec/PROTOCOL.md](./spec/PROTOCOL.md) | HTTP resolve protocol 1.1 (`apiVersion` stays 1) |
+| [spec/PROTOCOL.md](./spec/PROTOCOL.md) | HTTP resolve protocol 1.2 (`apiVersion` stays 1) |
 | [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json) | Manifest schema |
 | [store/index.json](./store/index.json) | Curated GitHub links for the in-app store |
 | [examples/hello-http](./examples/hello-http) | Minimal template |

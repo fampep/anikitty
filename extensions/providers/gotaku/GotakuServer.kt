@@ -9,6 +9,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import site.anikitty.app.data.skip.skipTimesFromJson
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
@@ -73,6 +74,7 @@ class GotakuServer(
             StandardCharsets.UTF_8,
         )
         val variants = parseVariants(masterText)
+        val skip = skipTimesFromJson(manifest)
         val out = ArrayList<PlayableSource>()
         if (variants.isEmpty()) {
             val fields = site.anikitty.app.data.servers.BuiltInSourceMeta.gotaku("", mode)
@@ -83,6 +85,7 @@ class GotakuServer(
                 stripBytes = 0,
                 gotakuObf = obf,
                 audio = fields.audio,
+                skip = skip,
             )
         } else {
             for (variant in variants.sortedByDescending { it.height }) {
@@ -95,6 +98,7 @@ class GotakuServer(
                     gotakuObf = obf,
                     quality = fields.quality,
                     audio = fields.audio,
+                    skip = skip,
                 )
             }
         }

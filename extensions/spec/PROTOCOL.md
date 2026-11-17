@@ -1,8 +1,14 @@
-# AniKitty extension protocol — 1.1
+# AniKitty extension protocol — 1.2
 
-Manifest `apiVersion` stays **1**. Protocol 1.1 only adds optional source fields. Clients that speak 1.0 ignore unknown JSON keys. Servers that omit the new fields keep working.
+Manifest `apiVersion` stays **1**. Protocol 1.2 only adds optional source fields. Clients that speak 1.0 or 1.1 ignore unknown JSON keys. Servers that omit the new fields keep working.
 
 ## Changelog
+
+### 1.2
+
+- Optional per-source `skip` with intro and credits ranges for that exact stream.
+- Omitted or invalid ranges mean “no marker”. The app then tries AniSkip, matched to the playing duration.
+- A 1.0 or 1.1 body that does not send `skip` is unchanged.
 
 ### 1.1
 
@@ -65,6 +71,12 @@ Optional: `description`, `author`, `homepage`, `resolvePath`, `siteUrl`, `nsfw`.
     quality?: string;                     // picture size the source stated, e.g. "1080p" or "4K"
     audio?: string;                       // audio the source stated, e.g. "AAC 2.0 · SUB"
     qualityRating?: string;               // provider grade, e.g. "HD". Not computed by the app
+    skip?: {                               // intro / credits for this stream, seconds
+      intro?: { start: number; end: number } | [number, number];
+      outro?: { start: number; end: number } | [number, number];
+      recap?: { start: number; end: number } | [number, number];
+      preview?: { start: number; end: number } | [number, number];
+    };
     stripBytes?: number;                  // leading bytes to strip (MegaPlay-style); 0 = none
     subtitles?: Array<{
       url: string;
@@ -90,6 +102,7 @@ Constraints:
 - A dropped connection is tried once more. An HTTP error is not retried.
 - Empty `sources` → client treats as failure.
 - `quality`, `audio`, and `qualityRating` are optional strings. Trimmed blank values are treated as omitted.
+- `skip` is optional and belongs to this source, not the whole episode. Times are seconds. Each side may be `{ "start", "end" }` or `[start, end]`. `op` / `ed` are accepted as aliases of intro and credits. A window that is inverted, shorter than 5 seconds, longer than 180 seconds, or outside the playing duration is dropped. Leave `skip` out when the site did not send times.
 - `thumbnails` is an optional WebVTT URL. A string uses the source headers, so Referer and Origin still go out with the sprite sheets. An object can add its own headers. The app parses `#xywh` crops and does not require a thumbnail track.
 - There is no enum. Examples that the app will show as-is: `quality` `"480p"` `"720p"` `"1080p"` `"4K"`; `audio` `"SUB"` `"DUB"` `"AAC 2.0 · SUB"` `"AC3 5.1 · DUB"`; `qualityRating` `"SD"` `"HD"` `"FHD"` `"UHD"`.
 - Do not send a grade you did not read from the stream or the site. The app will not fill one in.
@@ -150,7 +163,7 @@ Typical AniKitty client budgets:
 ## Versioning
 
 - Manifest `apiVersion` stays the integer **1**. Clients reject a manifest whose `apiVersion` they do not know. Protocol 1.1 does not change it, so a 1.0 client still installs a 1.1 extension.
-- This document’s version is **1.1**. Additive optional response fields bump the document minor version and are listed in the changelog. A breaking request or response change bumps `apiVersion` and the document major version together.
+- This document’s version is **1.2**. Additive optional response fields bump the document minor version and are listed in the changelog. A breaking request or response change bumps `apiVersion` and the document major version together.
 - `version` in the manifest is the extension’s own semver, shown in the store. It is not the protocol version.
 
 ## Field reference
@@ -170,6 +183,7 @@ Typical AniKitty client budgets:
 | `sources[].quality` | string | size the source stated: `"480p"`, `"720p"`, `"1080p"`, `"4K"`, or another short label | no picture badge |
 | `sources[].audio` | string | what the source stated: `"SUB"`, `"DUB"`, `"AAC 2.0 · SUB"`, `"AC3 5.1 · DUB"` | no audio badge |
 | `sources[].qualityRating` | string | grade the source stated: `"SD"`, `"HD"`, `"FHD"`, `"UHD"`, `"HQ"` | no grade badge |
+| `sources[].skip` | object | optional `intro`, `outro`, `recap`, `preview` in seconds | no marker from this source |
 | `sources[].stripBytes` | number | `0` or a positive byte count | `0` |
 | `sources[].subtitles` | array | `{ url, label, language?, mimeType? }` | none |
 | `sources[].thumbnails` | string or `{ url, headers? }` | absolute WebVTT URL for seek sprites | none |
