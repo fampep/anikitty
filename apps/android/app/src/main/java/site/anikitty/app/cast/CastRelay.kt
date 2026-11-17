@@ -698,13 +698,16 @@ internal fun castRelayCorsLines(): List<String> = listOf(
 
 /**
  * AnimeX names the master `deeznuts.txt` and each variant `nut-1.txt`.
- * Those are playlists. Media segments on that host are `.jpg`.
+ * xanime.app names each variant `a-index-….ico`.
+ * Those are playlists. Media segments stay `.jpg`, `.js`, or `.gif`.
  */
 internal fun castRelayPlaylistUrl(url: String): Boolean {
     val path = url.substringBefore('?').lowercase()
     if (path.contains(".m3u8") || path.contains("/p/1")) return true
     val file = path.substringAfterLast('/')
-    return file == "deeznuts.txt" || (file.startsWith("nut-") && file.endsWith(".txt"))
+    return file == "deeznuts.txt" ||
+        (file.startsWith("nut-") && file.endsWith(".txt")) ||
+        (file.startsWith("a-index-") && file.endsWith(".ico"))
 }
 
 internal fun castRelayHeader(headers: Map<String, List<String>>, name: String): String {

@@ -33,7 +33,7 @@ Maintainer notes: [public GitHub setup](https://github.com/fampep/anikitty/blob/
 | [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json) | Manifest schema |
 | [store/index.json](./store/index.json) | Curated GitHub links for the in-app store |
 | [examples/hello-http](./examples/hello-http) | Minimal template |
-| [providers](./providers) | Anikoto (kotoplay.to if Anikoto is down), Gotaku, reanime, mkissa, kaa, and animex source the app compiles |
+| [providers](./providers) | Anikoto (kotoplay.to if Anikoto is down), Gotaku, reanime, mkissa, kaa, animex, and xanime source the app compiles |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute listings & docs |
 
 ## Design

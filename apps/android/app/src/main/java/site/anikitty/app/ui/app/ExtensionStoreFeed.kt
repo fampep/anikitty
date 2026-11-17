@@ -754,6 +754,7 @@ private fun bundledStoreVersion(id: String): String = when (id) {
     "mkissa" -> "1.0.0"
     "kaa" -> "1.0.0"
     "animex" -> "1.0.0"
+    "xanime" -> "1.0.0"
     else -> "1.1.1"
 }
 
@@ -769,5 +770,6 @@ private fun providerSource(id: String): String = when (id) {
     "mkissa" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/mkissa"
     "kaa" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/kaa"
     "animex" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/animex"
+    "xanime" -> "https://github.com/fampep/anikitty-extensions/tree/main/providers/xanime"
     else -> "https://github.com/fampep/anikitty-extensions"
 }
