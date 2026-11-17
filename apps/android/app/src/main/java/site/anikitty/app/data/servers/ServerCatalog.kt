@@ -142,7 +142,7 @@ class ServerCatalog(context: Context) {
             if (sources != null && sources.isNotEmpty()) {
                 val usedFallback = resolver.server.id != preferredId
                 return ResolveFailoverResult(
-                    sources = sources,
+                    sources = playbackAudioLanguage(sources, audio),
                     server = resolver.server,
                     usedFallback = usedFallback,
                     attempted = errors + "${resolver.server.name}: ok",

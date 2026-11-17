@@ -300,7 +300,7 @@ class CastRelay(context: Context) {
                 val body = readFully(upstream, length)
                 val text = body.toString(Charsets.UTF_8)
                 if (text.trimStart().startsWith("#EXTM3U")) {
-                    val rewritten = rewritePlaylist(text, upstream.uri?.toString() ?: url)
+                    val rewritten = presentPlaylist(text, upstream.uri?.toString() ?: url)
                     writeStatus(
                         client,
                         200,
@@ -365,13 +365,16 @@ class CastRelay(context: Context) {
             if (!text.trimStart().startsWith("#EXTM3U")) return null
             val base = upstream.uri?.toString() ?: url
             segmentPack = classifyPack(text, base)
-            rewritePlaylist(text, base).toByteArray(Charsets.UTF_8)
+            presentPlaylist(text, base).toByteArray(Charsets.UTF_8)
         } catch (_: Exception) {
             null
         } finally {
             runCatching { upstream.close() }
         }
     }
+
+    private fun presentPlaylist(text: String, baseUrl: String): String =
+        castRelayPreferAudio(rewritePlaylist(text, baseUrl), source?.audioLanguage)
 
     private fun rewritePlaylist(text: String, baseUrl: String): String {
         val base = runCatching { URI(baseUrl) }.getOrNull()
@@ -714,6 +717,94 @@ internal fun castRelayHeader(headers: Map<String, List<String>>, name: String): 
     val values = headers[name]
         ?: headers.entries.firstOrNull { it.key.equals(name, ignoreCase = true) }?.value
     return values?.joinToString(",")?.substringBefore(';')?.trim().orEmpty()
+}
+
+/**
+ * Move DEFAULT=YES onto the audio rendition the Sub / Dub control asked for.
+ * Chromecast plays the default rendition and ignores the phone's track selector.
+ * A playlist with no matching language is left as the site sent it.
+ */
+internal fun castRelayPreferAudio(playlist: String, language: String?): String {
+    val want = language
+        ?.trim()
+        ?.lowercase()
+        ?.substringBefore('-')
+        ?.takeIf { it.length == 2 }
+        ?: return playlist
+    if (!playlist.contains("#EXT-X-MEDIA")) return playlist
+    val lines = playlist.lines()
+    val audio = ArrayList<RelayAudioLine>(4)
+    lines.forEachIndexed { index, line ->
+        val trimmed = line.trimStart()
+        if (!trimmed.startsWith("#EXT-X-MEDIA") || !trimmed.contains("TYPE=AUDIO")) return@forEachIndexed
+        audio += RelayAudioLine(
+            index = index,
+            group = castRelayAttr(line, "GROUP-ID").orEmpty(),
+            code = castRelayAudioCode(line),
+        )
+    }
+    if (audio.isEmpty()) return playlist
+    val chosen = HashSet<Int>()
+    val touched = HashSet<Int>()
+    for (group in audio.groupBy { it.group }.values) {
+        val matches = group.filter { it.code == want }
+        if (matches.isEmpty()) continue
+        val pick = matches.firstOrNull { lines[it.index].contains("DEFAULT=YES") } ?: matches.first()
+        chosen += pick.index
+        group.forEach { touched += it.index }
+    }
+    if (chosen.isEmpty()) return playlist
+    return lines.mapIndexed { index, line ->
+        if (index !in touched) line else castRelaySetDefault(line, index in chosen)
+    }.joinToString("\n")
+}
+
+private data class RelayAudioLine(val index: Int, val group: String, val code: String?)
+
+private val CAST_AUDIO_CODES = mapOf(
+    "en" to "en", "eng" to "en",
+    "ja" to "ja", "jpn" to "ja",
+    "es" to "es", "spa" to "es",
+    "fr" to "fr", "fra" to "fr", "fre" to "fr",
+    "de" to "de", "deu" to "de", "ger" to "de",
+    "pt" to "pt", "por" to "pt",
+    "it" to "it", "ita" to "it",
+    "ko" to "ko", "kor" to "ko",
+    "zh" to "zh", "zho" to "zh", "chi" to "zh",
+)
+
+private val CAST_AUDIO_NAMES = listOf(
+    "en" to listOf("english"),
+    "ja" to listOf("japanese", "native"),
+    "es" to listOf("spanish", "español", "espanol"),
+)
+
+private fun castRelayAudioCode(line: String): String? {
+    val lang = castRelayAttr(line, "LANGUAGE")
+    if (lang != null) {
+        val key = lang.lowercase().substringBefore('-')
+        return CAST_AUDIO_CODES[key] ?: key.takeIf { it.length == 2 }
+    }
+    val name = castRelayAttr(line, "NAME")?.lowercase() ?: return null
+    return CAST_AUDIO_NAMES.firstOrNull { (_, words) -> words.any { name.contains(it) } }?.first
+}
+
+private fun castRelayAttr(line: String, name: String): String? {
+    val match = Regex("""$name="([^"]*)"""", RegexOption.IGNORE_CASE).find(line) ?: return null
+    return match.groupValues[1].trim().ifEmpty { null }
+}
+
+private val CAST_DEFAULT_ATTR = Regex("""DEFAULT=(YES|NO)""", RegexOption.IGNORE_CASE)
+
+private fun castRelaySetDefault(line: String, yes: Boolean): String {
+    val value = if (yes) "YES" else "NO"
+    return if (CAST_DEFAULT_ATTR.containsMatchIn(line)) {
+        CAST_DEFAULT_ATTR.replace(line, "DEFAULT=$value")
+    } else if (yes) {
+        "$line,DEFAULT=YES"
+    } else {
+        line
+    }
 }
 
 internal fun castRelayLooksLikePlaylist(url: String, headers: Map<String, List<String>>): Boolean {

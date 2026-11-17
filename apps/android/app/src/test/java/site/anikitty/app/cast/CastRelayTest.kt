@@ -46,6 +46,44 @@ class CastRelayTest {
     }
 
     @Test
+    fun sharedMasterFollowsTheSelectedAudio() {
+        val master = """
+            #EXTM3U
+            #EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="English",LANGUAGE="eng",DEFAULT=YES,URI="s.vtt"
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="stereo",NAME="Spanish",LANGUAGE="spa",DEFAULT=NO,AUTOSELECT=YES
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="stereo",NAME="English",LANGUAGE="eng",DEFAULT=NO,AUTOSELECT=YES
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="stereo",NAME="Japanese",LANGUAGE="jpn",DEFAULT=YES,AUTOSELECT=YES
+            #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="commentary",NAME="Spanish",LANGUAGE="spa",DEFAULT=YES
+            #EXT-X-STREAM-INF:BANDWIDTH=1,AUDIO="stereo"
+            video.m3u8
+        """.trimIndent()
+        val dub = castRelayPreferAudio(master, "en")
+        assertTrue(dub.contains("NAME=\"English\",LANGUAGE=\"eng\",DEFAULT=YES"))
+        assertTrue(dub.contains("NAME=\"Japanese\",LANGUAGE=\"jpn\",DEFAULT=NO"))
+        assertTrue(dub.contains("NAME=\"Spanish\",LANGUAGE=\"spa\",DEFAULT=NO,AUTOSELECT=YES"))
+        assertTrue(dub.contains("GROUP-ID=\"commentary\",NAME=\"Spanish\",LANGUAGE=\"spa\",DEFAULT=YES"))
+        assertTrue(dub.contains("TYPE=SUBTITLES,GROUP-ID=\"subs\",NAME=\"English\",LANGUAGE=\"eng\",DEFAULT=YES"))
+        assertTrue(dub.endsWith("video.m3u8"))
+        val sub = castRelayPreferAudio(master, "ja")
+        assertTrue(sub.contains("LANGUAGE=\"jpn\",DEFAULT=YES"))
+        assertTrue(sub.contains("LANGUAGE=\"eng\",DEFAULT=NO"))
+        assertEquals(master, castRelayPreferAudio(master, "da"))
+        assertEquals(master, castRelayPreferAudio(master, null))
+    }
+
+    @Test
+    fun namedAudioRenditionIsEnoughWhenLanguageIsMissing() {
+        val master = """
+            #EXTM3U
+            #EXT-X-MEDIA:TYPE=AUDIO,NAME="Japanese",DEFAULT=YES,URI="ja.m3u8"
+            #EXT-X-MEDIA:TYPE=AUDIO,NAME="English",DEFAULT=NO,URI="en.m3u8"
+        """.trimIndent()
+        val dub = castRelayPreferAudio(master, "en")
+        assertTrue(dub.contains("NAME=\"English\",DEFAULT=YES"))
+        assertTrue(dub.contains("NAME=\"Japanese\",DEFAULT=NO"))
+    }
+
+    @Test
     fun segmentFormatIsOmittedUnlessThePlaylistProvesIt() {
         assertEquals("fmp4", certainHlsPack("#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\nseg.m4s\n"))
         assertEquals("ts", certainHlsPack("#EXTM3U\n#EXTINF:6,\nseg-1.ts\n"))
