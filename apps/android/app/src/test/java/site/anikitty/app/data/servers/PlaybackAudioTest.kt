@@ -16,6 +16,85 @@ class PlaybackAudioTest {
     }
 
     @Test
+    fun switchLabelShowsUntilTheLoadedLanguageMatches() {
+        assertEquals("Switching to Dub", audioSwitchLabel("dub", "ja"))
+        assertEquals("Switching to Sub", audioSwitchLabel("sub", "en"))
+        assertEquals(null, audioSwitchLabel("dub", "en"))
+        assertEquals(null, audioSwitchLabel("sub", null))
+    }
+
+    @Test
+    fun aSupersededOrCancelledSwitchDoesNotSaveTheLanguageItLeft() {
+        assertEquals(
+            "dub",
+            audioToPersist(
+                request = 2,
+                latest = 2,
+                cancelled = false,
+                failed = false,
+                requested = "dub",
+                committed = "sub",
+            ),
+        )
+        assertEquals(
+            "sub",
+            audioToPersist(
+                request = 2,
+                latest = 2,
+                cancelled = false,
+                failed = true,
+                requested = "dub",
+                committed = "sub",
+            ),
+        )
+        assertEquals(
+            null,
+            audioToPersist(
+                request = 2,
+                latest = 2,
+                cancelled = true,
+                failed = true,
+                requested = "dub",
+                committed = "sub",
+            ),
+        )
+        assertEquals(
+            null,
+            audioToPersist(
+                request = 1,
+                latest = 2,
+                cancelled = false,
+                failed = true,
+                requested = "sub",
+                committed = "dub",
+            ),
+        )
+        assertEquals(
+            null,
+            audioToPersist(
+                request = 1,
+                latest = 2,
+                cancelled = true,
+                failed = true,
+                requested = "dub",
+                committed = "sub",
+            ),
+        )
+        assertEquals(
+            null,
+            audioToPersist(
+                request = 2,
+                latest = 2,
+                cancelled = false,
+                dismissed = true,
+                failed = false,
+                requested = "dub",
+                committed = "sub",
+            ),
+        )
+    }
+
+    @Test
     fun anExplicitLanguageStays() {
         val source = PlayableSource(
             url = "https://hls.example/master.m3u8",

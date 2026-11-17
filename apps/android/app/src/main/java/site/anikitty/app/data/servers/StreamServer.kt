@@ -97,6 +97,40 @@ data class PlayableSource(
 internal fun requestedAudioLanguage(audio: String): String =
     if (audio.equals("dub", ignoreCase = true)) "en" else "ja"
 
+/**
+ * Label while the loaded playlist is still the other language.
+ * Null once the source matches, or when it has not reported a language yet.
+ */
+internal fun audioSwitchLabel(requested: String, loadedLanguage: String?): String? {
+    val loaded = loadedLanguage
+        ?.trim()
+        ?.lowercase()
+        ?.substringBefore('-')
+        ?.takeIf { it.length == 2 }
+        ?: return null
+    if (loaded == requestedAudioLanguage(requested)) return null
+    return if (requested.equals("dub", ignoreCase = true)) "Switching to Dub" else "Switching to Sub"
+}
+
+/**
+ * Language to save when a Sub/Dub resolve finishes.
+ * Null when this attempt must not touch the saved choice: it was cancelled,
+ * the player was dismissed, or a newer episode or language request replaced it.
+ * A real failure of the attempt still in front restores [committed].
+ */
+internal fun audioToPersist(
+    request: Int,
+    latest: Int,
+    cancelled: Boolean,
+    failed: Boolean,
+    requested: String,
+    committed: String,
+    dismissed: Boolean = false,
+): String? {
+    if (cancelled || dismissed || request != latest) return null
+    return if (failed) committed else requested
+}
+
 internal fun playbackAudioLanguage(sources: List<PlayableSource>, audio: String): List<PlayableSource> {
     val language = requestedAudioLanguage(audio)
     return sources.map { source ->
