@@ -138,6 +138,7 @@ android {
             java.srcDir("../../../extensions/providers/kaa")
             java.srcDir("../../../extensions/providers/animex")
             java.srcDir("../../../extensions/providers/xanime")
+            java.srcDir("../../../extensions/providers/aninz")
         }
     }
 }

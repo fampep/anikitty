@@ -88,6 +88,18 @@
       "siteUrl": "https://xanime.app"
     },
     {
+      "id": "aninz",
+      "name": "ani.nz",
+      "version": "1.0.0",
+      "protocol": "1.1",
+      "description": "Bundled ani.nz resolver. Search uses the site catalog. The playlist plays in the app. Sub or dub follows the episode language. Intro and credits come from the episode when the site sends them.",
+      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/aninz",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=ani.nz&sz=128",
+      "siteUrl": "https://ani.nz"
+    },
+    {
       "id": "site.anikitty.example.hello",
       "name": "Hello HTTP",
       "version": "1.1.1",
