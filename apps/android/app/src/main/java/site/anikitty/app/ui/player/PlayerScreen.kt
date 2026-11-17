@@ -269,7 +269,7 @@ fun PlayerScreen(
     onDismiss: () -> Unit = onClose,
     onToggleWatched: ((Int) -> Unit)? = null,
     onNextEpisode: (() -> Unit)? = null,
-    onProgress: ((positionMs: Long, durationMs: Long) -> Unit)? = null,
+    onProgress: ((positionMs: Long, durationMs: Long, skip: SkipTimes) -> Unit)? = null,
     totalEpisodes: Int = 1,
     watchedThrough: Int = 0,
     audio: String = "sub",
@@ -510,6 +510,7 @@ fun PlayerScreen(
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
     val latestOnProgress by rememberUpdatedState(onProgress)
+    val latestSkip by rememberUpdatedState(skipTimes)
     val mutedNow = rememberUpdatedState(muted)
 
     fun pushMute() {
@@ -862,11 +863,24 @@ fun PlayerScreen(
                     val waitingHistory =
                         !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
                     if (!waitingHistory) {
-                        latestOnProgress?.invoke(pos, dur)
+                        // Phone and Chromecast share this playhead. Casting uses
+                        // the cast player; the credits marker is the same one.
+                        latestOnProgress?.invoke(pos, dur, latestSkip)
                     }
                 }
             }
             delay(250)
+        }
+    }
+
+    DisposableEffect(episode) {
+        // Capture this episode's saver. rememberUpdatedState would already
+        // point at the next episode by the time dispose runs. The credits
+        // marker is read here, while this effect is still the one leaving:
+        // the loader below replaces it only after this dispose.
+        val flush = onProgress
+        onDispose {
+            flush?.invoke(playhead.ms, durationMs, skipTimes)
         }
     }
 
@@ -877,15 +891,6 @@ fun PlayerScreen(
         if (anilistId <= 0 || episode <= 0) return@LaunchedEffect
         val loaded = runCatching { loadSkip(anilistId, episode, titleHint) }.getOrDefault(SkipTimes())
         if (!loaded.isEmpty) skipTimes = loaded
-    }
-
-    DisposableEffect(episode) {
-        // Capture this episode's saver. rememberUpdatedState would already
-        // point at the next episode by the time dispose runs.
-        val flush = onProgress
-        onDispose {
-            flush?.invoke(playhead.ms, durationMs)
-        }
     }
 
     LaunchedEffect(nearEndOffer, showEndAutoplay) {

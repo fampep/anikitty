@@ -29,6 +29,16 @@ class ContinueCueTest {
     }
 
     @Test
+    fun eightyFivePercentStaysOnThatEpisode() {
+        val duration = 24 * 60_000L
+        val cue = continueCue(
+            row(episode = 5, positionMs = (duration * 0.85).toLong(), durationMs = duration),
+        )
+        assertEquals(5, cue?.episode)
+        assertEquals(false, cue?.next)
+    }
+
+    @Test
     fun nearTheEndCountsAsFinished() {
         val cue = continueCue(
             row(episode = 2, positionMs = 23 * 60_000L, durationMs = 24 * 60_000L),
