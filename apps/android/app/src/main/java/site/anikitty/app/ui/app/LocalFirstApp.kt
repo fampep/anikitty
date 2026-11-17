@@ -168,6 +168,7 @@ import site.anikitty.app.data.local.WatchHistoryEntity
 import site.anikitty.app.data.local.continueCue
 import site.anikitty.app.data.local.continueQueue
 import site.anikitty.app.data.local.markEpisode
+import site.anikitty.app.data.local.shouldMarkWatched
 import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ProviderLatestMapper
@@ -285,8 +286,9 @@ fun LocalFirstApp(
     }
     val inProgressIds = remember(history) {
         history.mapNotNull { entry ->
-            val ratio = if (entry.durationMs > 0L) entry.positionMs.toFloat() / entry.durationMs else 0f
-            entry.anilistId.takeIf { entry.positionMs > 2_000L && ratio < 0.9f }
+            val stillWatching = entry.positionMs > 2_000L &&
+                !shouldMarkWatched(entry.positionMs, entry.durationMs)
+            entry.anilistId.takeIf { stillWatching }
         }.toSet()
     }
     val scope = rememberCoroutineScope()
@@ -835,6 +837,8 @@ fun LocalFirstApp(
             }
             var reportedEpisode by remember(current.anime.id, current.episode) { mutableStateOf(false) }
             var reportInFlight by remember(current.anime.id, current.episode) { mutableStateOf(false) }
+            // Local frontier already moved for this episode, and AniList still needs the same count.
+            var localMarked by remember(current.anime.id, current.episode) { mutableStateOf(false) }
             PlayerScreen(
                 title = current.anime.title,
                 episode = current.episode,
@@ -872,7 +876,7 @@ fun LocalFirstApp(
                         }
                     }
                 },
-                onProgress = { pos, dur ->
+                onProgress = { pos, dur, skip ->
                     if (!isolated(current.anime.id)) scope.launch {
                         val existing = historyWrite.withLock {
                             val row = historyDao.get(current.anime.id)
@@ -899,34 +903,32 @@ fun LocalFirstApp(
                             }
                         }
                         ContinueHidden.reveal(context, current.anime.id)
-                        val ratio = if (dur > 0L) pos.toFloat() / dur else 0f
-                        // One ahead is already past this episode. A mark stores
-                        // the next episode, and a sync stores the completed
-                        // count. Reporting the on-screen number would move
-                        // AniList backward.
-                        val alreadyAhead = (existing?.episode ?: 0) > current.episode
-                        if (
-                            !reportedEpisode &&
-                            !reportInFlight &&
-                            aniListAuth.isLinked &&
-                            !demo &&
-                            ratio >= 0.85f &&
-                            !alreadyAhead
-                        ) {
+                        val stored = existing?.episode ?: 0
+                        // The row already points past this episode. Reporting it
+                        // again would move the list backward. A failed sync after
+                        // this session's own mark is the one retry.
+                        val alreadyPast = stored > current.episode
+                        val due = localMarked || shouldMarkWatched(pos, dur, skip)
+                        if (!reportedEpisode && !reportInFlight && due && (localMarked || !alreadyPast)) {
                             reportInFlight = true
                             val saved = try {
-                                val stillOnThisEpisode = historyWrite.withLock {
-                                    (historyDao.get(current.anime.id)?.episode ?: 0) <=
-                                        current.episode
+                                val completed = historyWrite.withLock {
+                                    val nowStored = historyDao.get(current.anime.id)?.episode ?: 0
+                                    when {
+                                        nowStored > current.episode ->
+                                            if (localMarked) current.episode else null
+                                        else -> historyDao.markEpisode(current.anime, current.episode)
+                                    }
                                 }
-                                if (stillOnThisEpisode) {
-                                    aniListSync.pushProgress(
+                                if (completed != null) localMarked = true
+                                when {
+                                    completed == null -> false
+                                    aniListAuth.isLinked && !demo -> aniListSync.pushProgress(
                                         anilistId = current.anime.id,
-                                        episode = current.episode,
+                                        episode = completed,
                                         totalEpisodes = current.anime.episodes,
                                     )
-                                } else {
-                                    false
+                                    else -> true
                                 }
                             } finally {
                                 reportInFlight = false

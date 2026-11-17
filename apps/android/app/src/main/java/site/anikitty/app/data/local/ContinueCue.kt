@@ -28,8 +28,10 @@ fun continueCue(entry: WatchHistoryEntity, releasedEpisodes: Int? = null): Conti
     } else {
         0f
     }
-    val inProgress = hasDuration && entry.positionMs >= 15_000L && ratio < 0.9f
-    val finishedHere = hasDuration && ratio >= 0.9f
+    // Same rule as playback: credits, or under 90 seconds left. Not a percent.
+    val watched = hasDuration && shouldMarkWatched(entry.positionMs, entry.durationMs)
+    val inProgress = hasDuration && entry.positionMs >= 15_000L && !watched
+    val finishedHere = watched
     val started = entry.episodesFinished() > 0 || entry.positionMs > 0L
     if (!started && !inProgress) return null
     val cue = when {
