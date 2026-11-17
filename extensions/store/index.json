@@ -76,6 +76,18 @@
       "siteUrl": "https://animex.one"
     },
     {
+      "id": "xanime",
+      "name": "xanime",
+      "version": "1.0.0",
+      "protocol": "1.1",
+      "description": "Bundled xanime.app resolver. Search uses the site catalog. The playlist plays in the app. Sub or dub follows the episode language.",
+      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/xanime",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=xanime.app&sz=128",
+      "siteUrl": "https://xanime.app"
+    },
+    {
       "id": "site.anikitty.example.hello",
       "name": "Hello HTTP",
       "version": "1.1.1",

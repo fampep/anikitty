@@ -35,6 +35,17 @@ class CastRelayTest {
     }
 
     @Test
+    fun xanimeIcoVariantsStayPlaylists() {
+        val variant = "https://xanivsrc10.org/media/s1v/085/92580/a-index-f1-v1-a1.ico?slug=1"
+        val segmentJs = "https://xanivsrc10.org/media/s1v/085/92580/seg-1-f1-v1-a1.js"
+        val segmentGif = "https://xanivsrc10.org/media/s1v/085/92580/seg-2-f1-v1-a1.gif"
+        assertTrue(castRelayPlaylistUrl(variant))
+        assertTrue(castRelayLooksLikePlaylist(variant, emptyMap()))
+        assertTrue(!castRelayPlaylistUrl(segmentJs))
+        assertTrue(!castRelayPlaylistUrl(segmentGif))
+    }
+
+    @Test
     fun segmentFormatIsOmittedUnlessThePlaylistProvesIt() {
         assertEquals("fmp4", certainHlsPack("#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\nseg.m4s\n"))
         assertEquals("ts", certainHlsPack("#EXTM3U\n#EXTINF:6,\nseg-1.ts\n"))

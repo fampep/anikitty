@@ -52,6 +52,9 @@ object BuiltInSourceMeta {
     /** animex.one states resolution on the master playlist, including deeznuts.txt. */
     fun animex(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
 
+    /** xanime.app states resolution on the master playlist. Variants are a-index-….ico. */
+    fun xanime(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
+
     /** HTTP extensions: copy the optional JSON fields and nothing else. */
     fun fromExtension(quality: String?, audio: String?, qualityRating: String?): SourceFields =
         SourceFields(
