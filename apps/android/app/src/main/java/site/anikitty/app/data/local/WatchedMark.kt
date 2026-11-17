@@ -11,9 +11,9 @@ const val WATCHED_REMAINING_MS = 90_000L
 /**
  * What the auto-watched path should do with the history row.
  *
- * [AutoMarkDecision.RetryPush] repeats the completed count after this session's own mark.
- * [AutoMarkDecision.Stop] means a later mark already owns the list, so this episode must not
- * be reported again.
+ * [AutoMarkDecision.RetryPush] repeats the completed count only while the row is still
+ * the next episode. [AutoMarkDecision.Stop] means a later mark, or an unwatch that put
+ * the frontier back, owns the list. This episode must not be reported again.
  */
 enum class AutoMarkDecision {
     MarkLocal,
@@ -22,15 +22,14 @@ enum class AutoMarkDecision {
 }
 
 /**
- * A failed AniList save may be retried only while the row is still the episode
- * this session marked (the next one). A frontier further than that belongs to
- * a later mark and must not be overwritten with [currentEpisode].
+ * A failed AniList save may be retried only while the row is still exactly the
+ * next episode. A later mark, or an unwatch that put the frontier back on
+ * [currentEpisode], must not be overwritten with that completed count.
  */
 fun autoMarkDecision(storedEpisode: Int, currentEpisode: Int, localMarked: Boolean): AutoMarkDecision =
     when {
-        storedEpisode > currentEpisode + 1 -> AutoMarkDecision.Stop
-        localMarked -> AutoMarkDecision.RetryPush
-        storedEpisode > currentEpisode -> AutoMarkDecision.Stop
+        localMarked && storedEpisode == currentEpisode + 1 -> AutoMarkDecision.RetryPush
+        storedEpisode > currentEpisode || localMarked -> AutoMarkDecision.Stop
         else -> AutoMarkDecision.MarkLocal
     }
 
