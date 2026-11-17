@@ -47,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -203,11 +204,18 @@ internal fun HomeFeatured(
     val palette = LocalKittyPalette.current
     val reducedMotion = prefersReducedMotion()
     val pagerState = rememberPagerState(pageCount = { pages.size })
+    var resumeAutoAt by remember { mutableLongStateOf(0L) }
+    LaunchedEffect(pagerState.isScrollInProgress) {
+        if (pagerState.isScrollInProgress) {
+            resumeAutoAt = android.os.SystemClock.uptimeMillis() + 14_000L
+        }
+    }
     LaunchedEffect(pages.size, reducedMotion) {
         if (reducedMotion || pages.size < 2) return@LaunchedEffect
         while (true) {
             delay(6500)
             if (pagerState.isScrollInProgress) continue
+            if (android.os.SystemClock.uptimeMillis() < resumeAutoAt) continue
             pagerState.animateScrollToPage((pagerState.currentPage + 1) % pages.size)
         }
     }
@@ -634,6 +642,22 @@ private fun ContinueArt(card: HomeContinueCard) {
                     ),
                 ),
         )
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Color.Black.copy(alpha = 0.55f))
+                .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Rounded.PlayArrow,
+                contentDescription = "Resume",
+                tint = Color.White,
+                modifier = Modifier.size(22.dp),
+            )
+        }
         Text(
             card.title,
             color = Color.White,
@@ -643,7 +667,7 @@ private fun ContinueArt(card: HomeContinueCard) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+                .padding(start = 10.dp, end = 10.dp, bottom = 14.dp),
         )
         if (card.progress > 0f) {
             Box(

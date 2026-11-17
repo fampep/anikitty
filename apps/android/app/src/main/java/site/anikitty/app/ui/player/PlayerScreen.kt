@@ -196,6 +196,7 @@ import site.anikitty.app.data.servers.FlixUnwrapDataSource
 import site.anikitty.app.data.servers.PlaybackHttp
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.SegmentStripDataSource
+import site.anikitty.app.data.servers.audioSwitchLabel
 import site.anikitty.app.data.servers.requestedAudioLanguage
 import site.anikitty.app.data.servers.SubtitleTrack
 import site.anikitty.app.data.skip.SkipTimes
@@ -355,6 +356,13 @@ fun PlayerScreen(
     val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
 
     var theater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
+    /** Inline video chrome. A tap reveals it; playing hides it again. */
+    var stageChrome by remember(episode) { mutableStateOf(false) }
+    LaunchedEffect(stageChrome, playing, theater) {
+        if (!stageChrome || !playing || theater) return@LaunchedEffect
+        delay(2_800)
+        stageChrome = false
+    }
     var muted by remember { mutableStateOf(false) }
 
     fun closePanelOrExit() {
@@ -1457,7 +1465,7 @@ fun PlayerScreen(
                             return@detectTapGestures
                         }
                         if (!theater) {
-                            activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
+                            stageChrome = !stageChrome
                         } else if (panel.isStickyStylePage()) {
                             // Keep Size / Color / … open so captions can be previewed live.
                         } else if (panel != PlayerMenuPage.None) {
@@ -1631,6 +1639,77 @@ fun PlayerScreen(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
+        }
+
+        val switchingAudio = audioSwitchLabel(audio, source?.audioLanguage)
+        if (switchingAudio != null && !isCasting && error == null) {
+            Text(
+                switchingAudio,
+                color = Color.White,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 12.dp)
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Color.Black.copy(alpha = 0.72f))
+                    .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(999.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+        }
+
+        if (!theater && !isCasting && error == null && player != null && panel == PlayerMenuPage.None) {
+            if (!playing || stageChrome) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+                        .clickable {
+                            if (swallowCenterClick) return@clickable
+                            activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
+                            stageChrome = true
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                        contentDescription = if (playing) "Pause" else "Play",
+                        tint = Color.White,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
+            }
+            if (stageChrome && !controlsLocked) {
+                ChromeDisc(
+                    onClick = { seekBy(-10_000) },
+                    size = 44.dp,
+                    modifier = Modifier
+                        .align(Alignment.CenterStart)
+                        .padding(start = 16.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Replay10,
+                        contentDescription = "Back 10 seconds",
+                        tint = Color.White,
+                    )
+                }
+                ChromeDisc(
+                    onClick = { seekBy(10_000) },
+                    size = 44.dp,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.Forward10,
+                        contentDescription = "Forward 10 seconds",
+                        tint = Color.White,
+                    )
+                }
+            }
         }
 
         if (isCasting) {
@@ -2289,6 +2368,13 @@ fun PlayerScreen(
             ),
         )
         if (!theater && durationMs > 0L) {
+            LiveClockText(
+                player = activePlayer,
+                scrubbing = scrubbing,
+                scrubValue = scrubValue,
+                durationMs = durationMs,
+                modifier = Modifier.padding(horizontal = 20.dp).padding(top = 10.dp),
+            )
             LiveTimeline(
                 player = activePlayer,
                 scrubbing = scrubbing,
@@ -3008,6 +3094,7 @@ private fun PlayerMetaPill(label: String, emphasized: Boolean = false) {
 @Composable
 private fun ChromeDisc(
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     size: androidx.compose.ui.unit.Dp = 40.dp,
     large: Boolean = false,
     accent: Boolean = false,
@@ -3017,7 +3104,7 @@ private fun ChromeDisc(
     val shape = CircleShape
     var focused by remember { mutableStateOf(false) }
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(size)
             .scale(if (focused) 1.06f else 1f)
             .clip(shape)

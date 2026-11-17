@@ -16,6 +16,14 @@ class PlaybackAudioTest {
     }
 
     @Test
+    fun switchLabelShowsUntilTheLoadedLanguageMatches() {
+        assertEquals("Switching to Dub", audioSwitchLabel("dub", "ja"))
+        assertEquals("Switching to Sub", audioSwitchLabel("sub", "en"))
+        assertEquals(null, audioSwitchLabel("dub", "en"))
+        assertEquals(null, audioSwitchLabel("sub", null))
+    }
+
+    @Test
     fun anExplicitLanguageStays() {
         val source = PlayableSource(
             url = "https://hls.example/master.m3u8",
