@@ -77,6 +77,11 @@ data class PlayableSource(
     val flix: FlixUnwrap? = null,
     /** Sprite-sheet WebVTT for the seek preview. Null when the source has none. */
     val thumbnails: ThumbnailTrack? = null,
+    /**
+     * True when [url] is an HLS playlist whose path is not `.m3u8`.
+     * AnimeX names the master `deeznuts.txt`.
+     */
+    val hls: Boolean = false,
 )
 
 /** Thumbnail VTT plus the headers its sprite sheets require. */

@@ -64,6 +64,18 @@
       "siteUrl": "https://kaa.lt"
     },
     {
+      "id": "animex",
+      "name": "animex",
+      "version": "1.0.0",
+      "protocol": "1.1",
+      "description": "Bundled animex.one resolver. Search uses the site catalog. The playlist plays in the app, including the default server. Sub or dub follows the episode language.",
+      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/animex",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=animex.one&sz=128",
+      "siteUrl": "https://animex.one"
+    },
+    {
       "id": "site.anikitty.example.hello",
       "name": "Hello HTTP",
       "version": "1.1.1",

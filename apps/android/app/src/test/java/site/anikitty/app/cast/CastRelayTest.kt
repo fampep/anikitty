@@ -18,6 +18,23 @@ class CastRelayTest {
     }
 
     @Test
+    fun animexTxtVariantsStayPlaylists() {
+        val variant = "https://s-91.megavid.se/i/abc/s/1080p/nut-1.txt"
+        val master = "https://s-91.megavid.se/i/abc/s/deeznuts.txt"
+        val segment = "https://s-91.megavid.se/i/abc/s/c/frame.jpg"
+        assertTrue(castRelayPlaylistUrl(master))
+        assertTrue(castRelayPlaylistUrl(variant))
+        assertTrue(castRelayLooksLikePlaylist(variant, emptyMap()))
+        assertTrue(!castRelayPlaylistUrl(segment))
+        assertTrue(
+            castRelayLooksLikePlaylist(
+                segment,
+                mapOf("content-type" to listOf("application/vnd.apple.mpegurl")),
+            ),
+        )
+    }
+
+    @Test
     fun segmentFormatIsOmittedUnlessThePlaylistProvesIt() {
         assertEquals("fmp4", certainHlsPack("#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\nseg.m4s\n"))
         assertEquals("ts", certainHlsPack("#EXTM3U\n#EXTINF:6,\nseg-1.ts\n"))

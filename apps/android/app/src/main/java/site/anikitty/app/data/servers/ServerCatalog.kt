@@ -44,6 +44,7 @@ class ServerCatalog(context: Context) {
         ReanimeServer(cache = resolveCache),
         MkissaServer(cache = resolveCache),
         KaaServer(cache = resolveCache),
+        AnimexServer(cache = resolveCache),
     )
     val bundledIds: Set<String> = bundled.map { it.server.id }.toSet()
 

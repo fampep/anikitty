@@ -449,8 +449,8 @@ fun PlayerScreen(
             .build()
             .apply {
                 val itemBuilder = MediaItem.Builder().setUri(source.url)
-                // Gotaku CDN playlists have no .m3u8 suffix but are HLS after unwrap.
-                if (source.url.contains(".m3u8", ignoreCase = true) || source.gotakuObf != null) {
+                // Gotaku and AnimeX playlists have no .m3u8 suffix but are HLS.
+                if (source.hls || source.url.contains(".m3u8", ignoreCase = true) || source.gotakuObf != null) {
                     itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
                 }
                 val configs = source.subtitles.mapIndexedNotNull { index, track ->
