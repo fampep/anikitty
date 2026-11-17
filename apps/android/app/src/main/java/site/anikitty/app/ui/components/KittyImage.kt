@@ -14,6 +14,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import site.anikitty.app.ui.theme.LocalKittyPalette
 
 /**
  * Poster and backdrop requests are decoded to the slot, then kept in Coil's
@@ -28,14 +29,15 @@ fun KittyImage(
     heightPx: Int = 720,
     contentScale: ContentScale = ContentScale.Crop,
     alignment: Alignment = Alignment.Center,
-    placeholder: Color = Color(0xFF141416),
+    placeholder: Color? = null,
 ) {
     val context = LocalContext.current
+    val matteColor = placeholder ?: LocalKittyPalette.current.surface
     if (url.isNullOrBlank()) {
-        Box(modifier.background(placeholder))
+        Box(modifier.background(matteColor))
         return
     }
-    val matte = if (placeholder.alpha > 0f) ColorPainter(placeholder) else null
+    val matte = if (matteColor.alpha > 0f) ColorPainter(matteColor) else null
     AsyncImage(
         model = ImageRequest.Builder(context)
             .data(url)

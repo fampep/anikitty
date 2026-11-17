@@ -48,11 +48,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import site.anikitty.app.ui.app.spacePress
-import site.anikitty.app.ui.theme.KittyAccent
 import site.anikitty.app.ui.theme.KittyHaptics
-import site.anikitty.app.ui.theme.KittyNavPillContent
-import site.anikitty.app.ui.theme.KittyOnAccent
-import site.anikitty.app.ui.theme.KittyOutlineSoft
+import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.prefersReducedMotion
 
 data class KittyNavTab(
@@ -62,10 +59,35 @@ data class KittyNavTab(
     val selectedIcon: ImageVector,
 )
 
-private val DockFill = Color(0xF2101014)
-private val DockStroke = Color.White.copy(alpha = 0.12f)
-private val DockSelectedFill = Color.White
-private val DockIdle = Color.White.copy(alpha = 0.48f)
+private data class DockColors(
+    val fill: Color,
+    val stroke: Color,
+    val selected: Color,
+    val idle: Color,
+    val ink: Color,
+)
+
+@Composable
+private fun dockColors(): DockColors {
+    val palette = LocalKittyPalette.current
+    return if (palette.dark) {
+        DockColors(
+            fill = Color(0xF2101014),
+            stroke = Color.White.copy(alpha = 0.12f),
+            selected = Color.White,
+            idle = Color.White.copy(alpha = 0.48f),
+            ink = Color.Black,
+        )
+    } else {
+        DockColors(
+            fill = Color.White.copy(alpha = 0.96f),
+            stroke = palette.hairline,
+            selected = palette.accent,
+            idle = palette.muted,
+            ink = palette.onAccent,
+        )
+    }
+}
 
 /**
  * Floating glass capsule dock — same language as the home top pill.
@@ -82,6 +104,8 @@ fun KittyBottomNav(
 ) {
     val view = LocalView.current
     val reduced = prefersReducedMotion()
+    val nightDock = LocalKittyPalette.current.dark
+    val dock = dockColors()
     val shape = RoundedCornerShape(28.dp)
     Box(
         modifier = modifier
@@ -95,14 +119,14 @@ fun KittyBottomNav(
                 .fillMaxWidth()
                 .height(64.dp)
                 .shadow(
-                    elevation = 18.dp,
+                    elevation = if (nightDock) 18.dp else 10.dp,
                     shape = shape,
-                    ambientColor = Color.Black.copy(alpha = 0.55f),
-                    spotColor = Color.Black.copy(alpha = 0.4f),
+                    ambientColor = Color.Black.copy(alpha = if (nightDock) 0.55f else 0.12f),
+                    spotColor = Color.Black.copy(alpha = if (nightDock) 0.4f else 0.08f),
                 )
                 .clip(shape)
-                .background(DockFill)
-                .border(1.dp, DockStroke, shape)
+                .background(dock.fill)
+                .border(1.dp, dock.stroke, shape)
                 .padding(horizontal = 6.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -115,12 +139,12 @@ fun KittyBottomNav(
                     label = "navScale",
                 )
                 val chipColor by animateColorAsState(
-                    targetValue = if (selected) DockSelectedFill else Color.Transparent,
+                    targetValue = if (selected) dock.selected else Color.Transparent,
                     animationSpec = if (reduced) snap() else tween(200),
                     label = "navChip",
                 )
                 val tint by animateColorAsState(
-                    targetValue = if (selected) Color.Black else DockIdle,
+                    targetValue = if (selected) dock.ink else dock.idle,
                     animationSpec = if (reduced) snap() else tween(180),
                     label = "navTint",
                 )
@@ -154,7 +178,7 @@ fun KittyBottomNav(
                                 .clip(CircleShape)
                                 .border(
                                     width = if (selected) 1.5.dp else 0.dp,
-                                    color = if (selected) Color.Black else Color.Transparent,
+                                    color = if (selected) dock.ink else Color.Transparent,
                                     shape = CircleShape,
                                 ),
                         )
@@ -193,19 +217,21 @@ fun KittySideNav(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val dock = dockColors()
+    val palette = LocalKittyPalette.current
     Column(
         modifier = modifier
             .width(196.dp)
             .fillMaxHeight()
             .clip(RoundedCornerShape(20.dp))
-            .background(DockFill)
-            .border(1.dp, KittyOutlineSoft, RoundedCornerShape(20.dp))
+            .background(dock.fill)
+            .border(1.dp, dock.stroke, RoundedCornerShape(20.dp))
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
             "AniKitty",
-            color = KittyAccent,
+            color = palette.text,
             fontWeight = FontWeight.Black,
             fontSize = 18.sp,
             modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
@@ -219,10 +245,10 @@ fun KittySideNav(
                     .fillMaxWidth()
                     .onFocusChanged { focused = it.hasFocus }
                     .clip(shape)
-                    .background(if (focused || selected) KittyAccent else Color.Transparent)
+                    .background(if (focused || selected) dock.selected else Color.Transparent)
                     .border(
                         width = if (selected && !focused) 1.dp else 0.dp,
-                        color = if (selected && !focused) KittyAccent else Color.Transparent,
+                        color = if (selected && !focused) dock.selected else Color.Transparent,
                         shape = shape,
                     )
                     .clickable { onSelect(tab.id) }
@@ -233,12 +259,12 @@ fun KittySideNav(
                 Icon(
                     imageVector = if (selected) tab.selectedIcon else tab.icon,
                     contentDescription = tab.label,
-                    tint = if (focused || selected) KittyOnAccent else KittyNavPillContent,
+                    tint = if (focused || selected) dock.ink else dock.idle,
                     modifier = Modifier.size(22.dp),
                 )
                 Text(
                     tab.label,
-                    color = if (focused || selected) KittyOnAccent else KittyNavPillContent,
+                    color = if (focused || selected) dock.ink else dock.idle,
                     fontSize = 15.sp,
                     fontWeight = if (selected || focused) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,

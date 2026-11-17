@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -85,11 +86,12 @@ fun KittyChip(
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
             .clip(shape)
             .background(fill)
             .border(0.5.dp, palette.text.copy(alpha = if (selected) 0.3f else 0.1f), shape)
             .spacePress(onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
 

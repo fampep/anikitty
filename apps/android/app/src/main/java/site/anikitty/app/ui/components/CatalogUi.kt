@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -65,6 +66,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -100,6 +103,7 @@ fun KittyPageHeader(
     modifier: Modifier = Modifier,
     trailing: (@Composable () -> Unit)? = null,
 ) {
+    val palette = LocalKittyPalette.current
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -109,7 +113,7 @@ fun KittyPageHeader(
                 title,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = KittyText,
+                color = palette.text,
                 letterSpacing = (-0.4).sp,
             )
             if (!subtitle.isNullOrBlank()) {
@@ -117,7 +121,7 @@ fun KittyPageHeader(
                 Text(
                     subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = KittyMuted,
+                    color = palette.muted,
                     fontWeight = FontWeight.Medium,
                 )
             }
@@ -189,6 +193,7 @@ fun KittyShimmerBox(
     modifier: Modifier = Modifier,
     shape: RoundedCornerShape = RoundedCornerShape(14.dp),
 ) {
+    val palette = LocalKittyPalette.current
     val transition = rememberInfiniteTransition(label = "shimmer")
     val shift by transition.animateFloat(
         initialValue = 0f,
@@ -202,12 +207,12 @@ fun KittyShimmerBox(
     Box(
         modifier = modifier
             .clip(shape)
-            .background(KittySurface)
+            .background(palette.surface)
             .background(
                 Brush.horizontalGradient(
                     0f to Color.Transparent,
                     (shift - 0.25f).coerceIn(0f, 1f) to Color.Transparent,
-                    shift to KittyAccent.copy(alpha = 0.18f),
+                    shift to palette.text.copy(alpha = if (palette.dark) 0.16f else 0.10f),
                     (shift + 0.25f).coerceIn(0f, 1f) to Color.Transparent,
                     1f to Color.Transparent,
                 ),
@@ -248,23 +253,26 @@ fun KittySectionHeading(
             }
         }
         if (onMore != null) {
+            val ink = LocalKittyPalette.current.muted
             Row(
                 modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
+                    .clearAndSetSemantics { contentDescription = "See all $title" }
                     .spacePress(onMore)
-                    .padding(start = 8.dp, top = 6.dp, bottom = 6.dp),
+                    .padding(start = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     "See all",
-                    color = LocalKittyPalette.current.text.copy(alpha = 0.6f),
+                    color = ink,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Icon(
                     Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = LocalKittyPalette.current.text.copy(alpha = 0.6f),
-                    modifier = Modifier.size(14.dp),
+                    tint = ink,
+                    modifier = Modifier.size(16.dp),
                 )
             }
         }

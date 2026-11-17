@@ -59,11 +59,12 @@ fun ProfileMark(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
 ) {
+    val palette = LocalKittyPalette.current
     Box(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(Color(0xFF1E1E20)),
+            .background(palette.surface),
         contentAlignment = Alignment.Center,
     ) {
         if (!imageUrl.isNullOrBlank()) {
@@ -179,7 +180,7 @@ fun SpaceLabel(text: String, padded: Boolean = true) {
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp,
         ),
-        color = Color.White.copy(alpha = 0.6f),
+        color = LocalKittyPalette.current.muted,
     )
 }
 
@@ -209,18 +210,19 @@ fun SpaceChip(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val palette = LocalKittyPalette.current
     val background by animateColorAsState(
-        if (selected) Color.White.copy(alpha = 0.15f) else Color.White.copy(alpha = 0.05f),
+        if (selected) palette.accent else palette.surface,
         tween(180),
         label = "chipBg",
     )
     val stroke by animateColorAsState(
-        if (selected) Color.White.copy(alpha = 0.3f) else Color.White.copy(alpha = 0.08f),
+        if (selected) palette.accent else palette.hairline,
         tween(180),
         label = "chipStroke",
     )
     val text by animateColorAsState(
-        if (selected) Color.White else Color.White.copy(alpha = 0.7f),
+        if (selected) palette.onAccent else palette.text,
         tween(180),
         label = "chipText",
     )
@@ -229,10 +231,11 @@ fun SpaceChip(
         color = text,
         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
         modifier = Modifier
+            .defaultMinSize(minHeight = 48.dp)
             .clip(ChipShape)
             .background(background)
             .border(1.dp, stroke, ChipShape)
             .spacePress(onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }

@@ -19,9 +19,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import site.anikitty.app.ui.theme.KittyFaint
-import site.anikitty.app.ui.theme.KittyOutlineSoft
-import site.anikitty.app.ui.theme.KittySurface
+import site.anikitty.app.ui.theme.LocalKittyPalette
 
 /** Site brand icon for store / installed stream sources. */
 @Composable
@@ -31,13 +29,14 @@ fun ExtensionIcon(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
 ) {
+    val palette = LocalKittyPalette.current
     val shape = RoundedCornerShape(10.dp)
     Box(
         modifier = modifier
             .size(size)
             .clip(shape)
-            .background(KittySurface)
-            .border(1.dp, KittyOutlineSoft, shape),
+            .background(palette.surface)
+            .border(1.dp, palette.hairline, shape),
         contentAlignment = Alignment.Center,
     ) {
         if (!iconUrl.isNullOrBlank()) {
@@ -53,7 +52,7 @@ fun ExtensionIcon(
             Icon(
                 Icons.Outlined.Extension,
                 contentDescription = contentDescription,
-                tint = KittyFaint,
+                tint = palette.muted,
                 modifier = Modifier.size(size * 0.48f),
             )
         }
