@@ -3,6 +3,7 @@
 
 package site.anikitty.app.data.local
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -45,6 +46,14 @@ class WatchedMarkTest {
         assertFalse(shouldMarkWatched(positionMs = 20 * 60_000L, durationMs = 0L))
         val skip = SkipTimes(outro = SkipInterval(startSec = 18 * 60.0, endSec = 19 * 60.0))
         assertTrue(shouldMarkWatched(18 * 60_000L, durationMs = 0L, skip))
+    }
+
+    @Test
+    fun retryStopsOnceALaterMarkMovesTheFrontier() {
+        assertEquals(AutoMarkDecision.RetryPush, autoMarkDecision(6, currentEpisode = 5, localMarked = true))
+        assertEquals(AutoMarkDecision.Stop, autoMarkDecision(7, currentEpisode = 5, localMarked = true))
+        assertEquals(AutoMarkDecision.Stop, autoMarkDecision(6, currentEpisode = 5, localMarked = false))
+        assertEquals(AutoMarkDecision.MarkLocal, autoMarkDecision(5, currentEpisode = 5, localMarked = false))
     }
 
     @Test

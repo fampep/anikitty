@@ -9,6 +9,32 @@ import site.anikitty.app.data.skip.SkipTimes
 const val WATCHED_REMAINING_MS = 90_000L
 
 /**
+ * What the auto-watched path should do with the history row.
+ *
+ * [AutoMarkDecision.RetryPush] repeats the completed count after this session's own mark.
+ * [AutoMarkDecision.Stop] means a later mark already owns the list, so this episode must not
+ * be reported again.
+ */
+enum class AutoMarkDecision {
+    MarkLocal,
+    RetryPush,
+    Stop,
+}
+
+/**
+ * A failed AniList save may be retried only while the row is still the episode
+ * this session marked (the next one). A frontier further than that belongs to
+ * a later mark and must not be overwritten with [currentEpisode].
+ */
+fun autoMarkDecision(storedEpisode: Int, currentEpisode: Int, localMarked: Boolean): AutoMarkDecision =
+    when {
+        storedEpisode > currentEpisode + 1 -> AutoMarkDecision.Stop
+        localMarked -> AutoMarkDecision.RetryPush
+        storedEpisode > currentEpisode -> AutoMarkDecision.Stop
+        else -> AutoMarkDecision.MarkLocal
+    }
+
+/**
  * True once this episode should be marked watched.
  *
  * The credits/outro start wins when that marker exists. Otherwise the episode

@@ -168,6 +168,8 @@ import site.anikitty.app.data.local.WatchHistoryEntity
 import site.anikitty.app.data.local.continueCue
 import site.anikitty.app.data.local.continueQueue
 import site.anikitty.app.data.local.markEpisode
+import site.anikitty.app.data.local.AutoMarkDecision
+import site.anikitty.app.data.local.autoMarkDecision
 import site.anikitty.app.data.local.shouldMarkWatched
 import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.data.servers.PlayableSource
@@ -904,20 +906,21 @@ fun LocalFirstApp(
                         }
                         ContinueHidden.reveal(context, current.anime.id)
                         val stored = existing?.episode ?: 0
-                        // The row already points past this episode. Reporting it
-                        // again would move the list backward. A failed sync after
-                        // this session's own mark is the one retry.
-                        val alreadyPast = stored > current.episode
-                        val due = localMarked || shouldMarkWatched(pos, dur, skip)
-                        if (!reportedEpisode && !reportInFlight && due && (localMarked || !alreadyPast)) {
+                        // Retry the count from this session's mark only. A later
+                        // toggle that moved the row further owns AniList.
+                        val decision = autoMarkDecision(stored, current.episode, localMarked)
+                        val due = decision == AutoMarkDecision.RetryPush ||
+                            shouldMarkWatched(pos, dur, skip)
+                        if (!reportedEpisode && !reportInFlight && decision != AutoMarkDecision.Stop && due) {
                             reportInFlight = true
                             val saved = try {
                                 val completed = historyWrite.withLock {
                                     val nowStored = historyDao.get(current.anime.id)?.episode ?: 0
-                                    when {
-                                        nowStored > current.episode ->
-                                            if (localMarked) current.episode else null
-                                        else -> historyDao.markEpisode(current.anime, current.episode)
+                                    when (autoMarkDecision(nowStored, current.episode, localMarked)) {
+                                        AutoMarkDecision.Stop -> null
+                                        AutoMarkDecision.RetryPush -> current.episode
+                                        AutoMarkDecision.MarkLocal ->
+                                            historyDao.markEpisode(current.anime, current.episode)
                                     }
                                 }
                                 if (completed != null) localMarked = true
