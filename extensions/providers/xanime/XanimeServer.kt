@@ -217,6 +217,7 @@ internal data class XanimeLink(
     val url: String,
     val headers: Map<String, String>,
     val subtitles: List<SubtitleTrack>,
+    val skip: site.anikitty.app.data.skip.SkipTimes = site.anikitty.app.data.skip.SkipTimes(),
 )
 
 private const val XANIME_SECRET = "xanime-ph25-obfuscation-secret-key-2026"
@@ -349,6 +350,7 @@ internal fun xanimeLinks(
                 "User-Agent" to userAgent,
             ),
             subtitles = xanimeSubtitles(data.optJSONArray("track"), origin),
+            skip = site.anikitty.app.data.skip.skipTimesFromJson(data),
         )
     }
     return links
@@ -367,6 +369,7 @@ internal fun xanimePlayable(link: XanimeLink, playlist: String, dub: Boolean): P
         quality = fields.quality,
         audio = fields.audio,
         hls = true,
+        skip = link.skip,
     )
 }
 

@@ -16,6 +16,7 @@ import site.anikitty.app.data.servers.StreamResolver
 import site.anikitty.app.data.servers.StreamServer
 import site.anikitty.app.data.servers.SubtitleTrack
 import site.anikitty.app.data.servers.thumbnailTrackFromJson
+import site.anikitty.app.data.skip.skipTimesFromJson
 import java.io.IOException
 
 /**
@@ -151,6 +152,7 @@ class HttpExtensionResolver(
                 audio = fields.audio,
                 qualityRating = fields.qualityRating,
                 thumbnails = thumbnailTrackFromJson(s, headers),
+                skip = skipTimesFromJson(s),
             )
         }
         return out

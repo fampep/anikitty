@@ -11,8 +11,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import site.anikitty.app.data.skip.SkipInterval
 import site.anikitty.app.data.skip.SkipTimes
+import site.anikitty.app.data.skip.skipTimesFromJson
 import java.net.URLEncoder
 import java.util.concurrent.ConcurrentHashMap
 import java.nio.charset.StandardCharsets
@@ -129,8 +129,8 @@ class AnikotoServer(
         anilistId: Int,
         episode: Int,
     ): List<PlayableSource> {
-        val skip = embeds.firstOrNull { !it.skip.isEmpty }?.skip ?: SkipTimes()
-        if (!skip.isEmpty) skipMemory[skipKey(anilistId, episode)] = skip
+        val remembered = embeds.firstOrNull { !it.skip.isEmpty }?.skip
+        if (remembered != null) skipMemory[skipKey(anilistId, episode)] = remembered
         val out = ArrayList<PlayableSource>()
         val seen = HashSet<String>()
         var lastResolveError: String? = null
@@ -154,7 +154,7 @@ class AnikotoServer(
                             label = shown,
                             stripBytes = strip,
                             subtitles = resolved.subtitles,
-                            skip = skip,
+                            skip = embed.skip,
                             quality = fields.quality,
                             audio = fields.audio,
                             qualityRating = fields.qualityRating,
@@ -272,8 +272,8 @@ class AnikotoServer(
 
     /**
      * Intro and credits published by Anikoto for this episode.
-     * Used for every stream provider — playback can be Gotaku or anything else,
-     * the skip window still comes from Anikoto's episode page.
+     * Playback of another provider does not use this. That stream uses its own
+     * markers, then AniSkip.
      */
     suspend fun loadSkipTimes(
         anilistId: Int,
@@ -485,33 +485,7 @@ class AnikotoServer(
         return body.optJSONObject("result")
     }
 
-    private fun parseSkipData(raw: JSONObject?): SkipTimes {
-        if (raw == null) return SkipTimes()
-        return SkipTimes(
-            intro = skipInterval(raw, "intro"),
-            outro = skipInterval(raw, "outro"),
-            recap = skipInterval(raw, "recap"),
-            preview = skipInterval(raw, "preview"),
-        )
-    }
-
-    private fun skipInterval(raw: JSONObject, key: String): SkipInterval? {
-        val arr = raw.optJSONArray(key)
-        val start: Double
-        val end: Double
-        if (arr != null && arr.length() >= 2) {
-            start = arr.optDouble(0, Double.NaN)
-            end = arr.optDouble(1, Double.NaN)
-        } else {
-            val obj = raw.optJSONObject(key) ?: return null
-            start = obj.optDouble("start", obj.optDouble("startTime", Double.NaN))
-            end = obj.optDouble("end", obj.optDouble("endTime", Double.NaN))
-        }
-        if (!start.isFinite() || !end.isFinite() || end <= start || start < 0.0 || end > 8 * 3600.0) {
-            return null
-        }
-        return SkipInterval(start, end)
-    }
+    private fun parseSkipData(raw: JSONObject?): SkipTimes = skipTimesFromJson(raw)
 
     private fun skipKey(anilistId: Int, episode: Int) = "$anilistId:$episode"
 

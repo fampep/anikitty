@@ -336,6 +336,9 @@ internal fun kaaPlayable(
         subtitles = kaaSubtitles(captions),
         quality = fields.quality,
         audio = fields.audio,
+        skip = runCatching {
+            site.anikitty.app.data.skip.skipTimesFromJson(JSONObject(detail))
+        }.getOrDefault(site.anikitty.app.data.skip.SkipTimes()),
     )
 }
 

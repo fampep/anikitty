@@ -187,6 +187,7 @@ internal data class AnimexLink(
     val url: String,
     val headers: Map<String, String>,
     val subtitles: List<SubtitleTrack>,
+    val skip: site.anikitty.app.data.skip.SkipTimes = site.anikitty.app.data.skip.SkipTimes(),
 )
 
 internal fun animexBlocked(code: Int, body: String): Boolean {
@@ -293,7 +294,12 @@ internal fun animexLink(payload: String, userAgent: String): AnimexLink? {
     if (headers.keys.none { it.equals("Referer", ignoreCase = true) }) {
         headers["Referer"] = "${AnimexServer.ORIGIN}/"
     }
-    return AnimexLink(url, headers, animexSubtitles(root.optJSONArray("tracks")))
+    return AnimexLink(
+        url,
+        headers,
+        animexSubtitles(root.optJSONArray("tracks")),
+        site.anikitty.app.data.skip.skipTimesFromJson(root),
+    )
 }
 
 internal fun animexPlayable(link: AnimexLink, playlist: String, dub: Boolean): PlayableSource? {
@@ -309,6 +315,7 @@ internal fun animexPlayable(link: AnimexLink, playlist: String, dub: Boolean): P
         quality = fields.quality,
         audio = fields.audio,
         hls = true,
+        skip = link.skip,
     )
 }
 

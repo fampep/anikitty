@@ -847,7 +847,7 @@ fun LocalFirstApp(
                 sources = current.sources,
                 anilistId = current.anime.id,
                 titleHint = current.anime.streamTitleHint(),
-                loadSkip = streamServers::anikotoSkipTimes,
+                loadAniSkip = streamServers::aniSkipStamps,
                 startPositionMs = resumeMs,
                 onClose = {
                     // Drop an in-flight resolve before leaving, or it can save
