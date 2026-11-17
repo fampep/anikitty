@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -466,6 +467,7 @@ fun ExtensionStoreFeed(
                                 }
                             },
                             enabled = !busy,
+                            modifier = Modifier.height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = palette.accent,
@@ -483,6 +485,7 @@ fun ExtensionStoreFeed(
                         OutlinedButton(
                             onClick = { status = "Already using ${listing.name}" },
                             enabled = !busy,
+                            modifier = Modifier.height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, palette.accent),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.accent),
@@ -519,6 +522,7 @@ fun ExtensionStoreFeed(
                                 }
                             },
                             enabled = !busy && !(sample && !onDevice && !isBundled),
+                            modifier = Modifier.height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = palette.accent,
@@ -546,6 +550,7 @@ fun ExtensionStoreFeed(
                                     Intent(Intent.ACTION_VIEW, Uri.parse(listing.github)),
                                 )
                             },
+                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                         ) {
                             Text("Source", color = palette.muted, fontSize = 12.sp)
                         }
@@ -557,6 +562,7 @@ fun ExtensionStoreFeed(
                                     Intent(Intent.ACTION_VIEW, Uri.parse(listing.siteUrl)),
                                 )
                             },
+                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                         ) {
                             Text("Site", color = palette.muted, fontSize = 12.sp)
                         }
@@ -568,6 +574,7 @@ fun ExtensionStoreFeed(
                                 status = "Removed ${listing.name}"
                             },
                             enabled = !busy,
+                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
                         ) {
                             Text("Remove", color = palette.faint, fontSize = 12.sp)
                         }

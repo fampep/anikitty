@@ -1177,16 +1177,16 @@ private fun TrailerRow(clips: List<VideoClip>, onOpenUrl: (String) -> Unit) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.Center)
-                                .size(40.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
                                 .background(Color.White),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 Icons.Filled.PlayArrow,
-                                contentDescription = null,
+                                contentDescription = "Play ${clip.name}",
                                 tint = Color.Black,
-                                modifier = Modifier.size(22.dp),
+                                modifier = Modifier.size(26.dp),
                             )
                         }
                     }
@@ -1392,6 +1392,7 @@ private fun galleryTiles(art: TitleArt?): List<GalleryTile> {
 
 @Composable
 private fun BackdropStrip(tiles: List<GalleryTile>, selected: Int, onSelect: (Int) -> Unit) {
+    val palette = LocalKittyPalette.current
     LazyRow(
         contentPadding = PaddingValues(horizontal = KittySpace.md, vertical = KittySpace.sm),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1407,10 +1408,10 @@ private fun BackdropStrip(tiles: List<GalleryTile>, selected: Int, onSelect: (In
                     .width(if (tile.wide) 168.dp else 78.dp)
                     .height(94.dp)
                     .clip(shape)
-                    .background(Color.White.copy(alpha = 0.06f))
+                    .background(palette.surface)
                     .border(
-                        width = if (tile.backdropIndex == selected) 1.5.dp else 0.dp,
-                        color = Color.White,
+                        width = if (tile.backdropIndex == selected) 2.dp else 0.dp,
+                        color = palette.text,
                         shape = shape,
                     )
                     .spacePress { tile.backdropIndex?.let(onSelect) },
@@ -1827,11 +1828,12 @@ private fun OnDarkChip(label: String, onClick: () -> Unit) {
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         modifier = Modifier
+            .defaultMinSize(minHeight = 48.dp)
             .clip(shape)
             .background(Color.White.copy(alpha = 0.16f))
             .border(0.5.dp, Color.White.copy(alpha = 0.35f), shape)
             .spacePress(onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
 

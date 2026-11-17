@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -2249,10 +2250,12 @@ private fun AniListProfileCard(
     onOpenList: (String) -> Unit = {},
     onSignOut: () -> Unit = {},
 ) {
+    val palette = LocalKittyPalette.current
     val name = auth.username?.takeIf { it.isNotBlank() } ?: fallbackName
     val days = auth.minutesWatched / 1440
     val score = if (auth.meanScore <= 0f) "—" else auth.meanScore.toInt().toString()
     val syncing = syncLabel == "Syncing…"
+    val onBanner = !auth.bannerUrl.isNullOrBlank()
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(
             modifier = Modifier
@@ -2264,9 +2267,11 @@ private fun AniListProfileCard(
             SpaceLabel("PROFILE", padded = false)
             Text(
                 text = "Logout",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                color = Color.White.copy(alpha = 0.55f),
-                modifier = Modifier.spacePress(onSignOut),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                color = palette.muted,
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
+                    .spacePress(onSignOut),
             )
         }
         Box(
@@ -2274,8 +2279,8 @@ private fun AniListProfileCard(
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF0C0C10))
-                .border(0.5.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(12.dp)),
+                .background(if (onBanner) Color(0xFF0C0C10) else palette.surface)
+                .border(0.5.dp, if (onBanner) Color.White.copy(alpha = 0.08f) else palette.hairline, RoundedCornerShape(12.dp)),
         ) {
             if (!auth.bannerUrl.isNullOrBlank()) {
                 AsyncImage(
@@ -2310,7 +2315,7 @@ private fun AniListProfileCard(
                         modifier = Modifier
                             .size(48.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF1E1E20)),
+                            .background(palette.surface),
                         contentScale = ContentScale.Crop,
                     )
                 } else {
@@ -2332,14 +2337,14 @@ private fun AniListProfileCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = name,
-                        color = Color.White,
+                        color = if (onBanner) Color.White else palette.text,
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = if (syncing) "Syncing..." else "Connected",
-                        color = Color.White.copy(alpha = if (syncing) 1f else 0.5f),
+                        color = if (onBanner) Color.White.copy(alpha = if (syncing) 1f else 0.72f) else palette.muted,
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
@@ -2348,7 +2353,7 @@ private fun AniListProfileCard(
         if (!auth.about.isNullOrBlank()) {
             Text(
                 auth.about.orEmpty(),
-                color = Color.White.copy(alpha = 0.55f),
+                color = palette.muted,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
@@ -2381,7 +2386,7 @@ private fun AniListProfileCard(
         if (!syncLabel.isNullOrBlank() && !syncing) {
             Text(
                 syncLabel,
-                color = Color.White.copy(alpha = 0.45f),
+                color = palette.muted,
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
@@ -2401,16 +2406,17 @@ private fun androidx.compose.foundation.layout.RowScope.ProfileStat(
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        val palette = LocalKittyPalette.current
         Text(
             value,
-            color = KittyText,
+            color = palette.text,
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.titleSmall,
             maxLines = 1,
         )
         Text(
             label,
-            color = KittyMuted,
+            color = palette.muted,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
         )

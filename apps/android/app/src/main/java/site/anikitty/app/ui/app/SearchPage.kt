@@ -320,7 +320,7 @@ fun SearchFeed(
                         modifier = Modifier.fillMaxWidth().padding(top = 72.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(Icons.Filled.Search, contentDescription = null, tint = palette.text.copy(alpha = 0.35f), modifier = Modifier.size(32.dp))
+                        Icon(Icons.Filled.Search, contentDescription = "No results", tint = palette.text.copy(alpha = 0.35f), modifier = Modifier.size(32.dp))
                         Spacer(Modifier.height(12.dp))
                         Text("No results found", color = palette.text, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Spacer(Modifier.height(6.dp))
@@ -773,13 +773,13 @@ private fun SearchFilterChip(text: String, selected: Boolean, onClick: () -> Uni
         text,
         color = if (selected) palette.text else palette.text.copy(alpha = 0.7f),
         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-        fontSize = 11.sp,
+        fontSize = 12.sp,
         modifier = Modifier
-            .defaultMinSize(minHeight = 40.dp)
+            .defaultMinSize(minHeight = 48.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(if (selected) palette.text.copy(alpha = 0.16f) else palette.text.copy(alpha = 0.04f))
             .border(0.5.dp, palette.text.copy(alpha = if (selected) 0.4f else 0.08f), RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
+            .spacePress(onClick)
             .padding(horizontal = 14.dp, vertical = 10.dp),
     )
 }
@@ -801,7 +801,7 @@ private fun HeaderDisc(onClick: () -> Unit, selected: Boolean = false, content: 
 @Composable
 private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Unit) {
     val palette = LocalKittyPalette.current
-    Column(Modifier.clickable(onClick = onClick)) {
+    Column(Modifier.spacePress(onClick)) {
         AsyncImage(
             model = anime.coverImageUrl,
             contentDescription = anime.title,
@@ -864,7 +864,7 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
             .clip(RoundedCornerShape(12.dp))
             .background(palette.surface)
             .border(0.5.dp, palette.text.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
+            .spacePress(onClick)
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -901,7 +901,6 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
 
 @Composable
 private fun ScoreBadge(text: String, score: Int, modifier: Modifier = Modifier) {
-    val palette = LocalKittyPalette.current
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(6.dp))
@@ -909,9 +908,9 @@ private fun ScoreBadge(text: String, score: Int, modifier: Modifier = Modifier) 
             .padding(horizontal = 5.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(FluentuiSystemIconsStarFilled, contentDescription = null, tint = palette.text, modifier = Modifier.size(9.dp))
+        Icon(FluentuiSystemIconsStarFilled, contentDescription = "Score", tint = Color.White, modifier = Modifier.size(11.dp))
         Spacer(Modifier.width(2.dp))
-        Text(text, color = palette.text, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
 

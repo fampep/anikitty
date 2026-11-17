@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -353,13 +354,15 @@ fun MySpaceFeed(
                             text = if (selecting) "Cancel" else "Select",
                             color = palette.text.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                            modifier = Modifier.spacePress {
-                                if (selecting) leaveSelection() else selecting = true
-                            },
+                            modifier = Modifier
+                                .defaultMinSize(minHeight = 48.dp)
+                                .spacePress {
+                                    if (selecting) leaveSelection() else selecting = true
+                                },
                         )
                         ProfileMark(
                             imageUrl = viewer?.avatarUrl ?: avatarUrl,
-                            size = 36.dp,
+                            size = 48.dp,
                             modifier = Modifier.spacePress(onOpenAccount),
                         )
                     }
@@ -385,11 +388,12 @@ fun MySpaceFeed(
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             modifier = Modifier
+                                .defaultMinSize(minHeight = 48.dp)
                                 .clip(RoundedCornerShape(999.dp))
                                 .background(if (selected) palette.accent else palette.surface)
                                 .border(1.dp, palette.hairline, RoundedCornerShape(999.dp))
-                                .clickable { librarySort = id }
-                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                                .spacePress { librarySort = id }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
                         )
                     }
                 }
@@ -635,9 +639,9 @@ private fun CloudSyncBlock(
                     model = viewer?.avatarUrl,
                     contentDescription = "Avatar",
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF1E1E20)),
+                        .background(palette.surface),
                     contentScale = ContentScale.Crop,
                 )
                 Column {
@@ -729,10 +733,12 @@ private fun ContinueBlock(
             )
             Text(
                 text = "See all",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
                 color = palette.text.copy(alpha = 0.7f),
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.spacePress(onSeeAll),
+                modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
+                    .spacePress(onSeeAll),
             )
         }
         if (selection.active) {
@@ -868,7 +874,7 @@ private fun EmptyPanel(
             Text(
                 text = body,
                 style = MaterialTheme.typography.labelMedium,
-                color = palette.text.copy(alpha = 0.4f),
+                color = palette.muted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 24.dp),
             )
@@ -878,10 +884,11 @@ private fun EmptyPanel(
                     color = palette.onAccent,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
                         .clip(RoundedCornerShape(14.dp))
                         .background(palette.accent)
-                        .clickable(onClick = onAction)
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .spacePress(onAction)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                 )
             }
         }
@@ -993,8 +1000,8 @@ private fun SpacePoster(
         )
         Text(
             text = subtitle,
-            color = palette.text.copy(alpha = 0.4f),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+            color = palette.muted,
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 2.dp),
@@ -1149,7 +1156,7 @@ private fun FavoriteRow(
                                 Text(
                                     text = genre,
                                     color = palette.text.copy(alpha = 0.7f),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
                                 )
                             }
                         }

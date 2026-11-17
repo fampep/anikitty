@@ -27,37 +27,39 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import site.anikitty.app.ui.app.spacePress
 import site.anikitty.app.ui.theme.KittyHaptics
+import site.anikitty.app.ui.theme.LocalKittyPalette
 
 data class KittyMenuEntry(
     val label: String,
     val onClick: () -> Unit,
 )
 
-/** Layered black menu. One surface, hairline, no extra decoration. */
+/** One surface, a hairline, and labels that follow the theme. */
 @Composable
 fun KittyMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     entries: List<KittyMenuEntry>,
 ) {
+    val palette = LocalKittyPalette.current
     DropdownMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(14.dp),
-        containerColor = Color(0xFF101014),
+        containerColor = palette.surface,
         tonalElevation = 6.dp,
         shadowElevation = 16.dp,
-        border = BorderStroke(0.5.dp, Color.White.copy(alpha = 0.16f)),
+        border = BorderStroke(0.5.dp, palette.hairline),
     ) {
         entries.forEachIndexed { index, entry ->
             if (index > 0) {
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.5.dp)
+                HorizontalDivider(color = palette.hairline, thickness = 0.5.dp)
             }
             DropdownMenuItem(
                 text = {
                     Text(
                         entry.label,
-                        color = Color.White,
+                        color = palette.text,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                     )

@@ -3,6 +3,11 @@
 
 package site.anikitty.app.ui.app
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,7 +32,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,7 +58,10 @@ import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.anilist.AnimeSummary
+import site.anikitty.app.ui.components.KittyEmptyState
+import site.anikitty.app.ui.components.KittyShimmerBox
 import site.anikitty.app.ui.theme.LocalKittyPalette
+import site.anikitty.app.ui.theme.prefersReducedMotion
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -102,22 +109,12 @@ fun ScheduleFeed(
         loading = false
     }
 
-    val dayStart = days[selected].timeInMillis
-    val dayEnd = dayStart + 24L * 60L * 60L * 1000L
-    val visible = slots.filter { slot ->
-        val ms = slot.airingAtEpochSec * 1000L
-        val onDay = ms in dayStart until dayEnd
-        val mine = !onlyMine || followedEpisodes.containsKey(slot.anime.id)
-        onDay && mine
-    }
-
     val palette = LocalKittyPalette.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.page)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(bottom = bottomInset),
+            .windowInsetsPadding(WindowInsets.statusBars),
     ) {
         Row(
             modifier = Modifier
@@ -158,12 +155,12 @@ fun ScheduleFeed(
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
                     modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
                         .clip(shape)
                         .background(if (onlyMine) palette.text else palette.surface)
                         .border(1.dp, if (onlyMine) palette.text else palette.hairline, shape)
-                        .defaultMinSize(minHeight = 48.dp)
                         .clickable { onlyMine = !onlyMine }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                 )
             }
         }
@@ -178,6 +175,7 @@ fun ScheduleFeed(
                 Column(
                     modifier = Modifier
                         .weight(1f)
+                        .defaultMinSize(minHeight = 48.dp)
                         .spacePress { selected = index }
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (on) palette.text else palette.surface)
@@ -186,8 +184,7 @@ fun ScheduleFeed(
                             if (on) palette.text else palette.hairline,
                             RoundedCornerShape(12.dp),
                         )
-                        .defaultMinSize(minHeight = 48.dp)
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = 6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(
@@ -199,7 +196,7 @@ fun ScheduleFeed(
                                 .uppercase(Locale.getDefault())
                         },
                         color = if (on) palette.page else palette.muted,
-                        fontSize = 9.sp,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
@@ -211,11 +208,25 @@ fun ScheduleFeed(
                 }
             }
         }
+        val reducedMotion = prefersReducedMotion()
         when {
-            loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = palette.text)
+            loading -> Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                repeat(5) {
+                    KittyShimmerBox(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(72.dp),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                }
             }
-            error != null && slots.isEmpty() -> Column(Modifier.padding(16.dp)) {
+            error != null && slots.isEmpty() -> Column(Modifier.weight(1f).padding(16.dp)) {
                 Text(error!!, color = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -223,60 +234,88 @@ fun ScheduleFeed(
                     color = palette.page,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier
+                        .defaultMinSize(minHeight = 48.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(palette.text)
                         .clickable { reloadTick++ }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                        .padding(horizontal = 18.dp, vertical = 12.dp),
                 )
             }
-            visible.isEmpty() -> {
-                val nextIndex = days.indices.firstOrNull { index ->
-                    index != selected && slots.any { slot ->
-                        val ms = slot.airingAtEpochSec * 1000L
-                        val start = days[index].timeInMillis
-                        val onDay = ms in start until start + 24L * 60L * 60L * 1000L
-                        val mine = !onlyMine || followedEpisodes.containsKey(slot.anime.id)
-                        onDay && mine
-                    }
-                }
-                val dayName = nextIndex?.let { index ->
-                    if (index == 0) {
-                        "Today"
+            else -> AnimatedContent(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                targetState = selected,
+                transitionSpec = {
+                    if (reducedMotion) {
+                        fadeIn(tween(0)) togetherWith fadeOut(tween(0))
                     } else {
-                        days[index].getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.getDefault())
+                        fadeIn(tween(180)) togetherWith fadeOut(tween(120))
                     }
+                },
+                label = "scheduleDay",
+            ) { day ->
+                val start = days[day].timeInMillis
+                val end = start + 24L * 60L * 60L * 1000L
+                val daySlots = slots.filter { slot ->
+                    val ms = slot.airingAtEpochSec * 1000L
+                    val onDay = ms in start until end
+                    val mine = !onlyMine || followedEpisodes.containsKey(slot.anime.id)
+                    onDay && mine
                 }
-                val hint = when {
-                    dayName != null && onlyMine -> "Nothing from your list this day. $dayName has shows."
-                    dayName != null -> "Nothing this day. $dayName has shows."
-                    onlyMine -> "Nothing from your list airs this day."
-                    else -> "Nothing airing this day."
-                }
-                Text(
-                    hint,
-                    color = palette.muted,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .clickable(enabled = nextIndex != null) {
-                            if (nextIndex != null) selected = nextIndex
+                if (daySlots.isEmpty()) {
+                    val nextIndex = days.indices.firstOrNull { index ->
+                        index != day && slots.any { slot ->
+                            val ms = slot.airingAtEpochSec * 1000L
+                            val dayStart = days[index].timeInMillis
+                            val onDay = ms in dayStart until dayStart + 24L * 60L * 60L * 1000L
+                            val mine = !onlyMine || followedEpisodes.containsKey(slot.anime.id)
+                            onDay && mine
+                        }
+                    }
+                    val dayName = nextIndex?.let { index ->
+                        if (index == 0) {
+                            "Today"
+                        } else {
+                            days[index].getDisplayName(Calendar.DAY_OF_WEEK, Calendar.LONG, Locale.getDefault())
+                        }
+                    }
+                    val hint = when {
+                        dayName != null && onlyMine -> "Nothing from your list this day. $dayName has shows."
+                        dayName != null -> "Nothing this day. $dayName has shows."
+                        onlyMine -> "Nothing from your list airs this day."
+                        else -> "Nothing airing this day."
+                    }
+                    KittyEmptyState(
+                        title = if (onlyMine) "Nothing from your list" else "Nothing airing",
+                        body = hint,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = bottomInset),
+                        actionLabel = dayName?.let { "Show $it" },
+                        onAction = if (nextIndex != null) {
+                            { selected = nextIndex }
+                        } else {
+                            null
                         },
-                )
-            }
-            else -> LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 88.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(visible, key = { "${it.anime.id}-${it.episode}-${it.airingAtEpochSec}" }) { slot ->
-                    ScheduleRow(
-                        slot,
-                        clock.format(Date(slot.airingAtEpochSec * 1000L)),
-                        catchUpLabel(
-                            slot.episode,
-                            followedEpisodes[slot.anime.id],
-                            inProgress = slot.anime.id in inProgressIds,
-                        ),
-                        onOpen,
                     )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = bottomInset),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(daySlots, key = { "${it.anime.id}-${it.episode}-${it.airingAtEpochSec}" }) { slot ->
+                            ScheduleRow(
+                                slot,
+                                clock.format(Date(slot.airingAtEpochSec * 1000L)),
+                                catchUpLabel(
+                                    slot.episode,
+                                    followedEpisodes[slot.anime.id],
+                                    inProgress = slot.anime.id in inProgressIds,
+                                ),
+                                onOpen,
+                            )
+                        }
+                    }
                 }
             }
         }

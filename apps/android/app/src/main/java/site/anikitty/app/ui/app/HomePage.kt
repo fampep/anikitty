@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -167,7 +168,7 @@ internal fun HomeBar(
         }
         ProfileMark(
             imageUrl = avatarUrl,
-            size = 36.dp,
+            size = 48.dp,
             modifier = Modifier.padding(start = 4.dp).spacePress(onOpenAccount),
         )
     }
@@ -651,7 +652,7 @@ private fun ContinueArt(card: HomeContinueCard) {
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .size(36.dp)
+                .size(48.dp)
                 .clip(CircleShape)
                 .background(Color.Black.copy(alpha = 0.55f))
                 .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape),
@@ -773,6 +774,7 @@ internal fun HomeGenreRow(
                 fontWeight = FontWeight.Medium,
                 fontSize = 13.sp,
                 modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(palette.surface)
                     .border(1.dp, palette.hairline, RoundedCornerShape(16.dp))
@@ -989,11 +991,12 @@ private fun HomeAudioChip(
         fontWeight = FontWeight.SemiBold,
         fontSize = 12.sp,
         modifier = Modifier
+            .defaultMinSize(minHeight = 48.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(if (selected) palette.text else Color.Transparent)
             .border(1.dp, if (selected) palette.text else Hairline, RoundedCornerShape(14.dp))
             .then(if (enabled) Modifier.spacePress(onClick) else Modifier)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
 
@@ -1007,7 +1010,7 @@ private fun HomePagerButton(
     val palette = LocalKittyPalette.current
     Box(
         modifier = Modifier
-            .size(28.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .then(if (enabled) Modifier.spacePress(onClick) else Modifier),
         contentAlignment = Alignment.Center,
@@ -1153,6 +1156,7 @@ internal fun HomeRail(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .defaultMinSize(minHeight = 48.dp)
                 .spacePress { expanded = !expanded },
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1173,61 +1177,79 @@ internal fun HomeRail(
         }
         if (expanded) {
             Spacer(modifier = Modifier.height(8.dp))
-            entries.take(6).forEach { entry ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 5.dp)
-                        .spacePress(entry.onClick),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    KittyImage(
-                        url = entry.imageUrl,
-                        contentDescription = null,
-                        widthPx = 120,
-                        heightPx = 168,
-                        modifier = Modifier
-                            .width(42.dp)
-                            .height(58.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                    )
-                    Column(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 10.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (entry.live) {
-                                Box(
-                                    modifier = Modifier
-                                        .padding(end = 6.dp)
-                                        .size(7.dp)
-                                        .clip(CircleShape)
-                                        .background(LiveGreen),
-                                )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val columns = if (maxWidth >= 560.dp) 2 else 1
+                val shown = entries.take(if (columns == 2) 8 else 6)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    shown.chunked(columns).forEach { row ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            row.forEach { entry ->
+                                HomeRailEntryRow(entry, Modifier.weight(1f))
                             }
-                            Text(
-                                entry.title,
-                                color = palette.text,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = 13.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                        if (entry.meta.isNotEmpty()) {
-                            Text(
-                                entry.meta,
-                                color = palette.muted,
-                                fontSize = 11.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.padding(top = 2.dp),
-                            )
+                            repeat(columns - row.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeRailEntryRow(entry: HomeRailEntry, modifier: Modifier = Modifier) {
+    val palette = LocalKittyPalette.current
+    Row(
+        modifier = modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .spacePress(entry.onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        KittyImage(
+            url = entry.imageUrl,
+            contentDescription = entry.title,
+            widthPx = 120,
+            heightPx = 168,
+            modifier = Modifier
+                .width(42.dp)
+                .height(58.dp)
+                .clip(RoundedCornerShape(8.dp)),
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = 10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (entry.live) {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 6.dp)
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(LiveGreen),
+                    )
+                }
+                Text(
+                    entry.title,
+                    color = palette.text,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 13.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            if (entry.meta.isNotEmpty()) {
+                Text(
+                    entry.meta,
+                    color = palette.muted,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 2.dp),
+                )
             }
         }
     }
@@ -1343,6 +1365,7 @@ internal fun HomeShelfChips(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (on) palette.text else palette.surface)
                     .border(1.dp, if (on) palette.text else palette.hairline, RoundedCornerShape(16.dp))
@@ -1369,11 +1392,12 @@ internal fun HomeTopWindowChips(
                 window.label,
                 color = if (on) palette.text else palette.muted,
                 fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                fontSize = 12.sp,
+                fontSize = 13.sp,
                 modifier = Modifier
+                    .defaultMinSize(minHeight = 48.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .spacePress { onSelect(window) }
-                    .padding(horizontal = 2.dp, vertical = 4.dp),
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
             )
         }
     }
