@@ -43,11 +43,12 @@ jobs:
             code="$(grep -E '^code=' VERSION | head -1 | cut -d= -f2- | tr -d '[:space:]')"
             base="${current%-dev.*}"
             if [ "$base" = "$current" ]; then
-              echo "VERSION is already stable ($current). Refusing to cut it again." >&2
-              exit 1
+              # A pull request already set the stable name and code. Publish that cut.
+              name="$current"
+            else
+              name="$base"
+              code="$((code + 1))"
             fi
-            name="$base"
-            code="$((code + 1))"
             printf '%s\n' '# Android versionName / versionCode. Pushes to main cut the next dev prerelease.' '# Stable releases stay manual. The dev workflow commits this file with [skip ci].' "name=${name}" "code=${code}" > VERSION
             echo "stable=true" >> "$GITHUB_OUTPUT"
           else
@@ -114,8 +115,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add VERSION
-          git commit -m "Cut ${{ steps.ver.outputs.name }} [skip ci]"
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          if git diff --cached --quiet; then
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "Cut ${{ steps.ver.outputs.name }} [skip ci]"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
           if [ "${{ steps.ver.outputs.stable }}" = "true" ]; then
             bash scripts/next-dev-version.sh >/dev/null
             git add VERSION
@@ -140,6 +145,14 @@ jobs:
             -f previous_tag_name="$prev" \
             -f target_commitish="${{ steps.commit.outputs.sha }}" \
             --jq .body > notes.md
+          header="docs/release-notes/v${{ steps.ver.outputs.name }}.md"
+          if [ -f "$header" ]; then
+            tmp="$(mktemp)"
+            cat "$header" > "$tmp"
+            printf '\n' >> "$tmp"
+            cat notes.md >> "$tmp"
+            mv "$tmp" notes.md
+          fi
 
       - name: Publish prerelease
         env:
