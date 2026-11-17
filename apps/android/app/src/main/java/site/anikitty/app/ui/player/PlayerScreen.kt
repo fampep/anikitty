@@ -358,6 +358,16 @@ fun PlayerScreen(
     var theater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
     /** Inline video chrome. A tap reveals it; playing hides it again. */
     var stageChrome by remember(episode) { mutableStateOf(false) }
+    var showAudioSwitch by remember { mutableStateOf(false) }
+    LaunchedEffect(audio, source?.audioLanguage) {
+        if (audioSwitchLabel(audio, source?.audioLanguage) == null) {
+            showAudioSwitch = false
+            return@LaunchedEffect
+        }
+        showAudioSwitch = true
+        delay(12_000)
+        showAudioSwitch = false
+    }
     LaunchedEffect(stageChrome, playing, theater) {
         if (!stageChrome || !playing || theater) return@LaunchedEffect
         delay(2_800)
@@ -1642,7 +1652,7 @@ fun PlayerScreen(
         }
 
         val switchingAudio = audioSwitchLabel(audio, source?.audioLanguage)
-        if (switchingAudio != null && !isCasting && error == null) {
+        if (showAudioSwitch && switchingAudio != null && !isCasting && error == null) {
             Text(
                 switchingAudio,
                 color = Color.White,
@@ -1658,7 +1668,10 @@ fun PlayerScreen(
             )
         }
 
-        if (!theater && !isCasting && error == null && player != null && panel == PlayerMenuPage.None) {
+        if (
+            !theater && !isCasting && error == null && player != null &&
+            panel == PlayerMenuPage.None && !showEndAutoplay
+        ) {
             if (!playing || stageChrome) {
                 Box(
                     modifier = Modifier
@@ -1669,7 +1682,12 @@ fun PlayerScreen(
                         .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
                         .clickable {
                             if (swallowCenterClick) return@clickable
-                            activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
+                            val current = activePlayer
+                            if (current != null && playbackEnded && onNextEpisode != null) {
+                                goNextEpisode()
+                            } else {
+                                current?.let { if (it.isPlaying) it.pause() else it.play() }
+                            }
                             stageChrome = true
                         },
                     contentAlignment = Alignment.Center,

@@ -699,10 +699,12 @@ fun LocalFirstApp(
             }
             fun openResolved(nextEpisode: Int, nextAudio: String) {
                 scope.launch {
-                    context.getSharedPreferences("anikitty_watch", android.content.Context.MODE_PRIVATE)
-                        .edit()
-                        .putString("audio", nextAudio)
-                        .apply()
+                    val watchPrefs = context.getSharedPreferences(
+                        "anikitty_watch",
+                        android.content.Context.MODE_PRIVATE,
+                    )
+                    val previousAudio = playerAudio
+                    watchPrefs.edit().putString("audio", nextAudio).apply()
                     playerAudio = nextAudio
                     runCatching {
                         val demoClip = if (demo) {
@@ -755,6 +757,9 @@ fun LocalFirstApp(
                             resolved.sources,
                         )
                         screen = Screen.Player(current.anime, nextEpisode, resolved.sources)
+                    }.onFailure {
+                        playerAudio = previousAudio
+                        watchPrefs.edit().putString("audio", previousAudio).apply()
                     }
                 }
             }

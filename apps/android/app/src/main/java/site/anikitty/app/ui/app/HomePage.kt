@@ -205,8 +205,9 @@ internal fun HomeFeatured(
     val reducedMotion = prefersReducedMotion()
     val pagerState = rememberPagerState(pageCount = { pages.size })
     var resumeAutoAt by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(pagerState.isScrollInProgress) {
-        if (pagerState.isScrollInProgress) {
+    var autoAdvancing by remember { mutableStateOf(false) }
+    LaunchedEffect(pagerState.isScrollInProgress, autoAdvancing) {
+        if (pagerState.isScrollInProgress && !autoAdvancing) {
             resumeAutoAt = android.os.SystemClock.uptimeMillis() + 14_000L
         }
     }
@@ -216,7 +217,12 @@ internal fun HomeFeatured(
             delay(6500)
             if (pagerState.isScrollInProgress) continue
             if (android.os.SystemClock.uptimeMillis() < resumeAutoAt) continue
-            pagerState.animateScrollToPage((pagerState.currentPage + 1) % pages.size)
+            autoAdvancing = true
+            try {
+                pagerState.animateScrollToPage((pagerState.currentPage + 1) % pages.size)
+            } finally {
+                autoAdvancing = false
+            }
         }
     }
     val cardShape = RoundedCornerShape(22.dp)
