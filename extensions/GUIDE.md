@@ -26,7 +26,7 @@ Create `anikitty-extension.json` at the **root** of a public GitHub repository:
 Rules:
 
 - `id` — reverse-DNS, stable forever (changing it installs a *new* extension).
-- `apiVersion` — must be `1`. Protocol 1.1 adds optional source fields without a new manifest version.
+- `apiVersion` — must be `1`. Protocol 1.1 and 1.2 add optional source fields without a new manifest version.
 - `baseUrl` — HTTPS origin of your resolver (no trailing slash).
 - `resolvePath` — path joined to `baseUrl` (default `/v1/resolve`).
 - **`iconUrl` — required.** Must be the **brand/favicon of the site you scrape or front** (HTTPS). The Store shows this icon next to Anikoto and every listing. Install fails without it.

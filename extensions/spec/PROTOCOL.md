@@ -162,7 +162,7 @@ Typical AniKitty client budgets:
 
 ## Versioning
 
-- Manifest `apiVersion` stays the integer **1**. Clients reject a manifest whose `apiVersion` they do not know. Protocol 1.1 does not change it, so a 1.0 client still installs a 1.1 extension.
+- Manifest `apiVersion` stays the integer **1**. Clients reject a manifest whose `apiVersion` they do not know. Protocol 1.1 and 1.2 do not change it, so a 1.0 client still installs a current extension.
 - This document’s version is **1.2**. Additive optional response fields bump the document minor version and are listed in the changelog. A breaking request or response change bumps `apiVersion` and the document major version together.
 - `version` in the manifest is the extension’s own semver, shown in the store. It is not the protocol version.
 
