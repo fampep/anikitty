@@ -596,9 +596,10 @@ fun PlayerScreen(
         }
     }
 
-    // When quality/episode changes mid-cast, push the new URL to the TV.
-    // First load is handled by SessionAvailabilityListener.
-    LaunchedEffect(source?.url, episode) {
+    // When quality, episode, or the selected audio language changes mid-cast,
+    // push a new load. A shared master keeps the same URL, so the language
+    // has to be its own key. First load is handled by SessionAvailabilityListener.
+    LaunchedEffect(source?.url, source?.audioLanguage, episode) {
         if (!isCasting) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect
         val src = source ?: return@LaunchedEffect

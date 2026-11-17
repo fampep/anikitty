@@ -134,8 +134,7 @@ class CastRelay(context: Context) {
         } finally {
             collecting.remove()
         }
-        val pack = segmentPack?.let { "?pack=$it" }.orEmpty()
-        val file = if (mime == HLS_MIME) "index.m3u8$pack" else "video.mp4"
+        val file = castRelayPlaybackName(mime == HLS_MIME, segmentPack, next.audioLanguage)
         return RelayPlayback(
             url = "http://$host:$port/$file",
             mimeType = mime,
@@ -698,6 +697,28 @@ internal fun castRelayCorsLines(): List<String> = listOf(
     "Access-Control-Expose-Headers: Content-Length, Content-Range, Content-Type, Accept-Ranges",
     "Access-Control-Max-Age: 86400",
 )
+
+/**
+ * File the receiver opens. The language is part of the query so a Sub/Dub
+ * switch is a new URL and Chromecast refetches the master instead of replaying
+ * the cached default rendition.
+ */
+internal fun castRelayPlaybackName(hls: Boolean, segmentPack: String?, audioLanguage: String?): String {
+    if (!hls) return "video.mp4"
+    return "index.m3u8${castRelayPlaybackQuery(segmentPack, audioLanguage)}"
+}
+
+internal fun castRelayPlaybackQuery(segmentPack: String?, audioLanguage: String?): String {
+    val parts = ArrayList<String>(2)
+    segmentPack?.trim()?.takeIf { it.isNotEmpty() }?.let { parts += "pack=$it" }
+    audioLanguage
+        ?.trim()
+        ?.lowercase()
+        ?.substringBefore('-')
+        ?.takeIf { it.length == 2 && it.all { char -> char in 'a'..'z' } }
+        ?.let { parts += "lang=$it" }
+    return if (parts.isEmpty()) "" else parts.joinToString("&", prefix = "?")
+}
 
 /**
  * AnimeX names the master `deeznuts.txt` and each variant `nut-1.txt`.

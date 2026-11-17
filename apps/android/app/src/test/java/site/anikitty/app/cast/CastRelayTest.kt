@@ -46,6 +46,18 @@ class CastRelayTest {
     }
 
     @Test
+    fun castUrlChangesWhenTheAudioLanguageChanges() {
+        assertEquals("index.m3u8", castRelayPlaybackName(hls = true, segmentPack = null, audioLanguage = null))
+        assertEquals("index.m3u8?pack=ts", castRelayPlaybackName(hls = true, segmentPack = "ts", audioLanguage = null))
+        assertEquals(
+            "index.m3u8?pack=ts&lang=en",
+            castRelayPlaybackName(hls = true, segmentPack = "ts", audioLanguage = "en"),
+        )
+        assertEquals("index.m3u8?lang=ja", castRelayPlaybackName(hls = true, segmentPack = null, audioLanguage = "ja"))
+        assertEquals("video.mp4", castRelayPlaybackName(hls = false, segmentPack = "ts", audioLanguage = "en"))
+    }
+
+    @Test
     fun sharedMasterFollowsTheSelectedAudio() {
         val master = """
             #EXTM3U
