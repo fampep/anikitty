@@ -51,19 +51,30 @@ class AniNzPlaybackTest {
     }
 
     @Test
+    fun bootstrapKeepsTheEpisodeRoute() {
+        val payload = """
+            {"effectiveLanguage":"dub","episode":1,"settlarSelection":"sel-route","episodeRouteId":"e1.route"}
+        """.trimIndent()
+        val boot = aninzBootstrap(payload, "dub")
+        assertEquals(1, boot?.episode)
+        assertEquals("e1.route", boot?.routeId)
+    }
+
+    @Test
     fun sessionTokenComesFromTheEmbedUrl() {
         val payload = """
             {"embedUrl":"https://embed.settlar.io/embed/v1?t=abc%2Bdef&x=1","provider":"anipm"}
         """.trimIndent()
         assertEquals("abc+def", aninzEmbedToken(payload))
         assertNull(aninzEmbedToken("""{"embedUrl":"https://embed.settlar.io/embed/v1"}"""))
+        assertNull(aninzEmbedToken("""{"embedUrl":"https://third.example/embed/v1?t=abc"}"""))
     }
 
     @Test
     fun embedSessionBecomesAnHlsSource() {
         val session = """
-            {"kind":"hls","source":"https://media.example/master","subtitles":[
-              {"url":"https://media.example/en.vtt","label":"English","srclang":"en","default":true}
+            {"kind":"hls","source":"https://media.settlar.io/v1/object/master.m3u8","subtitles":[
+              {"url":"https://media.settlar.io/en.vtt","label":"English","srclang":"en","default":true}
             ]}
         """.trimIndent()
         val pending = aninzPending(session)
@@ -79,7 +90,7 @@ class AniNzPlaybackTest {
             "sub",
         )!!.skip
         val source = aninzPlayable(pending!!, playlist, skip, dub = false, userAgent = AniNzServer.USER_AGENT)
-        assertEquals("https://media.example/master", source?.url)
+        assertEquals("https://media.settlar.io/v1/object/master.m3u8", source?.url)
         assertEquals("https://embed.settlar.io/", source?.headers?.get("Referer"))
         assertEquals(AniNzServer.EMBED_ORIGIN, source?.headers?.get("Origin"))
         assertEquals(AniNzServer.USER_AGENT, source?.headers?.get("User-Agent"))
@@ -87,8 +98,12 @@ class AniNzPlaybackTest {
         assertEquals("1080p", source?.quality)
         assertEquals("English", source?.subtitles?.single()?.label)
         assertEquals(12.0, source?.skip?.intro?.startSec ?: -1.0, 0.01)
+        assertEquals("ja", source?.audioLanguage)
         assertNull(aninzPlayable(pending, "not a playlist", skip, dub = false, userAgent = "ua"))
-        assertNull(aninzPending("""{"kind":"file","source":"https://media.example/a.mp4","subtitles":[]}"""))
+        assertNull(aninzPending("""{"kind":"file","source":"https://media.settlar.io/a.mp4","subtitles":[]}"""))
+        assertNull(aninzPending("""{"kind":"hls","source":"https://third.example/master.m3u8","subtitles":[]}"""))
+        assertFalse(aninzOwnMedia("https://cdn.example/master.m3u8"))
+        assertTrue(aninzOwnMedia("https://media.settlar.io/v1/object/master.m3u8"))
     }
 
     @Test

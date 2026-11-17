@@ -90,9 +90,9 @@
     {
       "id": "aninz",
       "name": "ani.nz",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "protocol": "1.1",
-      "description": "Bundled ani.nz resolver. Search uses the site catalog. The playlist plays in the app. Sub or dub follows the episode language. Intro and credits come from the episode when the site sends them.",
+      "description": "Bundled ani.nz resolver. Search uses the site catalog. Playback uses ani.nz's settlar server and the quality rung on that master. Sub or dub follows the episode language. Intro and credits come from the episode when the site sends them.",
       "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/aninz",
       "author": "fampep",
       "featured": true,
