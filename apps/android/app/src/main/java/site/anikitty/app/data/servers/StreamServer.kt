@@ -115,7 +115,7 @@ internal fun audioSwitchLabel(requested: String, loadedLanguage: String?): Strin
 /**
  * Language to save when a Sub/Dub resolve finishes.
  * Null when this attempt must not touch the saved choice: it was cancelled,
- * or a newer episode or language request has already replaced it.
+ * the player was dismissed, or a newer episode or language request replaced it.
  * A real failure of the attempt still in front restores [committed].
  */
 internal fun audioToPersist(
@@ -125,8 +125,9 @@ internal fun audioToPersist(
     failed: Boolean,
     requested: String,
     committed: String,
+    dismissed: Boolean = false,
 ): String? {
-    if (cancelled || request != latest) return null
+    if (cancelled || dismissed || request != latest) return null
     return if (failed) committed else requested
 }
 

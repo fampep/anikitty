@@ -100,6 +100,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -142,6 +143,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.sync.Mutex
@@ -705,6 +707,17 @@ fun LocalFirstApp(
             var committedAudio by remember { mutableStateOf(playerAudio) }
             val audioGeneration = remember { AtomicInteger(0) }
             val audioResolveJob = remember { AtomicReference<Job?>(null) }
+            // The resolve runs on the app scope, so leaving this composition
+            // does not cancel it. Back and dismiss clear this before the
+            // attempt can save a language or reopen the player.
+            val playerOpen = remember { AtomicBoolean(true) }
+            fun abandonPlayerResolve() {
+                playerOpen.set(false)
+                audioResolveJob.get()?.cancel()
+            }
+            DisposableEffect(Unit) {
+                onDispose { abandonPlayerResolve() }
+            }
             fun openResolved(nextEpisode: Int, nextAudio: String) {
                 val request = audioGeneration.incrementAndGet()
                 val rollbackTo = committedAudio
@@ -720,6 +733,16 @@ fun LocalFirstApp(
                         playerAudio = audio
                     }
                     playerAudio = nextAudio
+                    fun languageToSave(failed: Boolean): String? =
+                        site.anikitty.app.data.servers.audioToPersist(
+                            request = request,
+                            latest = audioGeneration.get(),
+                            cancelled = false,
+                            failed = failed,
+                            requested = nextAudio,
+                            committed = rollbackTo,
+                            dismissed = !playerOpen.get(),
+                        )
                     try {
                         val demoClip = if (demo) {
                             site.anikitty.app.data.demo.DemoLibrary.clip(context, current.anime.id)
@@ -746,14 +769,7 @@ fun LocalFirstApp(
                             )
                         }
                         ensureActive()
-                        val succeeded = site.anikitty.app.data.servers.audioToPersist(
-                            request = request,
-                            latest = audioGeneration.get(),
-                            cancelled = false,
-                            failed = false,
-                            requested = nextAudio,
-                            committed = rollbackTo,
-                        ) ?: return@launch
+                        if (languageToSave(failed = false) == null) return@launch
                         if (!isolated(current.anime.id)) {
                             historyWrite.withLock {
                                 val existing = historyDao.get(current.anime.id)
@@ -774,14 +790,16 @@ fun LocalFirstApp(
                             }
                         }
                         ensureActive()
-                        if (audioGeneration.get() != request) return@launch
+                        val commit = languageToSave(failed = false) ?: return@launch
                         site.anikitty.app.data.servers.SourceBadgeCache.remember(
                             context,
                             current.anime.id,
                             nextEpisode,
                             resolved.sources,
                         )
-                        persist(succeeded)
+                        if (languageToSave(failed = false) == null) return@launch
+                        persist(commit)
+                        if (languageToSave(failed = false) == null) return@launch
                         screen = Screen.Player(current.anime, nextEpisode, resolved.sources)
                     } catch (cancelled: CancellationException) {
                         // Cancellation is not a failed switch. A newer request
@@ -790,14 +808,7 @@ fun LocalFirstApp(
                         if (audioGeneration.get() == request) playerAudio = rollbackTo
                         throw cancelled
                     } catch (_: Exception) {
-                        site.anikitty.app.data.servers.audioToPersist(
-                            request = request,
-                            latest = audioGeneration.get(),
-                            cancelled = false,
-                            failed = true,
-                            requested = nextAudio,
-                            committed = rollbackTo,
-                        )?.let(::persist)
+                        languageToSave(failed = true)?.let(::persist)
                     }
                 })
             }
@@ -832,10 +843,16 @@ fun LocalFirstApp(
                 loadSkip = streamServers::anikotoSkipTimes,
                 startPositionMs = resumeMs,
                 onClose = {
+                    // Drop an in-flight resolve before leaving, or it can save
+                    // the language and open the player again.
+                    abandonPlayerResolve()
                     // Return to detail for this title without wiping related back-stack.
                     screen = Screen.Detail(current.anime, current.episode)
                 },
-                onDismiss = { screen = Screen.Tabs },
+                onDismiss = {
+                    abandonPlayerResolve()
+                    screen = Screen.Tabs
+                },
                 onToggleWatched = { number ->
                     if (!isolated(current.anime.id)) scope.launch {
                         val finished = historyWrite.withLock {

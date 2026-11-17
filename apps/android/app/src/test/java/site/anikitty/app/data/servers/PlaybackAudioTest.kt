@@ -80,6 +80,18 @@ class PlaybackAudioTest {
                 committed = "sub",
             ),
         )
+        assertEquals(
+            null,
+            audioToPersist(
+                request = 2,
+                latest = 2,
+                cancelled = false,
+                dismissed = true,
+                failed = false,
+                requested = "dub",
+                committed = "sub",
+            ),
+        )
     }
 
     @Test
