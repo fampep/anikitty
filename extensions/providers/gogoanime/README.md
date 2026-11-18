@@ -2,7 +2,7 @@
 
 Bundled resolver. The phone searches gogoanime.by and plays the episode that site embeds. AniList stays the catalog. This resolver only matches a title.
 
-Search is `GET https://gogoanime.by/?s=`. A show is matched on the title. A cyrillic lookalike in the site title still matches the Latin title. Dub prefers a series whose title says dubbed, and a sub request does not play that series.
+Search is `GET https://gogoanime.by/?s=`. A show is matched on the title. The exact title wins, and a movie, sequel, year, or TV suffix ranks below the closer title. A cyrillic lookalike in the site title still matches the Latin title. Dub prefers a series whose title says dubbed, and a sub request does not play that series.
 
 The series page lists every episode. Sub links end in `english-subbed`. Dub links end in `english-dubbed`. The episode page has a player button for that language. The player page embeds MegaPlay (`megaplay.su`) or MegaVid (`megavid.buzz`).
 
