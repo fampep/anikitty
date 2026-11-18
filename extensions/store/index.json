@@ -1,7 +1,7 @@
 {
   "apiVersion": 1,
   "protocol": "1.1",
-  "updatedAt": "2026-11-17",
+  "updatedAt": "2026-11-18",
   "extensions": [
     {
       "id": "anikoto",
@@ -98,6 +98,18 @@
       "featured": true,
       "iconUrl": "https://www.google.com/s2/favicons?domain=ani.nz&sz=128",
       "siteUrl": "https://ani.nz"
+    },
+    {
+      "id": "gogoanime",
+      "name": "gogoanime",
+      "version": "1.0.0",
+      "protocol": "1.1",
+      "description": "Bundled gogoanime.by resolver. Search uses the site catalog. The playlist plays in the app. Sub or dub follows the episode language. Quality is the server label or the playlist rung when the site states it.",
+      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/gogoanime",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=gogoanime.by&sz=128",
+      "siteUrl": "https://gogoanime.by"
     },
     {
       "id": "site.anikitty.example.hello",

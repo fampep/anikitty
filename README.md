@@ -52,7 +52,7 @@ Stable is the latest tagged release. Dev is the rolling `anikitty-dev.apk` — e
 | **Series** | Related TV / ONA entries the AniList way (prequel / sequel). TMDB is for banner, logo, and stills |
 | **Latest** | True Sub / Dub episode counts from the scrape widgets, not just air dates |
 | **Player** | Media3 on-device. Watch progress stays on the phone |
-| **Sources** | **Anikoto**, **Gotaku**, **reanime**, **mkissa**, and **kaa** ship in-app. Anything else is an extension you add |
+| **Sources** | **Anikoto**, **Gotaku**, **reanime**, **mkissa**, **kaa**, **animex**, **xanime**, **ani.nz**, and **gogoanime** ship in-app. Anything else is an extension you add |
 
 Anikoto tries anikoto.cz first and [kotoplay.to](https://kotoplay.to/) when Anikoto is down or has no source. Sites change their players without notice — a title can stop playing when they do. The phone asks a resolver for a URL and plays that URL. It does not upload an episode and it does not keep a copy.
 
