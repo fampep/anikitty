@@ -50,6 +50,43 @@ class GogoAnimePlaybackTest {
     }
 
     @Test
+    fun closerTitleBeatsAMovieSequelOrYear() {
+        val hits = listOf(
+            GogoShow("One Piece Movie English Dubbed", "https://gogoanime.by/series/one-piece-movie-english-dubbed/"),
+            GogoShow("One Piece Stampede", "https://gogoanime.by/series/one-piece-stampede/"),
+            GogoShow("One Piece TV", "https://gogoanime.by/series/one-piece-tv/"),
+            GogoShow("One Piece 2024", "https://gogoanime.by/series/one-piece-2024/"),
+            GogoShow("One Piece English Dubbed", "https://gogoanime.by/series/one-piece-english-dubbed-online/"),
+            GogoShow("One Piece", "https://gogoanime.by/series/one-piece-1/"),
+        )
+        assertEquals(
+            "https://gogoanime.by/series/one-piece-english-dubbed-online/",
+            gogoPickShow(hits, "One Piece", dub = true)?.url,
+        )
+        assertEquals(
+            "https://gogoanime.by/series/one-piece-1/",
+            gogoPickShow(hits, "One Piece", dub = false)?.url,
+        )
+        assertEquals(
+            "https://gogoanime.by/series/one-piece-stampede/",
+            gogoPickShow(hits, "One Piece Stampede", dub = false)?.url,
+        )
+        val seasons = listOf(
+            GogoShow("Frieren 2nd Season", "https://gogoanime.by/series/frieren-2nd-season/"),
+            GogoShow("Frieren Season 2", "https://gogoanime.by/series/frieren-season-2/"),
+            GogoShow("Frieren", "https://gogoanime.by/series/frieren/"),
+        )
+        assertEquals(
+            "https://gogoanime.by/series/frieren/",
+            gogoPickShow(seasons, "Frieren", dub = false)?.url,
+        )
+        assertEquals(
+            "https://gogoanime.by/series/frieren-season-2/",
+            gogoPickShow(seasons, "Frieren Season 2", dub = false)?.url,
+        )
+    }
+
+    @Test
     fun shortQueryIsTriedAfterTheFullTitle() {
         assertEquals(
             listOf("Juuou Mujin Dandivine", "Dandivine", "Juuou", "Mujin"),

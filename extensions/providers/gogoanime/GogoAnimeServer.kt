@@ -299,9 +299,12 @@ internal fun gogoPickShow(hits: List<GogoShow>, titleHint: String, dub: Boolean)
     val want = gogoNormalize(titleHint)
     if (want.isBlank()) return null
     return hits
-        .map { it to gogoScore(it.title, want, dub) }
+        .map { show -> show to gogoScore(show.title, want, dub) }
         .filter { it.second >= 50 }
-        .maxByOrNull { it.second }
+        .maxWithOrNull(
+            compareBy<Pair<GogoShow, Int>> { it.second }
+                .thenByDescending { gogoNormalize(it.first.title).length },
+        )
         ?.first
 }
 
@@ -462,21 +465,33 @@ private fun gogoArticles(block: String): List<GogoShow> {
     return hits
 }
 
+/**
+ * Exact title wins. A title that contains every query word still ranks above a
+ * partial overlap, and each extra word (movie, sequel, year, TV) lowers it.
+ * Dub and sub labels are not extra words. Equal scores prefer the shorter title,
+ * so list order cannot pick a longer tie.
+ */
 private fun gogoScore(title: String, want: String, dub: Boolean): Int {
     val name = gogoNormalize(title)
     if (name.isBlank()) return 0
     val dubbed = Regex("""\bdub\b|\bdubbed\b""").containsMatchIn(name)
     if (dub && !dubbed) return 0
     if (!dub && dubbed) return 0
-    val bonus = 5
-    if (name == want) return 100 + bonus
-    val wantWords = want.split(' ').filter { it.length >= 3 }
+    if (name == want) return 10_000
+    val wantWords = gogoWords(want)
     val nameWords = name.split(' ').filter { it.isNotBlank() }
-    if (wantWords.isNotEmpty() && wantWords.all { it in nameWords }) return 80 + bonus
+    if (wantWords.isEmpty()) return 0
+    if (wantWords.all { it in nameWords }) {
+        val extras = nameWords.count { it !in wantWords && it !in LANGUAGE_WORDS }
+        return 5_000 - extras * 10
+    }
     val shared = wantWords.count { it in nameWords }
-    if (shared == 0 || wantWords.isEmpty()) return 0
-    return shared * 15 + bonus
+    if (shared == 0) return 0
+    return shared * 15 + 5
 }
+
+private fun gogoWords(normalized: String): List<String> =
+    normalized.split(' ').filter { word -> word.length >= 3 || word.any { it.isDigit() } }
 
 private fun gogoNormalize(raw: String?): String {
     val cleaned = FlixCrypto.cleanTitle(raw)
@@ -486,7 +501,13 @@ private fun gogoNormalize(raw: String?): String {
             append(HOMOGLYPHS[char] ?: char)
         }
     }
-    return folded.lowercase().replace(Regex("[^a-z0-9]+"), " ").trim()
+    return folded.lowercase()
+        .replace(Regex("[^a-z0-9]+"), " ")
+        .trim()
+        .split(' ')
+        .joinToString(" ") { token ->
+            ORDINAL.find(token)?.groupValues?.get(1) ?: token
+        }
 }
 
 private fun gogoTracks(root: JSONObject): List<SubtitleTrack> {
@@ -540,6 +561,10 @@ private fun gogoBestVariant(playlist: String): String {
     }
     return best
 }
+
+private val LANGUAGE_WORDS = setOf("english", "dub", "dubbed", "sub", "subbed")
+
+private val ORDINAL = Regex("""^(\d+)(?:st|nd|rd|th)$""")
 
 private val HOMOGLYPHS = mapOf(
     'а' to 'a', 'А' to 'a',
