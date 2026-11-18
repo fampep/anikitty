@@ -8,7 +8,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,7 +19,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -210,13 +211,21 @@ internal fun EpisodeSelectorPanel(
         }
 
         if (rangeCount > 1) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
+            val rangeListState = rememberLazyListState()
+            LaunchedEffect(browseRange, rangeCount) {
+                rangeListState.animateScrollToItem(
+                    browseRange.coerceIn(0, (rangeCount - 1).coerceAtLeast(0)),
+                )
+            }
+            LazyRow(
+                state = rangeListState,
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                for (index in 0 until rangeCount) {
+                items(
+                    count = rangeCount,
+                    key = { it },
+                ) { index ->
                     val start = index * EpisodePageSize + 1
                     val end = minOf(total, start + EpisodePageSize - 1)
                     val selected = browseRange == index
