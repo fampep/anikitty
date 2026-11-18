@@ -35,6 +35,8 @@ import androidx.compose.material.icons.outlined.ClosedCaption
 import androidx.compose.material.icons.outlined.Equalizer
 import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -68,6 +70,7 @@ internal enum class PlayerMenuPage {
     Background,
     Resize,
     Sleep,
+    Episodes,
 }
 
 internal fun playerMenuTitle(page: PlayerMenuPage): String = when (page) {
@@ -83,6 +86,7 @@ internal fun playerMenuTitle(page: PlayerMenuPage): String = when (page) {
     PlayerMenuPage.Background -> "Subtitle Background"
     PlayerMenuPage.Resize -> "Picture"
     PlayerMenuPage.Sleep -> "Sleep timer"
+    PlayerMenuPage.Episodes -> "Episodes"
     PlayerMenuPage.None, PlayerMenuPage.Root -> "Settings"
 }
 
@@ -130,6 +134,7 @@ internal fun PlayerMenuFrame(
             val compactHeight = maxHeight < 480.dp
             val sheet = !tablet && !landscape
             val sticky = page.isStickyStylePage()
+            val tall = page == PlayerMenuPage.Episodes
             if (sheet) {
                 Box(
                     modifier = Modifier
@@ -148,8 +153,10 @@ internal fun PlayerMenuFrame(
             val aboveControls = if (compactHeight) 104.dp else 116.dp
             val room = maxHeight - aboveControls - 8.dp
             val panelMax = when {
+                sheet && tall -> maxHeight * 0.82f
                 sheet && sticky -> maxHeight * 0.72f
                 sheet -> maxHeight * 0.64f
+                tall -> room.coerceAtLeast(220.dp)
                 else -> room.coerceAtLeast(56.dp)
             }
             val panelWidth = when {
@@ -371,6 +378,6 @@ private fun PreviewRows() {
     PlayerMenuRow(label = "Subtitle Timing", value = "High", icon = Icons.Outlined.Schedule, showChevron = true, onClick = {})
     PlayerMenuRow(label = "Volume Boost", value = "Off", showChevron = true, onClick = {})
     PlayerMenuRow(label = "Audio Tracks", value = "Sub", showChevron = true, onClick = {})
-    PlayerMenuRow(label = "Episodes", showChevron = true, onClick = {})
-    PlayerMenuRow(label = "Next episode", showChevron = true, onClick = {})
+    PlayerMenuRow(label = "Episodes", icon = Icons.Outlined.VideoLibrary, showChevron = true, onClick = {})
+    PlayerMenuRow(label = "Next episode", icon = Icons.Outlined.SkipNext, showChevron = true, onClick = {})
 }

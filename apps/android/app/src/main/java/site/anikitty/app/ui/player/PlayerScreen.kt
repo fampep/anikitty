@@ -304,6 +304,7 @@ fun PlayerScreen(
     /** True until the first successful resume seek or a user quality pick. */
     var allowHistoryFallback by remember { mutableStateOf(true) }
     var panel by remember { mutableStateOf(PlayerMenuPage.None) }
+    var episodeJumpFocus by remember { mutableStateOf(false) }
     var immersive by remember { mutableStateOf(true) }
     var resizeMode by remember {
         mutableIntStateOf(
@@ -1165,15 +1166,18 @@ fun PlayerScreen(
             onClick = { panel = PlayerMenuPage.Background },
         )
         PlayerMenuSectionLabel("Watch")
-        PlayerMenuRow(
-            label = "Episodes",
-            icon = Icons.Outlined.VideoLibrary,
-            showChevron = true,
-            onClick = {
-                panel = PlayerMenuPage.None
-                theater = false
-            },
-        )
+        if (!isMovie && onPickEpisode != null && totalEpisodes > 1) {
+            PlayerMenuRow(
+                label = "Episodes",
+                value = "E$episode",
+                icon = Icons.Outlined.VideoLibrary,
+                showChevron = true,
+                onClick = {
+                    episodeJumpFocus = false
+                    panel = PlayerMenuPage.Episodes
+                },
+            )
+        }
         if (onNextEpisode != null && episode < totalEpisodes) {
             PlayerMenuRow(
                 label = "Next episode",
@@ -1408,6 +1412,39 @@ fun PlayerScreen(
                     )
                 }
             }
+            PlayerMenuPage.Episodes -> {
+                val fraction = if (durationMs > 0L && shelfMinutes >= 0) {
+                    (1f - (shelfMinutes * 60_000f / durationMs.toFloat())).coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
+                EpisodeSelectorPanel(
+                    episode = episode,
+                    totalEpisodes = totalEpisodes.coerceAtLeast(1),
+                    watchedThrough = watchedThrough,
+                    positionFraction = fraction,
+                    slides = episodeSlides,
+                    fallbackArt = fallbackArt,
+                    minutesLeft = shelfMinutes.takeIf { it >= 0 },
+                    anilistId = anilistId,
+                    onPick = { picked ->
+                        if (picked != episode) {
+                            onPickEpisode?.invoke(picked)
+                        }
+                        episodeJumpFocus = false
+                        panel = PlayerMenuPage.None
+                        controlsVisible = true
+                    },
+                    onToggleWatched = onToggleWatched,
+                    requestJumpFocus = episodeJumpFocus,
+                )
+            }
+        }
+    }
+
+    LaunchedEffect(panel) {
+        if (panel != PlayerMenuPage.Episodes) {
+            episodeJumpFocus = false
         }
     }
 
@@ -2233,6 +2270,22 @@ fun PlayerScreen(
                                 },
                             )
                             val compactPills = LocalConfiguration.current.screenWidthDp < 840
+                            if (!isMovie && onPickEpisode != null && totalEpisodes > 1) {
+                                PillIcon(
+                                    icon = Icons.Outlined.VideoLibrary,
+                                    description = "Episodes",
+                                    onClick = {
+                                        if (panel == PlayerMenuPage.Episodes) {
+                                            panel = PlayerMenuPage.None
+                                            episodeJumpFocus = false
+                                        } else {
+                                            episodeJumpFocus = false
+                                            panel = PlayerMenuPage.Episodes
+                                        }
+                                        controlsVisible = true
+                                    },
+                                )
+                            }
                             if (!compactPills) {
                                 PillIcon(
                                     icon = Icons.Outlined.PhotoCamera,
@@ -2466,11 +2519,22 @@ fun PlayerScreen(
                 onAudio = {
                     panel = if (panel == PlayerMenuPage.Audio) PlayerMenuPage.None else PlayerMenuPage.Audio
                 },
+                onEpisodes = {
+                    if (panel == PlayerMenuPage.Episodes) {
+                        panel = PlayerMenuPage.None
+                        episodeJumpFocus = false
+                    } else {
+                        episodeJumpFocus = true
+                        panel = PlayerMenuPage.Episodes
+                    }
+                    controlsVisible = true
+                },
                 onNext = { goNextEpisode() },
                 nextEnabled = onNextEpisode != null && episode < totalEpisodes,
                 speedSelected = panel == PlayerMenuPage.Speed,
                 qualitySelected = panel == PlayerMenuPage.Quality,
                 audioSelected = panel == PlayerMenuPage.Audio,
+                episodesSelected = panel == PlayerMenuPage.Episodes,
                 modifier = Modifier.weight(1f).dismissDrag(),
             )
         }
@@ -2589,16 +2653,17 @@ private fun PlayerEpisodeShelf(
     onSpeed: () -> Unit = {},
     onQuality: () -> Unit = {},
     onAudio: () -> Unit = {},
+    onEpisodes: () -> Unit = {},
     onNext: () -> Unit = {},
     nextEnabled: Boolean = false,
     speedSelected: Boolean = false,
     qualitySelected: Boolean = false,
     audioSelected: Boolean = false,
+    episodesSelected: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val showGrid = !isMovie && totalEpisodes > 1
     var jump by remember { mutableStateOf("") }
-    val jumpFocus = remember { FocusRequester() }
     val audioLabel = if (audio == "dub") "Dub" else "Sub"
     Column(
         modifier = modifier
@@ -2642,7 +2707,8 @@ private fun PlayerEpisodeShelf(
                 PlayerTool(
                     label = "Episodes",
                     value = "E$episode",
-                    onClick = { runCatching { jumpFocus.requestFocus() } },
+                    selected = episodesSelected,
+                    onClick = onEpisodes,
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -2680,9 +2746,7 @@ private fun PlayerEpisodeShelf(
                         }
                     }),
                     singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(jumpFocus),
+                    modifier = Modifier.fillMaxWidth(),
                     decorationBox = { inner ->
                         if (jump.isEmpty()) {
                             Text(
