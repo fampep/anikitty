@@ -137,4 +137,48 @@ class AnimePahePlaybackTest {
         assertTrue(animepaheBlocked(200, "<html>Just a moment...</html>"))
         assertFalse(animepaheBlocked(200, """{"data":[]}"""))
     }
+
+    @Test
+    fun clearanceTokenIsSavedAndSentOnTheNextRequest() {
+        val store = MemoryAnimePaheClearance()
+        assertNull(animepaheClearanceToken("session=abc; __cf_bm=bm"))
+        assertNull(animepaheCookieHeader(listOf("__cf_bm=bm; Path=/; HttpOnly")))
+        val header = animepaheCookieHeader(
+            listOf(
+                "__cf_bm=bm; Path=/; HttpOnly",
+                "cf_clearance=tok-1; Path=/; Secure",
+            ),
+        )
+        assertEquals("tok-1", animepaheClearanceToken(header))
+        store.save("AnimePahe.pw", header!!, "SavedAgent")
+        val pass = store.read("animepahe.pw")
+        assertEquals("tok-1", pass?.token)
+        assertEquals("SavedAgent", pass?.userAgent)
+        val headers = animepaheRequestHeaders(
+            referer = "https://animepahe.pw/",
+            accept = "application/json",
+            api = true,
+            pass = pass,
+        )
+        assertEquals(header, headers["Cookie"])
+        assertEquals("SavedAgent", headers["User-Agent"])
+        assertEquals("XMLHttpRequest", headers["X-Requested-With"])
+        assertTrue(animepaheNeedsClearance(403, "<html>Just a moment...</html>"))
+        assertTrue(animepaheNeedsClearance(200, "<html>Performing security verification</html>"))
+        assertFalse(animepaheNeedsClearance(200, """{"data":[]}"""))
+        store.save("animepahe.pw", "session=only", "Other")
+        assertEquals("tok-1", store.read("animepahe.pw")?.token)
+
+        val source = animepahePlayable(
+            mediaUrl = "https://kwik.cx/file.mp4",
+            playlist = "",
+            resolution = 1080,
+            dub = false,
+            refererOrigin = "https://kwik.cx",
+            userAgent = "SavedAgent",
+            cookieHeader = header,
+        )
+        assertEquals(header, source?.headers?.get("Cookie"))
+        assertEquals("SavedAgent", source?.headers?.get("User-Agent"))
+    }
 }

@@ -24,9 +24,13 @@ import java.util.concurrent.TimeUnit
  * A form redirect is used only when the page has no playlist address.
  * Sub or dub follows the button language. Quality is the tallest rung on the
  * playlist, or the button's resolution when the file is a single rung.
+ * A Cloudflare check is completed in the app and the clearance cookie is kept
+ * for the next request.
  */
-class AnimePaheServer(
+internal class AnimePaheServer(
     private val cache: ResolveCache? = null,
+    private val clearance: AnimePaheClearance? = null,
+    private val verifier: AnimePaheVerifier? = null,
     private val http: OkHttpClient = OkHttpClient.Builder()
         .cookieJar(MemoryCookies())
         .connectTimeout(8, TimeUnit.SECONDS)
@@ -78,13 +82,16 @@ class AnimePaheServer(
         } else {
             ""
         }
+        val embedPass = animepaheHost(link.url)?.let { clearance?.read(it) }
+        val mediaPass = animepaheHost(media)?.let { clearance?.read(it) }
         val source = animepahePlayable(
             mediaUrl = media,
             playlist = playlist,
             resolution = link.resolution,
             dub = dub,
             refererOrigin = origin,
-            userAgent = USER_AGENT,
+            userAgent = embedPass?.userAgent ?: USER_AGENT,
+            cookieHeader = mediaPass?.cookieHeader,
         ) ?: error(MISSING)
         listOf(source)
     }
@@ -143,10 +150,11 @@ class AnimePaheServer(
         val origin = animepaheOrigin(embedUrl) ?: return null
         val request = Request.Builder()
             .url(form.action)
-            .header("Accept", "*/*")
             .header("Origin", origin)
-            .header("Referer", embedUrl)
-            .header("User-Agent", USER_AGENT)
+            .apply {
+                animepaheRequestHeaders(embedUrl, "*/*", api = false, passFor(form.action))
+                    .forEach { (name, value) -> header(name, value) }
+            }
             .post(FormBody.Builder().add("_token", form.token).build())
             .build()
         val client = http.newBuilder().followRedirects(false).followSslRedirects(false).build()
@@ -159,21 +167,43 @@ class AnimePaheServer(
     }
 
     private fun get(url: String, referer: String, accept: String, api: Boolean = false): HttpText {
-        val builder = Request.Builder()
-            .url(url)
-            .header("Accept", accept)
-            .header("Referer", referer)
-            .header("User-Agent", USER_AGENT)
-        if (api) builder.header("X-Requested-With", "XMLHttpRequest")
-        val request = builder.get().build()
-        val response = runCatching { http.newCall(request).execute() }.getOrElse { error(BLOCKED) }
-        response.use { return HttpText(it.code, it.body?.string().orEmpty()) }
+        val first = execute(url, referer, accept, api)
+        remember(url, first)
+        if (!animepaheNeedsClearance(first.code, first.text)) return first
+        if (verifier?.verify(url) != true) return first
+        val second = execute(url, referer, accept, api)
+        remember(url, second)
+        return second
     }
+
+    private fun execute(url: String, referer: String, accept: String, api: Boolean): HttpText {
+        val builder = Request.Builder().url(url)
+        animepaheRequestHeaders(referer, accept, api, passFor(url)).forEach { (name, value) ->
+            builder.header(name, value)
+        }
+        val response = runCatching { http.newCall(builder.get().build()).execute() }.getOrElse { error(BLOCKED) }
+        response.use {
+            return HttpText(it.code, it.body?.string().orEmpty(), it.headers("Set-Cookie"))
+        }
+    }
+
+    private fun remember(url: String, body: HttpText) {
+        val host = animepaheHost(url) ?: return
+        val header = animepaheCookieHeader(body.setCookies) ?: return
+        clearance?.save(host, header, passFor(url)?.userAgent ?: USER_AGENT)
+    }
+
+    private fun passFor(url: String): AnimePahePass? =
+        animepaheHost(url)?.let { clearance?.read(it) }
 
     private fun enc(value: String): String =
         URLEncoder.encode(value, Charsets.UTF_8.name()).replace("+", "%20")
 
-    private data class HttpText(val code: Int, val text: String)
+    private data class HttpText(
+        val code: Int,
+        val text: String,
+        val setCookies: List<String> = emptyList(),
+    )
 
     private class MemoryCookies : CookieJar {
         private val jar = ArrayList<Cookie>()
@@ -381,6 +411,7 @@ internal fun animepahePlayable(
     dub: Boolean,
     refererOrigin: String,
     userAgent: String,
+    cookieHeader: String? = null,
 ): PlayableSource? {
     if (!mediaUrl.startsWith("https://")) return null
     val hls = ".m3u8" in mediaUrl || playlist.trimStart().startsWith("#EXTM3U")
@@ -395,13 +426,15 @@ internal fun animepahePlayable(
     val evidence = fromPlaylist.ifBlank { resolution?.takeIf { it >= 360 }?.let { "${it}p" }.orEmpty() }
     val fields = BuiltInSourceMeta.animepahe(evidence, mode)
     val origin = refererOrigin.trimEnd('/')
+    val headers = linkedMapOf(
+        "Referer" to "$origin/",
+        "Origin" to origin,
+        "User-Agent" to userAgent,
+    )
+    animepaheClearanceToken(cookieHeader)?.let { headers["Cookie"] = cookieHeader!!.trim() }
     return PlayableSource(
         url = mediaUrl,
-        headers = mapOf(
-            "Referer" to "$origin/",
-            "Origin" to origin,
-            "User-Agent" to userAgent,
-        ),
+        headers = headers,
         label = fields.quality ?: if (dub) "DUB" else "SUB",
         stripBytes = 0,
         quality = fields.quality,

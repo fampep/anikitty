@@ -34,6 +34,9 @@ class ServerCatalog(context: Context) {
     private val prefs = context.getSharedPreferences("anikitty_servers", Context.MODE_PRIVATE)
     private val resolveCache = ResolveCache(context)
     private val megaPlayCrypto = MegaPlayCrypto(context)
+    private val animepaheClearance = AnimePaheClearanceStore(context).also {
+        AnimePaheForeground.install(context)
+    }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val aniSkip = AniSkipClient()
@@ -50,7 +53,11 @@ class ServerCatalog(context: Context) {
         AnimexServer(cache = resolveCache),
         XanimeServer(cache = resolveCache),
         AniNzServer(cache = resolveCache),
-        AnimePaheServer(cache = resolveCache),
+        AnimePaheServer(
+            cache = resolveCache,
+            clearance = animepaheClearance,
+            verifier = AnimePaheWebVerifier(context, animepaheClearance),
+        ),
     )
     val bundledIds: Set<String> = bundled.map { it.server.id }.toSet()
 
