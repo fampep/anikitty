@@ -12,6 +12,11 @@ internal val BUNDLED_EXTENSION_IDS = setOf(
     "gotaku",
     "reanime",
     "mkissa",
+    "kaa",
+    "animex",
+    "xanime",
+    "aninz",
+    "animepahe",
 )
 
 internal sealed class StoreInstall {

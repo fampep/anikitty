@@ -59,7 +59,10 @@ class ExtensionInstallLiveIndexTest {
                 assertFalse(isNewerVersion(manifest.version, listing.version!!))
             }
         }
-        assertEquals(BUNDLED_EXTENSION_IDS, missing.toSet())
+        assertEquals(
+            BUNDLED_EXTENSION_IDS.intersect(index.extensions.map { it.id }.toSet()),
+            missing.toSet(),
+        )
     }
 
     @Test

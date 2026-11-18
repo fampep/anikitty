@@ -58,6 +58,9 @@ object BuiltInSourceMeta {
     /** ani.nz states resolution on the settlar master playlist. */
     fun aninz(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
 
+    /** animepahe.pw states resolution on the kwik playlist, or on the play-page button. */
+    fun animepahe(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
+
     /** HTTP extensions: copy the optional JSON fields and nothing else. */
     fun fromExtension(quality: String?, audio: String?, qualityRating: String?): SourceFields =
         SourceFields(

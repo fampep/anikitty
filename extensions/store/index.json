@@ -1,7 +1,7 @@
 {
   "apiVersion": 1,
   "protocol": "1.1",
-  "updatedAt": "2026-11-17",
+  "updatedAt": "2026-11-18",
   "extensions": [
     {
       "id": "anikoto",
@@ -98,6 +98,18 @@
       "featured": true,
       "iconUrl": "https://www.google.com/s2/favicons?domain=ani.nz&sz=128",
       "siteUrl": "https://ani.nz"
+    },
+    {
+      "id": "animepahe",
+      "name": "animepahe",
+      "version": "1.0.0",
+      "protocol": "1.1",
+      "description": "Bundled animepahe.pw resolver. Search and the episode list use the site API. The play page's kwik link is unpacked on the phone, and that playlist plays here. Sub or dub follows the episode language. Quality is the resolution on that playlist.",
+      "github": "https://github.com/fampep/anikitty-extensions/tree/main/providers/animepahe",
+      "author": "fampep",
+      "featured": true,
+      "iconUrl": "https://www.google.com/s2/favicons?domain=animepahe.pw&sz=128",
+      "siteUrl": "https://animepahe.pw"
     },
     {
       "id": "site.anikitty.example.hello",
