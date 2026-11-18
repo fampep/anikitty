@@ -58,6 +58,18 @@ object BuiltInSourceMeta {
     /** ani.nz states resolution on the settlar master playlist. */
     fun aninz(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
 
+    /**
+     * gogoanime.by names the server button (HD, SD) and MegaVid masters also
+     * state RESOLUTION and CODECS.
+     */
+    fun gogo(siteLabel: String, streamInf: String, audioMode: String): SourceFields {
+        val fromPlaylist = fromHls(streamInf, audioMode, null)
+        return fromPlaylist.copy(
+            quality = fromPlaylist.quality ?: resolutionToken(siteLabel),
+            qualityRating = gradeToken(siteLabel),
+        )
+    }
+
     /** HTTP extensions: copy the optional JSON fields and nothing else. */
     fun fromExtension(quality: String?, audio: String?, qualityRating: String?): SourceFields =
         SourceFields(
