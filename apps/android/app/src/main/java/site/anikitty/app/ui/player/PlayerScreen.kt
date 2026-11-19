@@ -101,6 +101,7 @@ import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.PictureInPicture
 import androidx.compose.material.icons.rounded.Settings
 import androidx.media3.cast.SessionAvailabilityListener
+import site.anikitty.app.cast.CastHardwareVolume
 import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.cast.safeSeekTarget
 import site.anikitty.app.ui.components.EpisodeCarousel
@@ -549,6 +550,7 @@ fun PlayerScreen(
         castHelper?.heldVolume = level
         player?.volume = level
         castHelper?.castPlayer?.volume = level
+        if (isCasting) castHelper?.setTvMuted(mutedNow.value)
     }
 
     fun goNextEpisode() {
@@ -752,8 +754,10 @@ fun PlayerScreen(
         val activeSelector = playerBundle?.trackSelector
         val listener = object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
-                ready = playbackState == Player.STATE_READY || playbackState == Player.STATE_BUFFERING
-                buffering = playbackState == Player.STATE_BUFFERING
+                if (!isCasting) {
+                    ready = playbackState == Player.STATE_READY || playbackState == Player.STATE_BUFFERING
+                    buffering = playbackState == Player.STATE_BUFFERING
+                }
                 if (playbackState == Player.STATE_READY) {
                     durationMs = activePlayer?.duration?.coerceAtLeast(0L) ?: 0L
                     error = null
@@ -935,6 +939,10 @@ fun PlayerScreen(
                 val d = if (trustCastClock) rawDur else 0L
                 val nowPlaying = p.isPlaying
                 if (nowPlaying != playing) playing = nowPlaying
+                if (isCasting) {
+                    val nowBuffering = p.playbackState == Player.STATE_BUFFERING
+                    if (nowBuffering != buffering) buffering = nowBuffering
+                }
                 val nowReady = p.playbackState == Player.STATE_READY ||
                     p.playbackState == Player.STATE_BUFFERING ||
                     isCasting
@@ -1095,12 +1103,40 @@ fun PlayerScreen(
     fun toggleMute() {
         val next = !muted
         muted = next
-        val level = if (next) 0f else 1f
-        castHelper?.heldVolume = level
-        activePlayer?.volume = level
-        player?.volume = level
-        castHelper?.castPlayer?.volume = level
+        if (isCasting) {
+            castHelper?.setTvMuted(next)
+        } else {
+            val level = if (next) 0f else 1f
+            castHelper?.heldVolume = level
+            activePlayer?.volume = level
+            player?.volume = level
+        }
         controlsVisible = true
+    }
+
+    DisposableEffect(isCasting) {
+        if (isCasting) {
+            CastHardwareVolume.onStep = { direction ->
+                when (direction) {
+                    0 -> toggleMute()
+                    else -> {
+                        val delta = if (direction > 0) 0.05f else -0.05f
+                        val level = castHelper?.adjustDeviceVolume(delta) ?: return@onStep false
+                        if (direction > 0 && level > 0.02f && muted) {
+                            muted = false
+                            castHelper?.setTvMuted(false)
+                        }
+                        gestureHud = GestureHud(
+                            kind = GestureHudKind.Volume,
+                            level = level,
+                            caption = "TV",
+                        )
+                    }
+                }
+                true
+            }
+        }
+        onDispose { CastHardwareVolume.onStep = null }
     }
 
     LaunchedEffect(player, muted) {
@@ -1716,9 +1752,19 @@ fun PlayerScreen(
                                     level = nudgeBrightness(context, view, delta),
                                 )
                             } else {
+                                val level = if (isCasting) {
+                                    castHelper?.adjustDeviceVolume(delta)
+                                } else {
+                                    null
+                                } ?: nudgeVolume(context, view, delta)
+                                if (isCasting && delta > 0.012f && level > 0.02f && muted) {
+                                    muted = false
+                                    castHelper?.setTvMuted(false)
+                                }
                                 gestureHud = GestureHud(
                                     kind = GestureHudKind.Volume,
-                                    level = nudgeVolume(context, view, delta),
+                                    level = level,
+                                    caption = if (isCasting) "TV" else null,
                                 )
                             }
                         }
@@ -1917,6 +1963,7 @@ fun PlayerScreen(
                 episode = episode,
                 title = title,
                 isMovie = isMovie,
+                buffering = buffering,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .windowInsetsPadding(WindowInsets.statusBars)
@@ -1959,10 +2006,10 @@ fun PlayerScreen(
                         shown.level < 0.45f -> Icons.AutoMirrored.Outlined.VolumeDown
                         else -> Icons.AutoMirrored.Outlined.VolumeUp
                     },
-                    contentDescription = if (shown.kind == GestureHudKind.Brightness) {
-                        "Brightness $pct percent"
-                    } else {
-                        "Volume $pct percent"
+                    contentDescription = when {
+                        shown.kind == GestureHudKind.Brightness -> "Brightness $pct percent"
+                        shown.caption != null -> "${shown.caption} volume $pct percent"
+                        else -> "Volume $pct percent"
                     },
                     tint = Color.White,
                     modifier = Modifier.size(22.dp),
@@ -1984,6 +2031,15 @@ fun PlayerScreen(
                     )
                 }
                 Spacer(modifier = Modifier.height(10.dp))
+                if (shown.caption != null) {
+                    Text(
+                        shown.caption,
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
                 Text(
                     "$pct%",
                     color = Color.White,
@@ -2015,9 +2071,10 @@ fun PlayerScreen(
                 }
             }
         } else if (
-            ready && buffering && error == null && !isCasting &&
+            ready && buffering && error == null &&
             seekFlashMs == 0L && !scrubbing && !holdBoost &&
-            !(theater && controlsVisible && !controlsLocked)
+            !(theater && controlsVisible && !controlsLocked) &&
+            !(!theater && isCasting)
         ) {
             CircularProgressIndicator(
                 color = Color.White.copy(alpha = 0.9f),
@@ -2335,6 +2392,15 @@ fun PlayerScreen(
                             durationMs = durationMs,
                             showEpisodes = !isMovie && onPickEpisode != null && totalEpisodes > 1,
                             castAvailable = castHelper != null,
+                            speedLabel = speedLabel(playbackSpeed),
+                            onSpeed = {
+                                panel = if (panel == PlayerMenuPage.Speed) {
+                                    PlayerMenuPage.None
+                                } else {
+                                    PlayerMenuPage.Speed
+                                }
+                                controlsVisible = true
+                            },
                             onPlayPause = {
                                 activePlayer?.let {
                                     if (it.isPlaying) it.pause() else it.play()
@@ -3950,6 +4016,7 @@ private enum class GestureHudKind { Brightness, Volume }
 private data class GestureHud(
     val kind: GestureHudKind,
     val level: Float,
+    val caption: String? = null,
 )
 
 private fun timingLabel(pad: Float): String = when {
@@ -4045,6 +4112,7 @@ private fun CastStatusBadge(
     episode: Int,
     title: String,
     isMovie: Boolean,
+    buffering: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(14.dp)
@@ -4066,7 +4134,7 @@ private fun CastStatusBadge(
         Spacer(modifier = Modifier.width(10.dp))
         Column {
             Text(
-                "Casting to your TV",
+                if (buffering) "Buffering on your TV" else "Casting to your TV",
                 color = PlayerChrome.Paper,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,
@@ -4083,7 +4151,7 @@ private fun CastStatusBadge(
     }
 }
 
-/** Play / seek / mute / episodes — fewer pills, larger hit targets while casting. */
+/** Play / seek / mute / speed — larger hit targets while casting. */
 @Composable
 private fun CastTransportRow(
     playing: Boolean,
@@ -4094,10 +4162,12 @@ private fun CastTransportRow(
     durationMs: Long,
     showEpisodes: Boolean,
     castAvailable: Boolean,
+    speedLabel: String,
     onPlayPause: () -> Unit,
     onMute: () -> Unit,
     onSeekBack: () -> Unit,
     onSeekForward: () -> Unit,
+    onSpeed: () -> Unit,
     onEpisodes: () -> Unit,
     onSettings: () -> Unit,
     onExitTheater: () -> Unit,
@@ -4115,8 +4185,13 @@ private fun CastTransportRow(
             )
             PillIcon(
                 icon = if (muted) Icons.AutoMirrored.Outlined.VolumeOff else Icons.AutoMirrored.Outlined.VolumeUp,
-                description = if (muted) "Unmute" else "Mute",
+                description = if (muted) "Unmute TV" else "Mute TV",
                 onClick = onMute,
+            )
+            PillLabel(
+                label = speedLabel,
+                description = "Play speed",
+                onClick = onSpeed,
             )
             LiveClockText(
                 player = player,
