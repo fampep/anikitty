@@ -1117,11 +1117,15 @@ fun PlayerScreen(
     DisposableEffect(isCasting) {
         if (isCasting) {
             CastHardwareVolume.onStep = { direction ->
-                when (direction) {
-                    0 -> toggleMute()
-                    else -> {
-                        val delta = if (direction > 0) 0.05f else -0.05f
-                        val level = castHelper?.adjustDeviceVolume(delta) ?: return@onStep false
+                if (direction == 0) {
+                    toggleMute()
+                    true
+                } else {
+                    val delta = if (direction > 0) 0.05f else -0.05f
+                    val level = castHelper?.adjustDeviceVolume(delta)
+                    if (level == null) {
+                        false
+                    } else {
                         if (direction > 0 && level > 0.02f && muted) {
                             muted = false
                             castHelper?.setTvMuted(false)
@@ -1131,9 +1135,9 @@ fun PlayerScreen(
                             level = level,
                             caption = "TV",
                         )
+                        true
                     }
                 }
-                true
             }
         }
         onDispose { CastHardwareVolume.onStep = null }
