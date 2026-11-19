@@ -487,10 +487,13 @@ private class RelayMediaItemConverter(
     override fun toMediaItem(mediaQueueItem: MediaQueueItem): MediaItem = fallback.toMediaItem(mediaQueueItem)
 }
 
-/** While casting, the activity sends volume keys here instead of the phone stream. */
+/**
+ * While casting, the activity sends volume keys here instead of the phone stream.
+ * Direction is 1 for up, -1 for down, and 0 for the mute key.
+ */
 internal object CastHardwareVolume {
     @Volatile
-    var onStep: ((up: Boolean) -> Boolean)? = null
+    var onStep: ((direction: Int) -> Boolean)? = null
 }
 
 private const val TAG = "AniKittyCast"
