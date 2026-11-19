@@ -53,6 +53,10 @@ class CastSessionHelper private constructor(
     private val generation = AtomicInteger(0)
     /** Applied again inside each Cast load, before playback starts. */
     @Volatile var heldVolume: Float = 1f
+    /** Last TV speaker level, 0–1. Separate from the muted stream flag. */
+    @Volatile var heldDeviceVolume: Float = 1f
+    /** Ignore a stale session read while a swipe is still landing. */
+    private var lastDeviceVolumeWriteMs: Long = 0L
     /** Captions preference mirrored onto the remote [MediaTrack] after load. */
     var heldSubtitlesOn: Boolean
         get() = captionsEnabled.get()
@@ -77,6 +81,44 @@ class CastSessionHelper private constructor(
 
     fun setAvailabilityListener(listener: SessionAvailabilityListener?) {
         castPlayer.setSessionAvailabilityListener(listener)
+    }
+
+    /**
+     * Move the Chromecast speaker volume. Returns the new level, 0–1.
+     * A swipe must not change the phone's media stream while the TV is playing.
+     */
+    fun adjustDeviceVolume(delta: Float): Float {
+        val session = castContext.sessionManager.currentCastSession
+        val now = android.os.SystemClock.uptimeMillis()
+        val sessionLevel = session?.let { runCatching { it.volume.toFloat() }.getOrNull() }
+            ?.takeIf { it.isFinite() }
+            ?.coerceIn(0f, 1f)
+        val current = if (sessionLevel != null && now - lastDeviceVolumeWriteMs > 400L) {
+            sessionLevel
+        } else {
+            heldDeviceVolume
+        }
+        val next = castVolumeAfterNudge(current, delta)
+        heldDeviceVolume = next
+        if (session != null && next != current) {
+            lastDeviceVolumeWriteMs = now
+            // setVolume throws IOException, so it is not a Kotlin property setter.
+            runCatching { session.setVolume(next.toDouble()) }
+            if (delta > 0.012f && runCatching { session.isMute }.getOrDefault(false)) {
+                runCatching { session.setMute(false) }
+                heldVolume = 1f
+                castPlayer.volume = 1f
+            }
+        }
+        return next
+    }
+
+    /** Mute the TV stream without changing the remembered speaker level. */
+    fun setTvMuted(muted: Boolean) {
+        val session = castContext.sessionManager.currentCastSession
+        runCatching { session?.setMute(muted) }
+        heldVolume = if (muted) 0f else 1f
+        castPlayer.volume = heldVolume
     }
 
     /**
@@ -443,6 +485,12 @@ private class RelayMediaItemConverter(
     }
 
     override fun toMediaItem(mediaQueueItem: MediaQueueItem): MediaItem = fallback.toMediaItem(mediaQueueItem)
+}
+
+/** While casting, the activity sends volume keys here instead of the phone stream. */
+internal object CastHardwareVolume {
+    @Volatile
+    var onStep: ((up: Boolean) -> Boolean)? = null
 }
 
 private const val TAG = "AniKittyCast"

@@ -81,6 +81,16 @@ internal fun castPlaybackFinished(playerState: Int, idleReason: Int): Boolean =
 internal fun castItemEndedAfterStart(sawPlayback: Boolean, playerState: Int, idleReason: Int): Boolean =
     sawPlayback && castPlaybackFinished(playerState, idleReason)
 
+/** One swipe step is 6% of the Chromecast speaker volume. */
+internal fun castVolumeAfterNudge(current: Float, delta: Float): Float {
+    val steps = when {
+        delta > 0.012f -> 1
+        delta < -0.012f -> -1
+        else -> 0
+    }
+    return (current + steps * 0.06f).coerceIn(0f, 1f)
+}
+
 /** Pick an active text-track id from the live cast session tracks. */
 internal fun castPickTextTrackId(
     tracks: List<MediaTrack>,

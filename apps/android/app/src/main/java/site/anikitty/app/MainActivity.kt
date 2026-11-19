@@ -5,12 +5,14 @@ package site.anikitty.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import site.anikitty.app.cast.CastHardwareVolume
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.ui.app.AppRoot
 import site.anikitty.app.ui.theme.AniKittyTheme
@@ -58,6 +60,21 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra(EXTRA_DEMO, false)) requestDemo = true
         if (intent.getBooleanExtra(EXTRA_BROWSE, false)) requestBrowse = true
         consumeOAuthIntent(intent)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val step = CastHardwareVolume.onStep
+        val direction = when (keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> 1
+            KeyEvent.KEYCODE_VOLUME_DOWN -> -1
+            KeyEvent.KEYCODE_VOLUME_MUTE -> 0
+            else -> null
+        }
+        if (step != null && direction != null) {
+            if (direction == 0 && event.repeatCount > 0) return true
+            if (step(direction)) return true
+        }
+        return super.onKeyDown(keyCode, event)
     }
 
     private fun consumeOAuthIntent(intent: Intent?) {

@@ -42,6 +42,15 @@ class CastSubtitlesTest {
     }
 
     @Test
+    fun volumeNudgeStepsSixPercent() {
+        assertEquals(0.56f, castVolumeAfterNudge(0.50f, 0.02f), 0.001f)
+        assertEquals(0.44f, castVolumeAfterNudge(0.50f, -0.02f), 0.001f)
+        assertEquals(0.50f, castVolumeAfterNudge(0.50f, 0.001f), 0.001f)
+        assertEquals(1f, castVolumeAfterNudge(0.98f, 0.2f), 0.001f)
+        assertEquals(0f, castVolumeAfterNudge(0.02f, -0.2f), 0.001f)
+    }
+
+    @Test
     fun corsStillAllowsSubtitleFetches() {
         // /sub responses reuse the same CORS lines as the playlist.
         val lines = castRelayCorsLines()
