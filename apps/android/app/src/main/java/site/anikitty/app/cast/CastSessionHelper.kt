@@ -24,6 +24,7 @@ import com.google.android.gms.cast.MediaError
 import com.google.android.gms.cast.MediaInfo
 import com.google.android.gms.cast.MediaQueueItem
 import com.google.android.gms.cast.MediaStatus
+import com.google.android.gms.cast.MediaTrack
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import site.anikitty.app.data.servers.PlayableSource
@@ -41,6 +42,9 @@ class CastSessionHelper private constructor(
     val castPlayer: CastPlayer,
     private val relay: CastRelay,
     private val multicast: WifiManager.MulticastLock?,
+    private val captionsEnabled: AtomicBoolean,
+    private val captionLanguage: java.util.concurrent.atomic.AtomicReference<String?>,
+    private val captionLabel: java.util.concurrent.atomic.AtomicReference<String?>,
 ) {
     var casting: Boolean = false
         private set
@@ -49,6 +53,16 @@ class CastSessionHelper private constructor(
     private val generation = AtomicInteger(0)
     /** Applied again inside each Cast load, before playback starts. */
     @Volatile var heldVolume: Float = 1f
+    /** Captions preference mirrored onto the remote [MediaTrack] after load. */
+    var heldSubtitlesOn: Boolean
+        get() = captionsEnabled.get()
+        set(value) { captionsEnabled.set(value) }
+    var heldSubtitleLanguage: String?
+        get() = captionLanguage.get()
+        set(value) { captionLanguage.set(value) }
+    var heldSubtitleLabel: String?
+        get() = captionLabel.get()
+        set(value) { captionLabel.set(value) }
 
     private val closed = AtomicBoolean(false)
     private val loadSettled = AtomicBoolean(false)
@@ -56,6 +70,22 @@ class CastSessionHelper private constructor(
 
     fun setAvailabilityListener(listener: SessionAvailabilityListener?) {
         castPlayer.setSessionAvailabilityListener(listener)
+    }
+
+    /**
+     * Turn captions on/off on the Chromecast, or pick a language/label.
+     * Safe to call before the first load — preference is held for the next one.
+     */
+    fun applySubtitles(
+        enabled: Boolean,
+        language: String? = null,
+        label: String? = null,
+    ) {
+        heldSubtitlesOn = enabled
+        heldSubtitleLanguage = language
+        heldSubtitleLabel = label
+        if (!casting) return
+        pushActiveTextTracks()
     }
 
     fun load(
@@ -102,13 +132,44 @@ class CastSessionHelper private constructor(
         val client = castContext.sessionManager.currentCastSession?.remoteMediaClient
             ?: error("Chromecast is not connected")
         watchLoad(client, ticket, onReady, onError)
+        val preferLang = heldSubtitleLanguage
+        val preferLabel = heldSubtitleLabel
         val subs = playback.subtitles.mapIndexed { index, track ->
+            val default = when {
+                preferLang != null &&
+                    track.language?.trim()?.lowercase()?.substringBefore('-') ==
+                    preferLang.trim().lowercase().substringBefore('-') -> true
+                preferLabel != null && track.label.equals(preferLabel, ignoreCase = true) -> true
+                preferLang == null && preferLabel == null && index == 0 -> true
+                else -> false
+            }
             MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(track.url))
                 .setMimeType(MimeTypes.TEXT_VTT)
                 .setLanguage(track.language ?: "en")
                 .setLabel(track.label)
-                .setSelectionFlags(if (index == 0) C.SELECTION_FLAG_DEFAULT else 0)
+                .setSelectionFlags(if (default) C.SELECTION_FLAG_DEFAULT else 0)
                 .build()
+        }.let { list ->
+            // Always mark one default when captions stay on and nothing matched.
+            if (heldSubtitlesOn && list.isNotEmpty() && list.none {
+                    (it.selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0
+                }
+            ) {
+                list.mapIndexed { index, config ->
+                    if (index != 0) {
+                        config
+                    } else {
+                        MediaItem.SubtitleConfiguration.Builder(config.uri)
+                            .setMimeType(config.mimeType ?: MimeTypes.TEXT_VTT)
+                            .setLanguage(config.language)
+                            .setLabel(config.label)
+                            .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                            .build()
+                    }
+                }
+            } else {
+                list
+            }
         }
         val item = MediaItem.Builder()
             .setUri(playback.url)
@@ -131,7 +192,33 @@ class CastSessionHelper private constructor(
         castPlayer.prepare()
         castPlayer.volume = heldVolume
         castPlayer.playWhenReady = true
-        Log.i(TAG, "Cast load requested ${playback.url}")
+        Log.i(
+            TAG,
+            "Cast load requested ${playback.url} subs=${subs.size} captions=${heldSubtitlesOn}",
+        )
+    }
+
+    private fun pushActiveTextTracks() {
+        val client = castContext.sessionManager.currentCastSession?.remoteMediaClient ?: return
+        val status = client.mediaStatus ?: return
+        val info = status.mediaInfo ?: return
+        val all = info.mediaTracks?.toList().orEmpty()
+        val text = all.filter { it.type == MediaTrack.TYPE_TEXT }
+        if (text.isEmpty()) return
+        val chosen = castPickTextTrackId(
+            tracks = text,
+            enabled = heldSubtitlesOn,
+            preferLanguage = heldSubtitleLanguage,
+            preferLabel = heldSubtitleLabel,
+        )
+        // Keep any non-text active ids (audio) the receiver may already have.
+        val keep = status.activeTrackIds
+            ?.filter { id -> text.none { it.id == id } }
+            .orEmpty()
+        val next = (keep + chosen.toList()).distinct().toLongArray()
+        runCatching { client.setActiveMediaTracks(next) }
+            .onFailure { Log.w(TAG, "Cast subtitle select failed", it) }
+        Log.i(TAG, "Cast captions active=${next.toList()} on=${heldSubtitlesOn}")
     }
 
     /**
@@ -187,7 +274,11 @@ class CastSessionHelper private constructor(
         if (!loadSettled.compareAndSet(false, true)) return
         casting = true
         Log.i(TAG, "Cast playback started")
-        main.post(onReady)
+        // Receiver may ignore queue-item activeTrackIds on the first load.
+        main.post {
+            pushActiveTextTracks()
+            onReady()
+        }
     }
 
     private fun settleError(onError: (String) -> Unit, message: String) {
@@ -219,26 +310,69 @@ class CastSessionHelper private constructor(
         fun create(context: Context): CastSessionHelper? = runCatching {
             val app = context.applicationContext
             val castContext = CastContext.getSharedInstance(app)
-            val castPlayer = CastPlayer(castContext, RelayMediaItemConverter())
+            val captionsEnabled = AtomicBoolean(true)
+            val captionLanguage = java.util.concurrent.atomic.AtomicReference<String?>(null)
+            val captionLabel = java.util.concurrent.atomic.AtomicReference<String?>(null)
+            val castPlayer = CastPlayer(
+                castContext,
+                RelayMediaItemConverter(captionsEnabled, captionLanguage, captionLabel),
+            )
             val wifi = app.getSystemService(Context.WIFI_SERVICE) as? WifiManager
             val multicast = wifi?.createMulticastLock("anikitty-cast-discover")?.apply {
                 setReferenceCounted(false)
                 acquire()
             }
-            CastSessionHelper(castContext, castPlayer, CastRelay(app), multicast)
+            CastSessionHelper(
+                castContext,
+                castPlayer,
+                CastRelay(app),
+                multicast,
+                captionsEnabled,
+                captionLanguage,
+                captionLabel,
+            )
         }.getOrNull()
     }
 }
 
 @OptIn(UnstableApi::class)
-private class RelayMediaItemConverter : MediaItemConverter {
+private class RelayMediaItemConverter(
+    private val captionsEnabled: AtomicBoolean,
+    private val captionLanguage: java.util.concurrent.atomic.AtomicReference<String?>,
+    private val captionLabel: java.util.concurrent.atomic.AtomicReference<String?>,
+) : MediaItemConverter {
     private val fallback = DefaultMediaItemConverter()
 
     override fun toMediaQueueItem(mediaItem: MediaItem): MediaQueueItem {
         val local = mediaItem.localConfiguration ?: return fallback.toMediaQueueItem(mediaItem)
         val raw = local.uri.toString()
-        val hls = local.mimeType?.contains("mpegurl", ignoreCase = true) == true || raw.contains(".m3u8", ignoreCase = true)
-        if (!hls) return fallback.toMediaQueueItem(mediaItem)
+        val hls = local.mimeType?.contains("mpegurl", ignoreCase = true) == true ||
+            raw.contains(".m3u8", ignoreCase = true)
+        val tracks = castTextTracks(local.subtitleConfigurations)
+        val active = castActiveTextTrackIds(
+            configs = local.subtitleConfigurations,
+            tracks = tracks,
+            enabled = captionsEnabled.get() && tracks.isNotEmpty(),
+            preferLanguage = captionLanguage.get(),
+            preferLabel = captionLabel.get(),
+        )
+        // Progressive mp4 still goes through the stock converter — but we must
+        // attach WebVTT MediaTracks ourselves for HLS, because the custom
+        // MediaInfo path used to drop every SubtitleConfiguration.
+        if (!hls) {
+            val stock = fallback.toMediaQueueItem(mediaItem)
+            val stockInfo = stock.media ?: return stock
+            if (tracks.isEmpty()) return stock
+            val info = MediaInfo.Builder(stockInfo.contentId)
+                .setContentUrl(stockInfo.contentUrl ?: stockInfo.contentId)
+                .setStreamType(stockInfo.streamType)
+                .setContentType(stockInfo.contentType)
+                .setMetadata(stockInfo.metadata)
+                .setStreamDuration(stockInfo.streamDuration)
+                .setMediaTracks(tracks)
+                .build()
+            return MediaQueueItem.Builder(info).setActiveTrackIds(active).build()
+        }
         val content = castRelayContent(raw)
         val metadata = com.google.android.gms.cast.MediaMetadata(
             com.google.android.gms.cast.MediaMetadata.MEDIA_TYPE_MOVIE,
@@ -257,6 +391,7 @@ private class RelayMediaItemConverter : MediaItemConverter {
             .setStreamType(MediaInfo.STREAM_TYPE_BUFFERED)
             .setContentType("application/x-mpegURL")
             .setMetadata(metadata)
+            .setMediaTracks(tracks)
             .apply {
                 when (content.pack) {
                     "fmp4" -> {
@@ -270,7 +405,7 @@ private class RelayMediaItemConverter : MediaItemConverter {
                 }
             }
             .build()
-        return MediaQueueItem.Builder(info).build()
+        return MediaQueueItem.Builder(info).setActiveTrackIds(active).build()
     }
 
     override fun toMediaItem(mediaQueueItem: MediaQueueItem): MediaItem = fallback.toMediaItem(mediaQueueItem)
