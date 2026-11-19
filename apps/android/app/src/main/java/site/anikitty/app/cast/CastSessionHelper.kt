@@ -66,7 +66,14 @@ class CastSessionHelper private constructor(
 
     private val closed = AtomicBoolean(false)
     private val loadSettled = AtomicBoolean(false)
+    private val endedNotified = AtomicBoolean(false)
     private var statusCallback: RemoteMediaClient.Callback? = null
+    private var playbackEndedListener: (() -> Unit)? = null
+
+    /** Fires once per load when the receiver finishes the current item. */
+    fun setPlaybackEndedListener(listener: (() -> Unit)?) {
+        playbackEndedListener = listener
+    }
 
     fun setAvailabilityListener(listener: SessionAvailabilityListener?) {
         castPlayer.setSessionAvailabilityListener(listener)
@@ -145,7 +152,9 @@ class CastSessionHelper private constructor(
             }
             MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(track.url))
                 .setMimeType(MimeTypes.TEXT_VTT)
-                .setLanguage(track.language ?: "en")
+                .apply {
+                    track.language?.trim()?.takeIf { it.isNotEmpty() }?.let { setLanguage(it) }
+                }
                 .setLabel(track.label)
                 .setSelectionFlags(if (default) C.SELECTION_FLAG_DEFAULT else 0)
                 .build()
@@ -233,12 +242,26 @@ class CastSessionHelper private constructor(
         onError: (String) -> Unit,
     ) {
         loadSettled.set(false)
+        endedNotified.set(false)
         statusCallback?.let { previous -> runCatching { client.unregisterCallback(previous) } }
         var baselineIdle = true
+        var sawPlayback = false
         val callback = object : RemoteMediaClient.Callback() {
             override fun onStatusUpdated() {
-                if (closed.get() || ticket != generation.get() || loadSettled.get()) return
+                if (closed.get() || ticket != generation.get()) return
                 val status = client.mediaStatus ?: return
+                val started = status.playerState == MediaStatus.PLAYER_STATE_PLAYING ||
+                    status.playerState == MediaStatus.PLAYER_STATE_BUFFERING ||
+                    status.playerState == MediaStatus.PLAYER_STATE_PAUSED
+                if (started) sawPlayback = true
+                if (loadSettled.get()) {
+                    // A leftover IDLE_REASON_FINISHED from the previous item is
+                    // still the current status until this load leaves idle.
+                    if (sawPlayback && castPlaybackFinished(status.playerState, status.idleReason)) {
+                        notifyPlaybackEnded(ticket)
+                    }
+                    return
+                }
                 if (baselineIdle && status.playerState == MediaStatus.PLAYER_STATE_IDLE) {
                     baselineIdle = false
                     return
@@ -268,6 +291,16 @@ class CastSessionHelper private constructor(
         }
         statusCallback = callback
         client.registerCallback(callback)
+    }
+
+    private fun notifyPlaybackEnded(ticket: Int) {
+        if (!endedNotified.compareAndSet(false, true)) return
+        Log.i(TAG, "Cast item finished")
+        main.post {
+            // A newer load owns the session. Do not end that episode.
+            if (ticket != generation.get() || closed.get()) return@post
+            playbackEndedListener?.invoke()
+        }
     }
 
     private fun settleReady(onReady: () -> Unit) {
@@ -300,6 +333,7 @@ class CastSessionHelper private constructor(
         closed.set(true)
         generation.incrementAndGet()
         setAvailabilityListener(null)
+        setPlaybackEndedListener(null)
         runCatching { castPlayer.release() }
         relay.stop()
         runCatching { multicast?.release() }

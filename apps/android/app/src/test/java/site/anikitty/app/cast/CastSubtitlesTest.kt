@@ -26,6 +26,22 @@ class CastSubtitlesTest {
     }
 
     @Test
+    fun finishedIdleIsEpisodeEnd() {
+        // MediaStatus.PLAYER_STATE_IDLE == 1, IDLE_REASON_FINISHED == 1.
+        assertTrue(castPlaybackFinished(playerState = 1, idleReason = 1))
+        assertTrue(!castPlaybackFinished(playerState = 1, idleReason = 2))
+        assertTrue(!castPlaybackFinished(playerState = 2, idleReason = 1))
+        assertTrue(!castPlaybackFinished(playerState = 1, idleReason = 4))
+    }
+
+    @Test
+    fun leftoverFinishDoesNotEndTheNextLoad() {
+        assertTrue(!castItemEndedAfterStart(sawPlayback = false, playerState = 1, idleReason = 1))
+        assertTrue(castItemEndedAfterStart(sawPlayback = true, playerState = 1, idleReason = 1))
+        assertTrue(!castItemEndedAfterStart(sawPlayback = true, playerState = 2, idleReason = 1))
+    }
+
+    @Test
     fun corsStillAllowsSubtitleFetches() {
         // /sub responses reuse the same CORS lines as the playlist.
         val lines = castRelayCorsLines()
