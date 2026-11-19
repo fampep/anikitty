@@ -695,8 +695,12 @@ fun PlayerScreen(
                 latestPlayer?.pause()
                 pushMute()
                 castHint = null
-                playbackEnded = false
-                autoplayCancelled = false
+                // A quality or audio reload is the same episode. Keep a dismissed
+                // countdown dismissed. Only a new episode starts the clock over.
+                if (!sameEpisode) {
+                    playbackEnded = false
+                    autoplayCancelled = false
+                }
             },
             onError = { message ->
                 castHint = message
