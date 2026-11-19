@@ -102,6 +102,7 @@ import androidx.compose.material.icons.rounded.PictureInPicture
 import androidx.compose.material.icons.rounded.Settings
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastSessionHelper
+import site.anikitty.app.cast.safeSeekTarget
 import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
 import site.anikitty.app.ui.theme.KittyDarkPalette
@@ -840,11 +841,12 @@ fun PlayerScreen(
                     lastSkipKey = skipKey
                     shownSkip = active
                 }
-                if (active != null && !isCasting) {
+                if (active != null) {
                     val (kind, iv) = active
                     if (kind == "recap" && !autoSkippedRecap) {
                         autoSkippedRecap = true
-                        p.seekTo(iv.endMs)
+                        // CastPlayer and ExoPlayer share this seek path.
+                        p.seekTo(safeSeekTarget(iv.endMs, p.duration, durationMs))
                         playhead.ms = iv.endMs
                     }
                 }
@@ -1024,7 +1026,7 @@ fun PlayerScreen(
 
     fun seekBy(deltaMs: Long) {
         val p = activePlayer ?: return
-        val target = (p.currentPosition + deltaMs).coerceIn(0L, p.duration.coerceAtLeast(0L))
+        val target = safeSeekTarget(p.currentPosition + deltaMs, p.duration, durationMs)
         p.seekTo(target)
         positionMs = target
         playhead.ms = target
@@ -1037,9 +1039,11 @@ fun PlayerScreen(
 
     fun skipTo(endMs: Long) {
         val p = activePlayer ?: return
-        p.seekTo(endMs.coerceIn(0L, p.duration.coerceAtLeast(0L)))
-        positionMs = endMs
-        playhead.ms = endMs
+        // Prefer the remote CastPlayer when casting — same skip markers as local.
+        val target = safeSeekTarget(endMs, p.duration, durationMs)
+        p.seekTo(target)
+        positionMs = target
+        playhead.ms = target
         controlsVisible = true
     }
 
@@ -1723,14 +1727,15 @@ fun PlayerScreen(
         }
 
         if (
-            !theater && !isCasting && error == null && player != null &&
+            !theater && error == null && (player != null || isCasting) &&
             panel == PlayerMenuPage.None && !showEndAutoplay
         ) {
-            if (!playing || stageChrome) {
+            val showStageTransport = isCasting || !playing || stageChrome
+            if (showStageTransport) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(64.dp)
+                        .size(if (isCasting) 72.dp else 64.dp)
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.55f))
                         .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
@@ -1743,6 +1748,7 @@ fun PlayerScreen(
                                 current?.let { if (it.isPlaying) it.pause() else it.play() }
                             }
                             stageChrome = true
+                            if (isCasting) controlsVisible = true
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -1750,14 +1756,14 @@ fun PlayerScreen(
                         if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                         contentDescription = if (playing) "Pause" else "Play",
                         tint = Color.White,
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(if (isCasting) 34.dp else 32.dp),
                     )
                 }
             }
-            if (stageChrome && !controlsLocked) {
+            if ((isCasting || stageChrome) && !controlsLocked) {
                 ChromeDisc(
                     onClick = { seekBy(-10_000) },
-                    size = 44.dp,
+                    size = if (isCasting) 52.dp else 44.dp,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .padding(start = 16.dp),
@@ -1770,7 +1776,7 @@ fun PlayerScreen(
                 }
                 ChromeDisc(
                     onClick = { seekBy(10_000) },
-                    size = 44.dp,
+                    size = if (isCasting) 52.dp else 44.dp,
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 16.dp),
@@ -1784,42 +1790,16 @@ fun PlayerScreen(
             }
         }
 
-        if (isCasting) {
-            Column(
+        if (isCasting && (!theater || !controlsVisible || controlsLocked)) {
+            CastStatusBadge(
+                episode = episode,
+                title = title,
+                isMovie = isMovie,
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Icon(
-                    Icons.Rounded.CastConnected,
-                    contentDescription = null,
-                    tint = PlayerChrome.Paper,
-                    modifier = Modifier.size(56.dp),
-                )
-                Spacer(modifier = Modifier.height(14.dp))
-                Text(
-                    "Casting to your TV",
-                    color = PlayerChrome.Paper,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp,
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    "EP $episode · $title",
-                    color = PlayerChrome.Graphite,
-                    fontSize = 13.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    "Keep this phone on the same Wi-Fi. It sends the stream to the Chromecast.",
-                    color = PlayerChrome.Graphite,
-                    fontSize = 12.sp,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
-            }
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = if (theater) 16.dp else 12.dp, start = 20.dp, end = 20.dp),
+            )
         }
 
         val hud = gestureHud
@@ -2117,7 +2097,12 @@ fun PlayerScreen(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                if (isMovie) "Movie" else "Episode $episode of $totalEpisodes",
+                                when {
+                                    isCasting && isMovie -> "Casting · Movie"
+                                    isCasting -> "Casting · Episode $episode of $totalEpisodes"
+                                    isMovie -> "Movie"
+                                    else -> "Episode $episode of $totalEpisodes"
+                                },
                                 color = Color.White.copy(alpha = 0.65f),
                                 fontSize = 12.sp,
                                 maxLines = 1,
@@ -2202,8 +2187,14 @@ fun PlayerScreen(
                             controlsVisible = true
                         },
                         onScrubFinished = { fraction ->
-                            val target = (fraction * durationMs).toLong()
-                            activePlayer?.seekTo(target)
+                            val p = activePlayer
+                            val raw = (fraction * durationMs).toLong()
+                            val target = if (p != null) {
+                                safeSeekTarget(raw, p.duration, durationMs)
+                            } else {
+                                raw.coerceAtLeast(0L)
+                            }
+                            p?.seekTo(target)
                             playhead.ms = target
                             positionMs = target
                             scrubbing = false
@@ -2212,113 +2203,154 @@ fun PlayerScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        PlayerCapsule {
-                            PillIcon(
-                                icon = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                                description = if (playing) "Pause" else "Play",
-                                onClick = {
-                                    activePlayer?.let {
-                                        if (it.isPlaying) it.pause() else it.play()
-                                    }
-                                    controlsVisible = true
-                                },
-                            )
-                            PillIcon(
-                                icon = if (muted) Icons.AutoMirrored.Outlined.VolumeOff else Icons.AutoMirrored.Outlined.VolumeUp,
-                                description = if (muted) "Unmute" else "Mute",
-                                onClick = { toggleMute() },
-                            )
-                            LiveClockText(
-                                player = activePlayer,
-                                scrubbing = scrubbing,
-                                scrubValue = scrubValue,
-                                durationMs = durationMs,
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                            )
-                        }
-                        PlayerCapsule {
-                            PillIcon(
-                                icon = Icons.Outlined.Replay10,
-                                description = "Back 10 seconds",
-                                onClick = { seekBy(-10_000) },
-                            )
-                            PillIcon(
-                                icon = Icons.Outlined.Forward10,
-                                description = "Forward 10 seconds",
-                                onClick = { seekBy(10_000) },
-                            )
-                            PillLabel(
-                                label = "+85",
-                                description = "Skip ahead 85 seconds",
-                                onClick = { seekBy(85_000) },
-                            )
-                            PillLabel(
-                                label = speedLabel(playbackSpeed),
-                                description = "Play speed",
-                                onClick = {
-                                    panel = if (panel == PlayerMenuPage.Speed) {
-                                        PlayerMenuPage.None
-                                    } else {
-                                        PlayerMenuPage.Speed
-                                    }
-                                    controlsVisible = true
-                                },
-                            )
-                            val compactPills = LocalConfiguration.current.screenWidthDp < 840
-                            if (!isMovie && onPickEpisode != null && totalEpisodes > 1) {
+                    if (isCasting) {
+                        CastTransportRow(
+                            playing = playing,
+                            muted = muted,
+                            player = activePlayer,
+                            scrubbing = scrubbing,
+                            scrubValue = scrubValue,
+                            durationMs = durationMs,
+                            showEpisodes = !isMovie && onPickEpisode != null && totalEpisodes > 1,
+                            castAvailable = castHelper != null,
+                            onPlayPause = {
+                                activePlayer?.let {
+                                    if (it.isPlaying) it.pause() else it.play()
+                                }
+                                controlsVisible = true
+                            },
+                            onMute = { toggleMute() },
+                            onSeekBack = { seekBy(-10_000) },
+                            onSeekForward = { seekBy(10_000) },
+                            onEpisodes = {
+                                if (panel == PlayerMenuPage.Episodes) {
+                                    panel = PlayerMenuPage.None
+                                    episodeJumpFocus = false
+                                } else {
+                                    episodeJumpFocus = false
+                                    panel = PlayerMenuPage.Episodes
+                                }
+                                controlsVisible = true
+                            },
+                            onSettings = {
+                                panel = if (panel == PlayerMenuPage.None) {
+                                    PlayerMenuPage.Root
+                                } else {
+                                    PlayerMenuPage.None
+                                }
+                                controlsVisible = true
+                            },
+                            onExitTheater = { theater = false },
+                        )
+                    } else {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            PlayerCapsule {
                                 PillIcon(
-                                    icon = Icons.Outlined.VideoLibrary,
-                                    description = "Episodes",
+                                    icon = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                                    description = if (playing) "Pause" else "Play",
                                     onClick = {
-                                        if (panel == PlayerMenuPage.Episodes) {
-                                            panel = PlayerMenuPage.None
-                                            episodeJumpFocus = false
-                                        } else {
-                                            episodeJumpFocus = false
-                                            panel = PlayerMenuPage.Episodes
+                                        activePlayer?.let {
+                                            if (it.isPlaying) it.pause() else it.play()
                                         }
                                         controlsVisible = true
                                     },
                                 )
-                            }
-                            if (!compactPills) {
                                 PillIcon(
-                                    icon = Icons.Outlined.PhotoCamera,
-                                    description = "Screenshot",
-                                    onClick = { capturePlayerFrame(context, playerViewRef) },
+                                    icon = if (muted) Icons.AutoMirrored.Outlined.VolumeOff else Icons.AutoMirrored.Outlined.VolumeUp,
+                                    description = if (muted) "Unmute" else "Mute",
+                                    onClick = { toggleMute() },
+                                )
+                                LiveClockText(
+                                    player = activePlayer,
+                                    scrubbing = scrubbing,
+                                    scrubValue = scrubValue,
+                                    durationMs = durationMs,
+                                    modifier = Modifier.padding(horizontal = 8.dp),
                                 )
                             }
-                            PillIcon(
-                                icon = Icons.Outlined.Settings,
-                                description = "Settings",
-                                onClick = {
-                                    panel = if (panel == PlayerMenuPage.None) {
-                                        PlayerMenuPage.Root
-                                    } else {
-                                        PlayerMenuPage.None
-                                    }
-                                    controlsVisible = true
-                                },
-                            )
-                            if (!compactPills) {
+                            PlayerCapsule {
                                 PillIcon(
-                                    icon = Icons.Outlined.PictureInPicture,
-                                    description = "Picture in picture",
-                                    onClick = { enterPip() },
+                                    icon = Icons.Outlined.Replay10,
+                                    description = "Back 10 seconds",
+                                    onClick = { seekBy(-10_000) },
                                 )
-                            }
-                            PillIcon(
-                                icon = Icons.Outlined.FullscreenExit,
-                                description = "Exit full screen",
-                                onClick = { theater = false },
-                            )
-                            if (castHelper != null) {
-                                CastRouteButton(modifier = Modifier.size(48.dp))
+                                PillIcon(
+                                    icon = Icons.Outlined.Forward10,
+                                    description = "Forward 10 seconds",
+                                    onClick = { seekBy(10_000) },
+                                )
+                                PillLabel(
+                                    label = "+85",
+                                    description = "Skip ahead 85 seconds",
+                                    onClick = { seekBy(85_000) },
+                                )
+                                PillLabel(
+                                    label = speedLabel(playbackSpeed),
+                                    description = "Play speed",
+                                    onClick = {
+                                        panel = if (panel == PlayerMenuPage.Speed) {
+                                            PlayerMenuPage.None
+                                        } else {
+                                            PlayerMenuPage.Speed
+                                        }
+                                        controlsVisible = true
+                                    },
+                                )
+                                val compactPills = LocalConfiguration.current.screenWidthDp < 840
+                                if (!isMovie && onPickEpisode != null && totalEpisodes > 1) {
+                                    PillIcon(
+                                        icon = Icons.Outlined.VideoLibrary,
+                                        description = "Episodes",
+                                        onClick = {
+                                            if (panel == PlayerMenuPage.Episodes) {
+                                                panel = PlayerMenuPage.None
+                                                episodeJumpFocus = false
+                                            } else {
+                                                episodeJumpFocus = false
+                                                panel = PlayerMenuPage.Episodes
+                                            }
+                                            controlsVisible = true
+                                        },
+                                    )
+                                }
+                                if (!compactPills) {
+                                    PillIcon(
+                                        icon = Icons.Outlined.PhotoCamera,
+                                        description = "Screenshot",
+                                        onClick = { capturePlayerFrame(context, playerViewRef) },
+                                    )
+                                }
+                                PillIcon(
+                                    icon = Icons.Outlined.Settings,
+                                    description = "Settings",
+                                    onClick = {
+                                        panel = if (panel == PlayerMenuPage.None) {
+                                            PlayerMenuPage.Root
+                                        } else {
+                                            PlayerMenuPage.None
+                                        }
+                                        controlsVisible = true
+                                    },
+                                )
+                                if (!compactPills) {
+                                    PillIcon(
+                                        icon = Icons.Outlined.PictureInPicture,
+                                        description = "Picture in picture",
+                                        onClick = { enterPip() },
+                                    )
+                                }
+                                PillIcon(
+                                    icon = Icons.Outlined.FullscreenExit,
+                                    description = "Exit full screen",
+                                    onClick = { theater = false },
+                                )
+                                if (castHelper != null) {
+                                    CastRouteButton(modifier = Modifier.size(48.dp))
+                                }
                             }
                         }
                     }
@@ -2337,7 +2369,7 @@ fun PlayerScreen(
             }
         }
 
-        if (activeSkip != null && !isCasting && panel == PlayerMenuPage.None) {
+        if (activeSkip != null && panel == PlayerMenuPage.None) {
             val (kind, iv) = activeSkip
             val label = when (kind) {
                 "intro" -> "Skip Intro"
@@ -2348,11 +2380,11 @@ fun PlayerScreen(
             }
             val chromeUp = theater && controlsVisible && !controlsLocked
             val avoidNextCard = nearEndOffer || showEndAutoplay
-            val skipShape = RoundedCornerShape(12.dp)
+            val skipShape = RoundedCornerShape(if (isCasting) 14.dp else 12.dp)
             Text(
                 label,
                 color = Color.White,
-                fontSize = 14.sp,
+                fontSize = if (isCasting) 15.sp else 14.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = FontFamily.SansSerif,
                 modifier = Modifier
@@ -2369,13 +2401,20 @@ fun PlayerScreen(
                     .padding(
                         start = if (avoidNextCard) 0.dp else 22.dp,
                         end = if (avoidNextCard) 22.dp else 0.dp,
-                        bottom = if (chromeUp) 118.dp else 22.dp,
+                        bottom = if (chromeUp) {
+                            if (isCasting) 128.dp else 118.dp
+                        } else {
+                            22.dp
+                        },
                     )
                     .clip(skipShape)
-                    .background(Color.Black.copy(alpha = 0.62f))
+                    .background(Color.Black.copy(alpha = if (isCasting) 0.72f else 0.62f))
                     .border(1.dp, Color.White.copy(alpha = 0.35f), skipShape)
                     .clickable { skipTo(iv.endMs) }
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(
+                        horizontal = if (isCasting) 18.dp else 16.dp,
+                        vertical = if (isCasting) 12.dp else 10.dp,
+                    ),
             )
         }
     }
@@ -2476,8 +2515,14 @@ fun PlayerScreen(
                     scrubValue = it
                 },
                 onScrubFinished = { fraction ->
-                    val target = (fraction * durationMs).toLong()
-                    activePlayer?.seekTo(target)
+                    val p = activePlayer
+                    val raw = (fraction * durationMs).toLong()
+                    val target = if (p != null) {
+                        safeSeekTarget(raw, p.duration, durationMs)
+                    } else {
+                        raw.coerceAtLeast(0L)
+                    }
+                    p?.seekTo(target)
                     playhead.ms = target
                     positionMs = target
                     scrubbing = false
@@ -3849,6 +3894,127 @@ private fun LiveClockText(
         maxLines = 1,
         modifier = modifier,
     )
+}
+
+@Composable
+private fun CastStatusBadge(
+    episode: Int,
+    title: String,
+    isMovie: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(14.dp)
+    val line = if (isMovie) title else "EP $episode · $title"
+    Row(
+        modifier = modifier
+            .clip(shape)
+            .background(Color.Black.copy(alpha = 0.72f))
+            .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            Icons.Rounded.CastConnected,
+            contentDescription = null,
+            tint = PlayerChrome.Paper,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column {
+            Text(
+                "Casting to your TV",
+                color = PlayerChrome.Paper,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 13.sp,
+                maxLines = 1,
+            )
+            Text(
+                line,
+                color = PlayerChrome.Graphite,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/** Play / seek / mute / episodes — fewer pills, larger hit targets while casting. */
+@Composable
+private fun CastTransportRow(
+    playing: Boolean,
+    muted: Boolean,
+    player: Player?,
+    scrubbing: Boolean,
+    scrubValue: Float,
+    durationMs: Long,
+    showEpisodes: Boolean,
+    castAvailable: Boolean,
+    onPlayPause: () -> Unit,
+    onMute: () -> Unit,
+    onSeekBack: () -> Unit,
+    onSeekForward: () -> Unit,
+    onEpisodes: () -> Unit,
+    onSettings: () -> Unit,
+    onExitTheater: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PlayerCapsule {
+            PillIcon(
+                icon = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
+                description = if (playing) "Pause" else "Play",
+                onClick = onPlayPause,
+            )
+            PillIcon(
+                icon = if (muted) Icons.AutoMirrored.Outlined.VolumeOff else Icons.AutoMirrored.Outlined.VolumeUp,
+                description = if (muted) "Unmute" else "Mute",
+                onClick = onMute,
+            )
+            LiveClockText(
+                player = player,
+                scrubbing = scrubbing,
+                scrubValue = scrubValue,
+                durationMs = durationMs,
+                modifier = Modifier.padding(horizontal = 8.dp),
+            )
+        }
+        PlayerCapsule {
+            PillIcon(
+                icon = Icons.Outlined.Replay10,
+                description = "Back 10 seconds",
+                onClick = onSeekBack,
+            )
+            PillIcon(
+                icon = Icons.Outlined.Forward10,
+                description = "Forward 10 seconds",
+                onClick = onSeekForward,
+            )
+            if (showEpisodes) {
+                PillIcon(
+                    icon = Icons.Outlined.VideoLibrary,
+                    description = "Episodes",
+                    onClick = onEpisodes,
+                )
+            }
+            PillIcon(
+                icon = Icons.Outlined.Settings,
+                description = "Settings",
+                onClick = onSettings,
+            )
+            PillIcon(
+                icon = Icons.Outlined.FullscreenExit,
+                description = "Exit full screen",
+                onClick = onExitTheater,
+            )
+            if (castAvailable) {
+                CastRouteButton(modifier = Modifier.size(48.dp))
+            }
+        }
+    }
 }
 
 @Composable

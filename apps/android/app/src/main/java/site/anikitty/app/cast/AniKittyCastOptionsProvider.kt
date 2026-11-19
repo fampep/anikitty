@@ -11,7 +11,11 @@ import com.google.android.gms.cast.framework.media.CastMediaOptions
 import com.google.android.gms.cast.framework.media.NotificationOptions
 import site.anikitty.app.MainActivity
 
-/** Default Cast receiver. Streams are relayed from the phone so the TV gets a clean URL. */
+/**
+ * Default Cast receiver. Streams are relayed from the phone so the TV gets a
+ * clean URL. Skip Intro and transport live in the in-app glass player (phone
+ * stays open on the same Wi-Fi); notification is play/pause + seek only.
+ */
 class AniKittyCastOptionsProvider : OptionsProvider {
     override fun getCastOptions(context: Context): CastOptions {
         val notification = NotificationOptions.Builder()
