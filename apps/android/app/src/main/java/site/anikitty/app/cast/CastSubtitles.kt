@@ -57,13 +57,22 @@ internal fun castActiveTextTrackIds(
         track.name.equals(wantLabel, ignoreCase = true)
     }
     val index = when {
-        byLang >= 0 -> byLang
+        // The name the user picked wins over a shared language code.
         byLabel >= 0 -> byLabel
+        byLang >= 0 -> byLang
         defaultIndex != null && defaultIndex in tracks.indices -> defaultIndex
         else -> 0
     }
     return longArrayOf(tracks[index].id)
 }
+
+/**
+ * Chromecast reports a finished item as idle, and Media3 [androidx.media3.cast.CastPlayer]
+ * maps that to [androidx.media3.common.Player.STATE_IDLE] — never STATE_ENDED.
+ * [MediaStatus.PLAYER_STATE_IDLE] is 1 and [MediaStatus.IDLE_REASON_FINISHED] is 1.
+ */
+internal fun castPlaybackFinished(playerState: Int, idleReason: Int): Boolean =
+    playerState == 1 && idleReason == 1
 
 /** Pick an active text-track id from the live cast session tracks. */
 internal fun castPickTextTrackId(
@@ -77,9 +86,9 @@ internal fun castPickTextTrackId(
     val wantLang = preferLanguage?.trim()?.lowercase()?.substringBefore('-')?.takeIf { it.isNotEmpty() }
     val wantLabel = preferLabel?.trim()?.takeIf { it.isNotEmpty() }
     val pick = text.firstOrNull { track ->
-        wantLang != null && track.language?.trim()?.lowercase()?.substringBefore('-') == wantLang
-    } ?: text.firstOrNull { track ->
         wantLabel != null && track.name.equals(wantLabel, ignoreCase = true)
+    } ?: text.firstOrNull { track ->
+        wantLang != null && track.language?.trim()?.lowercase()?.substringBefore('-') == wantLang
     } ?: text.first()
     return longArrayOf(pick.id)
 }

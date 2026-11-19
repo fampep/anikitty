@@ -66,7 +66,14 @@ class CastSessionHelper private constructor(
 
     private val closed = AtomicBoolean(false)
     private val loadSettled = AtomicBoolean(false)
+    private val endedNotified = AtomicBoolean(false)
     private var statusCallback: RemoteMediaClient.Callback? = null
+    private var playbackEndedListener: (() -> Unit)? = null
+
+    /** Fires once per load when the receiver finishes the current item. */
+    fun setPlaybackEndedListener(listener: (() -> Unit)?) {
+        playbackEndedListener = listener
+    }
 
     fun setAvailabilityListener(listener: SessionAvailabilityListener?) {
         castPlayer.setSessionAvailabilityListener(listener)
@@ -145,7 +152,9 @@ class CastSessionHelper private constructor(
             }
             MediaItem.SubtitleConfiguration.Builder(android.net.Uri.parse(track.url))
                 .setMimeType(MimeTypes.TEXT_VTT)
-                .setLanguage(track.language ?: "en")
+                .apply {
+                    track.language?.trim()?.takeIf { it.isNotEmpty() }?.let { setLanguage(it) }
+                }
                 .setLabel(track.label)
                 .setSelectionFlags(if (default) C.SELECTION_FLAG_DEFAULT else 0)
                 .build()
@@ -233,12 +242,19 @@ class CastSessionHelper private constructor(
         onError: (String) -> Unit,
     ) {
         loadSettled.set(false)
+        endedNotified.set(false)
         statusCallback?.let { previous -> runCatching { client.unregisterCallback(previous) } }
         var baselineIdle = true
         val callback = object : RemoteMediaClient.Callback() {
             override fun onStatusUpdated() {
-                if (closed.get() || ticket != generation.get() || loadSettled.get()) return
+                if (closed.get() || ticket != generation.get()) return
                 val status = client.mediaStatus ?: return
+                if (loadSettled.get()) {
+                    if (castPlaybackFinished(status.playerState, status.idleReason)) {
+                        notifyPlaybackEnded()
+                    }
+                    return
+                }
                 if (baselineIdle && status.playerState == MediaStatus.PLAYER_STATE_IDLE) {
                     baselineIdle = false
                     return
@@ -252,6 +268,10 @@ class CastSessionHelper private constructor(
                     MediaStatus.PLAYER_STATE_IDLE -> {
                         if (status.idleReason == MediaStatus.IDLE_REASON_ERROR) {
                             settleError(onError, "Chromecast could not play this stream")
+                        } else if (castPlaybackFinished(status.playerState, status.idleReason)) {
+                            // Finished before the playing status was observed.
+                            settleReady(onReady)
+                            notifyPlaybackEnded()
                         }
                     }
                 }
@@ -268,6 +288,12 @@ class CastSessionHelper private constructor(
         }
         statusCallback = callback
         client.registerCallback(callback)
+    }
+
+    private fun notifyPlaybackEnded() {
+        if (!endedNotified.compareAndSet(false, true)) return
+        Log.i(TAG, "Cast item finished")
+        main.post { playbackEndedListener?.invoke() }
     }
 
     private fun settleReady(onReady: () -> Unit) {
@@ -300,6 +326,7 @@ class CastSessionHelper private constructor(
         closed.set(true)
         generation.incrementAndGet()
         setAvailabilityListener(null)
+        setPlaybackEndedListener(null)
         runCatching { castPlayer.release() }
         relay.stop()
         runCatching { multicast?.release() }

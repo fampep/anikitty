@@ -533,18 +533,14 @@ fun PlayerScreen(
             "auto" -> latestTextOptions.firstOrNull { it.id != "off" && it.id != "auto" }
             else -> latestTextOptions.firstOrNull { it.id == pickId }
         }
-        val language = languageFromTextOptionId(option?.id ?: pickId)
-            ?: source?.subtitles?.firstOrNull { track ->
-                option != null && track.label.equals(option.label, ignoreCase = true)
-            }?.language
-            ?: source?.subtitles?.firstOrNull()?.language
-        val label = option?.label
-            ?: source?.subtitles?.firstOrNull { track ->
-                language != null &&
-                    track.language?.trim()?.lowercase()?.substringBefore('-') ==
-                    language.trim().lowercase().substringBefore('-')
-            }?.label
-            ?: source?.subtitles?.firstOrNull()?.label
+        val matched = source?.subtitles?.firstOrNull { track ->
+            option != null && track.label.equals(option.label, ignoreCase = true)
+        }
+        // Never invent a language from a different sidecar. A label-only row
+        // (Signs, Forced) must stay label-only or Cast activates English.
+        val language = matched?.language?.trim()?.takeIf { it.isNotEmpty() }
+            ?: languageFromTextOptionId(option?.id ?: pickId)
+        val label = option?.label ?: matched?.label
         helper.applySubtitles(enabled = true, language = language, label = label)
     }
 
@@ -596,6 +592,14 @@ fun PlayerScreen(
                 }
             }
             helper.castPlayer.addListener(castErrors)
+            helper.setPlaybackEndedListener {
+                // CastPlayer never emits STATE_ENDED. The receiver goes idle
+                // with IDLE_REASON_FINISHED — that is the end of the episode.
+                if (!isCasting) return@setPlaybackEndedListener
+                playbackEnded = true
+                playing = false
+                controlsVisible = true
+            }
             helper.setAvailabilityListener(object : SessionAvailabilityListener {
                 override fun onCastSessionAvailable() {
                     val src = latestSources.getOrNull(latestSourceIndex) ?: return
@@ -645,10 +649,18 @@ fun PlayerScreen(
             })
             onDispose {
                 helper.castPlayer.removeListener(castErrors)
+                helper.setPlaybackEndedListener(null)
                 helper.setAvailabilityListener(null)
                 helper.release()
             }
         }
+    }
+
+    // Episode the current cast item was loaded for. A later episode must not
+    // inherit this item's playhead (that seek lands at the previous ending).
+    var castLoadedEpisode by remember { mutableIntStateOf(episode) }
+    LaunchedEffect(episode, isCasting) {
+        if (!isCasting) castLoadedEpisode = episode
     }
 
     // When quality, episode, or the selected audio language changes mid-cast,
@@ -658,8 +670,14 @@ fun PlayerScreen(
         if (!isCasting) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect
         val src = source ?: return@LaunchedEffect
-        val pos = helper.castPlayer.currentPosition.coerceAtLeast(0L)
-            .takeIf { it > 0L } ?: playhead.ms
+        val sameEpisode = castLoadedEpisode == episode
+        val pos = if (sameEpisode) {
+            helper.castPlayer.currentPosition.coerceAtLeast(0L)
+                .takeIf { it > 0L } ?: playhead.ms
+        } else {
+            startPositionMs.coerceAtLeast(0L)
+        }
+        castLoadedEpisode = episode
         helper.load(
             source = src,
             title = title,
@@ -725,7 +743,9 @@ fun PlayerScreen(
                 if (playbackState == Player.STATE_READY) {
                     durationMs = activePlayer?.duration?.coerceAtLeast(0L) ?: 0L
                     error = null
-                    if (playbackEnded) {
+                    // Local ExoPlayer stays ready while Chromecast plays. Do not
+                    // cancel the cast end countdown from that player.
+                    if (playbackEnded && !isCasting) {
                         // User scrubbed/replayed after end — clear autoplay.
                         playbackEnded = false
                         autoplayCancelled = false
@@ -739,7 +759,7 @@ fun PlayerScreen(
                         allowHistoryFallback = false
                     }
                 }
-                if (playbackState == Player.STATE_ENDED) {
+                if (playbackState == Player.STATE_ENDED && !isCasting) {
                     buffering = false
                     playbackEnded = true
                     controlsVisible = true
@@ -751,7 +771,15 @@ fun PlayerScreen(
             }
 
             override fun onTracksChanged(tracks: Tracks) {
-                val options = buildTextOptions(tracks, source?.subtitles.orEmpty())
+                val built = buildTextOptions(tracks, source?.subtitles.orEmpty())
+                val options = if (
+                    isCasting &&
+                    built.none { it.id != "off" && it.id != "auto" }
+                ) {
+                    sidecarTextOptions(source?.subtitles.orEmpty()).ifEmpty { built }
+                } else {
+                    built
+                }
                 textOptions = options
                 selectedTextId = rematchTextId(selectedTextId, options)
                 val vids = buildVideoOptions(tracks)
@@ -836,20 +864,12 @@ fun PlayerScreen(
 
     // Local ExoPlayer may already be paused with empty track groups; still list
     // the source's sidecar captions in the menu while casting.
-    LaunchedEffect(isCasting, source?.subtitles) {
+    LaunchedEffect(isCasting, source?.subtitles, textOptions) {
         if (!isCasting) return@LaunchedEffect
         val external = source?.subtitles.orEmpty()
         if (external.isEmpty()) return@LaunchedEffect
         if (textOptions.any { it.id != "off" && it.id != "auto" }) return@LaunchedEffect
-        textOptions = listOf(
-            TextOption(id = "off", label = "Off"),
-            TextOption(id = "auto", label = "Auto"),
-        ) + external.map { track ->
-            TextOption(
-                id = stableTextId(track.language, track.label),
-                label = track.label.ifBlank { "Subtitles" },
-            )
-        }
+        textOptions = sidecarTextOptions(external)
     }
 
     LaunchedEffect(selectedVideoId, videoOptions, trackSelector) {
@@ -906,6 +926,21 @@ fun PlayerScreen(
                     }
                 }
                 val dur = if (d > 0) d else durationMs
+                // CastPlayer stays IDLE when the item finishes (playWhenReady
+                // still true). Treat that as the episode ending so the 10s
+                // next-episode countdown can run.
+                if (
+                    isCasting &&
+                    !playbackEnded &&
+                    dur >= NEAR_END_MIN_DURATION_MS &&
+                    pos >= dur - 1_500L &&
+                    !p.isPlaying &&
+                    p.playWhenReady &&
+                    p.playbackState == Player.STATE_IDLE
+                ) {
+                    playbackEnded = true
+                    controlsVisible = true
+                }
                 val remaining = (dur - pos).coerceAtLeast(0L)
                 val offer = onNextEpisode != null &&
                     !playbackEnded &&
@@ -3392,6 +3427,20 @@ private fun stableTextId(language: String?, label: String): String {
     return when {
         lang.isNotBlank() && lang != "und" -> "lang:$lang|$normLabel"
         else -> "label:$normLabel"
+    }
+}
+
+/** Off / Auto plus one row per sidecar, for the cast caption menu. */
+private fun sidecarTextOptions(external: List<site.anikitty.app.data.servers.SubtitleTrack>): List<TextOption> {
+    if (external.isEmpty()) return emptyList()
+    return listOf(
+        TextOption(id = "off", label = "Off"),
+        TextOption(id = "auto", label = "Auto"),
+    ) + external.map { track ->
+        TextOption(
+            id = stableTextId(track.language, track.label),
+            label = track.label.ifBlank { "Subtitles" },
+        )
     }
 }
 
