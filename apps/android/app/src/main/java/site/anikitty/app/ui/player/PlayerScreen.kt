@@ -516,7 +516,37 @@ fun PlayerScreen(
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
     val latestOnProgress by rememberUpdatedState(onProgress)
     val latestSkip by rememberUpdatedState(skipTimes)
+    val latestSubsEnabled by rememberUpdatedState(subsEnabled)
+    val latestSelectedTextId by rememberUpdatedState(selectedTextId)
+    val latestTextOptions by rememberUpdatedState(textOptions)
     val mutedNow = rememberUpdatedState(muted)
+
+    fun syncCastSubtitles() {
+        val helper = castHelper ?: return
+        val enabled = latestSubsEnabled && latestSelectedTextId != "off"
+        if (!enabled) {
+            helper.applySubtitles(enabled = false)
+            return
+        }
+        val pickId = latestSelectedTextId
+        val option = when (pickId) {
+            "auto" -> latestTextOptions.firstOrNull { it.id != "off" && it.id != "auto" }
+            else -> latestTextOptions.firstOrNull { it.id == pickId }
+        }
+        val language = languageFromTextOptionId(option?.id ?: pickId)
+            ?: source?.subtitles?.firstOrNull { track ->
+                option != null && track.label.equals(option.label, ignoreCase = true)
+            }?.language
+            ?: source?.subtitles?.firstOrNull()?.language
+        val label = option?.label
+            ?: source?.subtitles?.firstOrNull { track ->
+                language != null &&
+                    track.language?.trim()?.lowercase()?.substringBefore('-') ==
+                    language.trim().lowercase().substringBefore('-')
+            }?.label
+            ?: source?.subtitles?.firstOrNull()?.label
+        helper.applySubtitles(enabled = true, language = language, label = label)
+    }
 
     fun pushMute() {
         val level = if (mutedNow.value) 0f else 1f
@@ -576,6 +606,7 @@ fun PlayerScreen(
                     castHint = "Connecting to your TV"
                     controlsVisible = true
                     pushMute()
+                    syncCastSubtitles()
                     helper.load(
                         source = src,
                         title = latestTitle,
@@ -795,6 +826,30 @@ fun PlayerScreen(
     LaunchedEffect(subsEnabled, selectedTextId, textOptions, trackSelector) {
         val selector = trackSelector ?: return@LaunchedEffect
         applyTextSelection(selector, selectedTextId, textOptions, subsEnabled)
+    }
+
+    // CastPlayer ignores the local TrackSelector — push captions onto MediaTracks.
+    LaunchedEffect(isCasting, subsEnabled, selectedTextId, textOptions, source?.subtitles) {
+        if (!isCasting) return@LaunchedEffect
+        syncCastSubtitles()
+    }
+
+    // Local ExoPlayer may already be paused with empty track groups; still list
+    // the source's sidecar captions in the menu while casting.
+    LaunchedEffect(isCasting, source?.subtitles) {
+        if (!isCasting) return@LaunchedEffect
+        val external = source?.subtitles.orEmpty()
+        if (external.isEmpty()) return@LaunchedEffect
+        if (textOptions.any { it.id != "off" && it.id != "auto" }) return@LaunchedEffect
+        textOptions = listOf(
+            TextOption(id = "off", label = "Off"),
+            TextOption(id = "auto", label = "Auto"),
+        ) + external.map { track ->
+            TextOption(
+                id = stableTextId(track.language, track.label),
+                label = track.label.ifBlank { "Subtitles" },
+            )
+        }
     }
 
     LaunchedEffect(selectedVideoId, videoOptions, trackSelector) {
@@ -3338,6 +3393,14 @@ private fun stableTextId(language: String?, label: String): String {
         lang.isNotBlank() && lang != "und" -> "lang:$lang|$normLabel"
         else -> "label:$normLabel"
     }
+}
+
+/** Language code embedded in [stableTextId], or null for off/auto/label-only. */
+private fun languageFromTextOptionId(id: String?): String? {
+    if (id.isNullOrBlank() || id == "off" || id == "auto") return null
+    if (!id.startsWith("lang:")) return null
+    val lang = id.removePrefix("lang:").substringBefore('|').trim().lowercase(Locale.US)
+    return lang.takeIf { it.isNotBlank() && it != "und" }
 }
 
 private fun rematchTextId(previous: String, options: List<TextOption>): String {
