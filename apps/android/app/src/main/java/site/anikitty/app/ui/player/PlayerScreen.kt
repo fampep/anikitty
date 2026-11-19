@@ -678,6 +678,14 @@ fun PlayerScreen(
             startPositionMs.coerceAtLeast(0L)
         }
         castLoadedEpisode = episode
+        if (!sameEpisode) {
+            // Drop the previous item's end so its countdown cannot skip this one.
+            playbackEnded = false
+            autoplayCancelled = false
+            playhead.ms = pos
+            positionMs = pos
+            durationMs = 0L
+        }
         helper.load(
             source = src,
             title = title,
@@ -687,6 +695,8 @@ fun PlayerScreen(
                 latestPlayer?.pause()
                 pushMute()
                 castHint = null
+                playbackEnded = false
+                autoplayCancelled = false
             },
             onError = { message ->
                 castHint = message
@@ -893,17 +903,32 @@ fun PlayerScreen(
             .apply()
     }
 
-    LaunchedEffect(activePlayer, scrubbing, isCasting, nearEndDismissed, playbackEnded, nextTriggered) {
+    LaunchedEffect(activePlayer, scrubbing, isCasting, nearEndDismissed, playbackEnded, nextTriggered, episode) {
         var lastProgressAt = 0L
         var lastSkipKey: String? = null
         var lastMinute = -2
+        // Stale CastPlayer position/duration belong to the previous item until
+        // this episode has buffered or reached ready.
+        var castItemStarted = false
+        var castLeftEnding = false
         val p = activePlayer
         while (p != null) {
             if (!scrubbing) {
-                val pos = p.currentPosition.coerceAtLeast(0L)
-                playhead.ms = pos
-                val d = p.duration
-                if (d > 0 && d != durationMs) durationMs = d
+                val rawPos = p.currentPosition.coerceAtLeast(0L)
+                val rawDur = p.duration
+                if (
+                    isCasting &&
+                    (p.playbackState == Player.STATE_READY || p.playbackState == Player.STATE_BUFFERING)
+                ) {
+                    castItemStarted = true
+                }
+                val trustCastClock = !isCasting || castItemStarted
+                val pos = if (trustCastClock) rawPos else playhead.ms
+                if (trustCastClock) {
+                    playhead.ms = rawPos
+                    if (rawDur > 0 && rawDur != durationMs) durationMs = rawDur
+                }
+                val d = if (trustCastClock) rawDur else 0L
                 val nowPlaying = p.isPlaying
                 if (nowPlaying != playing) playing = nowPlaying
                 val nowReady = p.playbackState == Player.STATE_READY ||
@@ -925,12 +950,15 @@ fun PlayerScreen(
                         playhead.ms = iv.endMs
                     }
                 }
-                val dur = if (d > 0) d else durationMs
+                val dur = if (d > 0) d else if (trustCastClock) durationMs else 0L
+                if (trustCastClock && dur > 0L && pos < dur - 5_000L) castLeftEnding = true
                 // CastPlayer stays IDLE when the item finishes (playWhenReady
-                // still true). Treat that as the episode ending so the 10s
-                // next-episode countdown can run.
+                // still true). Ignore that until this episode has actually played
+                // away from the previous item's ending.
                 if (
                     isCasting &&
+                    castItemStarted &&
+                    castLeftEnding &&
                     !playbackEnded &&
                     dur >= NEAR_END_MIN_DURATION_MS &&
                     pos >= dur - 1_500L &&

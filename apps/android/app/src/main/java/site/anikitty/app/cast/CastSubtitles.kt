@@ -74,6 +74,13 @@ internal fun castActiveTextTrackIds(
 internal fun castPlaybackFinished(playerState: Int, idleReason: Int): Boolean =
     playerState == 1 && idleReason == 1
 
+/**
+ * Leftover [MediaStatus.IDLE_REASON_FINISHED] from the previous item must not
+ * end the load that has not started yet.
+ */
+internal fun castItemEndedAfterStart(sawPlayback: Boolean, playerState: Int, idleReason: Int): Boolean =
+    sawPlayback && castPlaybackFinished(playerState, idleReason)
+
 /** Pick an active text-track id from the live cast session tracks. */
 internal fun castPickTextTrackId(
     tracks: List<MediaTrack>,

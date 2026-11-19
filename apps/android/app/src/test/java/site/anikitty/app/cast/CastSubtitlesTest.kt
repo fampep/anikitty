@@ -35,6 +35,13 @@ class CastSubtitlesTest {
     }
 
     @Test
+    fun leftoverFinishDoesNotEndTheNextLoad() {
+        assertTrue(!castItemEndedAfterStart(sawPlayback = false, playerState = 1, idleReason = 1))
+        assertTrue(castItemEndedAfterStart(sawPlayback = true, playerState = 1, idleReason = 1))
+        assertTrue(!castItemEndedAfterStart(sawPlayback = true, playerState = 2, idleReason = 1))
+    }
+
+    @Test
     fun corsStillAllowsSubtitleFetches() {
         // /sub responses reuse the same CORS lines as the playlist.
         val lines = castRelayCorsLines()

@@ -245,13 +245,20 @@ class CastSessionHelper private constructor(
         endedNotified.set(false)
         statusCallback?.let { previous -> runCatching { client.unregisterCallback(previous) } }
         var baselineIdle = true
+        var sawPlayback = false
         val callback = object : RemoteMediaClient.Callback() {
             override fun onStatusUpdated() {
                 if (closed.get() || ticket != generation.get()) return
                 val status = client.mediaStatus ?: return
+                val started = status.playerState == MediaStatus.PLAYER_STATE_PLAYING ||
+                    status.playerState == MediaStatus.PLAYER_STATE_BUFFERING ||
+                    status.playerState == MediaStatus.PLAYER_STATE_PAUSED
+                if (started) sawPlayback = true
                 if (loadSettled.get()) {
-                    if (castPlaybackFinished(status.playerState, status.idleReason)) {
-                        notifyPlaybackEnded()
+                    // A leftover IDLE_REASON_FINISHED from the previous item is
+                    // still the current status until this load leaves idle.
+                    if (sawPlayback && castPlaybackFinished(status.playerState, status.idleReason)) {
+                        notifyPlaybackEnded(ticket)
                     }
                     return
                 }
@@ -268,10 +275,6 @@ class CastSessionHelper private constructor(
                     MediaStatus.PLAYER_STATE_IDLE -> {
                         if (status.idleReason == MediaStatus.IDLE_REASON_ERROR) {
                             settleError(onError, "Chromecast could not play this stream")
-                        } else if (castPlaybackFinished(status.playerState, status.idleReason)) {
-                            // Finished before the playing status was observed.
-                            settleReady(onReady)
-                            notifyPlaybackEnded()
                         }
                     }
                 }
@@ -290,10 +293,14 @@ class CastSessionHelper private constructor(
         client.registerCallback(callback)
     }
 
-    private fun notifyPlaybackEnded() {
+    private fun notifyPlaybackEnded(ticket: Int) {
         if (!endedNotified.compareAndSet(false, true)) return
         Log.i(TAG, "Cast item finished")
-        main.post { playbackEndedListener?.invoke() }
+        main.post {
+            // A newer load owns the session. Do not end that episode.
+            if (ticket != generation.get() || closed.get()) return@post
+            playbackEndedListener?.invoke()
+        }
     }
 
     private fun settleReady(onReady: () -> Unit) {
