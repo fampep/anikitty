@@ -69,6 +69,35 @@ internal fun castHistoryUpdate(
     }
 }
 
+/**
+ * Progress the cast service should keep after the screen reports a target.
+ * A screen showing a different episode than the receiver clears the saved
+ * target, so a later tick cannot write the wrong row. Switching the matched
+ * episode resets the AniList watermark.
+ */
+internal data class CastProgressCommit(
+    val target: CastProgressTarget?,
+    val reportedThrough: Int,
+)
+
+internal fun commitCastProgress(
+    screen: CastProgressTarget?,
+    playing: CastItemKey?,
+    current: CastProgressTarget?,
+    reportedThrough: Int,
+): CastProgressCommit {
+    if (screen == null || playing == null || !castProgressMatches(screen, playing)) {
+        return CastProgressCommit(target = null, reportedThrough = -1)
+    }
+    val sameEpisode = current != null &&
+        current.anilistId == screen.anilistId &&
+        current.episode == screen.episode
+    return CastProgressCommit(
+        target = screen,
+        reportedThrough = if (sameEpisode) reportedThrough else -1,
+    )
+}
+
 internal fun castProgressMatches(target: CastProgressTarget, item: CastItemKey): Boolean {
     if (target.anilistId <= 0 || item.anilistId <= 0) return false
     return target.anilistId == item.anilistId && target.episode == item.episode

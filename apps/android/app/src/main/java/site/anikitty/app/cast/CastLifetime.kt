@@ -35,6 +35,16 @@ internal fun castForegroundShouldRun(casting: Boolean, loadInFlight: Boolean): B
     casting || loadInFlight
 
 /**
+ * The last screen leaving after the receiver finished should stop the relay.
+ * Another open screen, or a load that has not settled, keeps the session.
+ */
+internal fun castShouldStopWhenScreenDetaches(
+    screensLeft: Int,
+    episodeEnded: Boolean,
+    loadInFlight: Boolean,
+): Boolean = screensLeft == 0 && episodeEnded && !loadInFlight
+
+/**
  * The screen that is leaving must not clear a listener the next screen just set.
  */
 internal class CastListenerSlot<T> {

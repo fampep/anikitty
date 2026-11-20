@@ -93,6 +93,49 @@ class CastLifetimeTest {
     }
 
     @Test
+    fun progressFollowsTheEpisodeTheReceiverIsActuallyPlaying() {
+        val playing = CastItemKey(7, 3, "http://relay/a", "ja")
+        val onThatEpisode = CastProgressTarget(7, "Serial", 3, 12, null)
+        val onALaterEpisode = CastProgressTarget(7, "Serial", 5, 12, null)
+        val kept = commitCastProgress(
+            screen = onThatEpisode,
+            playing = playing,
+            current = onThatEpisode,
+            reportedThrough = 2,
+        )
+        assertEquals(onThatEpisode, kept.target)
+        assertEquals(2, kept.reportedThrough)
+
+        val switched = commitCastProgress(
+            screen = onThatEpisode,
+            playing = playing,
+            current = onALaterEpisode,
+            reportedThrough = 4,
+        )
+        assertEquals(3, switched.target?.episode)
+        assertEquals(-1, switched.reportedThrough)
+
+        val mismatch = commitCastProgress(
+            screen = onALaterEpisode,
+            playing = playing,
+            current = onThatEpisode,
+            reportedThrough = 2,
+        )
+        assertNull(mismatch.target)
+        assertEquals(-1, mismatch.reportedThrough)
+        val noReceiver = commitCastProgress(onThatEpisode, playing = null, onThatEpisode, 2)
+        assertNull(noReceiver.target)
+    }
+
+    @Test
+    fun theLastScreenLeavingAfterTheCreditsStopsTheRelay() {
+        assertTrue(castShouldStopWhenScreenDetaches(screensLeft = 0, episodeEnded = true, loadInFlight = false))
+        assertFalse(castShouldStopWhenScreenDetaches(screensLeft = 1, episodeEnded = true, loadInFlight = false))
+        assertFalse(castShouldStopWhenScreenDetaches(screensLeft = 0, episodeEnded = true, loadInFlight = true))
+        assertFalse(castShouldStopWhenScreenDetaches(screensLeft = 0, episodeEnded = false, loadInFlight = false))
+    }
+
+    @Test
     fun anEpisodeSwitchKeepsTheNewCastListener() {
         val slot = CastListenerSlot<String>()
         slot.set("episode-1")
