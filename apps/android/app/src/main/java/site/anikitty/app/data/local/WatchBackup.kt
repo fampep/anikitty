@@ -63,6 +63,7 @@ internal data class WatchProgressMerge(
     val updated: Int,
     val kept: Int,
     val writes: List<WatchHistoryEntity>,
+    val skipped: Int = 0,
 )
 
 private const val WATCH_BACKUP_MAX_CHARS = 2_000_000
@@ -151,9 +152,55 @@ internal fun mergeWatchProgress(
     return WatchProgressMerge(added, updated, kept, writes)
 }
 
+/**
+ * Merge each backup row against the row stored now, then write that result.
+ * Callers must pass a fresh read. A Compose snapshot is not a safe source:
+ * a playhead can move while the file picker is open, and writing the old row
+ * back would roll it over.
+ */
+internal suspend fun applyWatchImport(
+    entries: List<WatchProgressBackupEntry>,
+    current: suspend (Int) -> WatchHistoryEntity?,
+    write: suspend (WatchHistoryEntity) -> Unit,
+    skip: (Int) -> Boolean,
+): WatchProgressMerge {
+    var added = 0
+    var updated = 0
+    var kept = 0
+    var skipped = 0
+    val writes = ArrayList<WatchHistoryEntity>()
+    for (entry in entries) {
+        if (skip(entry.anilistId)) {
+            skipped++
+            continue
+        }
+        val before = current(entry.anilistId)
+        val after = mergedWatchEntry(before, entry)
+        when {
+            before == null -> {
+                added++
+                writes += after
+                write(after)
+            }
+            watchProgressDiffers(before, after) -> {
+                updated++
+                writes += after
+                write(after)
+            }
+            after != before -> {
+                kept++
+                writes += after
+                write(after)
+            }
+            else -> kept++
+        }
+    }
+    return WatchProgressMerge(added, updated, kept, writes, skipped)
+}
+
 internal fun watchImportSummary(added: Int, updated: Int, kept: Int, skipped: Int): String {
     if (added == 0 && updated == 0 && kept == 0) {
-        return "No watch progress found in that file"
+        return if (skipped > 0) "Skipped $skipped" else "No watch progress found in that file"
     }
     val lead = if (added == 0 && updated == 0) {
         "Nothing to change"

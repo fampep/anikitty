@@ -3,9 +3,12 @@
 
 package site.anikitty.app.data.local
 
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import site.anikitty.app.data.demo.DemoLibrary
 
 class WatchBackupTest {
     @Test
@@ -103,10 +106,68 @@ class WatchBackupTest {
         )
         assertEquals(0, skipped!!.entries.size)
         assertEquals(2, skipped.skipped)
-        assertEquals(
-            "No watch progress found in that file",
-            watchImportSummary(0, 0, 0, skipped.skipped),
+        assertEquals("Skipped 2", watchImportSummary(0, 0, 0, skipped.skipped))
+        assertEquals("No watch progress found in that file", watchImportSummary(0, 0, 0, 0))
+    }
+
+    @Test
+    fun importUsesTheStoredRowSoALaterPlayheadIsNotReplaced() = runBlocking {
+        val storedNow = row(
+            episode = 9,
+            positionMs = 50_000L,
+            updatedAtEpochMs = 200,
+            cover = "https://cover",
         )
+        var stored: WatchHistoryEntity? = storedNow
+        val merge = applyWatchImport(
+            entries = listOf(entry(episode = 4, positionMs = 1_000L, updatedAtEpochMs = 150)),
+            current = { stored },
+            write = { stored = it },
+            skip = { false },
+        )
+        assertEquals(0, merge.updated)
+        assertTrue(merge.writes.isEmpty())
+        assertEquals(9, stored!!.episode)
+        assertEquals(50_000L, stored!!.positionMs)
+        assertEquals("https://cover", stored!!.coverImageUrl)
+    }
+
+    @Test
+    fun fillingMalIdWritesTheFreshRow() = runBlocking {
+        var stored: WatchHistoryEntity? = row(
+            episode = 8,
+            positionMs = 40_000L,
+            updatedAtEpochMs = 200,
+            cover = "https://cover",
+            malId = null,
+        )
+        applyWatchImport(
+            entries = listOf(entry(episode = 3, positionMs = 1_000L, updatedAtEpochMs = 100, malId = 12)),
+            current = { stored },
+            write = { stored = it },
+            skip = { false },
+        )
+        assertEquals(8, stored!!.episode)
+        assertEquals(40_000L, stored!!.positionMs)
+        assertEquals(200L, stored!!.updatedAtEpochMs)
+        assertEquals("https://cover", stored!!.coverImageUrl)
+        assertEquals(12, stored!!.malId)
+    }
+
+    @Test
+    fun demoTitlesAreNotWrittenIntoHistory() = runBlocking {
+        val demoId = DemoLibrary.harbor.id
+        var writes = 0
+        val merge = applyWatchImport(
+            entries = listOf(entry(episode = 4, positionMs = 1_000L, updatedAtEpochMs = 10).copy(anilistId = demoId)),
+            current = { null },
+            write = { writes++ },
+            skip = { DemoLibrary.find(it) != null },
+        )
+        assertEquals(0, writes)
+        assertEquals(0, merge.added)
+        assertEquals(1, merge.skipped)
+        assertEquals(910001, demoId)
     }
 
     @Test

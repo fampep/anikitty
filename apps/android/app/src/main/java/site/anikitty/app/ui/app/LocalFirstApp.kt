@@ -3,6 +3,7 @@
 
 package site.anikitty.app.ui.app
 
+import androidx.room.withTransaction
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -215,7 +216,9 @@ import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyMuted
-import site.anikitty.app.data.local.mergeWatchProgress
+import site.anikitty.app.AnikittyApp
+import site.anikitty.app.data.demo.DemoLibrary
+import site.anikitty.app.data.local.applyWatchImport
 import site.anikitty.app.data.local.readWatchProgressBackup
 import site.anikitty.app.data.local.shareWatchProgress
 import site.anikitty.app.data.local.watchImportSummary
@@ -677,9 +680,21 @@ fun LocalFirstApp(
                         if (demo) return@import "Import doesn't change the demo library"
                         val file = readWatchProgressBackup(raw)
                             ?: return@import "That file isn't an AniKitty watch backup"
-                        val merge = mergeWatchProgress(history, file.entries)
-                        merge.writes.forEach { historyDao.upsert(it) }
-                        watchImportSummary(merge.added, merge.updated, merge.kept, file.skipped)
+                        val database = (context.applicationContext as AnikittyApp).database
+                        val merge = database.withTransaction {
+                            applyWatchImport(
+                                entries = file.entries,
+                                current = { historyDao.get(it) },
+                                write = { historyDao.upsert(it) },
+                                skip = { DemoLibrary.find(it) != null },
+                            )
+                        }
+                        watchImportSummary(
+                            merge.added,
+                            merge.updated,
+                            merge.kept,
+                            file.skipped + merge.skipped,
+                        )
                     },
                 )
             }
