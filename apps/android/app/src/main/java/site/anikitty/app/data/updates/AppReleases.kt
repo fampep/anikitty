@@ -10,7 +10,10 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -231,6 +234,71 @@ fun sideloadUpdate(
 }
 
 private val DEV_NUMBER = Regex("""-dev\.(\d+)""")
+
+/**
+ * One release list for the whole process. Home throws its banner away on scroll
+ * and when a title opens, and App builds asks for the same list. Sharing this
+ * keeps both screens from calling GitHub on every visit.
+ */
+class AppReleaseListCache(
+    private val freshForMs: Long = FRESH_FOR_MS,
+    private val retryAfterFailureMs: Long = RETRY_AFTER_FAILURE_MS,
+    private val clock: () -> Long = System::currentTimeMillis,
+) {
+    private val gate = Mutex()
+    private val stateLock = Any()
+    private var snapshot: List<PublishedBuild>? = null
+    private var fetchedAtMs: Long = 0L
+    private var failedAtMs: Long? = null
+
+    /** The last successful list, while it is still fresh enough to show immediately. */
+    fun peek(): List<PublishedBuild>? = synchronized(stateLock) {
+        snapshot?.takeIf { clock() - fetchedAtMs < freshForMs }
+    }
+
+    /**
+     * Returns the shared list. A fresh list is reused. A recent failure is not
+     * retried until [retryAfterFailureMs]. [force] is the explicit Try again path.
+     * Null means there is nothing to show and the caller should stay quiet.
+     */
+    suspend fun load(
+        force: Boolean = false,
+        fetch: suspend () -> List<PublishedBuild>,
+    ): List<PublishedBuild>? {
+        if (!force) peek()?.let { return it }
+        return gate.withLock {
+            if (!force) {
+                peek()?.let { return@withLock it }
+                if (coolingDown()) return@withLock synchronized(stateLock) { snapshot }
+            }
+            try {
+                val loaded = fetch()
+                synchronized(stateLock) {
+                    snapshot = loaded
+                    fetchedAtMs = clock()
+                    failedAtMs = null
+                }
+                loaded
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                synchronized(stateLock) { failedAtMs = clock() }
+                throw error
+            }
+        }
+    }
+
+    private fun coolingDown(): Boolean = synchronized(stateLock) {
+        failedAtMs?.let { clock() - it < retryAfterFailureMs } == true
+    }
+
+    companion object {
+        const val FRESH_FOR_MS = 15 * 60 * 1000L
+        const val RETRY_AFTER_FAILURE_MS = 2 * 60 * 1000L
+    }
+}
+
+val appReleaseListCache = AppReleaseListCache()
 
 private fun JSONArray?.apkUrl(): String? {
     if (this == null) return null

@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
 import site.anikitty.app.BuildConfig
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.updates.AppReleaseClient
+import site.anikitty.app.data.updates.appReleaseListCache
 import site.anikitty.app.data.updates.BuildChannel
 import site.anikitty.app.data.updates.BuildChannelStore
 import site.anikitty.app.data.updates.InstallDecision
@@ -90,7 +91,8 @@ import java.util.Locale
 
 /**
  * Home notice when the user's channel has a newer sideload build.
- * Uses the same channel split as [BuildChannelPage].
+ * Uses the same channel split as [BuildChannelPage], and the shared release list
+ * so leaving home or scrolling the row away does not fetch GitHub again.
  */
 @Composable
 fun SideloadUpdateBanner(onOpen: () -> Unit) {
@@ -99,12 +101,17 @@ fun SideloadUpdateBanner(onOpen: () -> Unit) {
     val store = remember { BuildChannelStore(context) }
     val client = remember { AppReleaseClient() }
     val installed = BuildConfig.VERSION_NAME
+    var hiddenVersion by remember { mutableStateOf<String?>(null) }
+    var releases by remember { mutableStateOf(appReleaseListCache.peek()) }
     val channel = selectedBuildChannel(store.get(), installed)
-    var offer by remember { mutableStateOf<PublishedBuild?>(null) }
-    LaunchedEffect(channel) {
-        val dismissed = store.dismissedUpdate()
-        val releases = runCatching { client.load() }.getOrNull() ?: return@LaunchedEffect
-        offer = sideloadUpdate(installed, channel, releases, dismissed)
+    val offer = releases?.let {
+        sideloadUpdate(installed, channel, it, hiddenVersion ?: store.dismissedUpdate())
+    }
+    LaunchedEffect(Unit) {
+        if (releases != null) return@LaunchedEffect
+        runCatching { appReleaseListCache.load { client.load() } }
+            .getOrNull()
+            ?.let { releases = it }
     }
     val build = offer ?: return
     val label = if (channel == BuildChannel.Dev) "dev" else "stable"
@@ -148,7 +155,7 @@ fun SideloadUpdateBanner(onOpen: () -> Unit) {
         IconButton(
             onClick = {
                 store.dismissUpdate(build.versionName)
-                offer = null
+                hiddenVersion = build.versionName
             },
         ) {
             Icon(Icons.Rounded.Close, contentDescription = "Dismiss update", tint = palette.muted)
@@ -181,25 +188,28 @@ fun BuildChannelPage(onBack: () -> Unit) {
     var channel by remember {
         mutableStateOf(selectedBuildChannel(store.get(), installed))
     }
-    var releases by remember { mutableStateOf<List<PublishedBuild>>(emptyList()) }
-    var loading by remember { mutableStateOf(true) }
+    var releases by remember { mutableStateOf(appReleaseListCache.peek().orEmpty()) }
+    var loading by remember { mutableStateOf(releases.isEmpty()) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var progress by remember { mutableIntStateOf(-1) }
     var notice by remember { mutableStateOf<String?>(null) }
     var replaceUrl by remember { mutableStateOf<String?>(null) }
 
-    fun reload() {
-        loading = true
+    fun reload(force: Boolean = false) {
+        loading = force || releases.isEmpty()
         error = null
         scope.launch {
-            runCatching { client.load() }
-                .onSuccess {
-                    releases = it
+            runCatching { appReleaseListCache.load(force) { client.load() } }
+                .onSuccess { loaded ->
+                    if (loaded != null) releases = loaded
+                    else if (releases.isEmpty()) error = "Couldn't load releases"
                     loading = false
                 }
                 .onFailure {
-                    error = friendlyFailure(it.message ?: "Couldn't load releases")
+                    if (releases.isEmpty() || force) {
+                        error = friendlyFailure(it.message ?: "Couldn't load releases")
+                    }
                     loading = false
                 }
         }
@@ -288,7 +298,7 @@ fun BuildChannelPage(onBack: () -> Unit) {
             error != null -> item {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(error ?: "Couldn't load releases", color = KittyText, fontSize = 14.sp)
-                    OutlinedButton(onClick = { reload() }) {
+                    OutlinedButton(onClick = { reload(force = true) }) {
                         Text("Try again", color = KittyText)
                     }
                 }
