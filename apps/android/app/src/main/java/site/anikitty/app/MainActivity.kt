@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import site.anikitty.app.cast.CastHardwareVolume
 import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.ui.app.AppRoot
+import site.anikitty.app.ui.player.PipAutoEnter
 import site.anikitty.app.ui.theme.AniKittyTheme
 
 /** AppCompatActivity so Chromecast MediaRouteButton / dialogs inflate correctly. */
@@ -60,6 +61,11 @@ class MainActivity : AppCompatActivity() {
         if (intent.getBooleanExtra(EXTRA_DEMO, false)) requestDemo = true
         if (intent.getBooleanExtra(EXTRA_BROWSE, false)) requestBrowse = true
         consumeOAuthIntent(intent)
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        PipAutoEnter.onUserLeaveHint(this)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
