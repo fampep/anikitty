@@ -106,6 +106,7 @@ import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastHardwareVolume
 import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.cast.castAttachPositionMs
+import site.anikitty.app.cast.castClientRetryDelayMs
 import site.anikitty.app.cast.reduceCastAttach
 import site.anikitty.app.cast.safeSeekTarget
 import site.anikitty.app.ui.components.EpisodeCarousel
@@ -359,6 +360,8 @@ fun PlayerScreen(
     var castSentPositionMs by remember { mutableLongStateOf(-1L) }
     /** Bumped when a load starts before the receiver client exists, so attach retries. */
     var castClientRetry by remember { mutableIntStateOf(0) }
+    /** The receiver client never appeared. Further retries stay off and the phone plays. */
+    var castClientGaveUp by remember { mutableStateOf(false) }
     // Next-episode UX: soft offer near the end, then 10s autoplay once ended.
     var nearEndDismissed by remember(episode) { mutableStateOf(false) }
     var playbackEnded by remember(episode) { mutableStateOf(false) }
@@ -604,10 +607,43 @@ fun PlayerScreen(
         resumeAtMs = resumeAtMs,
         startPositionMs = latestStartPositionMs,
         allowHistoryFallback = latestAllowHistory,
+        // An attach that started at 0 is still waiting for history. Playback
+        // that ran from the start during connect must not hide that resume.
+        pendingResume = !didSeekStart && latestAllowHistory && castSentPositionMs <= 1_500L,
     )
+
+    fun abandonCastToPhone(local: Player?) {
+        castClientGaveUp = true
+        castPending = false
+        castAttachStarted = false
+        castLoadedKey = null
+        castHint = "Chromecast is not connected"
+        isCasting = false
+        pushMute()
+        local?.play()
+    }
+
+    fun scheduleCastClientRetry(local: Player?) {
+        val next = castClientRetry + 1
+        castAttachStarted = false
+        castLoadedKey = null
+        if (castClientGaveUp || castClientRetryDelayMs(next) == null) {
+            abandonCastToPhone(local)
+        } else {
+            castHint = "Connecting to your TV"
+            castPending = true
+            castClientRetry = next
+        }
+    }
 
     fun loadOntoCast(helper: CastSessionHelper, src: PlayableSource) {
         val local = latestPlayer
+        if (!helper.isSessionAvailable()) {
+            // No receiver client: do not prepare the relay. That missing client
+            // is what made the previous retry call straight back into load.
+            scheduleCastClientRetry(local)
+            return
+        }
         val pos = castPlayhead()
         castSentPositionMs = pos
         local?.pause()
@@ -622,25 +658,20 @@ fun PlayerScreen(
             episode = latestEpisode,
             positionMs = pos,
             onReady = {
+                castClientRetry = 0
+                castClientGaveUp = false
                 local?.pause()
                 pushMute()
                 isCasting = true
                 castHint = null
             },
             onError = { message ->
-                val retrying = message == "Chromecast is not connected"
-                castHint = if (retrying) "Connecting to your TV" else message
                 isCasting = false
                 pushMute()
-                if (retrying) {
-                    // The session was visible before the receiver client existed.
-                    // Drop the in-flight flag and ask the attach effect to try again.
-                    // Leave the phone paused so it does not play over a session that is still coming up.
-                    castAttachStarted = false
-                    castLoadedKey = null
-                    castPending = true
-                    castClientRetry += 1
+                if (message == "Chromecast is not connected") {
+                    scheduleCastClientRetry(local)
                 } else {
+                    castHint = message
                     local?.play()
                 }
             },
@@ -663,6 +694,11 @@ fun PlayerScreen(
         if (!decision.loadStarted) castLoadedKey = null
         if (!decision.load) return
         val helper = castHelper ?: return
+        if (!helper.isSessionAvailable()) {
+            castAttachStarted = false
+            castPending = true
+            return
+        }
         val src = latestSources.getOrNull(latestSourceIndex) ?: return
         castLoadedKey = key
         loadOntoCast(helper, src)
@@ -694,6 +730,11 @@ fun PlayerScreen(
             }
             helper.setAvailabilityListener(object : SessionAvailabilityListener {
                 override fun onCastSessionAvailable() {
+                    if (!helper.isSessionAvailable()) {
+                        castPending = true
+                        return
+                    }
+                    castClientGaveUp = false
                     applyCastAttach(sessionUp = true)
                 }
 
@@ -702,6 +743,8 @@ fun PlayerScreen(
                     castAttachStarted = false
                     castLoadedKey = null
                     castSentPositionMs = -1L
+                    castClientRetry = 0
+                    castClientGaveUp = false
                     val pos = runCatching {
                         helper.castPlayer.currentPosition.coerceAtLeast(0L)
                     }.getOrDefault(latestPosition.ms)
@@ -740,45 +783,58 @@ fun PlayerScreen(
         episode,
         castClientRetry,
     ) {
+        if (castClientGaveUp) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect
-        val readyNow = helper.isSessionAvailable()
-        val connecting = helper.isSessionConnecting()
-        if (!castPending && !readyNow && !connecting) return@LaunchedEffect
-        if (!readyNow && connecting) {
+        val wait = if (castClientRetry > 0) castClientRetryDelayMs(castClientRetry) else null
+        if (castClientRetry > 0 && wait == null) {
+            abandonCastToPhone(latestPlayer)
+            return@LaunchedEffect
+        }
+        if (wait != null) delay(wait)
+        if (castClientGaveUp) return@LaunchedEffect
+        if (!helper.isSessionAvailable()) {
+            val connecting = helper.isSessionConnecting()
+            if (!castPending && !connecting) return@LaunchedEffect
             castPending = true
-            repeat(20) {
-                delay(250)
+            repeat(10) {
+                delay(500)
+                if (castClientGaveUp) return@LaunchedEffect
                 if (helper.isSessionAvailable()) {
                     applyCastAttach(sessionUp = true)
                     return@LaunchedEffect
                 }
-                if (!helper.isSessionConnecting()) return@LaunchedEffect
+                if (!helper.isSessionConnecting() && !castPending) return@LaunchedEffect
             }
+            if (!helper.isSessionAvailable()) abandonCastToPhone(latestPlayer)
             return@LaunchedEffect
         }
-        if (!readyNow) return@LaunchedEffect
         applyCastAttach(sessionUp = true)
     }
 
     // Watch history often arrives after the first composition. An attach that
-    // already started at 0 must still pick up that saved playhead.
+    // already started at 0 still takes that saved playhead, even if the phone
+    // or the TV has been playing from the start for a few seconds.
     LaunchedEffect(startPositionMs, resumeAtMs) {
         if (!castAttachStarted) return@LaunchedEffect
-        val target = castPlayhead()
+        if (castSentPositionMs > 1_500L) return@LaunchedEffect
+        val target = castAttachPositionMs(
+            localPositionMs = latestPlayer?.currentPosition?.takeIf { it > 0L } ?: latestPosition.ms,
+            resumeAtMs = resumeAtMs,
+            startPositionMs = latestStartPositionMs,
+            allowHistoryFallback = latestAllowHistory,
+            pendingResume = true,
+        )
         if (target <= 1_500L) return@LaunchedEffect
         if (castSentPositionMs >= 0L && target <= castSentPositionMs + 1_500L) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect
         if (isCasting) {
-            val castPos = runCatching {
-                helper.castPlayer.currentPosition.coerceAtLeast(0L)
-            }.getOrDefault(0L)
-            if (castPos > 2_000L) return@LaunchedEffect
             helper.castPlayer.seekTo(safeSeekTarget(target, helper.castPlayer.duration, durationMs))
             castSentPositionMs = target
             positionMs = target
             playhead.ms = target
             return@LaunchedEffect
         }
+        if (!helper.isSessionAvailable()) return@LaunchedEffect
         val src = latestSources.getOrNull(latestSourceIndex) ?: return@LaunchedEffect
         castLoadedKey = castSourceKey()
         loadOntoCast(helper, src)

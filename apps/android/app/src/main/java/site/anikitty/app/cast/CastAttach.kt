@@ -22,18 +22,30 @@ internal enum class CastSessionReadiness {
 }
 
 /**
- * `isConnected` can be true before [remoteMediaClient] exists. Attaching then
- * fails, and the later availability callback is easy to drop. Wait until the
- * client (or CastPlayer) is actually ready.
+ * Ready means the receiver [remoteMediaClient] exists. CastPlayer can report
+ * the session as available, and the session can be connected, before that
+ * client exists. Loading then fails and must not be treated as a reason to
+ * load again immediately.
  */
 internal fun castSessionReadiness(
     connected: Boolean,
     hasRemoteClient: Boolean,
     playerSessionAvailable: Boolean,
 ): CastSessionReadiness {
-    if (hasRemoteClient || playerSessionAvailable) return CastSessionReadiness.Ready
-    if (connected) return CastSessionReadiness.Connecting
+    if (hasRemoteClient) return CastSessionReadiness.Ready
+    if (connected || playerSessionAvailable) return CastSessionReadiness.Connecting
     return CastSessionReadiness.Down
+}
+
+/** How many times to retry a load that failed because the receiver client was missing. */
+internal const val CAST_CLIENT_RETRY_LIMIT = 3
+
+/**
+ * Backoff before retry [attempt] (1-based). Null means stop and play on the phone.
+ */
+internal fun castClientRetryDelayMs(attempt: Int): Long? {
+    if (attempt !in 1..CAST_CLIENT_RETRY_LIMIT) return null
+    return 400L shl (attempt - 1)
 }
 
 internal fun reduceCastAttach(
@@ -61,19 +73,23 @@ internal fun reduceCastAttach(
 }
 
 /**
- * Playhead to send when attaching. A local player that has not started
- * reports 0; the saved resume must win until playback has actually moved.
- * A live position past a couple of seconds is the one the person is watching.
+ * Playhead to send when attaching. A resume that is still pending wins even
+ * if the phone has been playing from the start for a few seconds. A live
+ * playhead wins only after that resume has been applied, or history is no
+ * longer allowed.
  */
 internal fun castAttachPositionMs(
     localPositionMs: Long,
     resumeAtMs: Long,
     startPositionMs: Long,
     allowHistoryFallback: Boolean,
+    pendingResume: Boolean = false,
 ): Long {
     val local = localPositionMs.coerceAtLeast(0L)
-    if (local > 2_000L) return local
     val resume = resumeAtMs.coerceAtLeast(0L)
     val history = if (allowHistoryFallback) startPositionMs.coerceAtLeast(0L) else 0L
-    return maxOf(local, resume, history)
+    val saved = maxOf(resume, history)
+    if (pendingResume && saved > 0L) return saved
+    if (local > 2_000L) return local
+    return maxOf(local, saved)
 }

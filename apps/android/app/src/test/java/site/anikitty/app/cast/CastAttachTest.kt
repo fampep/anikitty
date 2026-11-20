@@ -152,6 +152,20 @@ class CastAttachTest {
     }
 
     @Test
+    fun pendingResumeBeatsPlaybackThatRanFromTheStart() {
+        assertEquals(
+            90_000L,
+            castAttachPositionMs(
+                localPositionMs = 5_000L,
+                resumeAtMs = 0L,
+                startPositionMs = 90_000L,
+                allowHistoryFallback = true,
+                pendingResume = true,
+            ),
+        )
+    }
+
+    @Test
     fun historyIsIgnoredAfterThePersonMovedOn() {
         assertEquals(
             0L,
@@ -177,7 +191,7 @@ class CastAttachTest {
     }
 
     @Test
-    fun aRemoteClientOrCastPlayerIsReady() {
+    fun aRemoteClientIsReady() {
         assertEquals(
             CastSessionReadiness.Ready,
             castSessionReadiness(
@@ -186,14 +200,27 @@ class CastAttachTest {
                 playerSessionAvailable = false,
             ),
         )
+    }
+
+    @Test
+    fun castPlayerWithoutAClientIsStillConnecting() {
         assertEquals(
-            CastSessionReadiness.Ready,
+            CastSessionReadiness.Connecting,
             castSessionReadiness(
                 connected = false,
                 hasRemoteClient = false,
                 playerSessionAvailable = true,
             ),
         )
+    }
+
+    @Test
+    fun clientRetriesBackOffThenStop() {
+        assertEquals(400L, castClientRetryDelayMs(1))
+        assertEquals(800L, castClientRetryDelayMs(2))
+        assertEquals(1_600L, castClientRetryDelayMs(3))
+        assertEquals(null, castClientRetryDelayMs(4))
+        assertEquals(null, castClientRetryDelayMs(0))
     }
 
     @Test

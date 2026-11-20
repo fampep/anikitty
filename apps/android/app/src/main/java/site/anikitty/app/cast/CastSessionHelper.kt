@@ -93,14 +93,13 @@ class CastSessionHelper private constructor(
     }.getOrDefault(CastSessionReadiness.Down)
 
     /**
-     * True when a Chromecast can take a load right now. Opening the player
-     * must load onto it even if the availability callback already fired.
-     * A session that is only [com.google.android.gms.cast.framework.CastSession.isConnected]
-     * is not enough: the receiver client may still be missing.
+     * True only when the receiver media client exists. CastPlayer's session
+     * flag and [com.google.android.gms.cast.framework.CastSession.isConnected]
+     * can both be true before that client is ready to load.
      */
     fun isSessionAvailable(): Boolean = readiness() == CastSessionReadiness.Ready
 
-    /** Connected, but the receiver client is not ready to load yet. */
+    /** Session is up, or CastPlayer says so, but the receiver client is not ready yet. */
     fun isSessionConnecting(): Boolean = readiness() == CastSessionReadiness.Connecting
 
     /**
