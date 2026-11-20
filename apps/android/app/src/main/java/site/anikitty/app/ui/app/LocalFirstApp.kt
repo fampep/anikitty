@@ -1801,20 +1801,28 @@ internal fun forYouBecause(titles: List<String>): String? {
  * When the summary has no episode total, look it up so the last episode can
  * complete the list.
  */
+/**
+ * Sends the finished count to AniList.
+ * Returns the list status that was saved, or null when nothing was saved.
+ * The title page uses that status so the My List chip matches the list.
+ */
 private suspend fun pushFinishedEpisode(
     aniList: AniListClient,
     aniListSync: AniListSync,
     anime: AnimeSummary,
     finished: Int,
-) {
-    if (site.anikitty.app.data.demo.DemoLibrary.find(anime.id) != null) return
+): String? {
+    if (site.anikitty.app.data.demo.DemoLibrary.find(anime.id) != null) return null
     val total = anime.episodes?.takeIf { it > 0 }
         ?: runCatching { aniList.media(anime.id)?.episodes?.takeIf { it > 0 } }.getOrNull()
-    aniListSync.pushProgress(
+    val saved = aniListSync.pushProgress(
         anilistId = anime.id,
         episode = finished,
         totalEpisodes = total,
     )
+    if (!saved) return null
+    val completed = total != null && finished >= total
+    return if (completed) "COMPLETED" else "CURRENT"
 }
 
 private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
@@ -3392,7 +3400,11 @@ private fun TitleDetailScreen(
                     val finished = historyDao.markEpisode(detail, number)
                     lastWatchedEp = historyDao.get(detail.id)?.episode ?: lastWatchedEp
                     if (finished != null && aniListAuth.isLinked) {
-                        pushFinishedEpisode(aniList, aniListSync, detail, finished)
+                        val savedStatus = pushFinishedEpisode(aniList, aniListSync, detail, finished)
+                        if (savedStatus != null) {
+                            listStatus = savedStatus
+                            listBadge = listStatusBadge(savedStatus)
+                        }
                     }
                 }
             }
