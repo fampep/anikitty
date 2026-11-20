@@ -9,10 +9,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import site.anikitty.app.data.download.EpisodeDownloadDao
+import site.anikitty.app.data.download.EpisodeDownloadEntity
 
 @Database(
-    entities = [WatchHistoryEntity::class, PendingAniListPush::class],
-    version = 3,
+    entities = [WatchHistoryEntity::class, PendingAniListPush::class, EpisodeDownloadEntity::class],
+    version = 4,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -20,7 +22,33 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun pendingAniListPushDao(): PendingAniListPushDao
 
+    abstract fun episodeDownloadDao(): EpisodeDownloadDao
+
     companion object {
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `episode_download` (
+                        `anilistId` INTEGER NOT NULL,
+                        `episode` INTEGER NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `url` TEXT NOT NULL,
+                        `headersJson` TEXT NOT NULL,
+                        `hls` INTEGER NOT NULL,
+                        `stripBytes` INTEGER NOT NULL,
+                        `phase` TEXT NOT NULL,
+                        `progressPercent` INTEGER NOT NULL,
+                        `localPath` TEXT,
+                        `error` TEXT,
+                        `updatedAtEpochMs` INTEGER NOT NULL,
+                        PRIMARY KEY(`anilistId`, `episode`)
+                    )
+                    """.trimIndent(),
+                )
+            }
+        }
+
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -38,7 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun create(context: Context): AppDatabase =
             Room.databaseBuilder(context, AppDatabase::class.java, "anikitty-local.db")
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigration()
                 .build()
     }

@@ -56,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
@@ -185,6 +186,10 @@ internal fun PlayerEpisodeShelf(
     qualitySelected: Boolean = false,
     audioSelected: Boolean = false,
     episodesSelected: Boolean = false,
+    downloadLabel: String? = null,
+    downloadEnabled: Boolean = false,
+    onDownload: () -> Unit = {},
+    onRemoveDownload: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val showGrid = !isMovie && totalEpisodes > 1
@@ -201,6 +206,37 @@ internal fun PlayerEpisodeShelf(
         if (marks.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 marks.forEach { PlayerMetaPill(it) }
+            }
+        }
+        if (downloadLabel != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Text(
+                    text = downloadLabel,
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(enabled = downloadEnabled, role = Role.Button) { onDownload() }
+                        .padding(horizontal = 4.dp, vertical = 8.dp),
+                )
+                if (onRemoveDownload != null) {
+                    Text(
+                        text = "Remove",
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontSize = 15.sp,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(role = Role.Button) { onRemoveDownload() }
+                            .padding(horizontal = 4.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
         Row(
