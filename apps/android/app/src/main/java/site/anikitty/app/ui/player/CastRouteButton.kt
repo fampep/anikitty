@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -39,13 +40,14 @@ fun CastRouteButton(
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = null,
+                    role = Role.Button,
                     onClick = { onUnavailable(unavailable) },
                 ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Outlined.Cast,
-                contentDescription = "Cast. $unavailable",
+                contentDescription = castButtonDescription(unavailable),
                 tint = Color.White.copy(alpha = 0.38f),
                 modifier = Modifier.size(22.dp),
             )
@@ -56,7 +58,7 @@ fun CastRouteButton(
         factory = { ctx ->
             val themed = ContextThemeWrapper(ctx, R.style.Theme_AniKitty_CastButton)
             MediaRouteButton(themed).also { button ->
-                button.contentDescription = "Cast"
+                button.contentDescription = castButtonDescription(null)
                 runCatching {
                     CastButtonFactory.setUpMediaRouteButton(themed, button)
                 }

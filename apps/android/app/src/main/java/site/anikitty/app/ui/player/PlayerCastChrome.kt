@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +63,9 @@ internal fun CastStatusBadge(
             .clip(shape)
             .background(Color.Black.copy(alpha = 0.72f))
             .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
+            .clearAndSetSemantics {
+                contentDescription = castStatusDescription(buffering, isMovie, episode, title)
+            }
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
