@@ -193,6 +193,23 @@ import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import site.anikitty.app.AnikittyApp
+import site.anikitty.app.data.download.DOWNLOAD_USER_AGENT
+import site.anikitty.app.data.download.EpisodeDownloadEntity
+import site.anikitty.app.data.download.EpisodeDownloads
+import site.anikitty.app.data.download.cacheDataSourceFactory
+import site.anikitty.app.data.download.DownloadPhase
+import site.anikitty.app.data.download.downloadStatus
+import site.anikitty.app.data.download.encodeHeaders
+import site.anikitty.app.data.download.playbackSavedEpisode
+import site.anikitty.app.data.download.resolvedStripBytes
+import site.anikitty.app.data.download.savedLocalFile
+import site.anikitty.app.data.download.savedMatches
+import site.anikitty.app.data.download.shouldRefreshSavedUrl
+import site.anikitty.app.data.download.sourceForPlayback
+import site.anikitty.app.data.download.sourceKey
+import site.anikitty.app.data.download.toSaved
+import site.anikitty.app.data.download.usesHlsCache
 import site.anikitty.app.data.friendlyFailure
 import site.anikitty.app.data.servers.GotakuObfDataSource
 import site.anikitty.app.data.servers.FlixUnwrapDataSource
@@ -380,6 +397,48 @@ fun PlayerScreen(
     var sleepNote by remember { mutableStateOf<String?>(null) }
 
     val source = sources.getOrNull(sourceIndex)
+    val downloadDao = remember {
+        (context.applicationContext as AnikittyApp).database.episodeDownloadDao()
+    }
+    var savedRow by remember(anilistId, episode) { mutableStateOf<EpisodeDownloadEntity?>(null) }
+    var downloadSeen by remember(anilistId, episode) { mutableStateOf(false) }
+    LaunchedEffect(anilistId, episode) {
+        downloadDao.observe(anilistId, episode).collect { row ->
+            savedRow = row
+            downloadSeen = true
+        }
+    }
+    val sourceKeyNow = source?.let(::sourceKey)
+    var sessionStartedOffline by remember(anilistId, episode, sourceKeyNow) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(downloadSeen, anilistId, episode, sourceKeyNow) {
+        if (!downloadSeen || source == null || sessionStartedOffline != null) return@LaunchedEffect
+        val saved = savedRow?.toSaved()
+        sessionStartedOffline = saved != null &&
+            savedMatches(saved, source) &&
+            saved.phase == DownloadPhase.READY &&
+            (saved.hls || savedLocalFile(source, saved) != null)
+    }
+    LaunchedEffect(savedRow?.url, savedRow?.phase, source?.url) {
+        val row = savedRow ?: return@LaunchedEffect
+        val current = source ?: return@LaunchedEffect
+        val saved = row.toSaved()
+        if (!shouldRefreshSavedUrl(current, saved)) return@LaunchedEffect
+        downloadDao.refreshReadyFileUrl(
+            anilistId = row.anilistId,
+            episode = row.episode,
+            sourceKey = row.sourceKey,
+            url = current.url,
+            headersJson = encodeHeaders(current.headers),
+        )
+    }
+    val playbackSaved = if (downloadSeen && sessionStartedOffline != null && source != null) {
+        playbackSavedEpisode(source, savedRow?.toSaved(), sessionStartedOffline == true)
+    } else {
+        null
+    }
+    val playbackReady = sessionStartedOffline != null
+    val downloadScope = rememberCoroutineScope()
+    val download = if (anilistId > 0) source?.let { downloadStatus(it, savedRow?.toSaved()) } else null
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
     var castUnavailable by remember { mutableStateOf(CastStartup.reason) }
     var castHelper by remember { mutableStateOf<CastSessionHelper?>(null) }
@@ -482,34 +541,39 @@ fun PlayerScreen(
 
     // Fresh DefaultTrackSelector per ExoPlayer — release() owns the selector, so a
     // remembered shared instance would be detached after the first quality switch.
-    val playerBundle = remember(source?.url, source?.subtitles, source?.gotakuObf, playAttempt) {
-        if (source == null) return@remember null
+    val playerBundle = remember(
+        source?.url,
+        source?.subtitles,
+        source?.gotakuObf,
+        playAttempt,
+        playbackReady,
+        source?.let { savedLocalFile(it, playbackSaved)?.absolutePath },
+        if (source != null && usesHlsCache(source, playbackSaved)) playbackSaved?.url else null,
+    ) {
+        if (!playbackReady || source == null) return@remember null
+        val playing = sourceForPlayback(source, playbackSaved)
+        val hlsOffline = usesHlsCache(source, playbackSaved)
         val httpFactory = PlaybackHttp.factory(
-            headers = source.headers,
-            userAgent = source.headers["User-Agent"] ?: DEFAULT_UA,
+            headers = playing.headers,
+            userAgent = playing.headers["User-Agent"] ?: DEFAULT_UA,
         )
         val gotakuFactory = GotakuObfDataSource.Factory(httpFactory).also {
-            it.updateObf(source.gotakuObf)
+            it.updateObf(playing.gotakuObf)
         }
         val flixFactory = FlixUnwrapDataSource.Factory(
             gotakuFactory,
-            java.util.concurrent.atomic.AtomicReference(source.flix),
+            java.util.concurrent.atomic.AtomicReference(playing.flix),
         )
         // Gotaku and reanime must not inherit MegaPlay's default PNG strip.
-        stripBytes.set(
-            when {
-                source.gotakuObf != null || source.flix != null -> source.stripBytes.coerceAtLeast(0)
-                source.stripBytes > 0 -> source.stripBytes
-                else -> SegmentStripDataSource.DEFAULT_STRIP_BYTES
-            },
-        )
-        val localFile = source.url.startsWith("file:") ||
-            source.url.startsWith("android.resource:") ||
-            source.url.startsWith("content:")
-        val factory = if (localFile) {
-            DefaultDataSource.Factory(context)
-        } else {
-            SegmentStripDataSource.Factory(flixFactory, stripBytes = stripBytes)
+        stripBytes.set(resolvedStripBytes(playing))
+        val localFile = playing.url.startsWith("file:") ||
+            playing.url.startsWith("android.resource:") ||
+            playing.url.startsWith("content:")
+        val upstream = SegmentStripDataSource.Factory(flixFactory, stripBytes = stripBytes)
+        val factory = when {
+            localFile -> DefaultDataSource.Factory(context)
+            hlsOffline -> cacheDataSourceFactory(context, anilistId, episode, upstream)
+            else -> upstream
         }
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(2_500, 40_000, 1_500, 2_000)
@@ -529,12 +593,12 @@ fun PlayerScreen(
             .setTrackSelector(selector)
             .build()
             .apply {
-                val itemBuilder = MediaItem.Builder().setUri(source.url)
+                val itemBuilder = MediaItem.Builder().setUri(playing.url)
                 // Gotaku and AnimeX playlists have no .m3u8 suffix but are HLS.
-                if (source.hls || source.url.contains(".m3u8", ignoreCase = true) || source.gotakuObf != null) {
+                if (playing.hls || playing.url.contains(".m3u8", ignoreCase = true) || playing.gotakuObf != null) {
                     itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)
                 }
-                val configs = source.subtitles.mapIndexedNotNull { index, track ->
+                val configs = playing.subtitles.mapIndexedNotNull { index, track ->
                     subtitleConfig(track, default = index == 0)
                 }
                 if (configs.isNotEmpty()) {
@@ -568,6 +632,19 @@ fun PlayerScreen(
     val latestStartPositionMs by rememberUpdatedState(startPositionMs)
     val latestAllowHistory by rememberUpdatedState(allowHistoryFallback)
     val playhead = remember { Playhead() }
+    val playingOffline = source?.let { savedLocalFile(it, playbackSaved) } != null ||
+        (source != null && usesHlsCache(source, playbackSaved))
+    var wasOffline by remember(anilistId, episode) { mutableStateOf(false) }
+    LaunchedEffect(playingOffline, playbackReady) {
+        if (wasOffline && !playingOffline && playbackReady) {
+            val live = maxOf(positionMs, playhead.ms)
+            if (live > 1_500L) {
+                resumeAtMs = live
+                didSeekStart = false
+            }
+        }
+        wasOffline = playingOffline
+    }
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
     val latestOnProgress by rememberUpdatedState(onProgress)
@@ -3144,6 +3221,24 @@ fun PlayerScreen(
                 qualitySelected = panel == PlayerMenuPage.Quality,
                 audioSelected = panel == PlayerMenuPage.Audio,
                 episodesSelected = panel == PlayerMenuPage.Episodes,
+                downloadLabel = download?.label,
+                downloadEnabled = download?.canStart == true,
+                onDownload = {
+                    val current = source
+                    if (current != null && download?.canStart == true) {
+                        downloadScope.launch {
+                            EpisodeDownloads.enqueue(context, anilistId, episode, title, current)
+                        }
+                    }
+                },
+                onRemoveDownload = if (download?.canRemove == true) {
+                    {
+                        val row = savedRow
+                        if (row != null) downloadScope.launch { EpisodeDownloads.remove(context, row) }
+                    }
+                } else {
+                    null
+                },
                 modifier = Modifier.weight(1f).dismissDrag(),
             )
         }
@@ -3903,5 +3998,4 @@ private fun formatDurationMinutes(ms: Long): String {
     return if (minutes == 1L) "1 minute" else "$minutes minutes"
 }
 
-private const val DEFAULT_UA =
-    "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+private const val DEFAULT_UA = DOWNLOAD_USER_AGENT
