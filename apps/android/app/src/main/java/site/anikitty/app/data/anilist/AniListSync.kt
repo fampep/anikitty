@@ -3,6 +3,8 @@
 
 package site.anikitty.app.data.anilist
 
+import site.anikitty.app.data.local.PendingAniListPush
+import site.anikitty.app.data.local.PendingAniListPushDao
 import site.anikitty.app.data.local.WatchHistoryDao
 import site.anikitty.app.data.local.WatchHistoryEntity
 
@@ -13,6 +15,7 @@ class AniListSync(
     private val aniList: AniListClient,
     private val auth: AniListAuthStore,
     private val historyDao: WatchHistoryDao,
+    private val pendingPushes: PendingAniListPushDao,
 ) {
     data class Result(
         val imported: Int,
@@ -20,6 +23,7 @@ class AniListSync(
     )
 
     suspend fun pull(): Result {
+        drainPendingPushes()
         val token = auth.accessToken ?: error("AniList not linked")
         val viewer = aniList.viewer(token) ?: error("Could not load AniList profile")
         auth.saveViewer(token, viewer)
@@ -30,28 +34,41 @@ class AniListSync(
         for (entry in entries) {
             val media = entry.media
             val existing = historyDao.get(media.id)
-            val episode = entry.progress.coerceAtLeast(0)
-            // Prefer local in-episode scrub position when same episode; otherwise take AniList episode.
-            val keepLocalPosition =
-                existing != null &&
-                    existing.episode == episode &&
-                    existing.positionMs > 2_000L
+            val pending = pendingPushes.get(media.id)?.episode
             historyDao.upsert(
-                WatchHistoryEntity(
+                mergedPullEntry(
+                    existing = existing,
                     anilistId = media.id,
                     title = media.title,
-                    coverImageUrl = media.coverImageUrl ?: existing?.coverImageUrl,
-                    episode = episode,
-                    positionMs = if (keepLocalPosition) existing!!.positionMs else 0L,
-                    durationMs = if (keepLocalPosition) existing!!.durationMs else 0L,
-                    updatedAtEpochMs = maxOf(existing?.updatedAtEpochMs ?: 0L, now - imported),
-                    listStatus = entry.status,
-                    malId = media.malId ?: existing?.malId,
+                    coverImageUrl = media.coverImageUrl,
+                    malId = media.malId,
+                    remoteProgress = entry.progress,
+                    remoteStatus = entry.status,
+                    pendingProgress = pending,
+                    syncedAtEpochMs = now - imported,
                 ),
             )
             imported++
         }
         return Result(imported = imported, username = viewer.name)
+    }
+
+    /**
+     * Send queued progress. A newer failure that lands while one attempt is in
+     * flight stays queued. Returns how many rows AniList accepted.
+     */
+    suspend fun drainPendingPushes(): Int {
+        if (auth.accessToken.isNullOrBlank()) return 0
+        var sent = 0
+        for (row in pendingPushes.all()) {
+            val saved = pushProgress(
+                anilistId = row.anilistId,
+                episode = row.episode,
+                totalEpisodes = row.totalEpisodes,
+            )
+            if (saved) sent++
+        }
+        return sent
     }
 
     /**
@@ -62,11 +79,26 @@ class AniListSync(
     suspend fun pushProgress(anilistId: Int, episode: Int, totalEpisodes: Int?): Boolean {
         val token = auth.accessToken ?: return false
         if (anilistId <= 0 || episode < 0) return false
+        val startedAt = System.currentTimeMillis()
         val completed = totalEpisodes != null && totalEpisodes > 0 && episode >= totalEpisodes
         val status = if (completed) "COMPLETED" else "CURRENT"
         val progress = if (completed) (totalEpisodes ?: episode) else episode
         val saved = aniList.saveProgress(token, anilistId, progress, status)
-        if (!saved) return false
+        if (!saved) {
+            pendingPushes.upsert(
+                PendingAniListPush(
+                    anilistId = anilistId,
+                    episode = episode,
+                    totalEpisodes = totalEpisodes?.takeIf { it > 0 },
+                    updatedAtEpochMs = System.currentTimeMillis(),
+                ),
+            )
+            return false
+        }
+        val queued = pendingPushes.get(anilistId)
+        if (queued != null && queued.updatedAtEpochMs <= startedAt) {
+            pendingPushes.delete(anilistId)
+        }
         val existing = historyDao.get(anilistId) ?: return true
         // A failed save used to still rewrite the phone. A later frontier
         // (mark watched stores the next episode) or a live playhead stays put.
@@ -80,4 +112,50 @@ class AniListSync(
         )
         return true
     }
+}
+
+/**
+ * Cloud progress must not rewind a phone that is already further along, or
+ * replace a row whose failed push has not landed yet.
+ */
+internal fun mergedPullEntry(
+    existing: WatchHistoryEntity?,
+    anilistId: Int,
+    title: String,
+    coverImageUrl: String?,
+    malId: Int?,
+    remoteProgress: Int,
+    remoteStatus: String,
+    pendingProgress: Int?,
+    syncedAtEpochMs: Long,
+): WatchHistoryEntity {
+    val remoteEpisode = remoteProgress.coerceAtLeast(0)
+    val localAhead = existing != null && existing.episode > remoteEpisode
+    val pendingOwnsRow = existing != null &&
+        pendingProgress != null &&
+        pendingProgress != remoteEpisode
+    val keepLocal = localAhead || pendingOwnsRow
+    val keepScrub = existing != null &&
+        !keepLocal &&
+        existing.episode == remoteEpisode &&
+        existing.positionMs > 2_000L
+    return WatchHistoryEntity(
+        anilistId = anilistId,
+        title = title.ifBlank { existing?.title.orEmpty() },
+        coverImageUrl = coverImageUrl ?: existing?.coverImageUrl,
+        episode = if (keepLocal) existing!!.episode else remoteEpisode,
+        positionMs = when {
+            keepLocal -> existing!!.positionMs
+            keepScrub -> existing!!.positionMs
+            else -> 0L
+        },
+        durationMs = when {
+            keepLocal -> existing!!.durationMs
+            keepScrub -> existing!!.durationMs
+            else -> 0L
+        },
+        updatedAtEpochMs = maxOf(existing?.updatedAtEpochMs ?: 0L, syncedAtEpochMs),
+        listStatus = if (keepLocal) existing!!.listStatus ?: remoteStatus else remoteStatus,
+        malId = malId ?: existing?.malId,
+    )
 }
