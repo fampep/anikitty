@@ -5,8 +5,6 @@ package site.anikitty.app.ui.app
 
 import androidx.room.withTransaction
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
@@ -15,14 +13,11 @@ import android.net.NetworkRequest
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.BoundsTransform
-import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
@@ -32,12 +27,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -45,67 +37,32 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items as lazyItems
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Extension
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -117,7 +74,6 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -129,16 +85,9 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -159,14 +108,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import site.anikitty.app.data.tmdb.TmdbCatalog
-import site.anikitty.app.BuildConfig
 import site.anikitty.app.data.anilist.AiringSlot
 import site.anikitty.app.data.anilist.AniListAuthStore
-import site.anikitty.app.data.airingLabel
-import site.anikitty.app.data.watchedAgo
 import site.anikitty.app.data.anilist.AniListClient
 import site.anikitty.app.data.friendlyFailure
-import site.anikitty.app.data.anilist.AniListOAuth
 import site.anikitty.app.data.anilist.AniListSync
 import site.anikitty.app.data.anilist.AnimeEpisodeItem
 import site.anikitty.app.data.anilist.AnimeSummary
@@ -183,17 +128,13 @@ import site.anikitty.app.data.local.touchFromCatalog
 import site.anikitty.app.data.servers.PlayableSource
 import site.anikitty.app.data.servers.ProviderLatestMapper
 import site.anikitty.app.data.servers.ServerCatalog
-import site.anikitty.app.ui.components.AnimatedSearchIcon
-import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
-import site.anikitty.app.ui.components.ExtensionIcon
 import site.anikitty.app.ui.icons.FluentuiSystemIconsCalendarClockFilled
 import site.anikitty.app.ui.icons.FluentuiSystemIconsCalendarClockOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsHomeFilled
 import site.anikitty.app.ui.icons.FluentuiSystemIconsHomeOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonFilled
 import site.anikitty.app.ui.icons.FluentuiSystemIconsPersonOutline
-import site.anikitty.app.ui.icons.FluentuiSystemIconsSettingsOutline
 import site.anikitty.app.ui.icons.FluentuiSystemIconsSearchSparkleOutline
 import site.anikitty.app.ui.components.KittyBottomNav
 import site.anikitty.app.ui.components.LocalPosterFlight
@@ -203,19 +144,11 @@ import site.anikitty.app.ui.components.PosterMotion
 import site.anikitty.app.ui.components.KittyDock
 import site.anikitty.app.ui.components.rememberDockScroll
 import site.anikitty.app.ui.components.KittyEmptyState
-import site.anikitty.app.ui.components.KittyMenuEntry
-import site.anikitty.app.ui.components.KittyOverflow
-import site.anikitty.app.ui.components.KittyMetaChips
 import site.anikitty.app.ui.components.KittyNavTab
-import site.anikitty.app.ui.components.KittyPageHeader
-import site.anikitty.app.ui.components.KittyRoundIconButton
-import site.anikitty.app.ui.components.KittySectionHeading
 import site.anikitty.app.ui.player.PlayerScreen
 import site.anikitty.app.ui.theme.KittyAccent
-import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
-import site.anikitty.app.ui.theme.KittyMuted
 import site.anikitty.app.AnikittyApp
 import site.anikitty.app.data.demo.DemoLibrary
 import site.anikitty.app.data.local.applyWatchImport
@@ -227,9 +160,7 @@ import site.anikitty.app.ui.theme.LookState
 import site.anikitty.app.ui.theme.ShimmerBox
 import site.anikitty.app.ui.theme.prefersReducedMotion
 import site.anikitty.app.ui.theme.KittyOnAccent
-import site.anikitty.app.ui.theme.KittyOutline
 import site.anikitty.app.ui.theme.KittyOutlineSoft
-import site.anikitty.app.ui.theme.KittyPage
 import site.anikitty.app.ui.theme.KittySpace
 import site.anikitty.app.ui.theme.KittySurface
 import site.anikitty.app.ui.theme.KittySurfaceElevated
@@ -1883,7 +1814,7 @@ private suspend fun pushFinishedEpisode(
     return if (completed) "COMPLETED" else "CURRENT"
 }
 
-private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
+internal fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
     id = entry.anilistId,
     title = entry.title,
     coverImageUrl = entry.coverImageUrl,
@@ -1893,194 +1824,6 @@ private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
     malId = entry.malId,
 )
 
-@Composable
-private fun LookSettings(
-    onExport: () -> Unit,
-    onPickImport: () -> Unit,
-    importNote: String?,
-) {
-    val context = LocalContext.current
-    val palette = LocalKittyPalette.current
-    val playerPrefs = remember { context.getSharedPreferences("anikitty_player", 0) }
-    var startTheater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
-    Column(
-        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text("Look", color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-        Text("Accent", color = palette.muted, fontSize = 12.sp)
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            LookState.presets.forEach { color ->
-                val selected = LookState.accent == color
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(color)
-                        .border(
-                            if (selected) 2.dp else 1.dp,
-                            if (selected) palette.text else palette.hairline,
-                            CircleShape,
-                        )
-                        .clickable { LookState.setAccent(context, color) },
-                )
-            }
-        }
-        Text(
-            "The accent shows on the dark theme. Light mode stays ink so buttons stay readable.",
-            color = palette.muted,
-            fontSize = 12.sp,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                "Open the player full screen",
-                color = palette.text,
-                fontSize = 14.sp,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = startTheater,
-                onCheckedChange = {
-                    startTheater = it
-                    playerPrefs.edit().putBoolean("start_theater", it).apply()
-                },
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                "Remind me about shows I left",
-                color = palette.text,
-                fontSize = 14.sp,
-                modifier = Modifier.weight(1f),
-            )
-            Switch(
-                checked = LookState.abandonedReminders,
-                onCheckedChange = { LookState.setAbandonedReminders(context, it) },
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                "Weekly goal · ${LookState.weekGoalMinutes} min",
-                color = palette.text,
-                fontSize = 14.sp,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                "−",
-                color = palette.text,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable {
-                        LookState.setWeekGoal(context, LookState.weekGoalMinutes - 15)
-                    }
-                    .wrapContentHeight(),
-            )
-            Text(
-                "+",
-                color = palette.text,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable {
-                        LookState.setWeekGoal(context, LookState.weekGoalMinutes + 15)
-                    }
-                    .wrapContentHeight(),
-            )
-        }
-        Button(
-            onClick = onExport,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = palette.accent,
-                contentColor = palette.onAccent,
-            ),
-        ) {
-            Text("Export watch progress", fontWeight = FontWeight.Bold)
-        }
-        OutlinedButton(
-            onClick = onPickImport,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, palette.hairline),
-            colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.text),
-        ) {
-            Text("Import watch progress", fontWeight = FontWeight.Bold)
-        }
-        Text(
-            "A newer save on this phone stays. This does not change AniList.",
-            color = palette.muted,
-            fontSize = 12.sp,
-        )
-        importNote?.let { note ->
-            Text(note, color = palette.text, fontSize = 13.sp)
-        }
-        val keyPrefs = remember { context.getSharedPreferences("anikitty_keys", 0) }
-        var tmdbKey by remember { mutableStateOf(keyPrefs.getString("tmdb", "") ?: "") }
-        var fanartKey by remember { mutableStateOf(keyPrefs.getString("fanart", "") ?: "") }
-        Text("Backdrop keys", color = palette.text, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-        Text(
-            "Optional. A key built into the app is used when a field is empty. An entry here replaces it.",
-            color = palette.muted,
-            fontSize = 12.sp,
-        )
-        OutlinedTextField(
-            value = tmdbKey,
-            onValueChange = {
-                tmdbKey = it
-                keyPrefs.edit().putString("tmdb", it.trim()).apply()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text("TMDB API key") },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = palette.text,
-                unfocusedTextColor = palette.text,
-                focusedBorderColor = palette.accent,
-                unfocusedBorderColor = palette.hairline,
-                focusedLabelColor = palette.muted,
-                unfocusedLabelColor = palette.muted,
-            ),
-        )
-        OutlinedTextField(
-            value = fanartKey,
-            onValueChange = {
-                fanartKey = it
-                keyPrefs.edit().putString("fanart", it.trim()).apply()
-            },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            label = { Text("fanart.tv API key") },
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = palette.text,
-                unfocusedTextColor = palette.text,
-                focusedBorderColor = palette.accent,
-                unfocusedBorderColor = palette.hairline,
-                focusedLabelColor = palette.muted,
-                unfocusedLabelColor = palette.muted,
-            ),
-        )
-        TmdbCredit()
-    }
-}
-
 private fun listStatusBadge(status: String?): String? = when (status?.uppercase()) {
     "CURRENT", "REPEATING" -> "Watching"
     "COMPLETED" -> "Done"
@@ -2088,1015 +1831,6 @@ private fun listStatusBadge(status: String?): String? = when (status?.uppercase(
     "PAUSED" -> "Paused"
     "DROPPED" -> "Dropped"
     else -> null
-}
-
-
-@Composable
-private fun HistoryFeed(
-    history: List<WatchHistoryEntity>,
-    historyDao: WatchHistoryDao,
-    aniList: AniListClient,
-    aniListLinked: Boolean,
-    accessToken: String?,
-    syncLabel: String?,
-    onSync: () -> Unit,
-    onOpen: (AnimeSummary) -> Unit,
-    libraryFilter: String,
-    onLibraryFilter: (String) -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    var favourites by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
-    var libraryQuery by rememberSaveable { mutableStateOf("") }
-    var librarySort by rememberSaveable { mutableStateOf("recent") }
-    var confirmClear by remember { mutableStateOf(false) }
-    LaunchedEffect(accessToken) {
-        val token = accessToken
-        if (token.isNullOrBlank()) {
-            favourites = emptyList()
-            return@LaunchedEffect
-        }
-        favourites = runCatching { aniList.favourites(token) }.getOrDefault(emptyList())
-    }
-    fun List<WatchHistoryEntity>.forLibrary(): List<WatchHistoryEntity> {
-        val q = libraryQuery.trim()
-        val matched = if (q.length < 2) {
-            this
-        } else {
-            filter { it.title.contains(q, ignoreCase = true) }
-        }
-        return when (librarySort) {
-            "title" -> matched.sortedBy { it.title.lowercase() }
-            "episode" -> matched.sortedByDescending { it.episode }
-            else -> matched.sortedByDescending { it.updatedAtEpochMs }
-        }
-    }
-    val watching = history.filter {
-        val s = it.listStatus?.uppercase()
-        s == null || s == "CURRENT" || s == "REPEATING"
-    }.forLibrary()
-    val completed = history.filter { it.listStatus.equals("COMPLETED", ignoreCase = true) }.forLibrary()
-    val planning = history.filter { it.listStatus.equals("PLANNING", ignoreCase = true) }.forLibrary()
-    val paused = history.filter { it.listStatus.equals("PAUSED", ignoreCase = true) }.forLibrary()
-    val dropped = history.filter { it.listStatus.equals("DROPPED", ignoreCase = true) }.forLibrary()
-    val grouped = watching + completed + planning + paused + dropped
-    val other = history.filter { entry -> grouped.none { it.anilistId == entry.anilistId } }.forLibrary()
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(bottom = 100.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            KittyPageHeader(
-                title = "Library",
-                subtitle = "Favourites, watching, and the rest of your AniList.",
-                trailing = if (aniListLinked) {
-                    {
-                        Button(
-                            onClick = onSync,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = KittyAccent,
-                                contentColor = KittyOnAccent,
-                            ),
-                            shape = RoundedCornerShape(999.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        ) {
-                            Text("Sync", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                } else {
-                    null
-                },
-            )
-        }
-        item {
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                listOf(
-                    "all" to "All ${history.size}",
-                    "watching" to "Watching ${watching.size}",
-                    "plan" to "Plan ${planning.size}",
-                    "paused" to "Paused ${paused.size}",
-                    "done" to "Done ${completed.size}",
-                    "dropped" to "Dropped ${dropped.size}",
-                    "favourites" to "Favourites ${favourites.size}",
-                ).forEach { (id, label) ->
-                    Chip(label, selected = libraryFilter == id) {
-                        confirmClear = false
-                        onLibraryFilter(id)
-                    }
-                }
-            }
-        }
-        item {
-            OutlinedTextField(
-                value = libraryQuery,
-                onValueChange = {
-                    libraryQuery = it.take(80)
-                    confirmClear = false
-                },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = { Text("Search your library", color = KittyFaint) },
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = KittyText,
-                    unfocusedTextColor = KittyText,
-                    cursorColor = KittyText,
-                    focusedBorderColor = Color.White.copy(alpha = 0.28f),
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.08f),
-                    focusedContainerColor = Color(0xFF0C0C10),
-                    unfocusedContainerColor = Color(0xFF0C0C10),
-                ),
-                shape = RoundedCornerShape(16.dp),
-            )
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("recent" to "Recent", "title" to "A–Z", "episode" to "Episode").forEach { (id, label) ->
-                    Chip(label, selected = librarySort == id) { librarySort = id }
-                }
-            }
-        }
-        val q = libraryQuery.trim()
-        val shownFavourites = if (q.length < 2) {
-            favourites
-        } else {
-            favourites.filter { anime ->
-                anime.title.contains(q, ignoreCase = true) ||
-                    anime.romajiTitle?.contains(q, ignoreCase = true) == true ||
-                    anime.searchTitles().any { it.contains(q, ignoreCase = true) }
-            }
-        }
-        val showFavourites = libraryFilter == "all" || libraryFilter == "favourites"
-        if (showFavourites && shownFavourites.isNotEmpty()) {
-            item {
-                KittySectionHeading(
-                    title = "Favourites",
-                    subtitle = "Saved on AniList",
-                    padded = false,
-                )
-            }
-            item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    lazyItems(shownFavourites, key = { "fav-${it.id}" }) { anime ->
-                        Column(
-                            modifier = Modifier
-                                .width(112.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .clickable { onOpen(anime) },
-                        ) {
-                            AsyncImage(
-                                model = anime.coverImageUrl,
-                                contentDescription = anime.title,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .aspectRatio(2f / 3f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .border(1.dp, KittyOutlineSoft, RoundedCornerShape(12.dp)),
-                                contentScale = ContentScale.Crop,
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                anime.title,
-                                color = KittyText,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        val historySections = when (libraryFilter) {
-            "watching" -> listOf(Triple("Watching", watching, "w"))
-            "plan" -> listOf(Triple("Plan to watch", planning, "p"))
-            "paused" -> listOf(Triple("Paused", paused, "z"))
-            "done" -> listOf(Triple("Completed", completed, "c"))
-            "dropped" -> listOf(Triple("Dropped", dropped, "d"))
-            "favourites" -> emptyList()
-            else -> listOf(
-                Triple("Watching", watching, "w"),
-                Triple("Plan to watch", planning, "p"),
-                Triple("Paused", paused, "z"),
-                Triple("Completed", completed, "c"),
-                Triple("Dropped", dropped, "d"),
-                Triple("More", other, "o"),
-            )
-        }
-        val historyVisible = historySections.any { it.second.isNotEmpty() }
-        val searching = libraryQuery.trim().length >= 2
-        if (!historyVisible && !(showFavourites && shownFavourites.isNotEmpty())) {
-            item {
-                val title = when {
-                    searching -> "No titles match"
-                    libraryFilter == "favourites" && aniListLinked -> "No favourites yet"
-                    libraryFilter == "favourites" -> "Sign in for favourites"
-                    else -> "Nothing in this list"
-                }
-                val body = when {
-                    searching -> "Try another word, or clear the search."
-                    libraryFilter == "favourites" && aniListLinked ->
-                        "Heart a show on AniList and it shows up here."
-                    libraryFilter == "favourites" ->
-                        "Favourites come from your AniList account."
-                    else -> "Favourite a show, or set it to Watching, and it lands here."
-                }
-                KittyEmptyState(title = title, body = body)
-            }
-        } else if (historyVisible) {
-            item {
-                val visibleCount = historySections.sumOf { it.second.size }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(
-                        if (libraryFilter == "all" && !searching) {
-                            "$visibleCount on this device"
-                        } else {
-                            "$visibleCount in this view"
-                        },
-                        color = KittyFaint,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    if (libraryFilter == "all" && !searching) {
-                        OutlinedButton(
-                            onClick = {
-                                if (confirmClear) {
-                                    confirmClear = false
-                                    scope.launch { historyDao.clear() }
-                                } else {
-                                    confirmClear = true
-                                }
-                            },
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                            shape = RoundedCornerShape(999.dp),
-                            border = BorderStroke(1.dp, KittyOutlineSoft),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = KittyMuted),
-                        ) {
-                            Text(
-                                if (confirmClear) "Confirm clear" else "Clear local",
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 12.sp,
-                            )
-                        }
-                    }
-                }
-            }
-            fun LazyListScope.section(title: String, rows: List<WatchHistoryEntity>, prefix: String) {
-                if (rows.isEmpty()) return
-                item {
-                    KittySectionHeading(
-                        title = title,
-                        subtitle = "${rows.size} title${if (rows.size == 1) "" else "s"}",
-                        padded = false,
-                    )
-                }
-                lazyItems(rows, key = { "$prefix-${it.anilistId}" }) { entry ->
-                    HistoryRow(entry, aniList, historyDao, onOpen)
-                }
-            }
-            historySections.forEach { (title, rows, prefix) ->
-                section(title, rows, prefix)
-            }
-        }
-    }
-}
-
-@Composable
-private fun HistoryRow(
-    entry: WatchHistoryEntity,
-    aniList: AniListClient,
-    historyDao: WatchHistoryDao,
-    onOpen: (AnimeSummary) -> Unit,
-) {
-    val scope = rememberCoroutineScope()
-    ContinueWatchCard(
-        entry = entry,
-        fillWidth = true,
-        showWithoutCue = true,
-        onOpen = {
-            scope.launch {
-                onOpen(
-                    site.anikitty.app.data.demo.DemoLibrary.find(entry.anilistId)
-                        ?: aniList.media(entry.anilistId)
-                        ?: summaryFrom(entry),
-                )
-            }
-        },
-        onMarkWatched = { episode ->
-            scope.launch { historyDao.markEpisode(summaryFrom(entry), episode) }
-        },
-    )
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun AniListProfileCard(
-    auth: AniListAuthStore,
-    fallbackName: String,
-    syncLabel: String?,
-    onOpenList: (String) -> Unit = {},
-    onSignOut: () -> Unit = {},
-) {
-    val palette = LocalKittyPalette.current
-    val name = auth.username?.takeIf { it.isNotBlank() } ?: fallbackName
-    val days = auth.minutesWatched / 1440
-    val score = if (auth.meanScore <= 0f) "—" else auth.meanScore.toInt().toString()
-    val syncing = syncLabel == "Syncing…"
-    val onBanner = !auth.bannerUrl.isNullOrBlank()
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            SpaceLabel("PROFILE", padded = false)
-            Text(
-                text = "Logout",
-                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
-                color = palette.muted,
-                modifier = Modifier
-                    .defaultMinSize(minHeight = 48.dp)
-                    .spacePress(onSignOut),
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(if (onBanner) Color(0xFF0C0C10) else palette.surface)
-                .border(0.5.dp, if (onBanner) Color.White.copy(alpha = 0.08f) else palette.hairline, RoundedCornerShape(12.dp)),
-        ) {
-            if (!auth.bannerUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = auth.bannerUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .matchParentSize()
-                        .graphicsLayer { alpha = 0.22f },
-                    contentScale = ContentScale.Crop,
-                )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color.Black.copy(alpha = 0.92f), Color.Black.copy(alpha = 0.45f)),
-                            ),
-                        ),
-                )
-            }
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                if (!auth.avatarUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = auth.avatarUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(palette.surface),
-                        contentScale = ContentScale.Crop,
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(Color.White),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(
-                            name.take(1).uppercase(),
-                            color = Color.Black,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                        )
-                    }
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = name,
-                        color = if (onBanner) Color.White else palette.text,
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = if (syncing) "Syncing..." else "Connected",
-                        color = if (onBanner) Color.White.copy(alpha = if (syncing) 1f else 0.72f) else palette.muted,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-            }
-        }
-        if (!auth.about.isNullOrBlank()) {
-            Text(
-                auth.about.orEmpty(),
-                color = palette.muted,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 4,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 20.dp),
-            )
-        }
-        SpaceLabel("STATS")
-        SpaceCard {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ProfileStat(auth.animeCount.toString(), "Anime")
-                ProfileStat(auth.episodesWatched.toString(), "Episodes")
-                ProfileStat(days.toString(), "Days")
-                ProfileStat(score, "Score")
-            }
-        }
-        SpaceLabel("LISTS")
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            SpaceChip("Watching (${auth.watchingCount})", selected = false) { onOpenList("watching") }
-            SpaceChip("Completed (${auth.completedCount})", selected = false) { onOpenList("done") }
-            SpaceChip("Planning (${auth.planningCount})", selected = false) { onOpenList("plan") }
-            SpaceChip("Paused (${auth.pausedCount})", selected = false) { onOpenList("paused") }
-            SpaceChip("Dropped (${auth.droppedCount})", selected = false) { onOpenList("dropped") }
-        }
-        if (!syncLabel.isNullOrBlank() && !syncing) {
-            Text(
-                syncLabel,
-                color = palette.muted,
-                style = MaterialTheme.typography.labelSmall,
-                modifier = Modifier.padding(horizontal = 20.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.RowScope.ProfileStat(
-    value: String,
-    label: String,
-    onClick: (() -> Unit)? = null,
-) {
-    Column(
-        modifier = Modifier
-            .weight(1f)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        val palette = LocalKittyPalette.current
-        Text(
-            value,
-            color = palette.text,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.titleSmall,
-            maxLines = 1,
-        )
-        Text(
-            label,
-            color = palette.muted,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
-internal fun SettingsFeed(
-    demo: Boolean = false,
-    catalog: ServerCatalog,
-    aniList: AniListClient,
-    aniListAuth: AniListAuthStore,
-    aniListSync: AniListSync,
-    accountLabel: String,
-    syncLabel: String?,
-    onSyncLabel: (String?) -> Unit,
-    linkStatus: String?,
-    onLinkStatus: (String?) -> Unit,
-    linkTick: Int,
-    onLinkTick: () -> Unit,
-    onAccountReady: () -> Unit = {},
-    onSignOut: () -> Unit,
-    onOpenStore: () -> Unit,
-    onClose: () -> Unit = {},
-    onOpenBuilds: () -> Unit,
-    onOpenLibrary: (String) -> Unit = {},
-    homeLayout: HomeLayoutStore,
-    openAccountTick: Int = 0,
-    onExportProgress: () -> Unit = {},
-    onImportProgress: suspend (String) -> String = { "Import isn't available" },
-) {
-    val palette = LocalKittyPalette.current
-    val selectedId by catalog.selectedId.collectAsState()
-    val resolvers by catalog.resolvers.collectAsState()
-    val installedExt by catalog.extensions.installed.collectAsState()
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
-    var extensionStatus by remember { mutableStateOf<String?>(null) }
-    val importProgress by rememberUpdatedState(onImportProgress)
-    var importNote by remember { mutableStateOf<String?>(null) }
-    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri == null) return@rememberLauncherForActivityResult
-        scope.launch {
-            val text = withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openInputStream(uri)?.use { input ->
-                        input.bufferedReader().use { reader ->
-                            val out = StringBuilder()
-                            val buf = CharArray(8192)
-                            while (out.length <= 2_000_000) {
-                                val count = reader.read(buf)
-                                if (count < 0) break
-                                val room = 2_000_001 - out.length
-                                out.append(buf, 0, minOf(count, room))
-                                if (count > room) break
-                            }
-                            out.toString()
-                        }
-                    }
-                }.getOrNull()
-            }
-            importNote = withContext(Dispatchers.IO) {
-                if (text == null) {
-                    "Couldn't read that file"
-                } else {
-                    importProgress(text)
-                }
-            }
-        }
-    }
-
-    // linkTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
-    val isLinked = linkTick.let { aniListAuth.isLinked }
-    var page by rememberSaveable { mutableStateOf("hub") }
-    LaunchedEffect(openAccountTick) {
-        if (openAccountTick > 0) page = "account"
-    }
-    BackHandler {
-        if (page != "hub") page = "hub" else onClose()
-    }
-    val selectedName = resolvers.firstOrNull { it.server.id == selectedId }?.server?.name ?: "None selected"
-    val homeShown = homeLayout.sections().count { it.enabled }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(LocalKittyPalette.current.page)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(bottom = 100.dp),
-    ) {
-        AnimatedContent(
-            targetState = page,
-            transitionSpec = {
-                val back = targetState == "hub"
-                val dir = if (back) -1 else 1
-                (slideInHorizontally(tween(280)) { it / 5 * dir } + fadeIn(tween(220))) togetherWith
-                    (slideOutHorizontally(tween(200)) { -it / 6 * dir } + fadeOut(tween(150)))
-            },
-            label = "settingsPage",
-        ) { current ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = 8.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            when (current) {
-                "hub" -> {
-                    item {
-                        SpacePageHeader(
-                            title = "Settings",
-                            subtitle = if (demo) {
-                                "Sample library. Not your AniList account."
-                            } else {
-                                "Account, home layout, sources, and app look."
-                            },
-                            onBack = onClose,
-                        )
-                    }
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                            SettingsGroup(title = "You") {
-                                SettingsHubRow(
-                                    icon = FluentuiSystemIconsPersonOutline,
-                                    title = "Account",
-                                    detail = when {
-                                        demo -> "Demo library"
-                                        isLinked -> aniListAuth.username?.takeIf { it.isNotBlank() }?.let { "@$it" }
-                                            ?: accountLabel.ifBlank { "Signed in" }
-                                        else -> "Not signed in"
-                                    },
-                                    avatarUrl = linkTick.let { aniListAuth.avatarUrl },
-                                    useAvatar = true,
-                                    plain = true,
-                                    onClick = { page = "account" },
-                                )
-                            }
-                            SettingsGroup(title = "Library") {
-                                SettingsHubRow(
-                                    icon = FluentuiSystemIconsHomeOutline,
-                                    title = "Home layout",
-                                    detail = "$homeShown rows showing",
-                                    plain = true,
-                                    onClick = { page = "home" },
-                                )
-                            }
-                            SettingsGroup(title = "Playback") {
-                                SettingsHubRow(
-                                    icon = Icons.Outlined.Extension,
-                                    title = "Sources & store",
-                                    detail = selectedName,
-                                    plain = true,
-                                    onClick = { page = "sources" },
-                                )
-                            }
-                            SettingsGroup(title = "App") {
-                                SettingsHubRow(
-                                    icon = FluentuiSystemIconsSettingsOutline,
-                                    title = "Appearance",
-                                    detail = "Version ${BuildConfig.VERSION_NAME}",
-                                    plain = true,
-                                    onClick = { page = "app" },
-                                )
-                            }
-                        }
-                    }
-                }
-                "account" -> {
-                    item {
-                        SpacePageHeader(
-                            title = "Account",
-                            subtitle = when {
-                                demo -> "Sample library. Not your AniList account."
-                                isLinked -> "Your AniList profile."
-                                else -> "Sign in to load your lists."
-                            },
-                            onBack = { page = "hub" },
-                        )
-                    }
-                    if (demo) {
-                        item {
-                            SpaceCard(onClick = onSignOut) {
-                                Text(
-                                    "Leave demo",
-                                    color = palette.text,
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                )
-                                Text(
-                                    "Returns to sign-in. Your AniList account, if you have one, stays untouched.",
-                                    color = palette.text.copy(alpha = 0.5f),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                        }
-                    } else if (isLinked) {
-                        item {
-                            AniListProfileCard(
-                                auth = aniListAuth,
-                                fallbackName = accountLabel.ifBlank { "AniList" },
-                                syncLabel = syncLabel,
-                                onOpenList = onOpenLibrary,
-                                onSignOut = onSignOut,
-                            )
-                        }
-                        item {
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        onSyncLabel("Syncing…")
-                                        onSyncLabel(
-                                            runCatching {
-                                                val result = aniListSync.pull()
-                                                "Synced ${result.imported} titles"
-                                            }.getOrElse { e -> friendlyFailure(e.message) },
-                                        )
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp),
-                                shape = RoundedCornerShape(14.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = palette.accent,
-                                    contentColor = palette.onAccent,
-                                ),
-                            ) { Text("Sync now", fontWeight = FontWeight.Bold) }
-                            if (!linkStatus.isNullOrBlank()) {
-                                Text(
-                                    linkStatus,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = palette.text.copy(alpha = 0.5f),
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                                )
-                            }
-                        }
-                    } else {
-                        item {
-                            SpaceCard(onClick = { AniListOAuth.openAuthorize(context) }) {
-                                Text(
-                                    "Connect AniList",
-                                    color = palette.text,
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                )
-                                Text(
-                                    "Your list and the next episode come back with you.",
-                                    color = palette.text.copy(alpha = 0.5f),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    modifier = Modifier.padding(top = 4.dp),
-                                )
-                            }
-                            if (!linkStatus.isNullOrBlank()) {
-                                Text(
-                                    linkStatus,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = palette.text.copy(alpha = 0.5f),
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                                )
-                            }
-                        }
-                    }
-                }
-                "home" -> {
-                    item {
-                        SpacePageHeader(
-                            title = "Home",
-                            subtitle = "Turn rows on or off, and move them.",
-                            onBack = { page = "hub" },
-                        )
-                    }
-                    item { HomeLayoutSettings(homeLayout) }
-                }
-                "sources" -> {
-                    item {
-                        SpacePageHeader(
-                            title = "Sources",
-                            subtitle = "Anikoto (kotoplay.to if Anikoto is down), Gotaku, reanime, mkissa, kaa, animex, and xanime ship in the app.",
-                            onBack = { page = "hub" },
-                        )
-                    }
-                    item {
-                        Button(
-                            onClick = onOpenStore,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = palette.accent,
-                                contentColor = palette.onAccent,
-                            ),
-                        ) {
-                            Text("Open Extension Store", fontWeight = FontWeight.Bold)
-                        }
-                        if (extensionStatus != null) {
-                            Text(
-                                extensionStatus!!,
-                                color = palette.text.copy(alpha = 0.5f),
-                                style = MaterialTheme.typography.bodySmall,
-                                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                            )
-                        }
-                    }
-                    lazyItems(resolvers.map { it.server }, key = { it.id }) { server ->
-                        val selected = server.id == selectedId
-                        val isExtension = installedExt.any { it.id == server.id }
-                        Column(
-                            modifier = Modifier
-                                .padding(horizontal = 20.dp)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .spacePress { catalog.select(server.id) }
-                                .background(palette.surface)
-                                .border(
-                                    0.5.dp,
-                                    if (selected) palette.text.copy(alpha = 0.45f) else palette.text.copy(alpha = 0.08f),
-                                    RoundedCornerShape(12.dp),
-                                )
-                                .padding(14.dp),
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                ExtensionIcon(
-                                    iconUrl = server.iconUrl,
-                                    contentDescription = server.name,
-                                    size = 40.dp,
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            server.name,
-                                            color = palette.text,
-                                            fontWeight = FontWeight.SemiBold,
-                                            modifier = Modifier.weight(1f, fill = false),
-                                        )
-                                        if (selected) {
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                "ACTIVE",
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(999.dp))
-                                                    .background(palette.text)
-                                                    .padding(horizontal = 8.dp, vertical = 3.dp),
-                                                color = palette.page,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 10.sp,
-                                            )
-                                        }
-                                    }
-                                    Text(
-                                        if (isExtension) "Extension" else "Bundled",
-                                        color = palette.faint,
-                                        style = MaterialTheme.typography.labelSmall,
-                                    )
-                                }
-                            }
-                            Text(
-                                server.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = palette.muted,
-                                modifier = Modifier.padding(top = 8.dp),
-                            )
-                            if (isExtension) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                TextButton(
-                                    onClick = {
-                                        catalog.uninstallExtension(server.id)
-                                        extensionStatus = "Removed ${server.name}"
-                                    },
-                                    contentPadding = PaddingValues(0.dp),
-                                ) {
-                                    Text("Uninstall", color = palette.muted, fontSize = 12.sp)
-                                }
-                            }
-                        }
-                    }
-                }
-                else -> {
-                    item {
-                        SpacePageHeader(
-                            title = "App",
-                            subtitle = "Version ${BuildConfig.VERSION_NAME}",
-                            onBack = { page = "hub" },
-                        )
-                    }
-                    item { AppBuildsRow(onClick = onOpenBuilds) }
-                    item {
-                        LookSettings(
-                            onExport = onExportProgress,
-                            onPickImport = {
-                                importPicker.launch(
-                                    arrayOf("application/json", "text/plain", "application/octet-stream"),
-                                )
-                            },
-                            importNote = importNote,
-                        )
-                    }
-                    item {
-                        Column(
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(10.dp),
-                        ) {
-                            Text(
-                                "Copyright 2026 fampep. Apache License 2.0.",
-                                color = palette.text.copy(alpha = 0.45f),
-                                fontSize = 13.sp,
-                            )
-                            TmdbCredit()
-                        }
-                    }
-                }
-            }
-        }
-        }
-    }
-}
-
-@Composable
-private fun TmdbCredit() {
-    val palette = LocalKittyPalette.current
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Image(
-            painter = androidx.compose.ui.res.painterResource(site.anikitty.app.R.drawable.tmdb_logo),
-            contentDescription = "The Movie Database",
-            modifier = Modifier
-                .height(16.dp)
-                .width(22.dp),
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            "This product uses the TMDB API but is not endorsed or certified by TMDB.",
-            color = palette.muted,
-            fontSize = 12.sp,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun SettingsGroup(
-    title: String,
-    content: @Composable () -> Unit,
-) {
-    val palette = LocalKittyPalette.current
-    Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-        Text(
-            title,
-            color = palette.muted,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.6.sp,
-            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
-        )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.lg))
-                .background(palette.surface)
-                .border(0.5.dp, palette.hairline, RoundedCornerShape(site.anikitty.app.ui.theme.KittyRadius.lg)),
-            content = { content() },
-        )
-    }
-}
-
-@Composable
-private fun SettingsHubRow(
-    icon: ImageVector,
-    title: String,
-    detail: String,
-    onClick: () -> Unit,
-    avatarUrl: String? = null,
-    useAvatar: Boolean = false,
-    plain: Boolean = false,
-) {
-    val palette = LocalKittyPalette.current
-    val row: @Composable () -> Unit = {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 2.dp),
-        ) {
-            if (useAvatar) {
-                ProfileMark(imageUrl = avatarUrl, size = 40.dp)
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(palette.page),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(icon, contentDescription = null, tint = palette.text, modifier = Modifier.size(20.dp))
-                }
-            }
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    title,
-                    color = palette.text,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                )
-                Text(
-                    detail,
-                    color = palette.muted,
-                    fontSize = 12.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Icon(
-                Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = null,
-                tint = palette.faint,
-                modifier = Modifier.size(22.dp),
-            )
-        }
-    }
-    if (plain) {
-        Box(modifier = Modifier.fillMaxWidth().spacePress(onClick).padding(horizontal = 14.dp, vertical = 15.dp)) {
-            row()
-        }
-    } else {
-        SpaceCard(onClick = onClick) { row() }
-    }
 }
 
 @Composable
@@ -3960,6 +2694,6 @@ private fun formatAiring(epochSec: Long): String {
 }
 
 @Composable
-private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+internal fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
     site.anikitty.app.ui.components.KittyChip(label = label, selected = selected, onClick = onClick)
 }
