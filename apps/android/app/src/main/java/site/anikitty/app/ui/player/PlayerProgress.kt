@@ -33,6 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
@@ -162,8 +164,8 @@ internal fun NextEpisodePrompt(
             site.anikitty.app.ui.components.KittyFace(
                 modifier = Modifier
                     .padding(end = 8.dp)
-                    .size(22.dp),
-                contentDescription = "Up next",
+                    .size(22.dp)
+                    .clearAndSetSemantics { },
             )
             Text(
                 "Up next",
@@ -224,7 +226,10 @@ internal fun NextEpisodePrompt(
                         RoundedCornerShape(12.dp),
                     )
                     .onFocusChanged { playNowFocused = it.isFocused }
-                    .clickable(enabled = !busy, onClick = onPlayNow)
+                    .clickable(enabled = !busy, role = Role.Button, onClick = onPlayNow)
+                    .clearAndSetSemantics {
+                        contentDescription = "Play episode $nextEpisode now"
+                    }
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
                 Text(
@@ -244,7 +249,10 @@ internal fun NextEpisodePrompt(
                         RoundedCornerShape(12.dp),
                     )
                     .onFocusChanged { dismissFocused = it.isFocused }
-                    .clickable(enabled = !busy, onClick = onDismiss)
+                    .clickable(enabled = !busy, role = Role.Button, onClick = onDismiss)
+                    .clearAndSetSemantics {
+                        contentDescription = if (ended) "Cancel autoplay" else "Dismiss up next"
+                    }
                     .padding(horizontal = 14.dp, vertical = 10.dp),
             ) {
                 Text(

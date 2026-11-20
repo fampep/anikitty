@@ -59,6 +59,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -224,6 +225,9 @@ internal fun PlayerEpisodeShelf(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .clickable(enabled = downloadEnabled, role = Role.Button) { onDownload() }
+                        .clearAndSetSemantics {
+                            contentDescription = downloadActionDescription(downloadLabel)
+                        }
                         .padding(horizontal = 4.dp, vertical = 8.dp),
                 )
                 if (onRemoveDownload != null) {
@@ -234,6 +238,9 @@ internal fun PlayerEpisodeShelf(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .clickable(role = Role.Button) { onRemoveDownload() }
+                            .clearAndSetSemantics {
+                                contentDescription = removeDownloadDescription()
+                            }
                             .padding(horizontal = 4.dp, vertical = 8.dp),
                     )
                 }
@@ -307,7 +314,9 @@ internal fun PlayerEpisodeShelf(
                         }
                     }),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { contentDescription = "Jump to episode" },
                     decorationBox = { inner ->
                         if (jump.isEmpty()) {
                             Text(
@@ -342,6 +351,9 @@ internal fun PlayerEpisodeShelf(
                         .weight(1f)
                         .heightIn(min = 48.dp)
                         .spacePress { onPickAudio(key) }
+                        .clearAndSetSemantics {
+                            contentDescription = audioChoiceDescription(label, selected)
+                        }
                         .clip(RoundedCornerShape(12.dp))
                         .background(background)
                         .border(
@@ -389,7 +401,8 @@ internal fun PlayerEpisodeShelf(
                         .heightIn(min = 48.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(if (autoNext) Color.White else Color.White.copy(alpha = 0.06f))
-                        .clickable(onClick = onToggleAutoNext)
+                        .clickable(role = Role.Button, onClick = onToggleAutoNext)
+                        .clearAndSetSemantics { contentDescription = autoplayDescription(autoNext) }
                         .padding(horizontal = 14.dp, vertical = 14.dp),
                 )
             }
@@ -430,7 +443,11 @@ internal fun PlayerEpisodeShelf(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .clickable { onPickEpisode(next.number) }
+                            .clickable(role = Role.Button) { onPickEpisode(next.number) }
+                            .clearAndSetSemantics {
+                                val name = next.title.ifBlank { "Episode ${next.number}" }
+                                contentDescription = "Play episode ${next.number}, $name"
+                            }
                             .padding(vertical = 4.dp),
                     )
                 }
@@ -455,8 +472,16 @@ internal fun PlayerTool(
             .background(
                 if (selected) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.06f),
             )
-            .clearAndSetSemantics { contentDescription = "$label, $value" }
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(
+                if (enabled) {
+                    Modifier.clickable(role = Role.Button, onClick = onClick)
+                } else {
+                    Modifier
+                },
+            )
+            .clearAndSetSemantics {
+                contentDescription = playerToolDescription(label, value, enabled, selected)
+            }
             .padding(horizontal = 4.dp, vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -536,6 +561,7 @@ internal fun ChromeDisc(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                role = Role.Button,
                 onClick = onClick,
             ),
         contentAlignment = Alignment.Center,
@@ -571,7 +597,9 @@ internal fun LiveClockText(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Medium,
         maxLines = 1,
-        modifier = modifier,
+        modifier = modifier.clearAndSetSemantics {
+            contentDescription = playbackClockDescription(shown, durationMs)
+        },
     )
 }
 
@@ -602,6 +630,7 @@ internal fun PillIcon(
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                role = Role.Button,
                 onClick = onClick,
             ),
         contentAlignment = Alignment.Center,
@@ -625,12 +654,13 @@ internal fun PillLabel(
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
-            .clearAndSetSemantics { contentDescription = description }
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
+                role = Role.Button,
                 onClick = onClick,
-            ),
+            )
+            .clearAndSetSemantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
         Text(

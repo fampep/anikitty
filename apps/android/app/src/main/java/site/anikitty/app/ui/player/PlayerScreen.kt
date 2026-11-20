@@ -144,7 +144,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
@@ -2244,6 +2248,10 @@ fun PlayerScreen(
                 modifier = Modifier
                     .clip(RoundedCornerShape(999.dp))
                     .background(Color.White)
+                    .clearAndSetSemantics {
+                        contentDescription = "Playing at double speed"
+                        liveRegion = LiveRegionMode.Polite
+                    }
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -2277,6 +2285,10 @@ fun PlayerScreen(
                     .clip(RoundedCornerShape(18.dp))
                     .background(Color.Black.copy(alpha = 0.72f))
                     .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(18.dp))
+                    .clearAndSetSemantics {
+                        contentDescription = seekFlashDescription(seekFlashMs)
+                        liveRegion = LiveRegionMode.Polite
+                    }
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -2433,11 +2445,20 @@ fun PlayerScreen(
             val shown = heldHud ?: return@AnimatedVisibility
             val pct = (shown.level.coerceIn(0f, 1f) * 100f).toInt()
             val hudShape = RoundedCornerShape(16.dp)
+            val hudDescription = when {
+                shown.kind == GestureHudKind.Brightness -> "Brightness $pct percent"
+                shown.caption != null -> "${shown.caption} volume $pct percent"
+                else -> "Volume $pct percent"
+            }
             Column(
                 modifier = Modifier
                     .clip(hudShape)
                     .background(Color.Black.copy(alpha = 0.82f))
                     .border(0.5.dp, Color.White.copy(alpha = 0.28f), hudShape)
+                    .clearAndSetSemantics {
+                        contentDescription = hudDescription
+                        liveRegion = LiveRegionMode.Polite
+                    }
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -2453,11 +2474,7 @@ fun PlayerScreen(
                         shown.level < 0.45f -> Icons.AutoMirrored.Outlined.VolumeDown
                         else -> Icons.AutoMirrored.Outlined.VolumeUp
                     },
-                    contentDescription = when {
-                        shown.kind == GestureHudKind.Brightness -> "Brightness $pct percent"
-                        shown.caption != null -> "${shown.caption} volume $pct percent"
-                        else -> "Volume $pct percent"
-                    },
+                    contentDescription = null,
                     tint = Color.White,
                     modifier = Modifier.size(22.dp),
                 )
@@ -3048,7 +3065,8 @@ fun PlayerScreen(
                     .clip(skipShape)
                     .background(Color.Black.copy(alpha = if (isCasting) 0.72f else 0.62f))
                     .border(1.dp, Color.White.copy(alpha = 0.35f), skipShape)
-                    .clickable { skipTo(iv.endMs) }
+                    .clickable(role = Role.Button) { skipTo(iv.endMs) }
+                    .clearAndSetSemantics { contentDescription = skipActionDescription(kind) }
                     .padding(
                         horizontal = if (isCasting) 18.dp else 16.dp,
                         vertical = if (isCasting) 12.dp else 10.dp,

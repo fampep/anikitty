@@ -5,6 +5,9 @@ package site.anikitty.app.ui.player
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -195,7 +198,7 @@ internal fun PlayerMenuFrame(
                             Box(
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clickable(onClick = onBack),
+                                    .clickable(role = Role.Button, onClick = onBack),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
@@ -220,7 +223,8 @@ internal fun PlayerMenuFrame(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clickable(onClick = onDismiss),
+                                .clickable(role = Role.Button, onClick = onDismiss)
+                                .clearAndSetSemantics { contentDescription = "Close menu" },
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
@@ -262,7 +266,10 @@ internal fun PlayerMenuRow(
             .fillMaxWidth()
             .height(if (compact) 48.dp else 60.dp)
             .background(if (selected) Color.White.copy(alpha = 0.10f) else Color.Transparent)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = menuRowDescription(label, value, selected)
+            }
             .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

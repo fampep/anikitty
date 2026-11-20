@@ -25,6 +25,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -93,6 +98,18 @@ fun GlassScrubber(
             .onFocusChanged {
                 focused = it.isFocused
                 if (it.isFocused) latestFraction = clamped
+            }
+            .semantics {
+                contentDescription = seekBarDescription(clamped, durationMs)
+                progressBarRangeInfo = ProgressBarRangeInfo(clamped.coerceIn(0f, 1f), 0f..1f)
+                setProgress { value ->
+                    if (durationMs <= 0L) return@setProgress false
+                    val next = value.coerceIn(0f, 1f)
+                    latestFraction = next
+                    latestOnScrub(next)
+                    latestOnFinished(next)
+                    true
+                }
             }
             .focusable()
             .onPreviewKeyEvent { event ->
