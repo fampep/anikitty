@@ -19,7 +19,10 @@ import android.graphics.Typeface
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.core.app.PictureInPictureModeChangedInfo
+import androidx.core.util.Consumer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
@@ -1588,6 +1591,12 @@ fun PlayerScreen(
     val episodeLine = if (isMovie) "Film · $audioLabel" else "E$episode · $audioLabel"
 
     fun enterPip() {
+        if (
+            playbackEnded || isCasting || castPending ||
+            (castAttachStarted && !isCasting && !castClientGaveUp)
+        ) {
+            return
+        }
         val host = activity ?: return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (!host.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) return
@@ -1603,6 +1612,37 @@ fun PlayerScreen(
             panel = PlayerMenuPage.None
             controlsVisible = false
         }
+    }
+
+    val handoffToCast = castAttachStarted && !isCasting && !castClientGaveUp
+    val castBlocks = castBlocksPictureInPicture(isCasting, castPending, handoffToCast)
+    val autoPip = shouldAutoEnterPip(
+        localPlaying = playing && player?.isPlaying == true,
+        playbackEnded = playbackEnded,
+        castBlocks = castBlocks,
+    )
+    var inPip by remember {
+        mutableStateOf(activity?.isInPictureInPictureMode == true)
+    }
+    DisposableEffect(activity) {
+        val host = activity as? ComponentActivity
+        if (host == null) return@DisposableEffect onDispose {}
+        val listener = Consumer<PictureInPictureModeChangedInfo> { info ->
+            inPip = info.isInPictureInPictureMode
+            if (info.isInPictureInPictureMode) {
+                panel = PlayerMenuPage.None
+                controlsVisible = false
+            }
+        }
+        host.addOnPictureInPictureModeChangedListener(listener)
+        onDispose {
+            host.removeOnPictureInPictureModeChangedListener(listener)
+            PipAutoEnter.update(host, allowed = false)
+        }
+    }
+    LaunchedEffect(autoPip, activity) {
+        val host = activity ?: return@LaunchedEffect
+        PipAutoEnter.update(host, autoPip)
     }
 
     @Composable
@@ -1737,12 +1777,14 @@ fun PlayerScreen(
                     capturePlayerFrame(context, playerViewRef)
                 },
             )
-            PlayerMenuRow(
-                label = "Picture in picture",
-                icon = Icons.Outlined.PictureInPicture,
-                showChevron = true,
-                onClick = { enterPip() },
-            )
+            if (!playbackEnded && !castBlocks) {
+                PlayerMenuRow(
+                    label = "Picture in picture",
+                    icon = Icons.Outlined.PictureInPicture,
+                    showChevron = true,
+                    onClick = { enterPip() },
+                )
+            }
         }
     }
 
@@ -2230,7 +2272,7 @@ fun PlayerScreen(
         }
 
         val switchingAudio = audioSwitchLabel(audio, source?.audioLanguage)
-        if (showAudioSwitch && switchingAudio != null && !isCasting && error == null) {
+        if (!inPip && showAudioSwitch && switchingAudio != null && !isCasting && error == null) {
             Text(
                 switchingAudio,
                 color = Color.White,
@@ -2247,7 +2289,7 @@ fun PlayerScreen(
         }
 
         if (
-            !theater && error == null && (player != null || isCasting) &&
+            !inPip && !theater && error == null && (player != null || isCasting) &&
             panel == PlayerMenuPage.None && !showEndAutoplay
         ) {
             val showStageTransport = isCasting || !playing || stageChrome
@@ -2401,7 +2443,7 @@ fun PlayerScreen(
             }
         }
 
-        if (!ready && error == null && !isCasting) {
+        if (!inPip && !ready && error == null && !isCasting) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -2423,7 +2465,7 @@ fun PlayerScreen(
                 }
             }
         } else if (
-            ready && buffering && error == null &&
+            !inPip && ready && buffering && error == null &&
             seekFlashMs == 0L && !scrubbing && !holdBoost &&
             !(theater && controlsVisible && !controlsLocked) &&
             !(!theater && isCasting)
@@ -2437,7 +2479,7 @@ fun PlayerScreen(
             )
         }
 
-        if (sleepNote != null) {
+        if (!inPip && sleepNote != null) {
             Text(
                 sleepNote!!,
                 color = PlayerChrome.Paper,
@@ -2453,7 +2495,7 @@ fun PlayerScreen(
             )
         }
 
-        if (castHint != null) {
+        if (!inPip && castHint != null) {
             Text(
                 castHint!!,
                 color = PlayerChrome.Paper,
@@ -2469,7 +2511,7 @@ fun PlayerScreen(
             )
         }
 
-        if (nearEndOffer || showEndAutoplay) {
+        if (!inPip && (nearEndOffer || showEndAutoplay)) {
             NextEpisodePrompt(
                 modifier = Modifier
                     .align(if (showEndAutoplay) Alignment.Center else Alignment.BottomStart)
@@ -2549,7 +2591,7 @@ fun PlayerScreen(
             }
         }
 
-        if (controlsLocked) {
+        if (!inPip && controlsLocked) {
             Row(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -2582,7 +2624,7 @@ fun PlayerScreen(
         }
 
         AnimatedVisibility(
-            visible = theater && !controlsLocked && (controlsVisible || error != null || panel != PlayerMenuPage.None),
+            visible = !inPip && theater && !controlsLocked && (controlsVisible || error != null || panel != PlayerMenuPage.None),
             enter = fadeIn(),
             exit = fadeOut(),
             modifier = Modifier.fillMaxSize(),
@@ -2912,7 +2954,7 @@ fun PlayerScreen(
             }
         }
 
-        if (activeSkip != null && panel == PlayerMenuPage.None) {
+        if (!inPip && activeSkip != null && panel == PlayerMenuPage.None) {
             val (kind, iv) = activeSkip
             val label = when (kind) {
                 "intro" -> "Skip Intro"
