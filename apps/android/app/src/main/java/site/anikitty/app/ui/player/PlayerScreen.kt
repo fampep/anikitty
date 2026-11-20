@@ -1,6 +1,8 @@
 // Copyright 2026 fampep
 // Licensed under the Apache License, Version 2.0. See the LICENSE file.
 
+@file:OptIn(androidx.media3.common.util.UnstableApi::class)
+
 package site.anikitty.app.ui.player
 
 import android.app.Activity
