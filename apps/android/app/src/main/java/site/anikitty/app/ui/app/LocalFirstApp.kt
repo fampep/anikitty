@@ -478,7 +478,11 @@ fun LocalFirstApp(
                     onRemove = { entry -> ContinueHidden.hide(context, entry.anilistId) },
                     onMarkWatched = { entry, episode ->
                         scope.launch {
-                            historyDao.markEpisode(summaryFrom(entry), episode)
+                            val anime = summaryFrom(entry)
+                            val finished = historyDao.markEpisode(anime, episode) ?: return@launch
+                            if (aniListAuth.isLinked && !demo) {
+                                pushFinishedEpisode(aniList, aniListSync, anime, finished)
+                            }
                         }
                     },
                 )
@@ -552,6 +556,11 @@ fun LocalFirstApp(
                     onOpenContinueTitle = { entry ->
                         scope.launch { openHistory(entry, null) }
                     },
+                    onFinishedEpisode = { anime, finished ->
+                        if (aniListAuth.isLinked && !demo) {
+                            pushFinishedEpisode(aniList, aniListSync, anime, finished)
+                        }
+                    },
                 )
                 "schedule" -> ScheduleFeed(
                     aniList = aniList,
@@ -601,6 +610,11 @@ fun LocalFirstApp(
                     onBrowse = { tab = "search" },
                     onSignOut = onSignOut,
                     avatarUrl = aniListAuth.avatarUrl,
+                    onFinishedEpisode = { anime, finished ->
+                        if (aniListAuth.isLinked && !demo) {
+                            pushFinishedEpisode(aniList, aniListSync, anime, finished)
+                        }
+                    },
                 )
                 "settings" -> SettingsFeed(
                     demo = demo,
@@ -996,6 +1010,7 @@ fun LocalFirstApp(
                     tab = "search"
                 },
                 aniListAuth = aniListAuth,
+                aniListSync = aniListSync,
                 onPlay = { episode, sources, resolvedAnime ->
                     screen = Screen.Player(resolvedAnime, episode, sources)
                 },
@@ -1084,6 +1099,7 @@ private fun HomeFeed(
     releasedEpisodes: Map<Int, Int> = emptyMap(),
     onResumeContinue: (WatchHistoryEntity, Int) -> Unit,
     onOpenContinueTitle: (WatchHistoryEntity) -> Unit,
+    onFinishedEpisode: suspend (AnimeSummary, Int) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     var loading by remember { mutableStateOf(true) }
@@ -1158,23 +1174,37 @@ private fun HomeFeed(
     var collection by remember { mutableStateOf<Pair<String, List<AnimeSummary>>?>(null) }
     var forYou by remember { mutableStateOf<List<AnimeSummary>>(emptyList()) }
     var forYouFrom by remember { mutableStateOf<String?>(null) }
-    val spotlightId = continueWatching.firstOrNull()?.anilistId
-    LaunchedEffect(spotlightId) {
+    val forYouSpots = continueWatching.take(3)
+    val forYouKey = forYouSpots.joinToString("|") { it.anilistId.toString() }
+    LaunchedEffect(demo, forYouKey) {
         if (demo) {
             val spot = site.anikitty.app.data.demo.DemoLibrary.harbor
-            forYouFrom = spot.title
+            forYouFrom = forYouBecause(listOf(spot.title))
             forYou = spot.recommendations.filter { it.id != spot.id }
             return@LaunchedEffect
         }
-        val id = spotlightId
-        if (id == null) {
+        if (forYouSpots.isEmpty()) {
             forYou = emptyList()
             forYouFrom = null
             return@LaunchedEffect
         }
-        val full = runCatching { aniList.media(id, aniListAuth.accessToken) }.getOrNull()
-        forYouFrom = continueWatching.firstOrNull { it.anilistId == id }?.title
-        forYou = full?.recommendations.orEmpty().filter { it.id != id }
+        val loaded = coroutineScope {
+            forYouSpots.map { spot ->
+                async {
+                    spot to runCatching { aniList.media(spot.anilistId, aniListAuth.accessToken) }.getOrNull()
+                }
+            }.awaitAll()
+        }
+        val seen = forYouSpots.map { it.anilistId }.toMutableSet()
+        val picked = mutableListOf<AnimeSummary>()
+        for ((_, full) in loaded) {
+            for (rec in full?.recommendations.orEmpty()) {
+                if (!seen.add(rec.id)) continue
+                picked.add(rec)
+            }
+        }
+        forYouFrom = forYouBecause(loaded.map { (spot, full) -> full?.title ?: spot.title })
+        forYou = picked.take(12)
     }
 
     fun reload(fromPull: Boolean = false) {
@@ -1537,7 +1567,10 @@ private fun HomeFeed(
                                             },
                                             onMarkWatched = { entry, episode ->
                                                 scope.launch {
-                                                    historyDao.markEpisode(summaryFrom(entry), episode)
+                                                    val anime = summaryFrom(entry)
+                                                    val finished = historyDao.markEpisode(anime, episode)
+                                                        ?: return@launch
+                                                    onFinishedEpisode(anime, finished)
                                                 }
                                             },
                                         )
@@ -1648,7 +1681,7 @@ private fun HomeFeed(
                                 if (shownForYou.isNotEmpty()) item(key = "foryou", contentType = "posters") {
                                     HomeBlock(
                                         title = "For you",
-                                        subtitle = forYouFrom?.let { "Because you watch $it" },
+                                        subtitle = forYouFrom,
                                     ) {
                                         HomePosterRow(items = shownForYou, onOpen = openCatalog)
                                     }
@@ -1749,6 +1782,47 @@ private fun prefetchCovers(context: android.content.Context, animes: List<AnimeS
                 .build(),
         )
     }
+}
+
+/** Subtitle for the home row built from the shows someone is still watching. */
+internal fun forYouBecause(titles: List<String>): String? {
+    val names = titles.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+    if (names.isEmpty()) return null
+    val joined = when (names.size) {
+        1 -> names[0]
+        2 -> "${names[0]} and ${names[1]}"
+        else -> names.dropLast(1).joinToString(", ") + ", and " + names.last()
+    }
+    return "Because you watch $joined"
+}
+
+/**
+ * Send a finished-episode count to AniList. Demo titles stay on the phone.
+ * When the summary has no episode total, look it up so the last episode can
+ * complete the list.
+ */
+/**
+ * Sends the finished count to AniList.
+ * Returns the list status that was saved, or null when nothing was saved.
+ * The title page uses that status so the My List chip matches the list.
+ */
+private suspend fun pushFinishedEpisode(
+    aniList: AniListClient,
+    aniListSync: AniListSync,
+    anime: AnimeSummary,
+    finished: Int,
+): String? {
+    if (site.anikitty.app.data.demo.DemoLibrary.find(anime.id) != null) return null
+    val total = anime.episodes?.takeIf { it > 0 }
+        ?: runCatching { aniList.media(anime.id)?.episodes?.takeIf { it > 0 } }.getOrNull()
+    val saved = aniListSync.pushProgress(
+        anilistId = anime.id,
+        episode = finished,
+        totalEpisodes = total,
+    )
+    if (!saved) return null
+    val completed = total != null && finished >= total
+    return if (completed) "COMPLETED" else "CURRENT"
 }
 
 private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
@@ -2916,6 +2990,7 @@ private fun TitleDetailScreen(
     onOpenRelated: (AnimeSummary) -> Unit,
     onOpenGenre: (String) -> Unit,
     aniListAuth: AniListAuthStore,
+    aniListSync: AniListSync,
     onPlay: (episode: Int, sources: List<PlayableSource>, anime: AnimeSummary) -> Unit,
     posterModifier: Modifier = Modifier,
 ) {
@@ -3322,8 +3397,15 @@ private fun TitleDetailScreen(
         onToggleWatched = { number ->
             if (!sampleTitle) {
                 scope.launch {
-                    historyDao.markEpisode(detail, number)
+                    val finished = historyDao.markEpisode(detail, number)
                     lastWatchedEp = historyDao.get(detail.id)?.episode ?: lastWatchedEp
+                    if (finished != null && aniListAuth.isLinked) {
+                        val savedStatus = pushFinishedEpisode(aniList, aniListSync, detail, finished)
+                        if (savedStatus != null) {
+                            listStatus = savedStatus
+                            listBadge = listStatusBadge(savedStatus)
+                        }
+                    }
                 }
             }
         },

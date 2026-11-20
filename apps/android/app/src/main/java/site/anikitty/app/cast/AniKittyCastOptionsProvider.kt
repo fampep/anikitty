@@ -8,17 +8,29 @@ import com.google.android.gms.cast.framework.CastOptions
 import com.google.android.gms.cast.framework.OptionsProvider
 import com.google.android.gms.cast.framework.SessionProvider
 import com.google.android.gms.cast.framework.media.CastMediaOptions
+import com.google.android.gms.cast.framework.media.MediaIntentReceiver
 import com.google.android.gms.cast.framework.media.NotificationOptions
 import site.anikitty.app.MainActivity
 
 /**
  * Default Cast receiver. Streams are relayed from the phone so the TV gets a
  * clean URL. Skip Intro and transport live in the in-app glass player (phone
- * stays open on the same Wi-Fi); notification is play/pause + seek only.
+ * stays open on the same Wi-Fi). The notification skips the same 10 seconds
+ * as the on-screen −10 / +10 buttons.
  */
 class AniKittyCastOptionsProvider : OptionsProvider {
     override fun getCastOptions(context: Context): CastOptions {
+        // Rewind and forward are what the skip step applies to. Without them
+        // the shade only has play and stop, and the 10 second step is unused.
+        val actions = listOf(
+            MediaIntentReceiver.ACTION_REWIND,
+            MediaIntentReceiver.ACTION_TOGGLE_PLAYBACK,
+            MediaIntentReceiver.ACTION_FORWARD,
+            MediaIntentReceiver.ACTION_STOP_CASTING,
+        )
         val notification = NotificationOptions.Builder()
+            .setActions(actions, intArrayOf(1, 3))
+            .setSkipStepMs(NotificationOptions.SKIP_STEP_TEN_SECONDS_IN_MS)
             .setTargetActivityClassName(MainActivity::class.java.name)
             .build()
         val media = CastMediaOptions.Builder()
