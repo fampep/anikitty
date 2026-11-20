@@ -5,6 +5,10 @@ package site.anikitty.app.ui.app
 
 import androidx.activity.compose.BackHandler
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.Uri
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.BoundsTransform
@@ -374,6 +378,24 @@ fun LocalFirstApp(
             }
             delay(5 * 60_000L)
         }
+    }
+
+    // A failed progress push stays queued. Coming back online sends it
+    // before the next list pull can treat the cloud copy as newer.
+    DisposableEffect(aniListAuth.isLinked) {
+        if (!aniListAuth.isLinked) return@DisposableEffect onDispose {}
+        val connectivity = context.getSystemService(ConnectivityManager::class.java)
+            ?: return@DisposableEffect onDispose {}
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                scope.launch { runCatching { aniListSync.drainPendingPushes() } }
+            }
+        }
+        val request = NetworkRequest.Builder()
+            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .build()
+        connectivity.registerNetworkCallback(request, callback)
+        onDispose { runCatching { connectivity.unregisterNetworkCallback(callback) } }
     }
 
     val tabs = remember {

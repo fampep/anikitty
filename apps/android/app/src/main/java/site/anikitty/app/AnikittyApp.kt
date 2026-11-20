@@ -70,7 +70,12 @@ class AnikittyApp : Application(), ImageLoaderFactory {
         database = AppDatabase.create(this)
         aniList = AniListClient(this)
         aniListAuth = AniListAuthStore(this)
-        aniListSync = AniListSync(aniList, aniListAuth, database.watchHistoryDao())
+        aniListSync = AniListSync(
+            aniList,
+            aniListAuth,
+            database.watchHistoryDao(),
+            database.pendingAniListPushDao(),
+        )
         streamServers = ServerCatalog(this)
         serverConfig = ServerConfig(this)
         session = SessionStore(this)
