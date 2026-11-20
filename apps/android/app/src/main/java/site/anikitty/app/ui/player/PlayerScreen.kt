@@ -105,6 +105,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastHardwareVolume
 import site.anikitty.app.cast.CastSessionHelper
+import site.anikitty.app.cast.reduceCastAttach
 import site.anikitty.app.cast.safeSeekTarget
 import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
@@ -347,6 +348,10 @@ fun PlayerScreen(
     var buffering by remember { mutableStateOf(false) }
     var isCasting by remember { mutableStateOf(false) }
     var castHint by remember { mutableStateOf<String?>(null) }
+    /** A Chromecast is up, but the episode stream was not ready to load yet. */
+    var castPending by remember { mutableStateOf(false) }
+    /** The current session already got one load, so a second callback does not restart it. */
+    var castAttachStarted by remember { mutableStateOf(false) }
     // Next-episode UX: soft offer near the end, then 10s autoplay once ended.
     var nearEndDismissed by remember(episode) { mutableStateOf(false) }
     var playbackEnded by remember(episode) { mutableStateOf(false) }
@@ -580,6 +585,55 @@ fun PlayerScreen(
         !nextTriggered &&
         sleepChoice != -1
 
+    fun loadOntoCast(helper: CastSessionHelper, src: PlayableSource) {
+        val local = latestPlayer
+        val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition.ms
+        local?.pause()
+        isCasting = false
+        castHint = "Connecting to your TV"
+        controlsVisible = true
+        pushMute()
+        syncCastSubtitles()
+        helper.load(
+            source = src,
+            title = latestTitle,
+            episode = latestEpisode,
+            positionMs = pos,
+            onReady = {
+                local?.pause()
+                pushMute()
+                isCasting = true
+                castHint = null
+            },
+            onError = { message ->
+                castHint = message
+                isCasting = false
+                pushMute()
+                local?.play()
+                // The session was visible before the receiver client existed.
+                // Allow the availability callback to load once that client arrives.
+                if (message == "Chromecast is not connected") {
+                    castAttachStarted = false
+                }
+            },
+        )
+    }
+
+    fun applyCastAttach(sessionUp: Boolean) {
+        val decision = reduceCastAttach(
+            pending = castPending,
+            loadStarted = castAttachStarted,
+            sessionUp = sessionUp,
+            hasSource = latestSources.getOrNull(latestSourceIndex) != null,
+        )
+        castPending = decision.pending
+        castAttachStarted = decision.loadStarted
+        if (!decision.load) return
+        val helper = castHelper ?: return
+        val src = latestSources.getOrNull(latestSourceIndex) ?: return
+        loadOntoCast(helper, src)
+    }
+
     DisposableEffect(castHelper) {
         val helper = castHelper
         if (helper == null) {
@@ -606,36 +660,12 @@ fun PlayerScreen(
             }
             helper.setAvailabilityListener(object : SessionAvailabilityListener {
                 override fun onCastSessionAvailable() {
-                    val src = latestSources.getOrNull(latestSourceIndex) ?: return
-                    val local = latestPlayer
-                    val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition.ms
-                    local?.pause()
-                    isCasting = false
-                    castHint = "Connecting to your TV"
-                    controlsVisible = true
-                    pushMute()
-                    syncCastSubtitles()
-                    helper.load(
-                        source = src,
-                        title = latestTitle,
-                        episode = latestEpisode,
-                        positionMs = pos,
-                        onReady = {
-                            local?.pause()
-                            pushMute()
-                            isCasting = true
-                            castHint = null
-                        },
-                        onError = { message ->
-                            castHint = message
-                            isCasting = false
-                            pushMute()
-                            local?.play()
-                        },
-                    )
+                    applyCastAttach(sessionUp = true)
                 }
 
                 override fun onCastSessionUnavailable() {
+                    castPending = false
+                    castAttachStarted = false
                     val pos = runCatching {
                         helper.castPlayer.currentPosition.coerceAtLeast(0L)
                     }.getOrDefault(latestPosition.ms)
@@ -651,6 +681,7 @@ fun PlayerScreen(
                     controlsVisible = true
                 }
             })
+            applyCastAttach(helper.isSessionAvailable())
             onDispose {
                 helper.castPlayer.removeListener(castErrors)
                 helper.setPlaybackEndedListener(null)
@@ -658,6 +689,15 @@ fun PlayerScreen(
                 helper.release()
             }
         }
+    }
+
+    // A session that was already connected, or that arrived before the stream
+    // list resolved, loads once the source exists. The availability callback
+    // alone used to return and never retry.
+    LaunchedEffect(castHelper, castPending, source?.url, source?.audioLanguage, sourceIndex) {
+        val helper = castHelper ?: return@LaunchedEffect
+        if (!castPending && !helper.isSessionAvailable()) return@LaunchedEffect
+        applyCastAttach(helper.isSessionAvailable())
     }
 
     // Episode the current cast item was loaded for. A later episode must not
@@ -669,7 +709,7 @@ fun PlayerScreen(
 
     // When quality, episode, or the selected audio language changes mid-cast,
     // push a new load. A shared master keeps the same URL, so the language
-    // has to be its own key. First load is handled by SessionAvailabilityListener.
+    // has to be its own key. The first load is the attach effect above.
     LaunchedEffect(source?.url, source?.audioLanguage, episode) {
         if (!isCasting) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect

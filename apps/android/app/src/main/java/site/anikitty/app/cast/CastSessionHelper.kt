@@ -84,6 +84,15 @@ class CastSessionHelper private constructor(
     }
 
     /**
+     * True when a Chromecast is already in this process. Opening the player
+     * must load onto it even if the availability callback already fired.
+     */
+    fun isSessionAvailable(): Boolean = runCatching {
+        val connected = castContext.sessionManager.currentCastSession?.isConnected == true
+        connected || castPlayer.isCastSessionAvailable
+    }.getOrDefault(false)
+
+    /**
      * Move the Chromecast speaker volume. Returns the new level, 0–1.
      * A swipe must not change the phone's media stream while the TV is playing.
      */

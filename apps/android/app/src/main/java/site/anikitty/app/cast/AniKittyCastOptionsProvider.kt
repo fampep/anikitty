@@ -40,7 +40,9 @@ class AniKittyCastOptionsProvider : OptionsProvider {
             .setReceiverApplicationId(DEFAULT_RECEIVER_ID)
             .setCastMediaOptions(media)
             .setStopReceiverApplicationWhenEndingSession(true)
-            .setResumeSavedSession(false)
+            // Reconnect the TV that was playing when the process last stopped,
+            // so the player can load onto it as soon as it opens.
+            .setResumeSavedSession(true)
             .build()
     }
 
