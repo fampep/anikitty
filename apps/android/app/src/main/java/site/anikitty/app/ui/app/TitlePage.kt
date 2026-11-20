@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -46,8 +45,10 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Extension
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -102,7 +103,6 @@ import site.anikitty.app.ui.components.EpisodeCardSkeletonRow
 import site.anikitty.app.ui.components.EpisodeSlide
 import site.anikitty.app.ui.components.HeroBanner
 import site.anikitty.app.ui.components.rememberDockScroll
-import site.anikitty.app.ui.components.KittyBadge
 import site.anikitty.app.ui.components.KittyBottomSheet
 import site.anikitty.app.ui.components.KittyChip
 import site.anikitty.app.ui.components.KittyImage
@@ -153,6 +153,7 @@ internal fun TitleStage(
     onMyList: () -> Unit,
     onListStatus: (String) -> Unit,
     onScore: (Int) -> Unit,
+    onFavourite: () -> Unit = {},
     onShare: () -> Unit,
     onTrailer: (() -> Unit)?,
     onSources: () -> Unit,
@@ -169,6 +170,7 @@ internal fun TitleStage(
     var art by remember(detail.id) { mutableStateOf<TitleArt?>(null) }
     var backdropIndex by remember(detail.id) { mutableStateOf(0) }
     var episodeSheet by remember(detail.id) { mutableStateOf<EpisodeSlide?>(null) }
+    var listSheet by remember(detail.id) { mutableStateOf(false) }
     var episodeDetail by remember(detail.id) { mutableStateOf<EpisodeDetail?>(null) }
     var tmdbPersonId by remember(detail.id) { mutableStateOf<Int?>(null) }
     var personProfile by remember(detail.id) { mutableStateOf<PersonProfile?>(null) }
@@ -264,7 +266,7 @@ internal fun TitleStage(
     val related = remember(detail) { detail.relatedOutsideSeasons() }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize().background(palette.page)) {
-        val heroHeight = maxHeight
+        val bannerHeight = (maxHeight * 0.46f).coerceIn(300.dp, 420.dp)
         LazyColumn(
             state = listState,
             modifier = Modifier.nestedScroll(rememberDockScroll()),
@@ -274,7 +276,7 @@ internal fun TitleStage(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(min = heroHeight)
+                        .height(bannerHeight)
                         .clipToBounds(),
                 ) {
                     val gallery = art?.backdrops.orEmpty()
@@ -320,7 +322,7 @@ internal fun TitleStage(
                         modifier = Modifier
                             .align(Alignment.BottomStart)
                             .padding(horizontal = KittySpace.md)
-                            .padding(bottom = 108.dp),
+                            .padding(bottom = KittySpace.md),
                     ) {
                         val logo = transparentLogo(art?.logoUrl)
                         if (logo != null) {
@@ -391,117 +393,97 @@ internal fun TitleStage(
                                 }
                             }
                         }
-                        if (detail.genres.isNotEmpty()) {
-                            Spacer(Modifier.height(KittySpace.sm))
-                            Row(
-                                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
-                            ) {
-                                detail.genres.take(8).forEach { genre ->
-                                    OnDarkChip(label = genre, onClick = { onOpenGenre(genre) })
-                                }
-                            }
-                        }
-                        detail.nextAiring?.let { next ->
-                            Spacer(Modifier.height(KittySpace.sm))
-                            KittyBadge(
-                                label = "Episode ${next.episode}  ·  ${airCountdown(next.airingAtEpochSec)}",
-                                onDark = true,
-                            )
-                        }
-                        Spacer(Modifier.height(KittySpace.md))
-                        PlayButton(
-                            label = playLabel,
-                            busy = resolving,
-                            fraction = if (episodeFraction > 0f) episodeFraction else seriesFraction,
-                            onClick = onPlay,
-                        )
-                        if (watchedThrough > 0 && total > 0) {
-                            Text(
-                                "$watchedThrough of $total watched",
-                                color = Color.White.copy(alpha = 0.72f),
-                                fontSize = 12.sp,
-                                modifier = Modifier.padding(top = 6.dp),
-                            )
-                        }
-                        Spacer(Modifier.height(KittySpace.sm))
-                        Row(horizontalArrangement = Arrangement.spacedBy(KittySpace.sm)) {
-                            TitleAction(
-                                icon = if (listStatus != null || favourite) Icons.Rounded.Bookmark else Icons.Outlined.BookmarkBorder,
-                                label = if (listStatus != null) listBadge(listStatus) else "My List",
-                                onClick = onMyList,
-                                modifier = Modifier.weight(1f),
-                            )
-                            TitleAction(
-                                icon = Icons.Outlined.Share,
-                                label = "Share",
-                                onClick = onShare,
-                                modifier = Modifier.weight(1f),
-                            )
-                            if (trailerClick != null) {
-                                TitleAction(
-                                    icon = Icons.Rounded.PlayArrow,
-                                    label = "Trailer",
-                                    onClick = trailerClick,
-                                    modifier = Modifier.weight(1f),
-                                )
-                            }
-                            TitleAction(
-                                icon = Icons.Outlined.Extension,
-                                label = "Sources",
-                                onClick = onSources,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
                     }
                 }
             }
-            item(key = "actions", contentType = "actions") {
+            item(key = "play", contentType = "play") {
+                val picked = slides.firstOrNull { it.number == episode }
+                val pickedTitle = picked?.title?.trim()?.takeIf { title ->
+                    title.isNotEmpty() && !title.equals("Episode $episode", ignoreCase = true)
+                }
                 Column(
                     modifier = Modifier.padding(
                         horizontal = KittySpace.md,
                         vertical = KittySpace.md,
                     ),
                 ) {
-                    if (canEditList) {
-                        Spacer(Modifier.height(KittySpace.sm))
+                    if (detail.genres.isNotEmpty()) {
                         Row(
                             modifier = Modifier.horizontalScroll(rememberScrollState()),
                             horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
                         ) {
-                            listOf(
-                                "CURRENT" to "Watching",
-                                "PLANNING" to "Plan",
-                                "PAUSED" to "Paused",
-                                "COMPLETED" to "Done",
-                                "DROPPED" to "Dropped",
-                            ).forEach { (value, label) ->
+                            detail.genres.take(8).forEach { genre ->
                                 KittyChip(
-                                    label = label,
-                                    selected = listStatus.equals(value, ignoreCase = true),
-                                    onClick = { onListStatus(value) },
+                                    label = genre,
+                                    selected = false,
+                                    onClick = { onOpenGenre(genre) },
                                 )
                             }
                         }
                         Spacer(Modifier.height(KittySpace.sm))
-                        Row(
-                            modifier = Modifier.horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(
-                                if (listScore > 0) "Your score ${listScore / 10}" else "Your score",
-                                color = palette.muted,
-                                fontSize = 12.sp,
+                    }
+                    detail.nextAiring?.let { next ->
+                        Text(
+                            "Episode ${next.episode}  ·  ${airCountdown(next.airingAtEpochSec)}",
+                            color = palette.text,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 13.sp,
+                        )
+                        Spacer(Modifier.height(KittySpace.sm))
+                    }
+                    PlayButton(
+                        label = playLabel,
+                        busy = resolving,
+                        fraction = if (episodeFraction > 0f) episodeFraction else seriesFraction,
+                        onClick = onPlay,
+                    )
+                    if (!movie && pickedTitle != null) {
+                        Text(
+                            "E$episode  ·  $pickedTitle",
+                            color = palette.text,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                    if (watchedThrough > 0 && total > 0) {
+                        Text(
+                            "$watchedThrough of $total watched",
+                            color = palette.muted,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                    Spacer(Modifier.height(KittySpace.sm))
+                    Row(horizontalArrangement = Arrangement.spacedBy(KittySpace.sm)) {
+                        TitleAction(
+                            icon = if (listStatus != null || favourite) Icons.Rounded.Bookmark else Icons.Outlined.BookmarkBorder,
+                            label = if (listStatus != null) listBadge(listStatus) else "My List",
+                            onClick = { if (canEditList) listSheet = true else onMyList() },
+                            modifier = Modifier.weight(1f),
+                        )
+                        TitleAction(
+                            icon = Icons.Outlined.Share,
+                            label = "Share",
+                            onClick = onShare,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (trailerClick != null) {
+                            TitleAction(
+                                icon = Icons.Rounded.PlayArrow,
+                                label = "Trailer",
+                                onClick = trailerClick,
+                                modifier = Modifier.weight(1f),
                             )
-                            (1..10).forEach { point ->
-                                KittyChip(
-                                    label = point.toString(),
-                                    selected = listScore / 10 == point,
-                                    onClick = { onScore(point) },
-                                )
-                            }
                         }
+                        TitleAction(
+                            icon = Icons.Outlined.Extension,
+                            label = "Sources",
+                            onClick = onSources,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                     if (status != null) {
                         Text(
@@ -511,16 +493,6 @@ internal fun TitleStage(
                             modifier = Modifier.padding(top = KittySpace.sm),
                         )
                     }
-                }
-            }
-            val gallery = galleryTiles(art)
-            if (gallery.size > 1) {
-                item(key = "gallery", contentType = "gallery") {
-                    BackdropStrip(
-                        tiles = gallery,
-                        selected = backdropIndex,
-                        onSelect = { backdropIndex = it },
-                    )
                 }
             }
             item(key = "synopsis", contentType = "copy") {
@@ -538,30 +510,6 @@ internal fun TitleStage(
                     }
                 } else if (!synopsis.isNullOrBlank()) {
                     Synopsis(synopsis)
-                }
-            }
-            item(key = "about", contentType = "about") {
-                if (detailLoading && !detail.detailLoaded) {
-                    Column(Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.md)) {
-                        ShimmerBox(
-                            Modifier
-                                .padding(bottom = 12.dp)
-                                .fillMaxWidth(0.45f)
-                                .height(18.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                        )
-                        repeat(4) {
-                            ShimmerBox(
-                                Modifier
-                                    .padding(bottom = 10.dp)
-                                    .fillMaxWidth()
-                                    .height(40.dp)
-                                    .clip(RoundedCornerShape(8.dp)),
-                            )
-                        }
-                    }
-                } else {
-                    AboutAnimeBlock(detail, audioAvailability)
                 }
             }
             item(key = "episodes", contentType = "episodes") {
@@ -590,6 +538,7 @@ internal fun TitleStage(
                         onJumpCommit = onJumpCommit,
                         onBrowseRange = onBrowseRange,
                         onPickEpisode = onPickEpisode,
+                        onPlayEpisode = onPlayEpisode,
                         onToggleWatched = onToggleWatched,
                         onOpenRelation = onOpenRelation,
                         activeServer = activeServer,
@@ -599,6 +548,40 @@ internal fun TitleStage(
                             ?: detail.bannerImageUrl
                             ?: detail.coverImageUrl,
                     )
+                }
+            }
+            val gallery = galleryTiles(art)
+            if (gallery.size > 1) {
+                item(key = "gallery", contentType = "gallery") {
+                    BackdropStrip(
+                        tiles = gallery,
+                        selected = backdropIndex,
+                        onSelect = { backdropIndex = it },
+                    )
+                }
+            }
+            item(key = "about", contentType = "about") {
+                if (detailLoading && !detail.detailLoaded) {
+                    Column(Modifier.padding(horizontal = KittySpace.md, vertical = KittySpace.md)) {
+                        ShimmerBox(
+                            Modifier
+                                .padding(bottom = 12.dp)
+                                .fillMaxWidth(0.45f)
+                                .height(18.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                        )
+                        repeat(4) {
+                            ShimmerBox(
+                                Modifier
+                                    .padding(bottom = 10.dp)
+                                    .fillMaxWidth()
+                                    .height(40.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                            )
+                        }
+                    }
+                } else {
+                    AboutAnimeBlock(detail, audioAvailability)
                 }
             }
             if (!art?.clips.isNullOrEmpty()) {
@@ -615,14 +598,12 @@ internal fun TitleStage(
                             AnimePerson(credit.personId, credit.name, credit.photoUrl, credit.role)
                         },
                     ) { if (it.id > 0) tmdbPersonId = it.id }
-                    Text(
-                        "Cast & crew",
-                        color = palette.text,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp,
-                        modifier = Modifier
-                            .padding(horizontal = KittySpace.md, vertical = 4.dp)
-                            .spacePress { showCast = true },
+                    Spacer(Modifier.height(KittySpace.sm))
+                    KittyChip(
+                        label = "Full cast & crew",
+                        selected = false,
+                        onClick = { showCast = true },
+                        modifier = Modifier.padding(horizontal = KittySpace.md),
                     )
                 }
             } else if (!detailLoading && cast.isNotEmpty()) {
@@ -737,7 +718,7 @@ internal fun TitleStage(
                     .padding(horizontal = 8.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                HeaderIcon(onBack, "Back")
+                HeaderIcon(onBack, "Back", onDark = false)
                 Text(
                     detail.title,
                     color = palette.text,
@@ -749,7 +730,7 @@ internal fun TitleStage(
                         .weight(1f)
                         .padding(horizontal = 8.dp),
                 )
-                HeaderIcon(onPlay, "Play")
+                HeaderIcon(onPlay, "Play", onDark = false)
             }
         }
         if (!stuck) {
@@ -760,6 +741,69 @@ internal fun TitleStage(
                     .windowInsetsPadding(WindowInsets.statusBars)
                     .padding(KittySpace.md),
             )
+        }
+    }
+
+    if (listSheet) {
+        KittyBottomSheet(title = "Your list", onDismiss = { listSheet = false }) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 48.dp)
+                    .spacePress(onFavourite),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    if (favourite) Icons.Rounded.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = if (favourite) "Remove favourite" else "Favourite",
+                    tint = palette.text,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    if (favourite) "Favourited" else "Favourite",
+                    color = palette.text,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(start = KittySpace.sm),
+                )
+            }
+            Spacer(Modifier.height(KittySpace.md))
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(KittySpace.sm),
+            ) {
+                listOf(
+                    "CURRENT" to "Watching",
+                    "PLANNING" to "Plan",
+                    "PAUSED" to "Paused",
+                    "COMPLETED" to "Done",
+                    "DROPPED" to "Dropped",
+                ).forEach { (value, label) ->
+                    KittyChip(
+                        label = label,
+                        selected = listStatus.equals(value, ignoreCase = true),
+                        onClick = { onListStatus(value) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(KittySpace.md))
+            Text(
+                if (listScore > 0) "Your score ${listScore / 10}" else "Your score",
+                color = palette.muted,
+                fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(KittySpace.sm))
+            Row(
+                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                (1..10).forEach { point ->
+                    KittyChip(
+                        label = point.toString(),
+                        selected = listScore / 10 == point,
+                        onClick = { onScore(point) },
+                    )
+                }
+            }
         }
     }
 
@@ -1233,6 +1277,7 @@ private fun EpisodeBlock(
     onJumpCommit: () -> Unit,
     onBrowseRange: (Int) -> Unit,
     onPickEpisode: (Int) -> Unit,
+    onPlayEpisode: (Int) -> Unit = onPickEpisode,
     onToggleWatched: (Int) -> Unit,
     onOpenRelation: (AnimeRelation) -> Unit,
     activeServer: StreamServer?,
@@ -1356,8 +1401,9 @@ private fun EpisodeBlock(
                 watchedThrough = watchedThrough,
                 currentProgress = episodeFraction,
                 fallbackArt = fallbackArt ?: detail.bannerImageUrl ?: detail.coverImageUrl,
-                onPick = { number ->
-                    onPickEpisode(number)
+                onPick = onPlayEpisode,
+                onPlay = onPlayEpisode,
+                onDetails = { number ->
                     slides.firstOrNull { it.number == number }?.let(onInspect)
                 },
                 onToggleWatched = onToggleWatched,
@@ -1820,41 +1866,25 @@ private fun LinkRow(detail: AnimeSummary, art: TitleArt?, onOpenUrl: (String) ->
 }
 
 @Composable
-private fun OnDarkChip(label: String, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(KittyRadius.pill)
-    Text(
-        label,
-        color = Color.White,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
-        modifier = Modifier
-            .defaultMinSize(minHeight = 48.dp)
-            .clip(shape)
-            .background(Color.White.copy(alpha = 0.16f))
-            .border(0.5.dp, Color.White.copy(alpha = 0.35f), shape)
-            .spacePress(onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    )
-}
-
-@Composable
 private fun HeaderIcon(
     onClick: () -> Unit,
     description: String,
     modifier: Modifier = Modifier,
+    onDark: Boolean = true,
 ) {
+    val palette = LocalKittyPalette.current
     Box(
         modifier = modifier
             .size(48.dp)
             .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.45f))
+            .background(if (onDark) Color.Black.copy(alpha = 0.45f) else palette.surface)
             .spacePress(onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             if (description == "Play") Icons.Filled.PlayArrow else Icons.AutoMirrored.Rounded.ArrowBack,
             contentDescription = description,
-            tint = Color.White,
+            tint = if (onDark) Color.White else palette.text,
             modifier = Modifier.size(20.dp),
         )
     }

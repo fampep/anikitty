@@ -3334,6 +3334,7 @@ private fun TitleDetailScreen(
         },
         onListStatus = { applyListStatus(it) },
         onScore = { applyScore(it) },
+        onFavourite = { toggleFavourite() },
         onShare = { shareTitle(context, detail) },
         onTrailer = when {
             detail.trailer?.watchUrl() != null -> {

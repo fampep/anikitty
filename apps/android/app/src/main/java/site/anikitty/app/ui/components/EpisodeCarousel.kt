@@ -409,6 +409,8 @@ fun EpisodeCardRow(
     currentProgress: Float,
     fallbackArt: String?,
     onPick: (Int) -> Unit,
+    onPlay: ((Int) -> Unit)? = null,
+    onDetails: ((Int) -> Unit)? = null,
     onToggleWatched: ((Int) -> Unit)? = null,
 ) {
     if (slides.isEmpty()) return
@@ -437,7 +439,10 @@ fun EpisodeCardRow(
                 fallbackArt = fallbackArt,
                 ink = palette.text,
                 mute = palette.muted,
+                selected = slide.number == current,
                 onClick = { onPick(slide.number) },
+                onPlay = { (onPlay ?: onPick)(slide.number) },
+                onDetails = onDetails?.let { details -> { details(slide.number) } },
                 onToggleWatched = onToggleWatched,
             )
         }
@@ -486,7 +491,10 @@ private fun EpisodeStillCard(
     fallbackArt: String?,
     ink: Color,
     mute: Color,
+    selected: Boolean,
     onClick: () -> Unit,
+    onPlay: () -> Unit,
+    onDetails: (() -> Unit)?,
     onToggleWatched: ((Int) -> Unit)?,
 ) {
     var menu by remember { mutableStateOf(false) }
@@ -520,6 +528,7 @@ private fun EpisodeStillCard(
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
                 .clip(shape)
+                .then(if (selected) Modifier.border(2.dp, ink, shape) else Modifier)
                 .background(Color(0xFF141416)),
         ) {
             if (art != null) {
@@ -538,7 +547,10 @@ private fun EpisodeStillCard(
                 expanded = menu,
                 onDismiss = { menu = false },
                 entries = buildList {
-                    add(KittyMenuEntry("Play", onClick))
+                    add(KittyMenuEntry("Play", onPlay))
+                    if (onDetails != null) {
+                        add(KittyMenuEntry("About this episode", onDetails))
+                    }
                     if (onToggleWatched != null) {
                         add(
                             KittyMenuEntry(if (watched) "Mark unwatched" else "Mark watched") {
@@ -571,7 +583,7 @@ private fun EpisodeStillCard(
             color = ink,
             fontSize = 12.sp,
             lineHeight = 16.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
