@@ -116,7 +116,7 @@ class CastSessionHelper private constructor(
         val left = screens.updateAndGet { current -> (current - 1).coerceAtLeast(0) }
         // The item already finished while this screen was open. Leaving now
         // has to stop the relay; the finish callback skipped that on purpose.
-        if (left == 0 && endedNotified.get() && !isLoadInFlight()) {
+        if (castShouldStopWhenScreenDetaches(left, endedNotified.get(), isLoadInFlight())) {
             stopCasting()
         }
     }
@@ -128,17 +128,14 @@ class CastSessionHelper private constructor(
 
     /** Keep the saved row on the item the TV is playing, not the episode merely open on screen. */
     private fun commitProgress() {
-        val screen = screenProgress
-        val playing = playingItem
-        if (screen == null || playing == null || !castProgressMatches(screen, playing)) {
-            clearProgress()
-            return
-        }
-        val current = progressTarget
-        if (current?.anilistId != screen.anilistId || current.episode != screen.episode) {
-            reportedThrough = -1
-        }
-        progressTarget = screen
+        val committed = commitCastProgress(
+            screen = screenProgress,
+            playing = playingItem,
+            current = progressTarget,
+            reportedThrough = reportedThrough,
+        )
+        progressTarget = committed.target
+        reportedThrough = committed.reportedThrough
     }
 
     private fun clearProgress() {

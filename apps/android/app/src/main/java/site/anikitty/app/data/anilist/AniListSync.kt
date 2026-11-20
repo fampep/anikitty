@@ -80,10 +80,8 @@ class AniListSync(
         val token = auth.accessToken ?: return false
         if (anilistId <= 0 || episode < 0) return false
         val startedAt = System.currentTimeMillis()
-        val completed = totalEpisodes != null && totalEpisodes > 0 && episode >= totalEpisodes
-        val status = if (completed) "COMPLETED" else "CURRENT"
-        val progress = if (completed) (totalEpisodes ?: episode) else episode
-        val saved = aniList.saveProgress(token, anilistId, progress, status)
+        val plan = aniListPushPlan(episode, totalEpisodes)
+        val saved = aniList.saveProgress(token, anilistId, plan.progress, plan.status)
         if (!saved) {
             pendingPushes.upsert(
                 PendingAniListPush(
@@ -96,21 +94,48 @@ class AniListSync(
             return false
         }
         val queued = pendingPushes.get(anilistId)
-        if (queued != null && queued.updatedAtEpochMs <= startedAt) {
+        if (queued != null && shouldDeletePendingPush(queued.updatedAtEpochMs, startedAt)) {
             pendingPushes.delete(anilistId)
         }
         val existing = historyDao.get(anilistId) ?: return true
-        // A failed save used to still rewrite the phone. A later frontier
-        // (mark watched stores the next episode) or a live playhead stays put.
-        val keepFrontier = existing.episode > progress || existing.positionMs > 2_000L
-        historyDao.upsert(
-            if (keepFrontier) {
-                existing.copy(listStatus = status)
-            } else {
-                existing.copy(listStatus = status, episode = progress.coerceAtLeast(existing.episode))
-            },
-        )
+        historyDao.upsert(historyAfterAniListPush(existing, plan.progress, plan.status))
         return true
+    }
+}
+
+/** What one finished-episode count becomes on AniList. */
+internal data class AniListPushPlan(val progress: Int, val status: String)
+
+internal fun aniListPushPlan(episode: Int, totalEpisodes: Int?): AniListPushPlan {
+    val completed = totalEpisodes != null && totalEpisodes > 0 && episode >= totalEpisodes
+    return if (completed) {
+        AniListPushPlan(progress = totalEpisodes ?: episode, status = "COMPLETED")
+    } else {
+        AniListPushPlan(progress = episode, status = "CURRENT")
+    }
+}
+
+/**
+ * A push that started before the queued row was written may delete it.
+ * A newer failure that lands while that attempt is in flight stays queued.
+ */
+internal fun shouldDeletePendingPush(queuedUpdatedAtEpochMs: Long, pushStartedAtEpochMs: Long): Boolean =
+    queuedUpdatedAtEpochMs <= pushStartedAtEpochMs
+
+/**
+ * A failed save used to still rewrite the phone. A later frontier (mark watched
+ * stores the next episode) or a live playhead stays put.
+ */
+internal fun historyAfterAniListPush(
+    existing: WatchHistoryEntity,
+    progress: Int,
+    status: String,
+): WatchHistoryEntity {
+    val keepFrontier = existing.episode > progress || existing.positionMs > 2_000L
+    return if (keepFrontier) {
+        existing.copy(listStatus = status)
+    } else {
+        existing.copy(listStatus = status, episode = progress.coerceAtLeast(existing.episode))
     }
 }
 
