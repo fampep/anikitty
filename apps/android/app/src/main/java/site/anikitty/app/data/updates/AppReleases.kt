@@ -10,7 +10,14 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -55,10 +62,26 @@ class BuildChannelStore(context: Context) {
         prefs.edit().putString(KEY, if (channel == BuildChannel.Dev) "dev" else "stable").apply()
     }
 
+    /** Version name the home banner was closed for. A newer build shows again. */
+    fun dismissedUpdate(): String? = prefs.getString(DISMISSED, null)?.takeIf { it.isNotBlank() }
+
+    fun dismissUpdate(versionName: String) {
+        prefs.edit().putString(DISMISSED, versionName).apply()
+    }
+
     private companion object {
         const val KEY = "channel"
+        const val DISMISSED = "dismissed_update"
     }
 }
+
+/** The channel this installed name belongs to. Dev builds carry `-dev.` */
+fun installedBuildChannel(versionName: String): BuildChannel =
+    if (versionName.contains("-dev.")) BuildChannel.Dev else BuildChannel.Stable
+
+/** Saved choice, or the channel of the build already on the phone. */
+fun selectedBuildChannel(stored: BuildChannel?, installedVersion: String): BuildChannel =
+    stored ?: installedBuildChannel(installedVersion)
 
 class AppReleaseClient(
     private val http: OkHttpClient = OkHttpClient.Builder()
@@ -150,6 +173,173 @@ fun devBuildsSinceStable(releases: List<PublishedBuild>): List<PublishedBuild> {
         .filter { it.prerelease && it.publishedAt >= stableAt }
         .sortedByDescending { it.publishedAt }
 }
+
+private data class AppVersion(val numbers: List<Int>, val dev: Int?)
+
+/** `1.2.10-dev.19` and `1.2.9`. The floating `dev` tag is not a version. */
+private fun parseAppVersion(raw: String): AppVersion? {
+    val trimmed = raw.trim().removePrefix("v").removePrefix("V")
+    if (trimmed.isEmpty() || trimmed.equals("dev", ignoreCase = true)) return null
+    val core = trimmed.substringBefore('-')
+    if (core.isEmpty() || core.none { it.isDigit() }) return null
+    val numbers = core.split('.').map { piece ->
+        piece.takeWhile { it.isDigit() }.toIntOrNull() ?: return null
+    }
+    if (numbers.isEmpty()) return null
+    val dev = DEV_NUMBER.find(trimmed)?.groupValues?.get(1)?.toIntOrNull()
+    return AppVersion(numbers, dev)
+}
+
+/** True when [remote] is a newer AniKitty build than [installed], including the dev counter. */
+fun isNewerAppBuild(remote: String, installed: String): Boolean {
+    val next = parseAppVersion(remote) ?: return false
+    val current = parseAppVersion(installed) ?: return false
+    val count = maxOf(next.numbers.size, current.numbers.size)
+    for (index in 0 until count) {
+        val diff = next.numbers.getOrElse(index) { 0 } - current.numbers.getOrElse(index) { 0 }
+        if (diff != 0) return diff > 0
+    }
+    return when {
+        next.dev == null && current.dev == null -> false
+        next.dev == null -> true
+        current.dev == null -> false
+        else -> next.dev > current.dev
+    }
+}
+
+/** Numbered releases only. The moving `dev` tag is not a build the phone can compare. */
+fun numberedReleases(releases: List<PublishedBuild>): List<PublishedBuild> =
+    releases.filter { parseAppVersion(it.versionName) != null }
+
+/** Latest build on [channel], using the same split as the App builds screen. */
+fun channelBuild(channel: BuildChannel, releases: List<PublishedBuild>): PublishedBuild? {
+    val numbered = numberedReleases(releases)
+    return if (channel == BuildChannel.Dev) {
+        devBuildsSinceStable(numbered).firstOrNull()
+    } else {
+        numbered.filter { !it.prerelease }.maxByOrNull { it.publishedAt }
+    }
+}
+
+/**
+ * The build to offer on the home screen. Null when this phone is already
+ * on that version, the offer was dismissed, or the channel has nothing newer.
+ */
+fun sideloadUpdate(
+    installed: String,
+    channel: BuildChannel,
+    releases: List<PublishedBuild>,
+    dismissedVersion: String? = null,
+): PublishedBuild? {
+    val candidate = channelBuild(channel, releases) ?: return null
+    if (!isNewerAppBuild(candidate.versionName, installed)) return null
+    if (candidate.versionName == dismissedVersion) return null
+    return candidate
+}
+
+private val DEV_NUMBER = Regex("""-dev\.(\d+)""")
+
+/**
+ * One release list for the whole process. Home throws its banner away on scroll
+ * and when a title opens, and App builds asks for the same list. The fetch lives
+ * in [loader], so leaving a screen does not drop a response that already finished.
+ */
+class AppReleaseListCache(
+    private val freshForMs: Long = FRESH_FOR_MS,
+    private val retryAfterFailureMs: Long = RETRY_AFTER_FAILURE_MS,
+    private val clock: () -> Long = System::currentTimeMillis,
+    private val loader: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+) {
+    private val gate = Mutex()
+    private val stateLock = Any()
+    private var snapshot: List<PublishedBuild>? = null
+    private var fetchedAtMs: Long = 0L
+    private var failedAtMs: Long? = null
+    private var lastError: String? = null
+    private var inFlight: Deferred<List<PublishedBuild>?>? = null
+    private var generation = 0
+    private var publishedGeneration = 0
+
+    /** The last successful list, while it is still fresh enough to show immediately. */
+    fun peek(): List<PublishedBuild>? = synchronized(stateLock) {
+        snapshot?.takeIf { clock() - fetchedAtMs < freshForMs }
+    }
+
+    /** The last successful list, including one that is past the fresh window. */
+    fun retained(): List<PublishedBuild>? = synchronized(stateLock) { snapshot }
+
+    /** Why the last fetch failed, when there is nothing newer to show. */
+    fun lastFailure(): String? = synchronized(stateLock) { lastError }
+
+    /**
+     * Returns the shared list. A fresh list is reused. A recent failure is not
+     * retried until [retryAfterFailureMs]. [force] is the explicit Try again path.
+     * A failed refresh keeps the last list. Null means there is nothing to show.
+     */
+    suspend fun load(
+        force: Boolean = false,
+        fetch: suspend () -> List<PublishedBuild>,
+    ): List<PublishedBuild>? {
+        if (!force) peek()?.let { return it }
+        val request = gate.withLock {
+            if (!force) {
+                peek()?.let { return@withLock Ready(it) }
+                if (coolingDown()) return@withLock Ready(retained())
+                inFlight?.takeIf { it.isActive }?.let { return@withLock Join(it) }
+            }
+            val ticket = ++generation
+            val deferred = loader.async { fetchShared(ticket, fetch) }
+            inFlight = deferred
+            Join(deferred)
+        }
+        return when (request) {
+            is Ready -> request.releases
+            is Join -> request.deferred.await()
+        }
+    }
+
+    private suspend fun fetchShared(
+        ticket: Int,
+        fetch: suspend () -> List<PublishedBuild>,
+    ): List<PublishedBuild>? = try {
+        val loaded = fetch()
+        synchronized(stateLock) {
+            if (ticket >= publishedGeneration) {
+                snapshot = loaded
+                fetchedAtMs = clock()
+                failedAtMs = null
+                lastError = null
+                publishedGeneration = ticket
+            }
+            snapshot
+        }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        synchronized(stateLock) {
+            if (ticket >= publishedGeneration) {
+                failedAtMs = clock()
+                lastError = error.message
+            }
+            snapshot
+        }
+    }
+
+    private fun coolingDown(): Boolean = synchronized(stateLock) {
+        failedAtMs?.let { clock() - it < retryAfterFailureMs } == true
+    }
+
+    private sealed interface LoadRequest
+    private class Ready(val releases: List<PublishedBuild>?) : LoadRequest
+    private class Join(val deferred: Deferred<List<PublishedBuild>?>) : LoadRequest
+
+    companion object {
+        const val FRESH_FOR_MS = 15 * 60 * 1000L
+        const val RETRY_AFTER_FAILURE_MS = 2 * 60 * 1000L
+    }
+}
+
+val appReleaseListCache = AppReleaseListCache()
 
 private fun JSONArray?.apkUrl(): String? {
     if (this == null) return null
