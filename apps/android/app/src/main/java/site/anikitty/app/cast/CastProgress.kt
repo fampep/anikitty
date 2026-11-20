@@ -69,7 +69,11 @@ internal fun castHistoryUpdate(
     }
 }
 
-/** Completed episode count to send to AniList, or null when this write did not finish one. */
+internal fun castProgressMatches(target: CastProgressTarget, item: CastItemKey): Boolean {
+    if (target.episode != item.episode) return false
+    if (target.anilistId > 0 && item.anilistId > 0 && target.anilistId != item.anilistId) return false
+    return true
+}
 internal fun castProgressToReport(before: WatchHistoryEntity?, written: WatchHistoryEntity, watchedEpisode: Int): Int? {
     if (written.episode <= watchedEpisode) return null
     if (before != null && before.episode > watchedEpisode) return null

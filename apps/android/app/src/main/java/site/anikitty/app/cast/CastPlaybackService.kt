@@ -128,8 +128,10 @@ class CastPlaybackService : Service() {
 
     private fun flushProgress() {
         val helper = CastLifetime.current() ?: return
-        if (!helper.casting || helper.hasScreen()) return
+        if (!helper.casting || helper.hasScreen() || helper.isLoadInFlight()) return
+        val playing = helper.playingItem ?: return
         val target = helper.progressTarget ?: return
+        if (!castProgressMatches(target, playing)) return
         if (target.anilistId <= 0 || DemoLibrary.find(target.anilistId) != null) return
         val position = helper.receiverPositionMs()
         val duration = helper.receiverDurationMs()

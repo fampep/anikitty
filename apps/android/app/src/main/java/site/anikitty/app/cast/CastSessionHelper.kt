@@ -32,6 +32,7 @@ import com.google.android.gms.cast.framework.media.RemoteMediaClient
 import site.anikitty.app.data.servers.PlayableSource
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
 /**
@@ -82,9 +83,16 @@ class CastSessionHelper private constructor(
     private val loadHooks = CastListenerSlot<CastLoadHooks>()
     private var sessionWatchInstalled = false
 
-    /** Item the receiver was given. A later screen uses this to join instead of reloading. */
+    /** Item the receiver was given, including a load that has not settled yet. */
     @Volatile internal var loadedItem: CastItemKey? = null
         private set
+
+    /** Item the receiver is actually playing. A newer load does not replace this until it starts. */
+    @Volatile internal var playingItem: CastItemKey? = null
+        private set
+
+    private val ticketItem = AtomicReference<Pair<Int, CastItemKey>?>(null)
+    private var screenProgress: CastProgressTarget? = null
 
     /** History target that outlives the player screen. */
     @Volatile internal var progressTarget: CastProgressTarget? = null
@@ -114,8 +122,20 @@ class CastSessionHelper private constructor(
     }
 
     internal fun noteProgress(target: CastProgressTarget?) {
-        if (target != null && target.episode != progressTarget?.episode) reportedThrough = -1
-        progressTarget = target
+        screenProgress = target
+        commitProgress()
+    }
+
+    /** Keep the saved row on the item the TV is playing, not the episode merely open on screen. */
+    private fun commitProgress() {
+        val screen = screenProgress ?: return
+        val playing = playingItem ?: return
+        if (!castProgressMatches(screen, playing)) return
+        val current = progressTarget
+        if (current?.anilistId != screen.anilistId || current.episode != screen.episode) {
+            reportedThrough = -1
+        }
+        progressTarget = screen
     }
 
     fun receiverPositionMs(): Long = runCatching {
@@ -277,12 +297,14 @@ class CastSessionHelper private constructor(
     ): CastLoadHooks {
         val ticket = generation.incrementAndGet()
         activeLoadTicket.set(ticket)
-        loadedItem = CastItemKey(
+        val item = CastItemKey(
             anilistId = anilistId,
             episode = episode,
             url = source.url,
             audio = castAudioKey(source.audioLanguage),
         )
+        loadedItem = item
+        ticketItem.set(ticket to item)
         val hooks = replaceLoadHooks(onReady, onError)
         // The relay has to outlive the screen that requested this episode.
         CastPlaybackService.promote(appContext, title, episode)
@@ -504,12 +526,17 @@ class CastSessionHelper private constructor(
     }
 
     private fun settleReady(ticket: Int) {
+        if (closed.get() || ticket != generation.get()) return
         if (!loadSettled.compareAndSet(false, true)) return
         casting = true
         activeLoadTicket.compareAndSet(ticket, 0)
+        ticketItem.get()?.takeIf { it.first == ticket }?.second?.let { playingItem = it }
+        commitProgress()
         Log.i(TAG, "Cast playback started")
         // Receiver may ignore queue-item activeTrackIds on the first load.
+        // A newer load may have replaced the hooks before this runs.
         main.post {
+            if (closed.get() || ticket != generation.get()) return@post
             pushActiveTextTracks()
             fireLoadReady()
         }

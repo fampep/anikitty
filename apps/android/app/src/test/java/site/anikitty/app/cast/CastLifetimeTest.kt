@@ -82,6 +82,15 @@ class CastLifetimeTest {
     }
 
     @Test
+    fun progressStaysOnTheEpisodeTheTvIsPlaying() {
+        val playing = CastItemKey(7, 3, "http://relay/a", "ja")
+        val onScreen = CastProgressTarget(7, "Serial", 5, 12, null)
+        val stillPlaying = CastProgressTarget(7, "Serial", 3, 12, null)
+        assertFalse(castProgressMatches(onScreen, playing))
+        assertTrue(castProgressMatches(stillPlaying, playing))
+    }
+
+    @Test
     fun anEpisodeSwitchKeepsTheNewCastListener() {
         val slot = CastListenerSlot<String>()
         slot.set("episode-1")

@@ -961,6 +961,19 @@ fun PlayerScreen(
         if (!isCasting) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect
         val src = source ?: return@LaunchedEffect
+        val screenItem = CastItemKey(
+            anilistId = anilistId,
+            episode = episode,
+            url = src.url,
+            audio = castAudioKey(src.audioLanguage),
+        )
+        // Joining a receiver that is already playing this item must not load it again.
+        val alreadyThere = helper.playingItem?.takeIf { !helper.isLoadInFlight() } ?: helper.loadedItem
+        if (castJoinedLive && castSameItem(alreadyThere, screenItem)) {
+            castLoadedEpisode = episode
+            castLoadedKey = castSourceKey()
+            return@LaunchedEffect
+        }
         val sameEpisode = castLoadedEpisode == episode
         val pos = if (sameEpisode) {
             helper.castPlayer.currentPosition.coerceAtLeast(0L)
@@ -979,30 +992,33 @@ fun PlayerScreen(
             positionMs = pos
             durationMs = 0L
         }
-        helper.load(
-            source = src,
-            title = title,
-            episode = episode,
-            positionMs = pos,
-            onReady = {
-                latestPlayer?.pause()
-                pushMute()
-                castHint = null
-                // A quality or audio reload is the same episode. Keep a dismissed
-                // countdown dismissed. Only a new episode starts the clock over.
-                if (!sameEpisode) {
-                    playbackEnded = false
-                    autoplayCancelled = false
-                }
-            },
-            onError = { message ->
-                castHint = message
-                if (castHelper?.casting != true) {
-                    isCasting = false
+        castLoadHooks.set(
+            helper.load(
+                source = src,
+                title = title,
+                episode = episode,
+                positionMs = pos,
+                anilistId = anilistId,
+                onReady = {
+                    if (!castAlive.get()) return@load
+                    runCatching { latestPlayer?.pause() }
                     pushMute()
-                    latestPlayer?.play()
-                }
-            },
+                    castHint = null
+                    if (!sameEpisode) {
+                        playbackEnded = false
+                        autoplayCancelled = false
+                    }
+                },
+                onError = { message ->
+                    if (!castAlive.get()) return@load
+                    castHint = message
+                    if (castHelper?.casting != true) {
+                        isCasting = false
+                        pushMute()
+                        runCatching { latestPlayer?.play() }
+                    }
+                },
+            ),
         )
     }
 
