@@ -5,11 +5,13 @@
 
 package site.anikitty.app.ui.player
 
+import android.Manifest
 import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import android.util.Rational
 import android.widget.Toast
 import android.graphics.Color as AndroidColor
@@ -18,6 +20,8 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.FrameLayout
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -111,6 +115,8 @@ import site.anikitty.app.cast.CastLoadHooks
 import site.anikitty.app.cast.CastPlaybackService
 import site.anikitty.app.cast.CastProgressTarget
 import site.anikitty.app.cast.CastSessionHelper
+import site.anikitty.app.cast.CastStartup
+import site.anikitty.app.cast.CAST_UNAVAILABLE
 import site.anikitty.app.cast.castAudioKey
 import site.anikitty.app.cast.castJoin
 import site.anikitty.app.cast.castSameItem
@@ -143,6 +149,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.core.content.ContextCompat
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -272,6 +279,9 @@ private data class VideoOption(
     val trackIndex: Int = 0,
 )
 
+/** One prompt per process. A denial must not ask again on every episode. */
+private var askedCastNotificationPermission = false
+
 /**
  * Full-bleed anime player with custom chrome:
  * immersive fullscreen, quality + subtitle pickers, caption style, skip chips.
@@ -392,7 +402,38 @@ fun PlayerScreen(
 
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
-    val castHelper = remember { CastLifetime.obtain(context.applicationContext) }
+    var castUnavailable by remember { mutableStateOf(CastStartup.reason) }
+    var castHelper by remember { mutableStateOf<CastSessionHelper?>(null) }
+    val castRouteReason = castUnavailable ?: if (castHelper == null) CAST_UNAVAILABLE else null
+    DisposableEffect(Unit) {
+        val stop = CastStartup.listen { next ->
+            castUnavailable = next
+            if (next == null && castHelper == null) {
+                castHelper = CastLifetime.obtain(context.applicationContext)
+            }
+        }
+        onDispose(stop)
+    }
+    val requestNotifications = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            Log.i("AniKittyCast", "Notification permission granted")
+        } else {
+            Log.w("AniKittyCast", "Notification permission denied")
+            castHint = "Notifications are off, so the Cast notice may stay hidden"
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT < 33 || askedCastNotificationPermission) return@LaunchedEffect
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) return@LaunchedEffect
+        askedCastNotificationPermission = true
+        requestNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
 
     var theater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
     /** Inline video chrome. A tap reveals it; playing hides it again. */
@@ -2702,7 +2743,8 @@ fun PlayerScreen(
                             scrubValue = scrubValue,
                             durationMs = durationMs,
                             showEpisodes = !isMovie && onPickEpisode != null && totalEpisodes > 1,
-                            castAvailable = castHelper != null,
+                            castUnavailable = castRouteReason,
+                            onCastUnavailable = { castHint = it },
                             speedLabel = speedLabel(playbackSpeed),
                             onSpeed = {
                                 panel = if (panel == PlayerMenuPage.Speed) {
@@ -2847,9 +2889,11 @@ fun PlayerScreen(
                                     description = "Exit full screen",
                                     onClick = { theater = false },
                                 )
-                                if (castHelper != null) {
-                                    CastRouteButton(modifier = Modifier.size(48.dp))
-                                }
+                                CastRouteButton(
+                                    unavailable = castRouteReason,
+                                    onUnavailable = { castHint = it },
+                                    modifier = Modifier.size(48.dp),
+                                )
                             }
                         }
                     }
@@ -2970,7 +3014,10 @@ fun PlayerScreen(
                 },
                 onPip = { enterPip() },
                 cast = {
-                    if (castHelper != null) CastRouteButton()
+                    CastRouteButton(
+                        unavailable = castRouteReason,
+                        onUnavailable = { castHint = it },
+                    )
                 },
                 modifier = Modifier.dismissDrag(),
             )
@@ -4472,7 +4519,8 @@ private fun CastTransportRow(
     scrubValue: Float,
     durationMs: Long,
     showEpisodes: Boolean,
-    castAvailable: Boolean,
+    castUnavailable: String?,
+    onCastUnavailable: (String) -> Unit,
     speedLabel: String,
     onPlayPause: () -> Unit,
     onMute: () -> Unit,
@@ -4540,9 +4588,11 @@ private fun CastTransportRow(
                 description = "Exit full screen",
                 onClick = onExitTheater,
             )
-            if (castAvailable) {
-                CastRouteButton(modifier = Modifier.size(48.dp))
-            }
+            CastRouteButton(
+                unavailable = castUnavailable,
+                onUnavailable = onCastUnavailable,
+                modifier = Modifier.size(48.dp),
+            )
         }
     }
 }
