@@ -83,6 +83,25 @@ class CastSessionHelper private constructor(
         castPlayer.setSessionAvailabilityListener(listener)
     }
 
+    private fun readiness(): CastSessionReadiness = runCatching {
+        val session = castContext.sessionManager.currentCastSession
+        castSessionReadiness(
+            connected = session?.isConnected == true,
+            hasRemoteClient = session?.remoteMediaClient != null,
+            playerSessionAvailable = castPlayer.isCastSessionAvailable,
+        )
+    }.getOrDefault(CastSessionReadiness.Down)
+
+    /**
+     * True only when the receiver media client exists. CastPlayer's session
+     * flag and [com.google.android.gms.cast.framework.CastSession.isConnected]
+     * can both be true before that client is ready to load.
+     */
+    fun isSessionAvailable(): Boolean = readiness() == CastSessionReadiness.Ready
+
+    /** Session is up, or CastPlayer says so, but the receiver client is not ready yet. */
+    fun isSessionConnecting(): Boolean = readiness() == CastSessionReadiness.Connecting
+
     /**
      * Move the Chromecast speaker volume. Returns the new level, 0–1.
      * A swipe must not change the phone's media stream while the TV is playing.
