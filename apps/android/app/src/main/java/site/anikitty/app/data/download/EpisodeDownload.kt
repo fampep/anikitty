@@ -21,7 +21,9 @@ internal enum class DownloadPhase { QUEUED, RUNNING, READY, FAILED }
 internal data class SavedEpisode(
     val anilistId: Int,
     val episode: Int,
+    val sourceKey: String,
     val url: String,
+    val headers: Map<String, String>,
     val hls: Boolean,
     val phase: DownloadPhase,
     val progressPercent: Int,
@@ -52,10 +54,28 @@ internal fun resolvedStripBytes(source: PlayableSource): Int = when {
     else -> SegmentStripDataSource.DEFAULT_STRIP_BYTES
 }
 
+/**
+ * Identity of a source that survives a signed CDN URL rotating its query string.
+ * The path, label, and reported quality stay; the token does not.
+ */
+internal fun sourceKey(source: PlayableSource): String {
+    val stableUrl = source.url.substringBefore('?').substringBefore('#')
+    return listOf(
+        source.label,
+        source.quality.orEmpty(),
+        source.audio.orEmpty(),
+        source.audioLanguage.orEmpty(),
+        stableUrl,
+    ).joinToString("\u0001")
+}
+
+internal fun savedMatches(saved: SavedEpisode, source: PlayableSource): Boolean =
+    saved.sourceKey == sourceKey(source)
+
 internal fun downloadStatus(source: PlayableSource, saved: SavedEpisode?): DownloadStatus {
     val blocked = offlineBlockReason(source)
     if (blocked != null) return DownloadStatus(blocked, canStart = false, canRemove = false)
-    val row = saved?.takeIf { it.url == source.url }
+    val row = saved?.takeIf { savedMatches(it, source) }
         ?: return DownloadStatus("Download", canStart = true, canRemove = false)
     return when (row.phase) {
         DownloadPhase.QUEUED -> DownloadStatus("Queued", canStart = false, canRemove = false)
@@ -74,10 +94,35 @@ internal fun downloadStatus(source: PlayableSource, saved: SavedEpisode?): Downl
 }
 
 /**
- * Progressive saves play from the file. HLS keeps the original URL and is
- * served from the shared cache instead.
+ * Progressive saves play from the file. HLS plays the URL that was cached,
+ * even when the live resolve handed back a new signature.
+ *
+ * [sessionStartedOffline] keeps a download that finishes during this visit
+ * from restarting the player. Removing the copy, or losing the file, drops
+ * back to [remote] on the next composition.
  */
+internal fun playbackSavedEpisode(
+    remote: PlayableSource,
+    saved: SavedEpisode?,
+    sessionStartedOffline: Boolean,
+): SavedEpisode? {
+    if (!sessionStartedOffline) return null
+    val row = readyMatch(remote, saved) ?: return null
+    if (row.hls) return row
+    return row.takeIf { savedLocalFile(remote, row) != null }
+}
+
+/** A finished file can remember the latest signed URL without dropping the bytes. */
+internal fun shouldRefreshSavedUrl(remote: PlayableSource, saved: SavedEpisode?): Boolean {
+    val row = saved ?: return false
+    if (row.hls || row.phase != DownloadPhase.READY) return false
+    if (!savedMatches(row, remote) || row.url == remote.url) return false
+    return savedLocalFile(remote, row) != null
+}
+
 internal fun sourceForPlayback(remote: PlayableSource, saved: SavedEpisode?): PlayableSource {
+    val row = readyMatch(remote, saved) ?: return remote
+    if (row.hls) return remote.copy(url = row.url, headers = row.headers)
     val file = savedLocalFile(remote, saved) ?: return remote
     return remote.copy(
         url = file.toURI().toString(),
@@ -159,14 +204,16 @@ internal fun httpFailure(code: Int): String = when (code) {
 
 private fun readyMatch(remote: PlayableSource, saved: SavedEpisode?): SavedEpisode? {
     val row = saved ?: return null
-    if (row.phase != DownloadPhase.READY || row.url != remote.url) return null
+    if (row.phase != DownloadPhase.READY || !savedMatches(row, remote)) return null
     return row
 }
 
 internal fun EpisodeDownloadEntity.toSaved(): SavedEpisode = SavedEpisode(
     anilistId = anilistId,
     episode = episode,
+    sourceKey = sourceKey,
     url = url,
+    headers = decodeHeaders(headersJson),
     hls = hls,
     phase = runCatching { DownloadPhase.valueOf(phase) }.getOrDefault(DownloadPhase.FAILED),
     progressPercent = progressPercent.coerceIn(0, 100),

@@ -39,6 +39,7 @@ internal object EpisodeDownloads {
             anilistId = anilistId,
             episode = episode,
             title = title.ifBlank { "Episode $episode" },
+            sourceKey = sourceKey(source),
             url = source.url,
             headersJson = encodeHeaders(source.headers),
             hls = isHlsSource(source),

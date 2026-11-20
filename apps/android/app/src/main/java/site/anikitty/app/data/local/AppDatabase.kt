@@ -33,6 +33,7 @@ abstract class AppDatabase : RoomDatabase() {
                         `anilistId` INTEGER NOT NULL,
                         `episode` INTEGER NOT NULL,
                         `title` TEXT NOT NULL,
+                        `sourceKey` TEXT NOT NULL,
                         `url` TEXT NOT NULL,
                         `headersJson` TEXT NOT NULL,
                         `hls` INTEGER NOT NULL,

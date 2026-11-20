@@ -198,9 +198,16 @@ import site.anikitty.app.data.download.DOWNLOAD_USER_AGENT
 import site.anikitty.app.data.download.EpisodeDownloadEntity
 import site.anikitty.app.data.download.EpisodeDownloads
 import site.anikitty.app.data.download.cacheDataSourceFactory
+import site.anikitty.app.data.download.DownloadPhase
 import site.anikitty.app.data.download.downloadStatus
+import site.anikitty.app.data.download.encodeHeaders
+import site.anikitty.app.data.download.playbackSavedEpisode
 import site.anikitty.app.data.download.resolvedStripBytes
+import site.anikitty.app.data.download.savedLocalFile
+import site.anikitty.app.data.download.savedMatches
+import site.anikitty.app.data.download.shouldRefreshSavedUrl
 import site.anikitty.app.data.download.sourceForPlayback
+import site.anikitty.app.data.download.sourceKey
 import site.anikitty.app.data.download.toSaved
 import site.anikitty.app.data.download.usesHlsCache
 import site.anikitty.app.data.friendlyFailure
@@ -394,15 +401,42 @@ fun PlayerScreen(
         (context.applicationContext as AnikittyApp).database.episodeDownloadDao()
     }
     var savedRow by remember(anilistId, episode) { mutableStateOf<EpisodeDownloadEntity?>(null) }
+    var downloadSeen by remember(anilistId, episode) { mutableStateOf(false) }
     LaunchedEffect(anilistId, episode) {
-        downloadDao.observe(anilistId, episode).collect { savedRow = it }
+        downloadDao.observe(anilistId, episode).collect { row ->
+            savedRow = row
+            downloadSeen = true
+        }
     }
-    var playbackReady by remember(anilistId, episode, source?.url) { mutableStateOf(false) }
-    var playbackRow by remember(anilistId, episode, source?.url) { mutableStateOf<EpisodeDownloadEntity?>(null) }
-    LaunchedEffect(anilistId, episode, source?.url) {
-        playbackRow = downloadDao.get(anilistId, episode)
-        playbackReady = true
+    val sourceKeyNow = source?.let(::sourceKey)
+    var sessionStartedOffline by remember(anilistId, episode, sourceKeyNow) { mutableStateOf<Boolean?>(null) }
+    LaunchedEffect(downloadSeen, anilistId, episode, sourceKeyNow) {
+        if (!downloadSeen || source == null || sessionStartedOffline != null) return@LaunchedEffect
+        val saved = savedRow?.toSaved()
+        sessionStartedOffline = saved != null &&
+            savedMatches(saved, source) &&
+            saved.phase == DownloadPhase.READY &&
+            (saved.hls || savedLocalFile(source, saved) != null)
     }
+    LaunchedEffect(savedRow?.url, savedRow?.phase, source?.url) {
+        val row = savedRow ?: return@LaunchedEffect
+        val current = source ?: return@LaunchedEffect
+        val saved = row.toSaved()
+        if (!shouldRefreshSavedUrl(current, saved)) return@LaunchedEffect
+        downloadDao.refreshReadyFileUrl(
+            anilistId = row.anilistId,
+            episode = row.episode,
+            sourceKey = row.sourceKey,
+            url = current.url,
+            headersJson = encodeHeaders(current.headers),
+        )
+    }
+    val playbackSaved = if (downloadSeen && sessionStartedOffline != null && source != null) {
+        playbackSavedEpisode(source, savedRow?.toSaved(), sessionStartedOffline == true)
+    } else {
+        null
+    }
+    val playbackReady = sessionStartedOffline != null
     val downloadScope = rememberCoroutineScope()
     val download = if (anilistId > 0) source?.let { downloadStatus(it, savedRow?.toSaved()) } else null
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
@@ -513,14 +547,12 @@ fun PlayerScreen(
         source?.gotakuObf,
         playAttempt,
         playbackReady,
-        playbackRow?.phase,
-        playbackRow?.url,
-        playbackRow?.localPath,
+        source?.let { savedLocalFile(it, playbackSaved)?.absolutePath },
+        if (source != null && usesHlsCache(source, playbackSaved)) playbackSaved?.url else null,
     ) {
         if (!playbackReady || source == null) return@remember null
-        val saved = playbackRow?.toSaved()
-        val playing = sourceForPlayback(source, saved)
-        val hlsOffline = usesHlsCache(source, saved)
+        val playing = sourceForPlayback(source, playbackSaved)
+        val hlsOffline = usesHlsCache(source, playbackSaved)
         val httpFactory = PlaybackHttp.factory(
             headers = playing.headers,
             userAgent = playing.headers["User-Agent"] ?: DEFAULT_UA,
@@ -600,6 +632,19 @@ fun PlayerScreen(
     val latestStartPositionMs by rememberUpdatedState(startPositionMs)
     val latestAllowHistory by rememberUpdatedState(allowHistoryFallback)
     val playhead = remember { Playhead() }
+    val playingOffline = source?.let { savedLocalFile(it, playbackSaved) } != null ||
+        (source != null && usesHlsCache(source, playbackSaved))
+    var wasOffline by remember(anilistId, episode) { mutableStateOf(false) }
+    LaunchedEffect(playingOffline, playbackReady) {
+        if (wasOffline && !playingOffline && playbackReady) {
+            val live = maxOf(positionMs, playhead.ms)
+            if (live > 1_500L) {
+                resumeAtMs = live
+                didSeekStart = false
+            }
+        }
+        wasOffline = playingOffline
+    }
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
     val latestOnProgress by rememberUpdatedState(onProgress)

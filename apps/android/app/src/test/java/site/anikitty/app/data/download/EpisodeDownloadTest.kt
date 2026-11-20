@@ -47,9 +47,47 @@ class EpisodeDownloadTest {
                 queued.copy(phase = DownloadPhase.FAILED, error = "The source refused the download"),
             ).label,
         )
-        assertTrue(
-            downloadStatus(remote, queued.copy(url = "https://cdn.example/other.mp4")).canStart,
-        )
+        assertTrue(downloadStatus(source("https://cdn.example/other.mp4"), queued).canStart)
+        val rotated = source("https://cdn.example/a.mp4?token=later")
+        assertEquals("Queued", downloadStatus(rotated, queued).label)
+        assertFalse(downloadStatus(rotated, queued).canStart)
+    }
+
+    @Test
+    fun aRotatedUrlStillPlaysTheSavedCopy() {
+        val savedUrl = "https://cdn.example/a.mp4?token=1"
+        val live = source("https://cdn.example/a.mp4?token=2", headers = mapOf("Referer" to "https://site"))
+        val file = File.createTempFile("episode", ".mp4")
+        file.writeText("video")
+        try {
+            val ready = saved(source(savedUrl), DownloadPhase.READY, path = file.absolutePath)
+            assertTrue(shouldRefreshSavedUrl(live, ready))
+            assertFalse(shouldRefreshSavedUrl(live, ready.copy(hls = true)))
+            val playing = sourceForPlayback(
+                live,
+                playbackSavedEpisode(live, ready, sessionStartedOffline = true),
+            )
+            assertTrue(playing.url.startsWith("file:"))
+            assertNull(
+                playbackSavedEpisode(live, ready, sessionStartedOffline = false),
+            )
+            assertEquals(
+                live.url,
+                sourceForPlayback(live, playbackSavedEpisode(live, null, sessionStartedOffline = true)).url,
+            )
+        } finally {
+            file.delete()
+        }
+        val gone = saved(source(savedUrl), DownloadPhase.READY, path = file.absolutePath)
+        assertNull(playbackSavedEpisode(live, gone, sessionStartedOffline = true))
+        assertEquals(live.url, sourceForPlayback(live, gone).url)
+
+        val cached = saved(source("https://cdn.example/master.m3u8?token=1", hls = true), DownloadPhase.READY, hls = true)
+        val refreshed = source("https://cdn.example/master.m3u8?token=9", hls = true)
+        val held = playbackSavedEpisode(refreshed, cached, sessionStartedOffline = true)
+        assertTrue(usesHlsCache(refreshed, held))
+        assertEquals(cached.url, sourceForPlayback(refreshed, held).url)
+        assertFalse(shouldRefreshSavedUrl(refreshed, cached))
     }
 
     @Test
@@ -108,8 +146,9 @@ class EpisodeDownloadTest {
             anilistId = 9,
             episode = 2,
             title = "Show",
+            sourceKey = "stream",
             url = "https://cdn/a.mp4",
-            headersJson = "{}",
+            headersJson = """{"Referer":"https://site"}""",
             hls = false,
             stripBytes = 252,
             phase = "NOPE",
@@ -121,6 +160,7 @@ class EpisodeDownloadTest {
         val saved = row.toSaved()
         assertEquals(DownloadPhase.FAILED, saved.phase)
         assertEquals(100, saved.progressPercent)
+        assertEquals(mapOf("Referer" to "https://site"), saved.headers)
     }
 
     private fun source(
@@ -138,7 +178,9 @@ class EpisodeDownloadTest {
     ) = SavedEpisode(
         anilistId = 9,
         episode = 2,
+        sourceKey = sourceKey(source),
         url = source.url,
+        headers = source.headers,
         hls = hls,
         phase = phase,
         progressPercent = percent,

@@ -18,6 +18,7 @@ data class EpisodeDownloadEntity(
     val anilistId: Int,
     val episode: Int,
     val title: String,
+    val sourceKey: String,
     val url: String,
     val headersJson: String,
     val hls: Boolean,
@@ -70,4 +71,27 @@ interface EpisodeDownloadDao {
 
     @Query("DELETE FROM episode_download WHERE anilistId = :anilistId AND episode = :episode")
     suspend fun delete(anilistId: Int, episode: Int)
+
+    /**
+     * A fresh resolve rotated the signed URL. Keep the file and the generation
+     * a worker already captured.
+     */
+    @Query(
+        """
+        UPDATE episode_download
+        SET url = :url, headersJson = :headersJson
+        WHERE anilistId = :anilistId
+          AND episode = :episode
+          AND sourceKey = :sourceKey
+          AND phase = 'READY'
+          AND hls = 0
+        """,
+    )
+    suspend fun refreshReadyFileUrl(
+        anilistId: Int,
+        episode: Int,
+        sourceKey: String,
+        url: String,
+        headersJson: String,
+    ): Int
 }
