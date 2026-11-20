@@ -38,6 +38,7 @@ import kotlin.concurrent.thread
  */
 @OptIn(UnstableApi::class)
 class CastSessionHelper private constructor(
+    private val appContext: Context,
     private val castContext: CastContext,
     val castPlayer: CastPlayer,
     private val relay: CastRelay,
@@ -71,16 +72,35 @@ class CastSessionHelper private constructor(
     private val closed = AtomicBoolean(false)
     private val loadSettled = AtomicBoolean(false)
     private val endedNotified = AtomicBoolean(false)
+    private val activeLoadTicket = AtomicInteger(0)
     private var statusCallback: RemoteMediaClient.Callback? = null
-    private var playbackEndedListener: (() -> Unit)? = null
+    private val playbackEndedListener = CastListenerSlot<() -> Unit>()
+    private val availabilityListener = CastListenerSlot<SessionAvailabilityListener>()
+
+    val isClosed: Boolean get() = closed.get()
+
+    /** True from the moment a load is requested until that load settles or a newer one replaces it. */
+    fun isLoadInFlight(): Boolean = activeLoadTicket.get() != 0
 
     /** Fires once per load when the receiver finishes the current item. */
     fun setPlaybackEndedListener(listener: (() -> Unit)?) {
-        playbackEndedListener = listener
+        playbackEndedListener.set(listener)
+    }
+
+    /** Drops [listener] only while it is still the one the player installed. */
+    fun clearPlaybackEndedListener(listener: () -> Unit) {
+        playbackEndedListener.clear(listener)
     }
 
     fun setAvailabilityListener(listener: SessionAvailabilityListener?) {
+        availabilityListener.set(listener)
         castPlayer.setSessionAvailabilityListener(listener)
+    }
+
+    /** Drops [listener] only while it is still the one the player installed. */
+    fun clearAvailabilityListener(listener: SessionAvailabilityListener) {
+        if (!availabilityListener.clear(listener)) return
+        castPlayer.setSessionAvailabilityListener(null)
     }
 
     private fun readiness(): CastSessionReadiness = runCatching {
@@ -165,26 +185,41 @@ class CastSessionHelper private constructor(
         onError: (String) -> Unit,
     ) {
         val ticket = generation.incrementAndGet()
+        activeLoadTicket.set(ticket)
+        // The relay has to outlive the screen that requested this episode.
+        CastPlaybackService.promote(appContext, title, episode)
         thread(name = "anikitty-cast-load", isDaemon = true) {
             val prepared = runCatching { relay.prepare(source) }
             main.post {
-                if (closed.get() || ticket != generation.get()) return@post
+                if (closed.get() || ticket != generation.get()) {
+                    dropLoad(ticket)
+                    return@post
+                }
                 prepared.fold(
                     onSuccess = { playback ->
                         runCatching { start(playback, title, episode, positionMs, ticket, onReady, onError) }
                             .onFailure {
                                 relay.stop()
                                 Log.w(TAG, "Cast prepare failed", it)
+                                dropLoad(ticket)
                                 onError(it.message ?: "Cast failed")
                             }
                     },
                     onFailure = {
                         relay.stop()
+                        dropLoad(ticket)
                         onError(it.message ?: "Cast failed")
                     },
                 )
             }
         }
+    }
+
+    /** This load no longer owns the TV. A newer load keeps the service up. */
+    private fun dropLoad(ticket: Int) {
+        if (!activeLoadTicket.compareAndSet(ticket, 0)) return
+        casting = false
+        CastPlaybackService.demoteIfIdle(appContext)
     }
 
     private fun start(
@@ -332,10 +367,10 @@ class CastSessionHelper private constructor(
                     MediaStatus.PLAYER_STATE_PLAYING,
                     MediaStatus.PLAYER_STATE_BUFFERING,
                     MediaStatus.PLAYER_STATE_PAUSED,
-                    -> settleReady(onReady)
+                    -> settleReady(onReady, ticket)
                     MediaStatus.PLAYER_STATE_IDLE -> {
                         if (status.idleReason == MediaStatus.IDLE_REASON_ERROR) {
-                            settleError(onError, "Chromecast could not play this stream")
+                            settleError(onError, "Chromecast could not play this stream", ticket)
                         }
                     }
                 }
@@ -347,7 +382,7 @@ class CastSessionHelper private constructor(
                     "Chromecast could not play this stream"
                 }
                 Log.w(TAG, "Cast media error type=${error.type} reason=${error.reason} code=${error.detailedErrorCode}")
-                settleError(onError, detail)
+                settleError(onError, detail, ticket)
             }
         }
         statusCallback = callback
@@ -360,13 +395,14 @@ class CastSessionHelper private constructor(
         main.post {
             // A newer load owns the session. Do not end that episode.
             if (ticket != generation.get() || closed.get()) return@post
-            playbackEndedListener?.invoke()
+            playbackEndedListener.current?.invoke()
         }
     }
 
-    private fun settleReady(onReady: () -> Unit) {
+    private fun settleReady(onReady: () -> Unit, ticket: Int) {
         if (!loadSettled.compareAndSet(false, true)) return
         casting = true
+        activeLoadTicket.compareAndSet(ticket, 0)
         Log.i(TAG, "Cast playback started")
         // Receiver may ignore queue-item activeTrackIds on the first load.
         main.post {
@@ -375,30 +411,41 @@ class CastSessionHelper private constructor(
         }
     }
 
-    private fun settleError(onError: (String) -> Unit, message: String) {
+    private fun settleError(onError: (String) -> Unit, message: String, ticket: Int) {
         if (!loadSettled.compareAndSet(false, true)) return
         casting = false
         Log.w(TAG, "Cast load failed: $message")
         relay.stop()
+        dropLoad(ticket)
         main.post { onError(message) }
     }
 
     fun stopCasting() {
         generation.incrementAndGet()
+        activeLoadTicket.set(0)
         runCatching { castPlayer.stop() }
         relay.stop()
         casting = false
+        CastPlaybackService.demoteIfIdle(appContext)
+    }
+
+    /** Stop the relay and tell the receiver to leave, including from the shade. */
+    fun endSession() {
+        stopCasting()
+        runCatching { castContext.sessionManager.endCurrentSession(true) }
     }
 
     fun release() {
         closed.set(true)
         generation.incrementAndGet()
+        activeLoadTicket.set(0)
         setAvailabilityListener(null)
         setPlaybackEndedListener(null)
         runCatching { castPlayer.release() }
         relay.stop()
         runCatching { multicast?.release() }
         casting = false
+        CastPlaybackService.demoteIfIdle(appContext)
     }
 
     companion object {
@@ -418,6 +465,7 @@ class CastSessionHelper private constructor(
                 acquire()
             }
             CastSessionHelper(
+                app,
                 castContext,
                 castPlayer,
                 CastRelay(app),

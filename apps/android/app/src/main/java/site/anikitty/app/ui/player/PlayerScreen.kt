@@ -104,6 +104,8 @@ import androidx.compose.material.icons.rounded.PictureInPicture
 import androidx.compose.material.icons.rounded.Settings
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastHardwareVolume
+import site.anikitty.app.cast.CastLifetime
+import site.anikitty.app.cast.CastPlaybackService
 import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.cast.castAttachPositionMs
 import site.anikitty.app.cast.castClientRetryDelayMs
@@ -377,7 +379,7 @@ fun PlayerScreen(
 
     val source = sources.getOrNull(sourceIndex)
     val stripBytes = remember { AtomicInteger(SegmentStripDataSource.DEFAULT_STRIP_BYTES) }
-    val castHelper = remember { CastSessionHelper.create(context.applicationContext) }
+    val castHelper = remember { CastLifetime.obtain(context.applicationContext) }
 
     var theater by remember { mutableStateOf(playerPrefs.getBoolean("start_theater", false)) }
     /** Inline video chrome. A tap reveals it; playing hides it again. */
@@ -721,15 +723,16 @@ fun PlayerScreen(
                 }
             }
             helper.castPlayer.addListener(castErrors)
-            helper.setPlaybackEndedListener {
+            val onEnded: () -> Unit = onEnded@{
                 // CastPlayer never emits STATE_ENDED. The receiver goes idle
                 // with IDLE_REASON_FINISHED — that is the end of the episode.
-                if (!isCasting) return@setPlaybackEndedListener
+                if (!isCasting) return@onEnded
                 playbackEnded = true
                 playing = false
                 controlsVisible = true
             }
-            helper.setAvailabilityListener(object : SessionAvailabilityListener {
+            helper.setPlaybackEndedListener(onEnded)
+            val availability = object : SessionAvailabilityListener {
                 override fun onCastSessionAvailable() {
                     // CastPlayer usually fires this once, often before the
                     // receiver client exists. A give-up from the earlier wait
@@ -768,13 +771,19 @@ fun PlayerScreen(
                     local?.play()
                     controlsVisible = true
                 }
-            })
+            }
+            helper.setAvailabilityListener(availability)
+            if (helper.casting || helper.isLoadInFlight()) {
+                CastPlaybackService.promote(context.applicationContext, title, episode)
+            }
             applyCastAttach(helper.isSessionAvailable())
             onDispose {
+                // The next episode installs its own listeners before this
+                // screen leaves. Clear only what this screen still owns.
+                // The relay and the Cast session stay with the process.
                 helper.castPlayer.removeListener(castErrors)
-                helper.setPlaybackEndedListener(null)
-                helper.setAvailabilityListener(null)
-                helper.release()
+                helper.clearPlaybackEndedListener(onEnded)
+                helper.clearAvailabilityListener(availability)
             }
         }
     }

@@ -41,6 +41,32 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.google.android.gms.cast.framework.media.widget.ExpandedControllerActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AniKitty">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="site.anikitty.app.MainActivity" />
+        </activity>
+
+        <service
+            android:name=".cast.CastPlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <!-- Cast posts its own media notification. Android 14 requires the type. -->
+        <service
+            android:name="com.google.android.gms.cast.framework.media.MediaNotificationService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
         <meta-data
             android:name="com.google.android.gms.cast.framework.OPTIONS_PROVIDER_CLASS_NAME"
             android:value="site.anikitty.app.cast.AniKittyCastOptionsProvider" />
