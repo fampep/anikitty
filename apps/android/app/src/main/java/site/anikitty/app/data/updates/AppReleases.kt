@@ -55,10 +55,26 @@ class BuildChannelStore(context: Context) {
         prefs.edit().putString(KEY, if (channel == BuildChannel.Dev) "dev" else "stable").apply()
     }
 
+    /** Version name the home banner was closed for. A newer build shows again. */
+    fun dismissedUpdate(): String? = prefs.getString(DISMISSED, null)?.takeIf { it.isNotBlank() }
+
+    fun dismissUpdate(versionName: String) {
+        prefs.edit().putString(DISMISSED, versionName).apply()
+    }
+
     private companion object {
         const val KEY = "channel"
+        const val DISMISSED = "dismissed_update"
     }
 }
+
+/** The channel this installed name belongs to. Dev builds carry `-dev.` */
+fun installedBuildChannel(versionName: String): BuildChannel =
+    if (versionName.contains("-dev.")) BuildChannel.Dev else BuildChannel.Stable
+
+/** Saved choice, or the channel of the build already on the phone. */
+fun selectedBuildChannel(stored: BuildChannel?, installedVersion: String): BuildChannel =
+    stored ?: installedBuildChannel(installedVersion)
 
 class AppReleaseClient(
     private val http: OkHttpClient = OkHttpClient.Builder()
@@ -150,6 +166,71 @@ fun devBuildsSinceStable(releases: List<PublishedBuild>): List<PublishedBuild> {
         .filter { it.prerelease && it.publishedAt >= stableAt }
         .sortedByDescending { it.publishedAt }
 }
+
+private data class AppVersion(val numbers: List<Int>, val dev: Int?)
+
+/** `1.2.10-dev.19` and `1.2.9`. The floating `dev` tag is not a version. */
+private fun parseAppVersion(raw: String): AppVersion? {
+    val trimmed = raw.trim().removePrefix("v").removePrefix("V")
+    if (trimmed.isEmpty() || trimmed.equals("dev", ignoreCase = true)) return null
+    val core = trimmed.substringBefore('-')
+    if (core.isEmpty() || core.none { it.isDigit() }) return null
+    val numbers = core.split('.').map { piece ->
+        piece.takeWhile { it.isDigit() }.toIntOrNull() ?: return null
+    }
+    if (numbers.isEmpty()) return null
+    val dev = DEV_NUMBER.find(trimmed)?.groupValues?.get(1)?.toIntOrNull()
+    return AppVersion(numbers, dev)
+}
+
+/** True when [remote] is a newer AniKitty build than [installed], including the dev counter. */
+fun isNewerAppBuild(remote: String, installed: String): Boolean {
+    val next = parseAppVersion(remote) ?: return false
+    val current = parseAppVersion(installed) ?: return false
+    val count = maxOf(next.numbers.size, current.numbers.size)
+    for (index in 0 until count) {
+        val diff = next.numbers.getOrElse(index) { 0 } - current.numbers.getOrElse(index) { 0 }
+        if (diff != 0) return diff > 0
+    }
+    return when {
+        next.dev == null && current.dev == null -> false
+        next.dev == null -> true
+        current.dev == null -> false
+        else -> next.dev > current.dev
+    }
+}
+
+/** Numbered releases only. The moving `dev` tag is not a build the phone can compare. */
+fun numberedReleases(releases: List<PublishedBuild>): List<PublishedBuild> =
+    releases.filter { parseAppVersion(it.versionName) != null }
+
+/** Latest build on [channel], using the same split as the App builds screen. */
+fun channelBuild(channel: BuildChannel, releases: List<PublishedBuild>): PublishedBuild? {
+    val numbered = numberedReleases(releases)
+    return if (channel == BuildChannel.Dev) {
+        devBuildsSinceStable(numbered).firstOrNull()
+    } else {
+        numbered.filter { !it.prerelease }.maxByOrNull { it.publishedAt }
+    }
+}
+
+/**
+ * The build to offer on the home screen. Null when this phone is already
+ * on that version, the offer was dismissed, or the channel has nothing newer.
+ */
+fun sideloadUpdate(
+    installed: String,
+    channel: BuildChannel,
+    releases: List<PublishedBuild>,
+    dismissedVersion: String? = null,
+): PublishedBuild? {
+    val candidate = channelBuild(channel, releases) ?: return null
+    if (!isNewerAppBuild(candidate.versionName, installed)) return null
+    if (candidate.versionName == dismissedVersion) return null
+    return candidate
+}
+
+private val DEV_NUMBER = Regex("""-dev\.(\d+)""")
 
 private fun JSONArray?.apkUrl(): String? {
     if (this == null) return null

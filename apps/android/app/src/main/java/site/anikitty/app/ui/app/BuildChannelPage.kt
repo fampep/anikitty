@@ -27,6 +27,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,8 +62,13 @@ import site.anikitty.app.data.updates.InstallDecision
 import site.anikitty.app.data.updates.PublishedBuild
 import site.anikitty.app.data.updates.PullRequestChange
 import site.anikitty.app.data.updates.canRequestInstall
+import site.anikitty.app.data.updates.channelBuild
 import site.anikitty.app.data.updates.decideInstall
 import site.anikitty.app.data.updates.devBuildsSinceStable
+import site.anikitty.app.data.updates.installedBuildChannel
+import site.anikitty.app.data.updates.numberedReleases
+import site.anikitty.app.data.updates.selectedBuildChannel
+import site.anikitty.app.data.updates.sideloadUpdate
 import site.anikitty.app.data.updates.installApk
 import site.anikitty.app.data.updates.openDownload
 import site.anikitty.app.data.updates.openInstallPermission
@@ -81,6 +87,74 @@ import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+/**
+ * Home notice when the user's channel has a newer sideload build.
+ * Uses the same channel split as [BuildChannelPage].
+ */
+@Composable
+fun SideloadUpdateBanner(onOpen: () -> Unit) {
+    val context = LocalContext.current
+    val palette = LocalKittyPalette.current
+    val store = remember { BuildChannelStore(context) }
+    val client = remember { AppReleaseClient() }
+    val installed = BuildConfig.VERSION_NAME
+    val channel = selectedBuildChannel(store.get(), installed)
+    var offer by remember { mutableStateOf<PublishedBuild?>(null) }
+    LaunchedEffect(channel) {
+        val dismissed = store.dismissedUpdate()
+        val releases = runCatching { client.load() }.getOrNull() ?: return@LaunchedEffect
+        offer = sideloadUpdate(installed, channel, releases, dismissed)
+    }
+    val build = offer ?: return
+    val label = if (channel == BuildChannel.Dev) "dev" else "stable"
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(palette.surface)
+            .border(1.dp, palette.hairline, RoundedCornerShape(16.dp))
+            .clickable(onClick = onOpen)
+            .padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                "${build.versionName} is ready",
+                color = palette.text,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                "A newer $label build can be installed from App builds.",
+                color = palette.muted,
+                fontSize = 12.sp,
+                maxLines = 2,
+            )
+        }
+        Text(
+            "Update",
+            color = palette.onAccent,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            modifier = Modifier
+                .clip(RoundedCornerShape(999.dp))
+                .background(palette.accent)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        )
+        IconButton(
+            onClick = {
+                store.dismissUpdate(build.versionName)
+                offer = null
+            },
+        ) {
+            Icon(Icons.Rounded.Close, contentDescription = "Dismiss update", tint = palette.muted)
+        }
+    }
+}
 
 @Composable
 fun AppBuildsRow(onClick: () -> Unit) {
@@ -103,9 +177,9 @@ fun BuildChannelPage(onBack: () -> Unit) {
     val client = remember { AppReleaseClient() }
     val scope = rememberCoroutineScope()
     val installed = BuildConfig.VERSION_NAME
-    val installedChannel = if (installed.contains("-dev.")) BuildChannel.Dev else BuildChannel.Stable
+    val installedChannel = installedBuildChannel(installed)
     var channel by remember {
-        mutableStateOf(store.get() ?: installedChannel)
+        mutableStateOf(selectedBuildChannel(store.get(), installed))
     }
     var releases by remember { mutableStateOf<List<PublishedBuild>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
@@ -133,10 +207,9 @@ fun BuildChannelPage(onBack: () -> Unit) {
 
     LaunchedEffect(Unit) { reload() }
 
-    val stable = releases.filter { !it.prerelease }.maxByOrNull { it.publishedAt }
-    val devs = devBuildsSinceStable(releases)
-    val latestDev = devs.firstOrNull()
-    val selectedBuild = if (channel == BuildChannel.Dev) latestDev else stable
+    val stable = channelBuild(BuildChannel.Stable, releases)
+    val devs = devBuildsSinceStable(numberedReleases(releases))
+    val selectedBuild = if (channel == BuildChannel.Dev) devs.firstOrNull() else stable
     val groups = if (channel == BuildChannel.Dev) devs else listOfNotNull(stable)
 
     LazyColumn(

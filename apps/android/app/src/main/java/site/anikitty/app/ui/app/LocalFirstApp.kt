@@ -592,6 +592,7 @@ fun LocalFirstApp(
                             pushFinishedEpisode(aniList, aniListSync, anime, finished)
                         }
                     },
+                    onOpenBuilds = { screen = Screen.Builds },
                 )
                 "schedule" -> ScheduleFeed(
                     aniList = aniList,
@@ -1151,6 +1152,7 @@ private fun HomeFeed(
     onResumeContinue: (WatchHistoryEntity, Int) -> Unit,
     onOpenContinueTitle: (WatchHistoryEntity) -> Unit,
     onFinishedEpisode: suspend (AnimeSummary, Int) -> Unit = { _, _ -> },
+    onOpenBuilds: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var loading by remember { mutableStateOf(true) }
@@ -1536,6 +1538,11 @@ private fun HomeFeed(
                             avatarUrl = aniListAuth.avatarUrl,
                             onShuffle = shuffleCatalog,
                         )
+                    }
+                    if (!demo) {
+                        item(key = "update", contentType = "update") {
+                            SideloadUpdateBanner(onOpen = onOpenBuilds)
+                        }
                     }
                     item(key = "shelves", contentType = "chips") {
                         HomeShelfChips(selected = shelf, onSelect = { onShelfName(it.name) })
