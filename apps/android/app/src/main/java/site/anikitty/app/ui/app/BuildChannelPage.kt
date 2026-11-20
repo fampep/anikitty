@@ -109,9 +109,7 @@ fun SideloadUpdateBanner(onOpen: () -> Unit) {
     }
     LaunchedEffect(Unit) {
         if (releases != null) return@LaunchedEffect
-        runCatching { appReleaseListCache.load { client.load() } }
-            .getOrNull()
-            ?.let { releases = it }
+        releases = appReleaseListCache.load { client.load() } ?: return@LaunchedEffect
     }
     val build = offer ?: return
     val label = if (channel == BuildChannel.Dev) "dev" else "stable"
@@ -188,7 +186,7 @@ fun BuildChannelPage(onBack: () -> Unit) {
     var channel by remember {
         mutableStateOf(selectedBuildChannel(store.get(), installed))
     }
-    var releases by remember { mutableStateOf(appReleaseListCache.peek().orEmpty()) }
+    var releases by remember { mutableStateOf(appReleaseListCache.retained().orEmpty()) }
     var loading by remember { mutableStateOf(releases.isEmpty()) }
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -200,18 +198,13 @@ fun BuildChannelPage(onBack: () -> Unit) {
         loading = force || releases.isEmpty()
         error = null
         scope.launch {
-            runCatching { appReleaseListCache.load(force) { client.load() } }
-                .onSuccess { loaded ->
-                    if (loaded != null) releases = loaded
-                    else if (releases.isEmpty()) error = "Couldn't load releases"
-                    loading = false
-                }
-                .onFailure {
-                    if (releases.isEmpty() || force) {
-                        error = friendlyFailure(it.message ?: "Couldn't load releases")
-                    }
-                    loading = false
-                }
+            val loaded = appReleaseListCache.load(force) { client.load() }
+            if (loaded != null) {
+                releases = loaded
+            } else if (releases.isEmpty()) {
+                error = friendlyFailure(appReleaseListCache.lastFailure() ?: "Couldn't load releases")
+            }
+            loading = false
         }
     }
 

@@ -11,7 +11,11 @@ import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -237,60 +241,97 @@ private val DEV_NUMBER = Regex("""-dev\.(\d+)""")
 
 /**
  * One release list for the whole process. Home throws its banner away on scroll
- * and when a title opens, and App builds asks for the same list. Sharing this
- * keeps both screens from calling GitHub on every visit.
+ * and when a title opens, and App builds asks for the same list. The fetch lives
+ * in [loader], so leaving a screen does not drop a response that already finished.
  */
 class AppReleaseListCache(
     private val freshForMs: Long = FRESH_FOR_MS,
     private val retryAfterFailureMs: Long = RETRY_AFTER_FAILURE_MS,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val loader: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
     private val gate = Mutex()
     private val stateLock = Any()
     private var snapshot: List<PublishedBuild>? = null
     private var fetchedAtMs: Long = 0L
     private var failedAtMs: Long? = null
+    private var lastError: String? = null
+    private var inFlight: Deferred<List<PublishedBuild>?>? = null
+    private var generation = 0
+    private var publishedGeneration = 0
 
     /** The last successful list, while it is still fresh enough to show immediately. */
     fun peek(): List<PublishedBuild>? = synchronized(stateLock) {
         snapshot?.takeIf { clock() - fetchedAtMs < freshForMs }
     }
 
+    /** The last successful list, including one that is past the fresh window. */
+    fun retained(): List<PublishedBuild>? = synchronized(stateLock) { snapshot }
+
+    /** Why the last fetch failed, when there is nothing newer to show. */
+    fun lastFailure(): String? = synchronized(stateLock) { lastError }
+
     /**
      * Returns the shared list. A fresh list is reused. A recent failure is not
      * retried until [retryAfterFailureMs]. [force] is the explicit Try again path.
-     * Null means there is nothing to show and the caller should stay quiet.
+     * A failed refresh keeps the last list. Null means there is nothing to show.
      */
     suspend fun load(
         force: Boolean = false,
         fetch: suspend () -> List<PublishedBuild>,
     ): List<PublishedBuild>? {
         if (!force) peek()?.let { return it }
-        return gate.withLock {
+        val request = gate.withLock {
             if (!force) {
-                peek()?.let { return@withLock it }
-                if (coolingDown()) return@withLock synchronized(stateLock) { snapshot }
+                peek()?.let { return@withLock Ready(it) }
+                if (coolingDown()) return@withLock Ready(retained())
+                inFlight?.takeIf { it.isActive }?.let { return@withLock Join(it) }
             }
-            try {
-                val loaded = fetch()
-                synchronized(stateLock) {
-                    snapshot = loaded
-                    fetchedAtMs = clock()
-                    failedAtMs = null
-                }
-                loaded
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Throwable) {
-                synchronized(stateLock) { failedAtMs = clock() }
-                throw error
+            val ticket = ++generation
+            val deferred = loader.async { fetchShared(ticket, fetch) }
+            inFlight = deferred
+            Join(deferred)
+        }
+        return when (request) {
+            is Ready -> request.releases
+            is Join -> request.deferred.await()
+        }
+    }
+
+    private suspend fun fetchShared(
+        ticket: Int,
+        fetch: suspend () -> List<PublishedBuild>,
+    ): List<PublishedBuild>? = try {
+        val loaded = fetch()
+        synchronized(stateLock) {
+            if (ticket >= publishedGeneration) {
+                snapshot = loaded
+                fetchedAtMs = clock()
+                failedAtMs = null
+                lastError = null
+                publishedGeneration = ticket
             }
+            snapshot
+        }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        synchronized(stateLock) {
+            if (ticket >= publishedGeneration) {
+                failedAtMs = clock()
+                lastError = error.message
+            }
+            snapshot
         }
     }
 
     private fun coolingDown(): Boolean = synchronized(stateLock) {
         failedAtMs?.let { clock() - it < retryAfterFailureMs } == true
     }
+
+    private sealed interface LoadRequest
+    private class Ready(val releases: List<PublishedBuild>?) : LoadRequest
+    private class Join(val deferred: Deferred<List<PublishedBuild>?>) : LoadRequest
 
     companion object {
         const val FRESH_FOR_MS = 15 * 60 * 1000L
