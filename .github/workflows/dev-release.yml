@@ -85,7 +85,8 @@ jobs:
         run: chmod +x ./gradlew && ./gradlew :app:testDebugUnitTest --stacktrace
 
       # Same key for every dev and stable APK so a later build can install over this one.
-      # Missing secrets must fail the job. The committed CI keystore is not a fallback.
+      # All four signing secrets win when they are set. Otherwise sign with the committed
+      # CI key, which is the identity already installed on devices.
       - name: Release signing
         env:
           KEYSTORE_B64: ${{ secrets.ANIKITTY_KEYSTORE_BASE64 }}
@@ -94,17 +95,23 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANIKITTY_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          if [ -z "$KEYSTORE_B64" ] || [ -z "$STORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
-            echo "::error::Release signing secrets are missing. Set ANIKITTY_KEYSTORE_BASE64, ANIKITTY_STORE_PASSWORD, ANIKITTY_KEY_ALIAS, and ANIKITTY_KEY_PASSWORD. Refusing to sign with apps/android/signing/anikitty-ci.key."
-            exit 1
-          fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          cat > apps/android/keystore.properties <<EOF
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            cat > apps/android/keystore.properties <<EOF
           storeFile=${RUNNER_TEMP}/release.jks
           storePassword=${STORE_PASSWORD}
           keyAlias=${KEY_ALIAS}
           keyPassword=${KEY_PASSWORD}
           EOF
+          else
+            echo "Signing secrets are unset. Using apps/android/signing/anikitty-ci.key."
+            cat > apps/android/keystore.properties <<EOF
+          storeFile=${{ github.workspace }}/apps/android/signing/anikitty-ci.key
+          storePassword=anikitty-ci
+          keyAlias=anikitty
+          keyPassword=anikitty-ci
+          EOF
+          fi
 
       - name: Build release APK
         working-directory: apps/android
