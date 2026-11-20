@@ -36,4 +36,4 @@ jobs:
 
       - name: Test, compile, and lint
         working-directory: apps/android
-        run: chmod +x ./gradlew && ./gradlew test :app:assembleDebug :app:lintDebug --stacktrace
+        run: chmod +x ./gradlew && ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug --stacktrace
