@@ -3,6 +3,7 @@
 
 package site.anikitty.app.ui.app
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -68,6 +69,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -135,6 +137,23 @@ private data class SearchPick(
 
 private data class ActiveSearchChip(val label: String, val clear: () -> Unit)
 
+internal const val SEARCH_RECENTS_PREFS = "anikitty_search"
+internal const val SEARCH_RECENTS_KEY = "recent"
+private const val SEARCH_RECENT_SEPARATOR = "\u001f"
+
+internal fun decodeSearchRecents(raw: String): List<String> =
+    raw.split(SEARCH_RECENT_SEPARATOR).map { it.trim() }.filter { it.isNotEmpty() }
+
+internal fun encodeSearchRecents(queries: List<String>): String =
+    queries.joinToString(SEARCH_RECENT_SEPARATOR)
+
+/** Newest query first, eight at most. A short or blank query leaves the list alone. */
+internal fun rememberSearchQuery(existing: List<String>, query: String): List<String> {
+    val trimmed = query.trim()
+    if (trimmed.length < 2) return existing
+    return (listOf(trimmed) + existing.filterNot { it.equals(trimmed, ignoreCase = true) }).take(8)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchFeed(
@@ -158,19 +177,28 @@ fun SearchFeed(
     var discoverTick by remember { mutableIntStateOf(0) }
     var page by remember { mutableIntStateOf(1) }
     var end by remember { mutableStateOf(false) }
-    var recentRaw by rememberSaveable { mutableStateOf("") }
-    val recent = remember(recentRaw) {
-        recentRaw.split('\u001f').map { it.trim() }.filter { it.isNotEmpty() }
+    val context = LocalContext.current
+    val searchPrefs = remember {
+        context.getSharedPreferences(SEARCH_RECENTS_PREFS, Context.MODE_PRIVATE)
     }
+    var recentRaw by remember {
+        mutableStateOf(searchPrefs.getString(SEARCH_RECENTS_KEY, "").orEmpty())
+    }
+    val recent = remember(recentRaw) { decodeSearchRecents(recentRaw) }
     val scope = rememberCoroutineScope()
     var searchJob by remember { mutableStateOf<Job?>(null) }
     val gridState = rememberLazyGridState()
 
+    fun persistRecent(next: List<String>) {
+        val encoded = encodeSearchRecents(next)
+        recentRaw = encoded
+        searchPrefs.edit().putString(SEARCH_RECENTS_KEY, encoded).apply()
+    }
+
     fun rememberQuery(q: String) {
-        val trimmed = q.trim()
-        if (trimmed.length < 2) return
-        val next = (listOf(trimmed) + recent.filterNot { it.equals(trimmed, ignoreCase = true) }).take(8)
-        recentRaw = next.joinToString("\u001f")
+        val next = rememberSearchQuery(recent, q)
+        if (encodeSearchRecents(next) == recentRaw) return
+        persistRecent(next)
     }
 
     fun runSearch(raw: String, more: Boolean = false, filters: SearchPick = pick) {
@@ -367,7 +395,7 @@ fun SearchFeed(
                                     runSearch(saved)
                                 }
                             }
-                            SearchFilterChip("Clear", selected = true) { recentRaw = "" }
+                            SearchFilterChip("Clear", selected = true) { persistRecent(emptyList()) }
                         }
                     }
                 }
