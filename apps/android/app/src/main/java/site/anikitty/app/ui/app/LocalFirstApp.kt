@@ -3333,6 +3333,7 @@ private fun TitleDetailScreen(
             if (listStatus == null) applyListStatus("PLANNING") else removeFromList()
         },
         onListStatus = { applyListStatus(it) },
+        onRemoveFromList = { removeFromList() },
         onScore = { applyScore(it) },
         onFavourite = { toggleFavourite() },
         onShare = { shareTitle(context, detail) },

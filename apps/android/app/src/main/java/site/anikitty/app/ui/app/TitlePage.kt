@@ -44,6 +44,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.BookmarkRemove
 import androidx.compose.material.icons.outlined.Extension
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Share
@@ -152,6 +153,7 @@ internal fun TitleStage(
     onBack: () -> Unit,
     onMyList: () -> Unit,
     onListStatus: (String) -> Unit,
+    onRemoveFromList: () -> Unit = {},
     onScore: (Int) -> Unit,
     onFavourite: () -> Unit = {},
     onShare: () -> Unit,
@@ -801,6 +803,32 @@ internal fun TitleStage(
                         label = point.toString(),
                         selected = listScore / 10 == point,
                         onClick = { onScore(point) },
+                    )
+                }
+            }
+            if (listStatus != null) {
+                Spacer(Modifier.height(KittySpace.md))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 48.dp)
+                        .spacePress {
+                            onRemoveFromList()
+                            listSheet = false
+                        },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Outlined.BookmarkRemove,
+                        contentDescription = "Remove from list",
+                        tint = palette.text,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Text(
+                        "Remove from list",
+                        color = palette.text,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = KittySpace.sm),
                     )
                 }
             }
