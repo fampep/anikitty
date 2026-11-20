@@ -10,13 +10,14 @@ import com.google.android.gms.cast.framework.SessionProvider
 import com.google.android.gms.cast.framework.media.CastMediaOptions
 import com.google.android.gms.cast.framework.media.MediaIntentReceiver
 import com.google.android.gms.cast.framework.media.NotificationOptions
-import site.anikitty.app.MainActivity
+import com.google.android.gms.cast.framework.media.widget.ExpandedControllerActivity
 
 /**
  * Default Cast receiver. Streams are relayed from the phone so the TV gets a
- * clean URL. Skip Intro and transport live in the in-app glass player (phone
- * stays open on the same Wi-Fi). The notification skips the same 10 seconds
- * as the on-screen −10 / +10 buttons.
+ * clean URL. The relay lives in a playback foreground service, so the TV keeps
+ * playing after the player screen closes. The notification skips the same 10
+ * seconds as the on-screen −10 / +10 buttons, and its expanded controller is
+ * the full-screen remote.
  */
 class AniKittyCastOptionsProvider : OptionsProvider {
     override fun getCastOptions(context: Context): CastOptions {
@@ -31,10 +32,11 @@ class AniKittyCastOptionsProvider : OptionsProvider {
         val notification = NotificationOptions.Builder()
             .setActions(actions, intArrayOf(1, 3))
             .setSkipStepMs(NotificationOptions.SKIP_STEP_TEN_SECONDS_IN_MS)
-            .setTargetActivityClassName(MainActivity::class.java.name)
+            .setTargetActivityClassName(ExpandedControllerActivity::class.java.name)
             .build()
         val media = CastMediaOptions.Builder()
             .setNotificationOptions(notification)
+            .setExpandedControllerActivityClassName(ExpandedControllerActivity::class.java.name)
             .build()
         return CastOptions.Builder()
             .setReceiverApplicationId(DEFAULT_RECEIVER_ID)
