@@ -12,52 +12,103 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.runBlocking
+import site.anikitty.app.AnikittyApp
 import site.anikitty.app.MainActivity
 import site.anikitty.app.R
+import site.anikitty.app.data.demo.DemoLibrary
+import java.util.concurrent.Executors
 
 /**
  * Keeps the phone-side cast relay in the foreground for the life of the TV
  * session. The player composition does not own this service, so leaving the
- * episode or switching episodes does not stop the stream.
+ * episode or switching episodes does not stop the stream. Session end, the
+ * shade's stop button, and a finished item with nobody watching do.
  */
 class CastPlaybackService : Service() {
     private var shownTitle: String? = null
     private var shownEpisode: Int = 0
+    private val progress = Executors.newSingleThreadExecutor()
+    private val ticker = Handler(Looper.getMainLooper())
+    private val watch = object : CastServiceWatch {
+        override fun onSessionEnded() {
+            CastLifetime.current()?.stopCasting()
+            leaveForeground()
+        }
+
+        override fun onItemFinished() {
+            val helper = CastLifetime.current() ?: return
+            // The open player shows the end card and may start the next episode.
+            if (helper.hasScreen() || helper.isLoadInFlight()) return
+            helper.stopCasting()
+            leaveForeground()
+        }
+    }
+    private val tick = object : Runnable {
+        override fun run() {
+            if (!running) return
+            flushProgress()
+            ticker.postDelayed(this, PROGRESS_INTERVAL_MS)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        // Already running, so idle can stop us without startService. Android 8+
+        // rejects startService from the background, which is where a failed
+        // load lands after the player has closed.
+        stopper = { leaveForeground() }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val title = intent?.getStringExtra(EXTRA_TITLE)
         val episode = intent?.getIntExtra(EXTRA_EPISODE, 0) ?: 0
         enterForeground(title, episode)
         if (intent?.action == ACTION_END) {
-            running = false
             CastLifetime.current()?.endSession()
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            leaveForeground()
             return START_NOT_STICKY
         }
         running = true
         val helper = CastLifetime.current()
+        helper?.serviceWatch = watch
+        helper?.ensureSessionWatch()
         val keep = castForegroundShouldRun(
             casting = helper?.casting == true,
             loadInFlight = helper?.isLoadInFlight() == true,
         )
         if (!keep) {
-            running = false
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            leaveForeground()
             return START_NOT_STICKY
         }
+        ticker.removeCallbacks(tick)
+        ticker.postDelayed(tick, PROGRESS_INTERVAL_MS)
         return START_STICKY
     }
 
     override fun onDestroy() {
+        ticker.removeCallbacks(tick)
+        progress.shutdownNow()
+        if (CastLifetime.current()?.serviceWatch === watch) {
+            CastLifetime.current()?.serviceWatch = null
+        }
+        if (stopper != null) stopper = null
         running = false
         super.onDestroy()
+    }
+
+    private fun leaveForeground() {
+        running = false
+        ticker.removeCallbacks(tick)
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
 
     private fun enterForeground(title: String?, episode: Int) {
@@ -72,6 +123,46 @@ class CastPlaybackService : Service() {
             )
         } else {
             startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun flushProgress() {
+        val helper = CastLifetime.current() ?: return
+        if (!helper.casting || helper.hasScreen()) return
+        val target = helper.progressTarget ?: return
+        if (target.anilistId <= 0 || DemoLibrary.find(target.anilistId) != null) return
+        val position = helper.receiverPositionMs()
+        val duration = helper.receiverDurationMs()
+        if (position <= 0L) return
+        val app = applicationContext as? AnikittyApp ?: return
+        progress.execute {
+            val written = runCatching {
+                runBlocking {
+                    val dao = app.database.watchHistoryDao()
+                    val before = dao.get(target.anilistId)
+                    val next = castHistoryUpdate(
+                        existing = before,
+                        target = target,
+                        positionMs = position,
+                        durationMs = duration,
+                        now = System.currentTimeMillis(),
+                    ) ?: return@runBlocking null
+                    dao.upsert(next)
+                    val report = castProgressToReport(before, next, target.episode)
+                    if (report != null && helper.reportedThrough < report && app.aniListAuth.isLinked) {
+                        val pushed = app.aniListSync.pushProgress(
+                            anilistId = target.anilistId,
+                            episode = report,
+                            totalEpisodes = target.totalEpisodes.takeIf { it > 0 },
+                        )
+                        if (pushed) helper.reportedThrough = report
+                    }
+                    next
+                }
+            }
+            written.exceptionOrNull()?.let { error ->
+                android.util.Log.w(TAG, "Cast progress save failed", error)
+            }
         }
     }
 
@@ -117,15 +208,21 @@ class CastPlaybackService : Service() {
     }
 
     companion object {
+        private const val TAG = "AniKittyCast"
         private const val CHANNEL_ID = "anikitty_cast"
         private const val NOTIFICATION_ID = 0xA11
         private const val EXTRA_TITLE = "title"
         private const val EXTRA_EPISODE = "episode"
         private const val ACTION_END = "site.anikitty.app.cast.END"
+        private const val PROGRESS_INTERVAL_MS = 2_000L
+        private val main = Handler(Looper.getMainLooper())
 
         @Volatile
         var running: Boolean = false
             private set
+
+        @Volatile
+        private var stopper: (() -> Unit)? = null
 
         fun promote(context: Context, title: String?, episode: Int) {
             val intent = Intent(context, CastPlaybackService::class.java)
@@ -136,7 +233,7 @@ class CastPlaybackService : Service() {
             runCatching { ContextCompat.startForegroundService(context, intent) }
         }
 
-        fun demoteIfIdle(context: Context) {
+        fun demoteIfIdle() {
             if (!running) return
             val helper = CastLifetime.current()
             if (castForegroundShouldRun(
@@ -146,8 +243,22 @@ class CastPlaybackService : Service() {
             ) {
                 return
             }
-            val intent = Intent(context, CastPlaybackService::class.java)
-            runCatching { context.startService(intent) }
+            val stop = stopper ?: return
+            if (Looper.myLooper() == Looper.getMainLooper()) {
+                stop()
+            } else {
+                main.post {
+                    val current = CastLifetime.current()
+                    if (castForegroundShouldRun(
+                            casting = current?.casting == true,
+                            loadInFlight = current?.isLoadInFlight() == true,
+                        )
+                    ) {
+                        return@post
+                    }
+                    stopper?.invoke()
+                }
+            }
         }
     }
 }
