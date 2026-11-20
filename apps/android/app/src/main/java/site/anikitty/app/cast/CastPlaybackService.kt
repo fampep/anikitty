@@ -112,6 +112,15 @@ class CastPlaybackService : Service() {
     }
 
     private fun enterForeground(title: String?, episode: Int) {
+        if (
+            Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS,
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            android.util.Log.w(TAG, "Notification permission is off, so the Cast notice may stay hidden")
+        }
         if (!title.isNullOrBlank()) shownTitle = title
         if (episode > 0) shownEpisode = episode
         val notification = notification(shownTitle, shownEpisode)

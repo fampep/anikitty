@@ -595,32 +595,43 @@ class CastSessionHelper private constructor(
     }
 
     companion object {
-        fun create(context: Context): CastSessionHelper? = runCatching {
-            val app = context.applicationContext
-            val castContext = CastContext.getSharedInstance(app)
-            val captionsEnabled = AtomicBoolean(true)
-            val captionLanguage = java.util.concurrent.atomic.AtomicReference<String?>(null)
-            val captionLabel = java.util.concurrent.atomic.AtomicReference<String?>(null)
-            val castPlayer = CastPlayer(
-                castContext,
-                RelayMediaItemConverter(captionsEnabled, captionLanguage, captionLabel),
-            )
-            val wifi = app.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-            val multicast = wifi?.createMulticastLock("anikitty-cast-discover")?.apply {
-                setReferenceCounted(false)
-                acquire()
+        fun create(context: Context): CastSessionHelper? {
+            val blocked = CastStartup.reason
+            if (blocked != null) {
+                Log.w(TAG, "Cast helper skipped: $blocked")
+                return null
             }
-            CastSessionHelper(
-                app,
-                castContext,
-                castPlayer,
-                CastRelay(app),
-                multicast,
-                captionsEnabled,
-                captionLanguage,
-                captionLabel,
-            )
-        }.getOrNull()
+            val castContext = CastStartup.context
+            if (castContext == null) {
+                Log.w(TAG, "Cast helper skipped: context not ready")
+                return null
+            }
+            return runCatching {
+                val app = context.applicationContext
+                val captionsEnabled = AtomicBoolean(true)
+                val captionLanguage = java.util.concurrent.atomic.AtomicReference<String?>(null)
+                val captionLabel = java.util.concurrent.atomic.AtomicReference<String?>(null)
+                val castPlayer = CastPlayer(
+                    castContext,
+                    RelayMediaItemConverter(captionsEnabled, captionLanguage, captionLabel),
+                )
+                val wifi = app.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                val multicast = wifi?.createMulticastLock("anikitty-cast-discover")?.apply {
+                    setReferenceCounted(false)
+                    acquire()
+                }
+                CastSessionHelper(
+                    app,
+                    castContext,
+                    castPlayer,
+                    CastRelay(app),
+                    multicast,
+                    captionsEnabled,
+                    captionLanguage,
+                    captionLabel,
+                )
+            }.onFailure { Log.w(TAG, "Cast helper failed", it) }.getOrNull()
+        }
     }
 }
 
