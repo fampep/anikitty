@@ -105,6 +105,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.media3.cast.SessionAvailabilityListener
 import site.anikitty.app.cast.CastHardwareVolume
 import site.anikitty.app.cast.CastSessionHelper
+import site.anikitty.app.cast.castAttachPositionMs
 import site.anikitty.app.cast.reduceCastAttach
 import site.anikitty.app.cast.safeSeekTarget
 import site.anikitty.app.ui.components.EpisodeCarousel
@@ -350,8 +351,14 @@ fun PlayerScreen(
     var castHint by remember { mutableStateOf<String?>(null) }
     /** A Chromecast is up, but the episode stream was not ready to load yet. */
     var castPending by remember { mutableStateOf(false) }
-    /** The current session already got one load, so a second callback does not restart it. */
+    /** The current session already loaded this source, so a later callback does not restart it. */
     var castAttachStarted by remember { mutableStateOf(false) }
+    /** Identity of the load already sent. A quality, audio, or failover change replaces it. */
+    var castLoadedKey by remember { mutableStateOf<String?>(null) }
+    /** Playhead passed to the last cast load. A saved resume that arrives later can move past it. */
+    var castSentPositionMs by remember { mutableLongStateOf(-1L) }
+    /** Bumped when a load starts before the receiver client exists, so attach retries. */
+    var castClientRetry by remember { mutableIntStateOf(0) }
     // Next-episode UX: soft offer near the end, then 10s autoplay once ended.
     var nearEndDismissed by remember(episode) { mutableStateOf(false) }
     var playbackEnded by remember(episode) { mutableStateOf(false) }
@@ -519,6 +526,8 @@ fun PlayerScreen(
     val latestSourceIndex by rememberUpdatedState(sourceIndex)
     val latestTitle by rememberUpdatedState(title)
     val latestEpisode by rememberUpdatedState(episode)
+    val latestStartPositionMs by rememberUpdatedState(startPositionMs)
+    val latestAllowHistory by rememberUpdatedState(allowHistoryFallback)
     val playhead = remember { Playhead() }
     val latestPosition = playhead
     val latestOnNextEpisode by rememberUpdatedState(onNextEpisode)
@@ -585,9 +594,22 @@ fun PlayerScreen(
         !nextTriggered &&
         sleepChoice != -1
 
+    fun castSourceKey(): String? {
+        val src = latestSources.getOrNull(latestSourceIndex) ?: return null
+        return "${latestSourceIndex}\u0000${src.url}\u0000${src.audioLanguage.orEmpty()}\u0000$latestEpisode"
+    }
+
+    fun castPlayhead(): Long = castAttachPositionMs(
+        localPositionMs = latestPlayer?.currentPosition?.takeIf { it > 0L } ?: latestPosition.ms,
+        resumeAtMs = resumeAtMs,
+        startPositionMs = latestStartPositionMs,
+        allowHistoryFallback = latestAllowHistory,
+    )
+
     fun loadOntoCast(helper: CastSessionHelper, src: PlayableSource) {
         val local = latestPlayer
-        val pos = local?.currentPosition?.coerceAtLeast(0L) ?: latestPosition.ms
+        val pos = castPlayhead()
+        castSentPositionMs = pos
         local?.pause()
         isCasting = false
         castHint = "Connecting to your TV"
@@ -606,31 +628,43 @@ fun PlayerScreen(
                 castHint = null
             },
             onError = { message ->
-                castHint = message
+                val retrying = message == "Chromecast is not connected"
+                castHint = if (retrying) "Connecting to your TV" else message
                 isCasting = false
                 pushMute()
-                local?.play()
-                // The session was visible before the receiver client existed.
-                // Allow the availability callback to load once that client arrives.
-                if (message == "Chromecast is not connected") {
+                if (retrying) {
+                    // The session was visible before the receiver client existed.
+                    // Drop the in-flight flag and ask the attach effect to try again.
+                    // Leave the phone paused so it does not play over a session that is still coming up.
                     castAttachStarted = false
+                    castLoadedKey = null
+                    castPending = true
+                    castClientRetry += 1
+                } else {
+                    local?.play()
                 }
             },
         )
     }
 
     fun applyCastAttach(sessionUp: Boolean) {
+        val key = castSourceKey()
+        val sourceChanged = castAttachStarted && !isCasting && key != null && key != castLoadedKey
         val decision = reduceCastAttach(
             pending = castPending,
             loadStarted = castAttachStarted,
             sessionUp = sessionUp,
-            hasSource = latestSources.getOrNull(latestSourceIndex) != null,
+            hasSource = key != null,
+            sourceChanged = sourceChanged,
+            sessionConnecting = castHelper?.isSessionConnecting() == true,
         )
         castPending = decision.pending
         castAttachStarted = decision.loadStarted
+        if (!decision.loadStarted) castLoadedKey = null
         if (!decision.load) return
         val helper = castHelper ?: return
         val src = latestSources.getOrNull(latestSourceIndex) ?: return
+        castLoadedKey = key
         loadOntoCast(helper, src)
     }
 
@@ -666,6 +700,8 @@ fun PlayerScreen(
                 override fun onCastSessionUnavailable() {
                     castPending = false
                     castAttachStarted = false
+                    castLoadedKey = null
+                    castSentPositionMs = -1L
                     val pos = runCatching {
                         helper.castPlayer.currentPosition.coerceAtLeast(0L)
                     }.getOrDefault(latestPosition.ms)
@@ -693,11 +729,59 @@ fun PlayerScreen(
 
     // A session that was already connected, or that arrived before the stream
     // list resolved, loads once the source exists. The availability callback
-    // alone used to return and never retry.
-    LaunchedEffect(castHelper, castPending, source?.url, source?.audioLanguage, sourceIndex) {
+    // alone used to return and never retry. A receiver that is still connecting
+    // stays pending until its media client exists.
+    LaunchedEffect(
+        castHelper,
+        castPending,
+        source?.url,
+        source?.audioLanguage,
+        sourceIndex,
+        episode,
+        castClientRetry,
+    ) {
         val helper = castHelper ?: return@LaunchedEffect
-        if (!castPending && !helper.isSessionAvailable()) return@LaunchedEffect
-        applyCastAttach(helper.isSessionAvailable())
+        val readyNow = helper.isSessionAvailable()
+        val connecting = helper.isSessionConnecting()
+        if (!castPending && !readyNow && !connecting) return@LaunchedEffect
+        if (!readyNow && connecting) {
+            castPending = true
+            repeat(20) {
+                delay(250)
+                if (helper.isSessionAvailable()) {
+                    applyCastAttach(sessionUp = true)
+                    return@LaunchedEffect
+                }
+                if (!helper.isSessionConnecting()) return@LaunchedEffect
+            }
+            return@LaunchedEffect
+        }
+        if (!readyNow) return@LaunchedEffect
+        applyCastAttach(sessionUp = true)
+    }
+
+    // Watch history often arrives after the first composition. An attach that
+    // already started at 0 must still pick up that saved playhead.
+    LaunchedEffect(startPositionMs, resumeAtMs) {
+        if (!castAttachStarted) return@LaunchedEffect
+        val target = castPlayhead()
+        if (target <= 1_500L) return@LaunchedEffect
+        if (castSentPositionMs >= 0L && target <= castSentPositionMs + 1_500L) return@LaunchedEffect
+        val helper = castHelper ?: return@LaunchedEffect
+        if (isCasting) {
+            val castPos = runCatching {
+                helper.castPlayer.currentPosition.coerceAtLeast(0L)
+            }.getOrDefault(0L)
+            if (castPos > 2_000L) return@LaunchedEffect
+            helper.castPlayer.seekTo(safeSeekTarget(target, helper.castPlayer.duration, durationMs))
+            castSentPositionMs = target
+            positionMs = target
+            playhead.ms = target
+            return@LaunchedEffect
+        }
+        val src = latestSources.getOrNull(latestSourceIndex) ?: return@LaunchedEffect
+        castLoadedKey = castSourceKey()
+        loadOntoCast(helper, src)
     }
 
     // Episode the current cast item was loaded for. A later episode must not
@@ -722,6 +806,8 @@ fun PlayerScreen(
             startPositionMs.coerceAtLeast(0L)
         }
         castLoadedEpisode = episode
+        castLoadedKey = "${sourceIndex}\u0000${src.url}\u0000${src.audioLanguage.orEmpty()}\u0000$episode"
+        castSentPositionMs = pos
         if (!sameEpisode) {
             // Drop the previous item's end so its countdown cannot skip this one.
             playbackEnded = false

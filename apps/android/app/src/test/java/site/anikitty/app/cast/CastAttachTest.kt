@@ -87,4 +87,124 @@ class CastAttachTest {
         )
         assertTrue(again.load)
     }
+
+    @Test
+    fun aConnectingSessionWaitsForTheReceiverClient() {
+        val waiting = reduceCastAttach(
+            pending = false,
+            loadStarted = true,
+            sessionUp = false,
+            hasSource = true,
+            sessionConnecting = true,
+        )
+        assertTrue(waiting.pending)
+        assertFalse(waiting.load)
+        assertFalse(waiting.loadStarted)
+    }
+
+    @Test
+    fun aSourceChangeReloadsWhileTheFirstLoadIsInFlight() {
+        val again = reduceCastAttach(
+            pending = false,
+            loadStarted = true,
+            sessionUp = true,
+            hasSource = true,
+            sourceChanged = true,
+        )
+        assertTrue(again.load)
+        assertTrue(again.loadStarted)
+        assertFalse(again.pending)
+    }
+
+    @Test
+    fun savedResumeBeatsALocalPlayerThatHasNotStarted() {
+        assertEquals(
+            90_000L,
+            castAttachPositionMs(
+                localPositionMs = 0L,
+                resumeAtMs = 0L,
+                startPositionMs = 90_000L,
+                allowHistoryFallback = true,
+            ),
+        )
+        assertEquals(
+            40_000L,
+            castAttachPositionMs(
+                localPositionMs = 500L,
+                resumeAtMs = 40_000L,
+                startPositionMs = 0L,
+                allowHistoryFallback = true,
+            ),
+        )
+    }
+
+    @Test
+    fun aLivePlayheadBeatsAnOlderSavedResume() {
+        assertEquals(
+            30_000L,
+            castAttachPositionMs(
+                localPositionMs = 30_000L,
+                resumeAtMs = 90_000L,
+                startPositionMs = 90_000L,
+                allowHistoryFallback = true,
+            ),
+        )
+    }
+
+    @Test
+    fun historyIsIgnoredAfterThePersonMovedOn() {
+        assertEquals(
+            0L,
+            castAttachPositionMs(
+                localPositionMs = 0L,
+                resumeAtMs = 0L,
+                startPositionMs = 90_000L,
+                allowHistoryFallback = false,
+            ),
+        )
+    }
+
+    @Test
+    fun connectedWithoutAClientIsStillConnecting() {
+        assertEquals(
+            CastSessionReadiness.Connecting,
+            castSessionReadiness(
+                connected = true,
+                hasRemoteClient = false,
+                playerSessionAvailable = false,
+            ),
+        )
+    }
+
+    @Test
+    fun aRemoteClientOrCastPlayerIsReady() {
+        assertEquals(
+            CastSessionReadiness.Ready,
+            castSessionReadiness(
+                connected = true,
+                hasRemoteClient = true,
+                playerSessionAvailable = false,
+            ),
+        )
+        assertEquals(
+            CastSessionReadiness.Ready,
+            castSessionReadiness(
+                connected = false,
+                hasRemoteClient = false,
+                playerSessionAvailable = true,
+            ),
+        )
+    }
+
+    @Test
+    fun noSessionIsDown() {
+        assertEquals(
+            CastSessionReadiness.Down,
+            castSessionReadiness(
+                connected = false,
+                hasRemoteClient = false,
+                playerSessionAvailable = false,
+            ),
+        )
+    }
 }
