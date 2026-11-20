@@ -108,6 +108,7 @@ import site.anikitty.app.cast.CastSessionHelper
 import site.anikitty.app.cast.castAttachPositionMs
 import site.anikitty.app.cast.castClientRetryDelayMs
 import site.anikitty.app.cast.reduceCastAttach
+import site.anikitty.app.cast.reduceCastGiveUp
 import site.anikitty.app.cast.safeSeekTarget
 import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
@@ -730,12 +731,20 @@ fun PlayerScreen(
             }
             helper.setAvailabilityListener(object : SessionAvailabilityListener {
                 override fun onCastSessionAvailable() {
-                    if (!helper.isSessionAvailable()) {
-                        castPending = true
-                        return
-                    }
-                    castClientGaveUp = false
-                    applyCastAttach(sessionUp = true)
+                    // CastPlayer usually fires this once, often before the
+                    // receiver client exists. A give-up from the earlier wait
+                    // must not ignore that signal, or the TV never gets the episode.
+                    val reset = reduceCastGiveUp(
+                        gaveUp = castClientGaveUp,
+                        retry = castClientRetry,
+                        pending = castPending,
+                        availabilitySignaled = true,
+                        clientReady = helper.isSessionAvailable(),
+                    )
+                    castClientGaveUp = reset.gaveUp
+                    castClientRetry = reset.retry
+                    castPending = reset.pending
+                    if (reset.load) applyCastAttach(sessionUp = true)
                 }
 
                 override fun onCastSessionUnavailable() {
@@ -782,7 +791,10 @@ fun PlayerScreen(
         sourceIndex,
         episode,
         castClientRetry,
+        castClientGaveUp,
     ) {
+        // Give-up blocks another immediate poll. Clearing it when a session
+        // is signaled (even before the client exists) restarts this effect.
         if (castClientGaveUp) return@LaunchedEffect
         val helper = castHelper ?: return@LaunchedEffect
         val wait = if (castClientRetry > 0) castClientRetryDelayMs(castClientRetry) else null

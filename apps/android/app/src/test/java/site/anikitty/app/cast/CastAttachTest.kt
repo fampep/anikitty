@@ -215,6 +215,48 @@ class CastAttachTest {
     }
 
     @Test
+    fun aLaterSessionSignalClearsGiveUpBeforeTheClientExists() {
+        val reset = reduceCastGiveUp(
+            gaveUp = true,
+            retry = 3,
+            pending = false,
+            availabilitySignaled = true,
+            clientReady = false,
+        )
+        assertFalse(reset.gaveUp)
+        assertEquals(0, reset.retry)
+        assertTrue(reset.pending)
+        assertFalse(reset.load)
+    }
+
+    @Test
+    fun aReadyClientAfterGiveUpLoadsOnce() {
+        val reset = reduceCastGiveUp(
+            gaveUp = true,
+            retry = 3,
+            pending = false,
+            availabilitySignaled = true,
+            clientReady = true,
+        )
+        assertFalse(reset.gaveUp)
+        assertTrue(reset.load)
+        assertFalse(reset.pending)
+    }
+
+    @Test
+    fun giveUpStaysUntilANewSessionSignal() {
+        val reset = reduceCastGiveUp(
+            gaveUp = true,
+            retry = 3,
+            pending = false,
+            availabilitySignaled = false,
+            clientReady = false,
+        )
+        assertTrue(reset.gaveUp)
+        assertFalse(reset.load)
+    }
+
+    @Test
     fun clientRetriesBackOffThenStop() {
         assertEquals(400L, castClientRetryDelayMs(1))
         assertEquals(800L, castClientRetryDelayMs(2))

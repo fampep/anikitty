@@ -48,6 +48,34 @@ internal fun castClientRetryDelayMs(attempt: Int): Long? {
     return 400L shl (attempt - 1)
 }
 
+/**
+ * A give-up only stops the wait that just ended. CastPlayer's availability
+ * signal starts a fresh wait even when the receiver client is not ready yet,
+ * because that callback usually fires only once.
+ */
+internal data class CastGiveUpReset(
+    val gaveUp: Boolean,
+    val retry: Int,
+    val pending: Boolean,
+    val load: Boolean,
+)
+
+internal fun reduceCastGiveUp(
+    gaveUp: Boolean,
+    retry: Int,
+    pending: Boolean,
+    availabilitySignaled: Boolean,
+    clientReady: Boolean,
+): CastGiveUpReset {
+    if (!availabilitySignaled) {
+        return CastGiveUpReset(gaveUp = gaveUp, retry = retry, pending = pending, load = false)
+    }
+    if (!clientReady) {
+        return CastGiveUpReset(gaveUp = false, retry = 0, pending = true, load = false)
+    }
+    return CastGiveUpReset(gaveUp = false, retry = 0, pending = false, load = true)
+}
+
 internal fun reduceCastAttach(
     pending: Boolean,
     loadStarted: Boolean,
