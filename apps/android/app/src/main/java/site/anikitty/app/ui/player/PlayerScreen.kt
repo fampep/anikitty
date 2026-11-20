@@ -27,7 +27,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -41,10 +40,8 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -63,20 +60,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.CastConnected
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.outlined.Forward10
 import androidx.compose.material.icons.outlined.FullscreenExit
 import androidx.compose.material.icons.outlined.Lock
@@ -106,7 +94,6 @@ import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.automirrored.outlined.VolumeDown
 import androidx.compose.material.icons.automirrored.outlined.VolumeOff
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
-import androidx.compose.material.icons.rounded.Fullscreen
 import androidx.compose.material.icons.rounded.PictureInPicture
 import androidx.compose.material.icons.rounded.Settings
 import androidx.media3.cast.SessionAvailabilityListener
@@ -128,7 +115,6 @@ import site.anikitty.app.cast.castClientRetryDelayMs
 import site.anikitty.app.cast.reduceCastAttach
 import site.anikitty.app.cast.reduceCastGiveUp
 import site.anikitty.app.cast.safeSeekTarget
-import site.anikitty.app.ui.components.EpisodeCarousel
 import site.anikitty.app.ui.components.EpisodeSlide
 import site.anikitty.app.ui.theme.KittyDarkPalette
 import site.anikitty.app.ui.theme.KittyHaptics
@@ -157,19 +143,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -182,7 +159,6 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -240,10 +216,10 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 /** Soft “next episode?” offer when this much remains. */
-private const val NEAR_END_THRESHOLD_MS = 90_000L
+internal const val NEAR_END_THRESHOLD_MS = 90_000L
 /** Ignore tiny clips / trailers for the near-end offer. */
 private const val NEAR_END_MIN_DURATION_MS = 120_000L
-private const val AUTOPLAY_COUNTDOWN_SEC = 10
+internal const val AUTOPLAY_COUNTDOWN_SEC = 10
 
 /** Caption backdrop: none, soft tint, solid box, or frosted/blurred glass look. */
 private enum class SubBgMode { None, Soft, Solid, Blur }
@@ -3187,331 +3163,6 @@ fun PlayerScreen(
 }
 
 @Composable
-private fun PlayerPageBar(
-    title: String,
-    episodeLine: String,
-    onBack: () -> Unit,
-    onExpand: () -> Unit,
-    onSettings: () -> Unit,
-    onPip: () -> Unit,
-    cast: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color.Black)
-            .windowInsetsPadding(WindowInsets.statusBars.union(WindowInsets.displayCutout))
-            .padding(horizontal = 4.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ChromeDisc(onClick = onBack, size = 48.dp) {
-            Icon(
-                Icons.AutoMirrored.Rounded.ArrowBack,
-                contentDescription = "Back",
-                tint = Color.White,
-            )
-        }
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 8.dp),
-        ) {
-            Text(
-                title,
-                color = Color.White,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
-                letterSpacing = (-0.3).sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                episodeLine,
-                color = Color.White.copy(alpha = 0.55f),
-                fontSize = 13.sp,
-                maxLines = 1,
-            )
-        }
-        Box(
-            modifier = Modifier.size(48.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            cast()
-        }
-        ChromeDisc(onClick = onPip, size = 48.dp) {
-            Icon(
-                Icons.Rounded.PictureInPicture,
-                contentDescription = "Picture in picture",
-                tint = Color.White,
-            )
-        }
-        ChromeDisc(onClick = onSettings, size = 48.dp) {
-            Icon(
-                Icons.Rounded.Settings,
-                contentDescription = "Settings",
-                tint = Color.White,
-            )
-        }
-        ChromeDisc(onClick = onExpand, size = 48.dp) {
-            Icon(
-                Icons.Rounded.Fullscreen,
-                contentDescription = "Full screen",
-                tint = Color.White,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlayerEpisodeShelf(
-    marks: List<String> = emptyList(),
-    episode: Int,
-    totalEpisodes: Int,
-    watchedThrough: Int,
-    positionFraction: Float,
-    audio: String,
-    isMovie: Boolean,
-    autoNext: Boolean,
-    onPickEpisode: (Int) -> Unit,
-    onPickAudio: (String) -> Unit,
-    onToggleAutoNext: () -> Unit,
-    episodeSlides: List<EpisodeSlide>,
-    anilistId: Int = 0,
-    fallbackArt: String?,
-    minutesLeft: Int?,
-    onToggleWatched: ((Int) -> Unit)?,
-    speedLabel: String = "1×",
-    qualityLabel: String = "Auto",
-    onSpeed: () -> Unit = {},
-    onQuality: () -> Unit = {},
-    onAudio: () -> Unit = {},
-    onEpisodes: () -> Unit = {},
-    onNext: () -> Unit = {},
-    nextEnabled: Boolean = false,
-    speedSelected: Boolean = false,
-    qualitySelected: Boolean = false,
-    audioSelected: Boolean = false,
-    episodesSelected: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    val showGrid = !isMovie && totalEpisodes > 1
-    var jump by remember { mutableStateOf("") }
-    val audioLabel = if (audio == "dub") "Dub" else "Sub"
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .windowInsetsPadding(WindowInsets.navigationBars)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (marks.isNotEmpty()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                marks.forEach { PlayerMetaPill(it) }
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            PlayerTool(
-                label = "Speed",
-                value = speedLabel,
-                selected = speedSelected,
-                onClick = onSpeed,
-                modifier = Modifier.weight(1f),
-            )
-            PlayerTool(
-                label = "Quality",
-                value = qualityLabel,
-                selected = qualitySelected,
-                onClick = onQuality,
-                modifier = Modifier.weight(1f),
-            )
-            PlayerTool(
-                label = "Audio",
-                value = audioLabel,
-                selected = audioSelected,
-                onClick = onAudio,
-                modifier = Modifier.weight(1f),
-            )
-            if (showGrid) {
-                PlayerTool(
-                    label = "Episodes",
-                    value = "E$episode",
-                    selected = episodesSelected,
-                    onClick = onEpisodes,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            PlayerTool(
-                label = "Next",
-                value = if (nextEnabled) "E${episode + 1}" else "—",
-                enabled = nextEnabled,
-                onClick = onNext,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (showGrid) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color.White.copy(alpha = 0.06f))
-                    .padding(horizontal = 14.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                BasicTextField(
-                    value = jump,
-                    onValueChange = { next -> if (next.all { it.isDigit() }) jump = next },
-                    textStyle = TextStyle(color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Go,
-                    ),
-                    keyboardActions = KeyboardActions(onGo = {
-                        val picked = jump.toIntOrNull()
-                        if (picked != null && picked in 1..totalEpisodes) {
-                            onPickEpisode(picked)
-                            jump = ""
-                        }
-                    }),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    decorationBox = { inner ->
-                        if (jump.isEmpty()) {
-                            Text(
-                                "Jump to episode",
-                                color = Color.White.copy(alpha = 0.35f),
-                                fontSize = 14.sp,
-                            )
-                        }
-                        inner()
-                    },
-                )
-            }
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            listOf("sub" to "Subtitled", "dub" to "Dubbed").forEach { (key, label) ->
-                val selected = audio == key
-                val background by animateColorAsState(
-                    if (selected) Color.White else Color(0xFF0C0C10),
-                    tween(180),
-                    label = "audioBg",
-                )
-                val text by animateColorAsState(
-                    if (selected) Color.Black else Color.White.copy(alpha = 0.7f),
-                    tween(180),
-                    label = "audioText",
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp)
-                        .spacePress { onPickAudio(key) }
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(background)
-                        .border(
-                            0.5.dp,
-                            if (selected) Color.White else Color.White.copy(alpha = 0.08f),
-                            RoundedCornerShape(12.dp),
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = text,
-                    )
-                }
-            }
-        }
-        if (showGrid) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Text(
-                    "Episodes",
-                    color = Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    letterSpacing = (-0.2).sp,
-                )
-                Text(
-                    "$totalEpisodes",
-                    color = Color.White.copy(alpha = 0.45f),
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 13.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    if (autoNext) "Auto on" else "Auto off",
-                    color = if (autoNext) Color.Black else Color.White,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (autoNext) Color.White else Color.White.copy(alpha = 0.06f))
-                        .clickable(onClick = onToggleAutoNext)
-                        .padding(horizontal = 14.dp, vertical = 14.dp),
-                )
-            }
-            val slides = if (episodeSlides.isNotEmpty()) {
-                episodeSlides
-            } else {
-                (1..totalEpisodes).map { number ->
-                    EpisodeSlide(number, "Episode $number", null)
-                }
-            }
-            EpisodeCarousel(
-                slides = slides,
-                current = episode,
-                watchedThrough = watchedThrough,
-                currentProgress = positionFraction,
-                fallbackArt = fallbackArt,
-                onPick = onPickEpisode,
-                onDark = true,
-                minutesLeft = minutesLeft,
-                onToggleWatched = onToggleWatched,
-                anilistId = anilistId,
-            )
-            val upcoming = slides.filter { it.number > episode }.take(3)
-            if (upcoming.isNotEmpty()) {
-                Text(
-                    "Next up",
-                    color = Color.White.copy(alpha = 0.45f),
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
-                )
-                upcoming.forEach { next ->
-                    Text(
-                        "${next.number}. ${next.title.ifBlank { "Episode ${next.number}" }}",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .clickable { onPickEpisode(next.number) }
-                            .padding(vertical = 4.dp),
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun ShelfAction(
     label: String,
     enabled: Boolean,
@@ -3547,321 +3198,6 @@ private fun ShelfAction(
             Text(label, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = tint)
         }
     }
-}
-
-private class Playhead {
-    var ms: Long = 0L
-}
-
-@Composable
-private fun LiveTimeline(
-    player: Player?,
-    scrubbing: Boolean,
-    scrubValue: Float,
-    durationMs: Long,
-    skipTimes: SkipTimes,
-    thumbnails: site.anikitty.app.data.servers.ThumbnailTrack?,
-    mediaUrl: String?,
-    onScrub: (Float) -> Unit,
-    onScrubFinished: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var liveMs by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(player, scrubbing) {
-        val p = player ?: return@LaunchedEffect
-        while (true) {
-            if (!scrubbing) {
-                val next = p.currentPosition.coerceAtLeast(0L)
-                if (next != liveMs) liveMs = next
-            }
-            delay(200)
-        }
-    }
-    val shown = if (scrubbing) (scrubValue * durationMs).toLong() else liveMs
-    val dur = durationMs.coerceAtLeast(1L).toFloat()
-    var bufferedMs by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(player) {
-        val p = player ?: return@LaunchedEffect
-        while (true) {
-            val next = p.bufferedPosition.coerceAtLeast(0L)
-            if (next != bufferedMs) bufferedMs = next
-            delay(400)
-        }
-    }
-    val buffered = if (durationMs > 0L) {
-        (bufferedMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-    } else {
-        0f
-    }
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val loader = remember(thumbnails?.url, mediaUrl) {
-        ThumbnailLoader(context, thumbnails, mediaUrl)
-    }
-    var frame by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
-    LaunchedEffect(scrubbing, scrubValue, durationMs, loader) {
-        if (!scrubbing || durationMs <= 0L) {
-            frame = null
-            return@LaunchedEffect
-        }
-        val ms = (scrubValue.coerceIn(0f, 1f) * durationMs).toLong()
-        frame = loader.frame(ms)
-    }
-    Box(modifier) {
-        GlassScrubber(
-            progress = if (durationMs > 0L) (shown / dur).coerceIn(0f, 1f) else 0f,
-            buffered = buffered,
-            durationMs = durationMs,
-            scrubbing = scrubbing,
-            onScrub = onScrub,
-            onScrubFinished = onScrubFinished,
-            skipTimes = skipTimes,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (scrubbing && durationMs > 0L) {
-            SeekPreview(
-                fraction = scrubValue,
-                timeLabel = formatClockPadded(shown),
-                frame = frame,
-            )
-        }
-    }
-}
-
-@Composable
-private fun NextEpisodePrompt(
-    modifier: Modifier = Modifier,
-    nextEpisode: Int,
-    ended: Boolean,
-    secondsLeft: Int,
-    player: Player? = null,
-    durationMs: Long = 0L,
-    busy: Boolean,
-    onPlayNow: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    var remainSec by remember { mutableIntStateOf(secondsLeft) }
-    LaunchedEffect(player, ended, durationMs) {
-        if (ended) return@LaunchedEffect
-        val p = player ?: return@LaunchedEffect
-        while (true) {
-            val left = ((durationMs - p.currentPosition.coerceAtLeast(0L)) / 1000L).toInt().coerceAtLeast(0)
-            if (left != remainSec) remainSec = left
-            delay(250)
-        }
-    }
-    val countdown = if (ended) secondsLeft else remainSec
-    val shape = RoundedCornerShape(16.dp)
-    Column(
-        modifier = modifier
-            .widthIn(max = 360.dp)
-            .shadow(16.dp, shape, clip = false, ambientColor = Color.Black.copy(alpha = 0.45f))
-            .clip(shape)
-            .background(PlayerChrome.Sheet)
-            .border(1.dp, PlayerChrome.SheetStroke, shape)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            site.anikitty.app.ui.components.KittyFace(
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .size(22.dp),
-                contentDescription = "Up next",
-            )
-            Text(
-                "Up next",
-                color = PlayerChrome.Faint,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-            )
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            "Episode $nextEpisode",
-            color = PlayerChrome.Paper,
-            fontWeight = FontWeight.Bold,
-            fontSize = 18.sp,
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            when {
-                busy -> "Loading next episode…"
-                ended -> "Starting automatically in ${secondsLeft}s"
-                countdown > 0 -> "Episode ends in ${countdown}s"
-                else -> "Episode $nextEpisode is ready"
-            },
-            color = PlayerChrome.Graphite,
-            fontSize = 13.sp,
-        )
-        if (countdown > 0) {
-            val span = if (ended) AUTOPLAY_COUNTDOWN_SEC else (NEAR_END_THRESHOLD_MS / 1000L).toInt()
-            val fraction = (countdown.toFloat() / span.coerceAtLeast(1)).coerceIn(0f, 1f)
-            Spacer(modifier = Modifier.height(10.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(Color.White.copy(alpha = 0.12f)),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(fraction)
-                        .background(Color.White),
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            var playNowFocused by remember { mutableStateOf(false) }
-            var dismissFocused by remember { mutableStateOf(false) }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (playNowFocused) Color.White else PlayerChrome.Accent)
-                    .border(
-                        if (playNowFocused) 2.dp else 0.dp,
-                        Color.White,
-                        RoundedCornerShape(12.dp),
-                    )
-                    .onFocusChanged { playNowFocused = it.isFocused }
-                    .clickable(enabled = !busy, onClick = onPlayNow)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-            ) {
-                Text(
-                    if (ended) "Play now" else "Next episode",
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                )
-            }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(if (dismissFocused) Color.White else PlayerChrome.Disc)
-                    .border(
-                        if (dismissFocused) 2.dp else 1.dp,
-                        if (dismissFocused) Color.White else PlayerChrome.Accent.copy(alpha = 0.35f),
-                        RoundedCornerShape(12.dp),
-                    )
-                    .onFocusChanged { dismissFocused = it.isFocused }
-                    .clickable(enabled = !busy, onClick = onDismiss)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-            ) {
-                Text(
-                    if (ended) "Cancel" else "Not now",
-                    color = if (dismissFocused) Color.Black else PlayerChrome.Paper,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 13.sp,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlayerTool(
-    label: String,
-    value: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    selected: Boolean = false,
-    enabled: Boolean = true,
-) {
-    Column(
-        modifier = modifier
-            .heightIn(min = 48.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (selected) Color.White.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.06f),
-            )
-            .clearAndSetSemantics { contentDescription = "$label, $value" }
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            value,
-            color = if (enabled) Color.White else Color.White.copy(alpha = 0.35f),
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            label,
-            color = Color.White.copy(alpha = 0.5f),
-            fontSize = 10.sp,
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun PlayerMetaPill(label: String, emphasized: Boolean = false) {
-    val shape = RoundedCornerShape(999.dp)
-    Box(
-        modifier = Modifier
-            .clip(shape)
-            .background(if (emphasized) PlayerChrome.Accent else PlayerChrome.Disc)
-            .border(
-                1.dp,
-                if (emphasized) PlayerChrome.Accent else PlayerChrome.DiscStroke,
-                shape,
-            )
-            .padding(horizontal = 8.dp, vertical = 3.dp),
-    ) {
-        Text(
-            label,
-            color = if (emphasized) Color.Black else PlayerChrome.Graphite,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-        )
-    }
-}
-
-@Composable
-private fun ChromeDisc(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    size: androidx.compose.ui.unit.Dp = 40.dp,
-    large: Boolean = false,
-    accent: Boolean = false,
-    focusRequester: FocusRequester? = null,
-    content: @Composable () -> Unit,
-) {
-    val shape = CircleShape
-    var focused by remember { mutableStateOf(false) }
-    Box(
-        modifier = modifier
-            .size(size)
-            .scale(if (focused) 1.06f else 1f)
-            .clip(shape)
-            .background(
-                when {
-                    accent -> PlayerChrome.Accent
-                    large -> Color.White.copy(alpha = 0.14f)
-                    else -> Color.White.copy(alpha = 0.08f)
-                },
-            )
-            .border(
-                if (focused) 2.dp else 0.5.dp,
-                if (focused || accent) Color.White else Color.White.copy(alpha = 0.12f),
-                shape,
-            )
-            .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
-            .onFocusChanged { focused = it.isFocused }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-        content = { content() },
-    )
 }
 
 @OptIn(UnstableApi::class)
@@ -4467,243 +3803,11 @@ private fun sleepLabel(choice: Int): String = when (choice) {
     else -> "Off"
 }
 
-private fun speedLabel(speed: Float): String {
+internal fun speedLabel(speed: Float): String {
     return when {
         kotlin.math.abs(speed - 1f) < 0.01f -> "1×"
         speed == speed.toInt().toFloat() -> "${speed.toInt()}×"
         else -> String.format(Locale.US, "%.2g×", speed)
-    }
-}
-
-@Composable
-private fun LiveClockText(
-    player: Player?,
-    scrubbing: Boolean,
-    scrubValue: Float,
-    durationMs: Long,
-    modifier: Modifier = Modifier,
-) {
-    var liveMs by remember { mutableLongStateOf(0L) }
-    LaunchedEffect(player, scrubbing) {
-        val p = player ?: return@LaunchedEffect
-        while (true) {
-            if (!scrubbing) {
-                val next = p.currentPosition.coerceAtLeast(0L)
-                if (next != liveMs) liveMs = next
-            }
-            delay(200)
-        }
-    }
-    val shown = if (scrubbing) (scrubValue * durationMs).toLong() else liveMs
-    val remain = (durationMs - shown).coerceAtLeast(0L)
-    Text(
-        "${formatClockPadded(shown)}  −${formatClockPadded(remain)}",
-        color = Color.White,
-        fontSize = 13.sp,
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        maxLines = 1,
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun CastStatusBadge(
-    episode: Int,
-    title: String,
-    isMovie: Boolean,
-    buffering: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(14.dp)
-    val line = if (isMovie) title else "EP $episode · $title"
-    Row(
-        modifier = modifier
-            .clip(shape)
-            .background(Color.Black.copy(alpha = 0.72f))
-            .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
-            .padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(
-            Icons.Rounded.CastConnected,
-            contentDescription = null,
-            tint = PlayerChrome.Paper,
-            modifier = Modifier.size(18.dp),
-        )
-        Spacer(modifier = Modifier.width(10.dp))
-        Column {
-            Text(
-                if (buffering) "Buffering on your TV" else "Casting to your TV",
-                color = PlayerChrome.Paper,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 13.sp,
-                maxLines = 1,
-            )
-            Text(
-                line,
-                color = PlayerChrome.Graphite,
-                fontSize = 12.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-    }
-}
-
-/** Play / seek / mute / speed — larger hit targets while casting. */
-@Composable
-private fun CastTransportRow(
-    playing: Boolean,
-    muted: Boolean,
-    player: Player?,
-    scrubbing: Boolean,
-    scrubValue: Float,
-    durationMs: Long,
-    showEpisodes: Boolean,
-    castUnavailable: String?,
-    onCastUnavailable: (String) -> Unit,
-    speedLabel: String,
-    onPlayPause: () -> Unit,
-    onMute: () -> Unit,
-    onSeekBack: () -> Unit,
-    onSeekForward: () -> Unit,
-    onSpeed: () -> Unit,
-    onEpisodes: () -> Unit,
-    onSettings: () -> Unit,
-    onExitTheater: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        PlayerCapsule {
-            PillIcon(
-                icon = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
-                description = if (playing) "Pause" else "Play",
-                onClick = onPlayPause,
-            )
-            PillIcon(
-                icon = if (muted) Icons.AutoMirrored.Outlined.VolumeOff else Icons.AutoMirrored.Outlined.VolumeUp,
-                description = if (muted) "Unmute TV" else "Mute TV",
-                onClick = onMute,
-            )
-            PillLabel(
-                label = speedLabel,
-                description = "Play speed",
-                onClick = onSpeed,
-            )
-            LiveClockText(
-                player = player,
-                scrubbing = scrubbing,
-                scrubValue = scrubValue,
-                durationMs = durationMs,
-                modifier = Modifier.padding(horizontal = 8.dp),
-            )
-        }
-        PlayerCapsule {
-            PillIcon(
-                icon = Icons.Outlined.Replay10,
-                description = "Back 10 seconds",
-                onClick = onSeekBack,
-            )
-            PillIcon(
-                icon = Icons.Outlined.Forward10,
-                description = "Forward 10 seconds",
-                onClick = onSeekForward,
-            )
-            if (showEpisodes) {
-                PillIcon(
-                    icon = Icons.Outlined.VideoLibrary,
-                    description = "Episodes",
-                    onClick = onEpisodes,
-                )
-            }
-            PillIcon(
-                icon = Icons.Outlined.Settings,
-                description = "Settings",
-                onClick = onSettings,
-            )
-            PillIcon(
-                icon = Icons.Outlined.FullscreenExit,
-                description = "Exit full screen",
-                onClick = onExitTheater,
-            )
-            CastRouteButton(
-                unavailable = castUnavailable,
-                onUnavailable = onCastUnavailable,
-                modifier = Modifier.size(48.dp),
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlayerCapsule(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
-    Row(
-        modifier = Modifier
-            .height(48.dp)
-            .clip(RoundedCornerShape(999.dp))
-            .background(Color.Black.copy(alpha = 0.58f))
-            .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        content = content,
-    )
-}
-
-@Composable
-private fun PillIcon(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    description: String,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = description,
-            tint = Color.White,
-            modifier = Modifier.size(22.dp),
-        )
-    }
-}
-
-@Composable
-private fun PillLabel(
-    label: String,
-    description: String,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .clearAndSetSemantics { contentDescription = description }
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick,
-            ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            label,
-            color = Color.White,
-            fontSize = 13.sp,
-            fontFamily = FontFamily.SansSerif,
-            fontWeight = FontWeight.Medium,
-        )
     }
 }
 
@@ -4782,7 +3886,7 @@ private class LoudnessHold {
     }
 }
 
-private fun formatClockPadded(ms: Long): String {
+internal fun formatClockPadded(ms: Long): String {
     val total = TimeUnit.MILLISECONDS.toSeconds(ms.coerceAtLeast(0L))
     val h = total / 3600
     val m = (total % 3600) / 60
