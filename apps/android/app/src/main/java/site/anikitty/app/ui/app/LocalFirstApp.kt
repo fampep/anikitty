@@ -1402,13 +1402,14 @@ private fun HomeFeed(
             }
             else -> {
                 val nowSec = System.currentTimeMillis() / 1000L
-                fun AiringSlot.onLatestShelf(): Boolean {
-                    val aired = airingAtEpochSec <= 0L || airingAtEpochSec <= nowSec
-                    return aired && anime.onShelf(shelf)
-                }
-                val latestSlots = airingToday.filter { it.onLatestShelf() }
-                val latestDubSlots = latestDub.filter { it.onLatestShelf() }
+                val latestSlots = airingToday.filter { it.onHomeShelf(shelf, nowSec) }
+                val latestDubSlots = latestDub.filter { it.onHomeShelf(shelf, nowSec) }
                 val heroItems = trending.filter { it.onShelf(shelf) }
+                val rankedSource = if (topWindow == HomeTopWindow.Trending) {
+                    trending
+                } else {
+                    topTen.ifEmpty { trending }
+                }
                 val topAiringItems = (seasonal + trending)
                     .filter { it.status.equals("RELEASING", ignoreCase = true) && it.onShelf(shelf) }
                     .distinctBy { it.id }
@@ -1542,12 +1543,19 @@ private fun HomeFeed(
                                             14L * 24 * 60 * 60 * 1000
                                     }
                                     if (stale != null) item(key = "stale", contentType = "note") {
-                                        val episode = continueCue(stale)?.episode ?: stale.episode
+                                        val episode = (
+                                            continueCue(stale, releasedEpisodes[stale.anilistId])?.episode
+                                                ?: stale.episode
+                                            ).coerceAtLeast(1)
                                         Text(
                                             "You left ${stale.title} a while ago. Episode $episode is still here.",
                                             color = LocalKittyPalette.current.muted,
                                             fontSize = 13.sp,
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .defaultMinSize(minHeight = 48.dp)
+                                                .clickable { onResumeContinue(stale, episode) }
+                                                .padding(horizontal = 16.dp, vertical = 4.dp),
                                         )
                                     }
                                 }
@@ -1578,11 +1586,6 @@ private fun HomeFeed(
                                 }
                             }
                             "top" -> {
-                                val rankedSource = if (topWindow == HomeTopWindow.Trending) {
-                                    trending
-                                } else {
-                                    topTen.ifEmpty { trending }
-                                }
                                 val ranked = rankedSource.filter { it.onShelf(shelf) }
                                 if (ranked.isNotEmpty()) item(key = "top10", contentType = "rank") {
                                     HomeBlock(title = "Top 10", subtitle = topWindow.label) {
@@ -1739,15 +1742,12 @@ private fun HomeFeed(
                             )
                         }
                     } else if (shelf != HomeShelf.All) {
-                        val rankedSource = if (topWindow == HomeTopWindow.Trending) {
-                            trending
-                        } else {
-                            topTen.ifEmpty { trending }
-                        }
-                        val hasShelfRows = trending.any { it.onShelf(shelf) } ||
+                        val hasShelfRows = heroItems.isNotEmpty() ||
+                            latestSlots.isNotEmpty() ||
+                            latestDubSlots.isNotEmpty() ||
+                            topAiringItems.isNotEmpty() ||
+                            upcomingItems.isNotEmpty() ||
                             rankedSource.any { it.onShelf(shelf) } ||
-                            airingToday.any { it.anime.onShelf(shelf) } ||
-                            upcoming.any { it.onShelf(shelf) } ||
                             topRated.any { it.onShelf(shelf) } ||
                             because?.second?.any { it.onShelf(shelf) } == true ||
                             networkRow?.third?.any { it.onShelf(shelf) } == true ||

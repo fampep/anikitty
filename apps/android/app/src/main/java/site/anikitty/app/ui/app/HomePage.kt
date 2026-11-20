@@ -1343,6 +1343,12 @@ internal fun AnimeSummary.onShelf(shelf: HomeShelf): Boolean = when (shelf) {
     HomeShelf.Finished -> status.equals("FINISHED", ignoreCase = true)
 }
 
+/** Aired slots follow the same shelf as posters. A future airing does not count. */
+internal fun AiringSlot.onHomeShelf(shelf: HomeShelf, nowSec: Long): Boolean {
+    val aired = airingAtEpochSec <= 0L || airingAtEpochSec <= nowSec
+    return aired && anime.onShelf(shelf)
+}
+
 @Composable
 internal fun HomeShelfChips(
     selected: HomeShelf,
