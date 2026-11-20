@@ -3,7 +3,10 @@
 
 package site.anikitty.app.ui.app
 
+import androidx.room.withTransaction
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
@@ -114,6 +117,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -212,7 +216,12 @@ import site.anikitty.app.ui.theme.KittyAccentGlow
 import site.anikitty.app.ui.theme.KittyAtmosphere
 import site.anikitty.app.ui.theme.KittyFaint
 import site.anikitty.app.ui.theme.KittyMuted
+import site.anikitty.app.AnikittyApp
+import site.anikitty.app.data.demo.DemoLibrary
+import site.anikitty.app.data.local.applyWatchImport
+import site.anikitty.app.data.local.readWatchProgressBackup
 import site.anikitty.app.data.local.shareWatchProgress
+import site.anikitty.app.data.local.watchImportSummary
 import site.anikitty.app.ui.theme.LocalKittyPalette
 import site.anikitty.app.ui.theme.LookState
 import site.anikitty.app.ui.theme.ShimmerBox
@@ -667,6 +676,26 @@ fun LocalFirstApp(
                     },
                     homeLayout = homeLayout,
                     onExportProgress = { shareWatchProgress(context, history) },
+                    onImportProgress = import@{ raw ->
+                        if (demo) return@import "Import doesn't change the demo library"
+                        val file = readWatchProgressBackup(raw)
+                            ?: return@import "That file isn't an AniKitty watch backup"
+                        val database = (context.applicationContext as AnikittyApp).database
+                        val merge = database.withTransaction {
+                            applyWatchImport(
+                                entries = file.entries,
+                                current = { historyDao.get(it) },
+                                write = { historyDao.upsert(it) },
+                                skip = { DemoLibrary.find(it) != null },
+                            )
+                        }
+                        watchImportSummary(
+                            merge.added,
+                            merge.updated,
+                            merge.kept,
+                            file.skipped + merge.skipped,
+                        )
+                    },
                 )
             }
         }
@@ -1858,7 +1887,11 @@ private fun summaryFrom(entry: WatchHistoryEntity) = AnimeSummary(
 )
 
 @Composable
-private fun LookSettings(onExport: () -> Unit) {
+private fun LookSettings(
+    onExport: () -> Unit,
+    onPickImport: () -> Unit,
+    importNote: String?,
+) {
     val context = LocalContext.current
     val palette = LocalKittyPalette.current
     val playerPrefs = remember { context.getSharedPreferences("anikitty_player", 0) }
@@ -1974,6 +2007,23 @@ private fun LookSettings(onExport: () -> Unit) {
             ),
         ) {
             Text("Export watch progress", fontWeight = FontWeight.Bold)
+        }
+        OutlinedButton(
+            onClick = onPickImport,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, palette.hairline),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.text),
+        ) {
+            Text("Import watch progress", fontWeight = FontWeight.Bold)
+        }
+        Text(
+            "A newer save on this phone stays. This does not change AniList.",
+            color = palette.muted,
+            fontSize = 12.sp,
+        )
+        importNote?.let { note ->
+            Text(note, color = palette.text, fontSize = 13.sp)
         }
         val keyPrefs = remember { context.getSharedPreferences("anikitty_keys", 0) }
         var tmdbKey by remember { mutableStateOf(keyPrefs.getString("tmdb", "") ?: "") }
@@ -2547,6 +2597,7 @@ internal fun SettingsFeed(
     homeLayout: HomeLayoutStore,
     openAccountTick: Int = 0,
     onExportProgress: () -> Unit = {},
+    onImportProgress: suspend (String) -> String = { "Import isn't available" },
 ) {
     val palette = LocalKittyPalette.current
     val selectedId by catalog.selectedId.collectAsState()
@@ -2555,6 +2606,38 @@ internal fun SettingsFeed(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var extensionStatus by remember { mutableStateOf<String?>(null) }
+    val importProgress by rememberUpdatedState(onImportProgress)
+    var importNote by remember { mutableStateOf<String?>(null) }
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val text = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        input.bufferedReader().use { reader ->
+                            val out = StringBuilder()
+                            val buf = CharArray(8192)
+                            while (out.length <= 2_000_000) {
+                                val count = reader.read(buf)
+                                if (count < 0) break
+                                val room = 2_000_001 - out.length
+                                out.append(buf, 0, minOf(count, room))
+                                if (count > room) break
+                            }
+                            out.toString()
+                        }
+                    }
+                }.getOrNull()
+            }
+            importNote = withContext(Dispatchers.IO) {
+                if (text == null) {
+                    "Couldn't read that file"
+                } else {
+                    importProgress(text)
+                }
+            }
+        }
+    }
 
     // linkTick bumps after save/clear so Compose re-reads prefs-backed isLinked.
     val isLinked = linkTick.let { aniListAuth.isLinked }
@@ -2869,7 +2952,17 @@ internal fun SettingsFeed(
                         )
                     }
                     item { AppBuildsRow(onClick = onOpenBuilds) }
-                    item { LookSettings(onExportProgress) }
+                    item {
+                        LookSettings(
+                            onExport = onExportProgress,
+                            onPickImport = {
+                                importPicker.launch(
+                                    arrayOf("application/json", "text/plain", "application/octet-stream"),
+                                )
+                            },
+                            importNote = importNote,
+                        )
+                    }
                     item {
                         Column(
                             modifier = Modifier.padding(horizontal = 20.dp),
