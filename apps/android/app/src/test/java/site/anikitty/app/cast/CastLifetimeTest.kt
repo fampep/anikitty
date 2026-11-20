@@ -88,6 +88,8 @@ class CastLifetimeTest {
         val stillPlaying = CastProgressTarget(7, "Serial", 3, 12, null)
         assertFalse(castProgressMatches(onScreen, playing))
         assertTrue(castProgressMatches(stillPlaying, playing))
+        val untitled = CastItemKey(0, 3, "http://relay/other", "ja")
+        assertFalse(castProgressMatches(stillPlaying, untitled))
     }
 
     @Test

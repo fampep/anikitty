@@ -70,9 +70,8 @@ internal fun castHistoryUpdate(
 }
 
 internal fun castProgressMatches(target: CastProgressTarget, item: CastItemKey): Boolean {
-    if (target.episode != item.episode) return false
-    if (target.anilistId > 0 && item.anilistId > 0 && target.anilistId != item.anilistId) return false
-    return true
+    if (target.anilistId <= 0 || item.anilistId <= 0) return false
+    return target.anilistId == item.anilistId && target.episode == item.episode
 }
 internal fun castProgressToReport(before: WatchHistoryEntity?, written: WatchHistoryEntity, watchedEpisode: Int): Int? {
     if (written.episode <= watchedEpisode) return null

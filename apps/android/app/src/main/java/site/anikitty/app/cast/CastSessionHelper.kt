@@ -128,14 +128,22 @@ class CastSessionHelper private constructor(
 
     /** Keep the saved row on the item the TV is playing, not the episode merely open on screen. */
     private fun commitProgress() {
-        val screen = screenProgress ?: return
-        val playing = playingItem ?: return
-        if (!castProgressMatches(screen, playing)) return
+        val screen = screenProgress
+        val playing = playingItem
+        if (screen == null || playing == null || !castProgressMatches(screen, playing)) {
+            clearProgress()
+            return
+        }
         val current = progressTarget
         if (current?.anilistId != screen.anilistId || current.episode != screen.episode) {
             reportedThrough = -1
         }
         progressTarget = screen
+    }
+
+    private fun clearProgress() {
+        progressTarget = null
+        reportedThrough = -1
     }
 
     fun receiverPositionMs(): Long = runCatching {
@@ -558,6 +566,9 @@ class CastSessionHelper private constructor(
         runCatching { castPlayer.stop() }
         relay.stop()
         casting = false
+        playingItem = null
+        ticketItem.set(null)
+        clearProgress()
         CastPlaybackService.demoteIfIdle()
     }
 
@@ -577,6 +588,9 @@ class CastSessionHelper private constructor(
         relay.stop()
         runCatching { multicast?.release() }
         casting = false
+        playingItem = null
+        ticketItem.set(null)
+        clearProgress()
         CastPlaybackService.demoteIfIdle()
     }
 
