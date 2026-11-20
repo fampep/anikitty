@@ -109,6 +109,7 @@ fun MySpaceFeed(
     onSeeAllContinue: () -> Unit = {},
     onBrowse: () -> Unit = {},
     avatarUrl: String? = null,
+    onFinishedEpisode: suspend (AnimeSummary, Int) -> Unit = { _, _ -> },
 ) {
     val palette = LocalKittyPalette.current
     val context = LocalContext.current
@@ -475,7 +476,11 @@ fun MySpaceFeed(
                     },
                     onRemove = { entry -> ContinueHidden.hide(context, entry.anilistId) },
                     onMarkWatched = { entry, episode ->
-                        scope.launch { historyDao.markEpisode(summaryFor(entry), episode) }
+                        scope.launch {
+                            val anime = summaryFor(entry)
+                            val finished = historyDao.markEpisode(anime, episode) ?: return@launch
+                            if (!demo) onFinishedEpisode(anime, finished)
+                        }
                     },
                 )
             }
