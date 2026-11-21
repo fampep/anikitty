@@ -289,7 +289,7 @@ internal fun TitleStage(
                         anilistId = detail.id,
                         bannerUrl = pickedBackdrop ?: if (localArt) detail.coverImageUrl else detail.bannerImageUrl,
                         coverUrl = detail.coverImageUrl,
-                        contentDescription = detail.title,
+                        contentDescription = null,
                         contentScale = ContentScale.Crop,
                         alignment = Alignment.TopCenter,
                         title = detail.title,
