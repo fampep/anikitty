@@ -54,6 +54,7 @@ internal fun CastStatusBadge(
     title: String,
     isMovie: Boolean,
     buffering: Boolean = false,
+    connecting: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(14.dp)
@@ -64,7 +65,13 @@ internal fun CastStatusBadge(
             .background(Color.Black.copy(alpha = 0.72f))
             .border(1.dp, Color.White.copy(alpha = 0.22f), shape)
             .clearAndSetSemantics {
-                contentDescription = castStatusDescription(buffering, isMovie, episode, title)
+                contentDescription = castStatusDescription(
+                    buffering,
+                    isMovie,
+                    episode,
+                    title,
+                    connecting = connecting,
+                )
             }
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -78,7 +85,11 @@ internal fun CastStatusBadge(
         Spacer(modifier = Modifier.width(10.dp))
         Column {
             Text(
-                if (buffering) "Buffering on your TV" else "Casting to your TV",
+                when {
+                    connecting -> "Connecting to your TV"
+                    buffering -> "Buffering on your TV"
+                    else -> "Casting to your TV"
+                },
                 color = PlayerChrome.Paper,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 13.sp,

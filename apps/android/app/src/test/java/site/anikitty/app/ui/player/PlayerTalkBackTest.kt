@@ -44,6 +44,16 @@ class PlayerTalkBackTest {
             "Buffering on your TV. A movie",
             castStatusDescription(buffering = true, isMovie = true, episode = 1, title = "A movie"),
         )
+        assertEquals(
+            "Connecting to your TV. Episode 4, Title",
+            castStatusDescription(
+                buffering = false,
+                isMovie = false,
+                episode = 4,
+                title = "Title",
+                connecting = true,
+            ),
+        )
     }
 
     @Test

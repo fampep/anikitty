@@ -111,6 +111,12 @@ import site.anikitty.app.cast.castAudioKey
 import site.anikitty.app.cast.castJoin
 import site.anikitty.app.cast.castSameItem
 import site.anikitty.app.cast.castAttachPositionMs
+import site.anikitty.app.cast.castDisconnectResumeMs
+import site.anikitty.app.cast.castMayCorrectReceiver
+import site.anikitty.app.cast.castPhoneKnownPosition
+import site.anikitty.app.cast.castPhoneResumeTarget
+import site.anikitty.app.cast.castPhoneShouldStayQuiet
+import site.anikitty.app.cast.releaseCastHandoff
 import site.anikitty.app.cast.castClientRetryDelayMs
 import site.anikitty.app.cast.reduceCastAttach
 import site.anikitty.app.cast.reduceCastGiveUp
@@ -381,6 +387,9 @@ fun PlayerScreen(
     var castLoadedKey by remember { mutableStateOf<String?>(null) }
     /** Playhead passed to the last cast load. A saved resume that arrives later can move past it. */
     var castSentPositionMs by remember { mutableLongStateOf(-1L) }
+    var castPlayheadRequested by remember { mutableStateOf(false) }
+    /** The receiver clock still belongs to the previous episode. */
+    var castClockStale by remember { mutableStateOf(false) }
     /** Bumped when a load starts before the receiver client exists, so attach retries. */
     var castClientRetry by remember { mutableIntStateOf(0) }
     /** The receiver client never appeared. Further retries stay off and the phone plays. */
@@ -614,7 +623,14 @@ fun PlayerScreen(
                     itemBuilder.setSubtitleConfigurations(configs)
                 }
                 setMediaItem(itemBuilder.build())
-                playWhenReady = true
+                // A new episode rebuilds this player. While the TV has the
+                // show, that rebuild must not start the phone as well.
+                val quiet = castPhoneShouldStayQuiet(
+                    casting = isCasting,
+                    handoff = castAttachStarted && !isCasting && !castClientGaveUp,
+                    pending = castPending && !castClientGaveUp,
+                )
+                playWhenReady = !quiet
                 videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
                 playbackParameters = PlaybackParameters(playbackSpeed)
                 prepare()
@@ -633,6 +649,21 @@ fun PlayerScreen(
     }
     val activePlayer: Player? = if (isCasting) castHelper?.castPlayer else player
     val latestPlayer by rememberUpdatedState(player)
+    val phoneQuietNow = castPhoneShouldStayQuiet(
+        casting = isCasting,
+        handoff = castAttachStarted && !isCasting && !castClientGaveUp,
+        pending = castPending && !castClientGaveUp,
+    )
+    // Keep the phone paused for the whole handoff, including the gap before
+    // the receiver reports that it is playing.
+    LaunchedEffect(player, phoneQuietNow) {
+        if (!phoneQuietNow) return@LaunchedEffect
+        runCatching {
+            player?.pause()
+            player?.playWhenReady = false
+        }
+        if (!isCasting) controlsVisible = true
+    }
     val latestActive by rememberUpdatedState(activePlayer)
     val latestSources by rememberUpdatedState(sources)
     val latestSourceIndex by rememberUpdatedState(sourceIndex)
@@ -724,15 +755,21 @@ fun PlayerScreen(
         return "${latestSourceIndex}\u0000${src.url}\u0000${src.audioLanguage.orEmpty()}\u0000$latestEpisode"
     }
 
-    fun castPlayhead(): Long = castAttachPositionMs(
-        localPositionMs = latestPlayer?.currentPosition?.takeIf { it > 0L } ?: latestPosition.ms,
-        resumeAtMs = resumeAtMs,
-        startPositionMs = latestStartPositionMs,
-        allowHistoryFallback = latestAllowHistory,
-        // An attach that started at 0 is still waiting for history. Playback
-        // that ran from the start during connect must not hide that resume.
-        pendingResume = !didSeekStart && latestAllowHistory && castSentPositionMs <= 1_500L,
-    )
+    fun castPlayhead(): Long {
+        val onScreen = latestPlayer?.currentPosition?.takeIf { it > 0L } ?: 0L
+        // A joined receiver clock lives in the playhead while the phone is still
+        // at the start. A later load has to see that clock, not only the phone.
+        val known = maxOf(onScreen, latestPosition.ms)
+        return castAttachPositionMs(
+            localPositionMs = known,
+            resumeAtMs = resumeAtMs,
+            startPositionMs = latestStartPositionMs,
+            allowHistoryFallback = latestAllowHistory,
+            // An attach that started at 0 is still waiting for history. Playback
+            // that ran from the start during connect must not hide that resume.
+            pendingResume = !didSeekStart && latestAllowHistory && castSentPositionMs <= 1_500L,
+        )
+    }
 
     fun abandonCastToPhone(local: Player?) {
         castClientGaveUp = true
@@ -758,25 +795,77 @@ fun PlayerScreen(
         }
     }
 
+    fun catchCastPlayhead(helper: CastSessionHelper, wantedMs: Long, requested: Boolean) {
+        if (!castMayCorrectReceiver(requested, wantedMs, helper.receiverPositionMs())) return
+        val landed = safeSeekTarget(wantedMs, helper.castPlayer.duration, durationMs)
+        runCatching { helper.castPlayer.seekTo(landed) }
+    }
+
+    fun handEpisodeBackToPhone(hint: String?, receiverStillPlaying: Boolean) {
+        if (!castAlive.get()) return
+        val release = releaseCastHandoff(receiverStillPlaying)
+        if (!release.clearHandoff) {
+            castClockStale = false
+            if (hint != null) castHint = hint
+            return
+        }
+        val requested = castPlayheadRequested
+        val sent = castSentPositionMs
+        isCasting = false
+        castAttachStarted = false
+        castPending = false
+        castLoadedKey = null
+        castPlayheadRequested = false
+        castClockStale = false
+        castJoinedLive = false
+        if (hint != null) castHint = hint
+        pushMute()
+        if (!release.playOnPhone) return
+        val local = latestPlayer
+        val localMs = runCatching { local?.currentPosition ?: 0L }.getOrDefault(0L)
+        val known = castPhoneKnownPosition(requested, sent, positionMs, playhead.ms)
+        if (requested) {
+            positionMs = known
+            playhead.ms = known
+        }
+        val resume = castPhoneResumeTarget(localMs, known)
+        if (resume != null) {
+            positionMs = resume
+            playhead.ms = resume
+            resumeAtMs = resume
+            didSeekStart = false
+            allowHistoryFallback = false
+            if (castSentPositionMs < resume) castSentPositionMs = resume
+            runCatching { local?.seekTo(resume) }
+        }
+        runCatching { local?.play() }
+    }
+
     fun castReady() {
         if (!castAlive.get()) return
         castClientRetry = 0
         castClientGaveUp = false
-        runCatching { latestPlayer?.pause() }
+        runCatching {
+            latestPlayer?.pause()
+            latestPlayer?.playWhenReady = false
+        }
         pushMute()
         isCasting = true
         castHint = null
+        val helper = castHelper
+        val requested = castPlayheadRequested
+        castPlayheadRequested = false
+        if (helper != null) catchCastPlayhead(helper, castSentPositionMs, requested)
     }
 
     fun castFailed(message: String) {
         if (!castAlive.get()) return
-        isCasting = false
-        pushMute()
         if (message == "Chromecast is not connected") {
+            isCasting = false
+            pushMute()
             scheduleCastClientRetry(latestPlayer)
         } else {
-            castHint = message
-            runCatching { latestPlayer?.play() }
+            handEpisodeBackToPhone(message, receiverStillPlaying = false)
         }
     }
 
@@ -790,7 +879,11 @@ fun PlayerScreen(
         }
         val pos = castPlayhead()
         castSentPositionMs = pos
-        runCatching { latestPlayer?.pause() }
+        castPlayheadRequested = true
+        runCatching {
+            latestPlayer?.pause()
+            latestPlayer?.playWhenReady = false
+        }
         isCasting = false
         castHint = "Connecting to your TV"
         controlsVisible = true
@@ -829,9 +922,13 @@ fun PlayerScreen(
         val live = helper.receiverPositionMs()
         if (live > 0L) {
             positionMs = live
-            castSentPositionMs = live
             playhead.ms = live
+            // Remember the clock so a later load does not treat this attach as
+            // still waiting for history. Do not arm a correction: this screen
+            // did not request that playhead.
+            castSentPositionMs = live
         }
+        castPlayheadRequested = false
         isCasting = helper.casting
         castHint = null
         if (castAlive.get()) runCatching { latestPlayer?.pause() }
@@ -882,11 +979,11 @@ fun PlayerScreen(
             val castErrors = object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
                     if (!castAlive.get() || !isCasting) return
-                    castHint = error.message?.takeIf { it.isNotBlank() }
-                        ?: "Chromecast could not play this stream"
-                    isCasting = false
-                    pushMute()
-                    runCatching { latestPlayer?.play() }
+                    handEpisodeBackToPhone(
+                        error.message?.takeIf { it.isNotBlank() }
+                            ?: "Chromecast could not play this stream",
+                        receiverStillPlaying = false,
+                    )
                 }
             }
             helper.attachScreen()
@@ -921,21 +1018,42 @@ fun PlayerScreen(
 
                 override fun onCastSessionUnavailable() {
                     if (!castAlive.get()) return
+                    val castingNow = isCasting
+                    val requested = castPlayheadRequested
+                    val sent = castSentPositionMs
+                    val stale = castClockStale
+                    val receiverPos = runCatching {
+                        helper.castPlayer.currentPosition.coerceAtLeast(0L)
+                    }.getOrDefault(latestPosition.ms)
+                    val pos = castDisconnectResumeMs(
+                        casting = castingNow,
+                        clockStale = stale,
+                        loadRequested = requested,
+                        sentPositionMs = sent,
+                        screenPositionMs = positionMs,
+                        playheadMs = playhead.ms,
+                        receiverMs = receiverPos,
+                    )
+                    val receiverIsThisEpisode = castingNow && !stale && !requested
                     castPending = false
                     castAttachStarted = false
                     castLoadedKey = null
                     castSentPositionMs = -1L
+                    castPlayheadRequested = false
+                    castClockStale = false
                     castClientRetry = 0
                     castClientGaveUp = false
-                    val pos = runCatching {
-                        helper.castPlayer.currentPosition.coerceAtLeast(0L)
-                    }.getOrDefault(latestPosition.ms)
                     helper.stopCasting()
                     isCasting = false
                     val local = latestPlayer
+                    if (!receiverIsThisEpisode) {
+                        positionMs = pos
+                        playhead.ms = pos
+                    }
                     if (pos > 1_000L) {
                         runCatching { local?.seekTo(pos) }
                         positionMs = pos
+                        playhead.ms = pos
                     }
                     pushMute()
                     runCatching { local?.play() }
@@ -1065,6 +1183,12 @@ fun PlayerScreen(
     // has to be its own key. The first load is the attach effect above.
     LaunchedEffect(source?.url, source?.audioLanguage, episode) {
         if (!isCasting) return@LaunchedEffect
+        // Stop the phone before the new item loads. The local player is rebuilt
+        // for the new episode and would otherwise start playing beside the TV.
+        runCatching {
+            latestPlayer?.pause()
+            latestPlayer?.playWhenReady = false
+        }
         val helper = castHelper ?: return@LaunchedEffect
         val src = source ?: return@LaunchedEffect
         val screenItem = CastItemKey(
@@ -1078,6 +1202,7 @@ fun PlayerScreen(
         if (castJoinedLive && castSameItem(alreadyThere, screenItem)) {
             castLoadedEpisode = episode
             castLoadedKey = castSourceKey()
+            castPlayheadRequested = false
             return@LaunchedEffect
         }
         val sameEpisode = castLoadedEpisode == episode
@@ -1090,13 +1215,16 @@ fun PlayerScreen(
         castLoadedEpisode = episode
         castLoadedKey = "${sourceIndex}\u0000${src.url}\u0000${src.audioLanguage.orEmpty()}\u0000$episode"
         castSentPositionMs = pos
+        castPlayheadRequested = true
         if (!sameEpisode) {
             // Drop the previous item's end so its countdown cannot skip this one.
+            // The receiver clock stays on that item until the new load is ready.
             playbackEnded = false
             autoplayCancelled = false
             playhead.ms = pos
             positionMs = pos
             durationMs = 0L
+            castClockStale = true
         }
         castLoadHooks.set(
             helper.load(
@@ -1107,9 +1235,16 @@ fun PlayerScreen(
                 anilistId = anilistId,
                 onReady = {
                     if (!castAlive.get()) return@load
-                    runCatching { latestPlayer?.pause() }
+                    runCatching {
+                        latestPlayer?.pause()
+                        latestPlayer?.playWhenReady = false
+                    }
                     pushMute()
                     castHint = null
+                    isCasting = true
+                    catchCastPlayhead(helper, pos, requested = true)
+                    castPlayheadRequested = false
+                    castClockStale = false
                     if (!sameEpisode) {
                         playbackEnded = false
                         autoplayCancelled = false
@@ -1117,12 +1252,10 @@ fun PlayerScreen(
                 },
                 onError = { message ->
                     if (!castAlive.get()) return@load
-                    castHint = message
-                    if (castHelper?.casting != true) {
-                        isCasting = false
-                        pushMute()
-                        runCatching { latestPlayer?.play() }
-                    }
+                    handEpisodeBackToPhone(
+                        message,
+                        receiverStillPlaying = castHelper?.casting == true,
+                    )
                 },
             ),
         )
@@ -1198,7 +1331,18 @@ fun PlayerScreen(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                playing = isPlaying
+                val quiet = castPhoneShouldStayQuiet(
+                    casting = isCasting,
+                    handoff = castAttachStarted && !isCasting && !castClientGaveUp,
+                    pending = castPending && !castClientGaveUp,
+                )
+                if (quiet && isPlaying) {
+                    activePlayer?.pause()
+                    activePlayer?.playWhenReady = false
+                }
+                // The TV owns the play icon once the handoff starts. A local
+                // pause must not flip it, and a local start must not stick.
+                if (!quiet) playing = isPlaying
             }
 
             override fun onTracksChanged(tracks: Tracks) {
@@ -1339,11 +1483,12 @@ fun PlayerScreen(
                 val rawDur = p.duration
                 if (
                     isCasting &&
+                    !castClockStale &&
                     (p.playbackState == Player.STATE_READY || p.playbackState == Player.STATE_BUFFERING)
                 ) {
                     castItemStarted = true
                 }
-                val trustCastClock = !isCasting || castItemStarted
+                val trustCastClock = (!isCasting || castItemStarted) && !castClockStale
                 val pos = if (trustCastClock) rawPos else playhead.ms
                 if (trustCastClock) {
                     playhead.ms = rawPos
@@ -1600,6 +1745,8 @@ fun PlayerScreen(
     }
 
     fun seekBy(deltaMs: Long) {
+        // A seek while the TV is still connecting would move the phone.
+        if (!isCasting && !castClientGaveUp && (castAttachStarted || castPending)) return
         val p = activePlayer ?: return
         val target = safeSeekTarget(p.currentPosition + deltaMs, p.duration, durationMs)
         p.seekTo(target)
@@ -1613,6 +1760,7 @@ fun PlayerScreen(
     }
 
     fun skipTo(endMs: Long) {
+        if (!isCasting && !castClientGaveUp && (castAttachStarted || castPending)) return
         val p = activePlayer ?: return
         // Prefer the remote CastPlayer when casting — same skip markers as local.
         val target = safeSeekTarget(endMs, p.duration, durationMs)
@@ -1677,6 +1825,25 @@ fun PlayerScreen(
     }
 
     val handoffToCast = castAttachStarted && !isCasting && !castClientGaveUp
+    val castScreenUp = castPhoneShouldStayQuiet(
+        casting = isCasting,
+        handoff = castAttachStarted && !castClientGaveUp,
+        pending = castPending && !castClientGaveUp,
+    )
+    fun castHandoffInFlight(): Boolean = castScreenUp && !isCasting
+    fun playOnScreen() {
+        if (castHandoffInFlight()) return
+        (if (isCasting) castHelper?.castPlayer else player)?.play()
+    }
+    fun pauseOnScreen() {
+        if (castHandoffInFlight()) return
+        (if (isCasting) castHelper?.castPlayer else player)?.pause()
+    }
+    fun toggleOnScreen() {
+        if (castHandoffInFlight()) return
+        val current = if (isCasting) castHelper?.castPlayer else player
+        current?.let { if (it.isPlaying) it.pause() else it.play() }
+    }
     val castBlocks = castBlocksPictureInPicture(isCasting, castPending, handoffToCast)
     val autoPip = shouldAutoEnterPip(
         localPlaying = playing && player?.isPlaying == true,
@@ -2082,17 +2249,17 @@ fun PlayerScreen(
                 }
                 when (event.key) {
                     Key.MediaPlay -> {
-                        activePlayer?.play()
+                        playOnScreen()
                         showChrome()
                         true
                     }
                     Key.MediaPause -> {
-                        activePlayer?.pause()
+                        pauseOnScreen()
                         showChrome()
                         true
                     }
                     Key.MediaPlayPause -> {
-                        activePlayer?.let { if (it.isPlaying) it.pause() else it.play() }
+                        toggleOnScreen()
                         showChrome()
                         true
                     }
@@ -2312,7 +2479,7 @@ fun PlayerScreen(
                 )
             }
         }
-        if (player != null && error == null && !isCasting) {
+        if (player != null && error == null && !castScreenUp) {
             AndroidView(
                 factory = { ctx ->
                     PlayerView(ctx).apply {
@@ -2342,7 +2509,7 @@ fun PlayerScreen(
         }
 
         val switchingAudio = audioSwitchLabel(audio, source?.audioLanguage)
-        if (!inPip && showAudioSwitch && switchingAudio != null && !isCasting && error == null) {
+        if (!inPip && showAudioSwitch && switchingAudio != null && !castScreenUp && error == null) {
             Text(
                 switchingAudio,
                 color = Color.White,
@@ -2359,28 +2526,28 @@ fun PlayerScreen(
         }
 
         if (
-            !inPip && !theater && error == null && (player != null || isCasting) &&
+            !inPip && !theater && error == null && (player != null || castScreenUp) &&
             panel == PlayerMenuPage.None && !showEndAutoplay
         ) {
-            val showStageTransport = isCasting || !playing || stageChrome
+            val showStageTransport = castScreenUp || !playing || stageChrome
             if (showStageTransport) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .size(if (isCasting) 72.dp else 64.dp)
+                        .size(if (castScreenUp) 72.dp else 64.dp)
                         .clip(CircleShape)
                         .background(Color.Black.copy(alpha = 0.55f))
                         .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
                         .clickable {
                             if (swallowCenterClick) return@clickable
-                            val current = activePlayer
-                            if (current != null && playbackEnded && onNextEpisode != null) {
+                            val current = if (isCasting) castHelper?.castPlayer else player
+                            if (current != null && playbackEnded && onNextEpisode != null && !castHandoffInFlight()) {
                                 goNextEpisode()
                             } else {
-                                current?.let { if (it.isPlaying) it.pause() else it.play() }
+                                toggleOnScreen()
                             }
                             stageChrome = true
-                            if (isCasting) controlsVisible = true
+                            if (castScreenUp) controlsVisible = true
                         },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2388,14 +2555,14 @@ fun PlayerScreen(
                         if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                         contentDescription = if (playing) "Pause" else "Play",
                         tint = Color.White,
-                        modifier = Modifier.size(if (isCasting) 34.dp else 32.dp),
+                        modifier = Modifier.size(if (castScreenUp) 34.dp else 32.dp),
                     )
                 }
             }
-            if ((isCasting || stageChrome) && !controlsLocked) {
+            if ((castScreenUp || stageChrome) && !controlsLocked) {
                 ChromeDisc(
                     onClick = { seekBy(-10_000) },
-                    size = if (isCasting) 52.dp else 44.dp,
+                    size = if (castScreenUp) 52.dp else 44.dp,
                     modifier = Modifier
                         .align(Alignment.CenterStart)
                         .padding(start = 16.dp),
@@ -2408,7 +2575,7 @@ fun PlayerScreen(
                 }
                 ChromeDisc(
                     onClick = { seekBy(10_000) },
-                    size = if (isCasting) 52.dp else 44.dp,
+                    size = if (castScreenUp) 52.dp else 44.dp,
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 16.dp),
@@ -2422,11 +2589,12 @@ fun PlayerScreen(
             }
         }
 
-        if (isCasting && (!theater || !controlsVisible || controlsLocked)) {
+        if (castScreenUp && (!isCasting || !theater || !controlsVisible || controlsLocked)) {
             CastStatusBadge(
                 episode = episode,
                 title = title,
                 isMovie = isMovie,
+                connecting = !isCasting,
                 buffering = buffering,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -2518,7 +2686,7 @@ fun PlayerScreen(
             }
         }
 
-        if (!inPip && !ready && error == null && !isCasting) {
+        if (!inPip && !ready && error == null && !castScreenUp) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -2543,7 +2711,7 @@ fun PlayerScreen(
             !inPip && ready && buffering && error == null &&
             seekFlashMs == 0L && !scrubbing && !holdBoost &&
             !(theater && controlsVisible && !controlsLocked) &&
-            !(!theater && isCasting)
+            !(!theater && castScreenUp)
         ) {
             CircularProgressIndicator(
                 color = Color.White.copy(alpha = 0.9f),
@@ -2791,11 +2959,11 @@ fun PlayerScreen(
                             .border(1.dp, Color.White.copy(alpha = 0.28f), CircleShape)
                             .clickable {
                                 if (swallowCenterClick) return@clickable
-                                val current = activePlayer
-                                if (current != null && playbackEnded && onNextEpisode != null) {
+                                val current = if (isCasting) castHelper?.castPlayer else player
+                                if (current != null && playbackEnded && onNextEpisode != null && !castHandoffInFlight()) {
                                     goNextEpisode()
                                 } else {
-                                    current?.let { if (it.isPlaying) it.pause() else it.play() }
+                                    toggleOnScreen()
                                 }
                                 controlsVisible = true
                             },
@@ -2851,11 +3019,11 @@ fun PlayerScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    if (isCasting) {
+                    if (castScreenUp) {
                         CastTransportRow(
                             playing = playing,
                             muted = muted,
-                            player = activePlayer,
+                            player = if (isCasting) castHelper?.castPlayer else null,
                             scrubbing = scrubbing,
                             scrubValue = scrubValue,
                             durationMs = durationMs,
@@ -2872,9 +3040,7 @@ fun PlayerScreen(
                                 controlsVisible = true
                             },
                             onPlayPause = {
-                                activePlayer?.let {
-                                    if (it.isPlaying) it.pause() else it.play()
-                                }
+                                toggleOnScreen()
                                 controlsVisible = true
                             },
                             onMute = { toggleMute() },
@@ -2911,9 +3077,7 @@ fun PlayerScreen(
                                     icon = if (playing) Icons.Outlined.Pause else Icons.Outlined.PlayArrow,
                                     description = if (playing) "Pause" else "Play",
                                     onClick = {
-                                        activePlayer?.let {
-                                            if (it.isPlaying) it.pause() else it.play()
-                                        }
+                                        toggleOnScreen()
                                         controlsVisible = true
                                     },
                                 )

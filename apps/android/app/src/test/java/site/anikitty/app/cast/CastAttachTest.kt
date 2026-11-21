@@ -5,6 +5,7 @@ package site.anikitty.app.cast
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -161,6 +162,173 @@ class CastAttachTest {
                 startPositionMs = 90_000L,
                 allowHistoryFallback = true,
                 pendingResume = true,
+            ),
+        )
+    }
+
+    @Test
+    fun thePhoneStaysQuietWhileTheTvHasTheEpisode() {
+        assertTrue(castPhoneShouldStayQuiet(casting = true, handoff = false, pending = false))
+        assertTrue(castPhoneShouldStayQuiet(casting = false, handoff = true, pending = false))
+        assertTrue(castPhoneShouldStayQuiet(casting = false, handoff = false, pending = true))
+        assertFalse(castPhoneShouldStayQuiet(casting = false, handoff = false, pending = false))
+    }
+
+    @Test
+    fun aReceiverThatOpenedAtTheStartCatchesThePlayhead() {
+        assertTrue(castReceiverNeedsSeek(requestedMs = 90_000L, receiverMs = 0L))
+        assertFalse(castReceiverNeedsSeek(requestedMs = 90_000L, receiverMs = 88_000L))
+        assertFalse(castReceiverNeedsSeek(requestedMs = 2_000L, receiverMs = 0L))
+        assertTrue(castReceiverNeedsSeek(requestedMs = 4_000L, receiverMs = 20 * 60_000L))
+        assertFalse(castReceiverNeedsSeek(requestedMs = -1L, receiverMs = 90_000L))
+    }
+
+    @Test
+    fun joiningAnInFlightLoadDoesNotSeekTheTv() {
+        assertFalse(castMayCorrectReceiver(playheadRequested = false, requestedMs = -1L, receiverMs = 90_000L))
+        assertFalse(
+            castMayCorrectReceiver(
+                playheadRequested = false,
+                requestedMs = 20 * 60_000L,
+                receiverMs = 0L,
+            ),
+        )
+        assertFalse(castMayCorrectReceiver(playheadRequested = true, requestedMs = -1L, receiverMs = 90_000L))
+        assertTrue(castMayCorrectReceiver(playheadRequested = true, requestedMs = 90_000L, receiverMs = 0L))
+    }
+
+    @Test
+    fun aFailedHandoffLetsThePhonePlay() {
+        val release = releaseCastHandoff(receiverStillPlaying = false)
+        assertTrue(release.clearHandoff)
+        assertTrue(release.playOnPhone)
+        assertFalse(castPhoneShouldStayQuiet(casting = false, handoff = false, pending = false))
+    }
+
+    @Test
+    fun aReceiverThatIsStillPlayingIsNotAHandBack() {
+        val release = releaseCastHandoff(receiverStillPlaying = true)
+        assertFalse(release.clearHandoff)
+        assertFalse(release.playOnPhone)
+    }
+
+    @Test
+    fun aFailedEpisodeChangeDoesNotReuseThePreviousClock() {
+        assertEquals(
+            0L,
+            castPhoneKnownPosition(
+                loadRequested = true,
+                sentPositionMs = 0L,
+                screenPositionMs = 0L,
+                playheadMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castPhoneKnownPosition(
+                loadRequested = true,
+                sentPositionMs = 90_000L,
+                screenPositionMs = 0L,
+                playheadMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castPhoneKnownPosition(
+                loadRequested = false,
+                sentPositionMs = -1L,
+                screenPositionMs = 90_000L,
+                playheadMs = 90_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun aDisconnectDuringEpisodeChangeKeepsTheNewEpisode() {
+        assertEquals(
+            0L,
+            castDisconnectResumeMs(
+                casting = true,
+                clockStale = true,
+                loadRequested = true,
+                sentPositionMs = 0L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castDisconnectResumeMs(
+                casting = true,
+                clockStale = true,
+                loadRequested = true,
+                sentPositionMs = 90_000L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            20 * 60_000L,
+            castDisconnectResumeMs(
+                casting = true,
+                clockStale = false,
+                loadRequested = false,
+                sentPositionMs = -1L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun aRemountedEpisodeDoesNotInheritTheReceiverClock() {
+        assertEquals(
+            0L,
+            castDisconnectResumeMs(
+                casting = false,
+                clockStale = false,
+                loadRequested = false,
+                sentPositionMs = -1L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castDisconnectResumeMs(
+                casting = false,
+                clockStale = false,
+                loadRequested = true,
+                sentPositionMs = 90_000L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun thePhoneResumesWhereTheTvWas() {
+        assertEquals(90_000L, castPhoneResumeTarget(localMs = 0L, knownMs = 90_000L))
+        assertNull(castPhoneResumeTarget(localMs = 90_000L, knownMs = 91_000L))
+        assertNull(castPhoneResumeTarget(localMs = 0L, knownMs = 0L))
+        assertNull(castPhoneResumeTarget(localMs = 0L, knownMs = 800L))
+    }
+
+    @Test
+    fun aKnownLiveClockBeatsSavedHistory() {
+        assertEquals(
+            90_000L,
+            castAttachPositionMs(
+                localPositionMs = 90_000L,
+                resumeAtMs = 0L,
+                startPositionMs = 30_000L,
+                allowHistoryFallback = true,
+                pendingResume = false,
             ),
         )
     }
