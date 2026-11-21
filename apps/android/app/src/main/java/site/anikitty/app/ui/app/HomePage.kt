@@ -251,7 +251,7 @@ internal fun HomeFeatured(
                         anilistId = anime.id,
                         bannerUrl = anime.bannerImageUrl,
                         coverUrl = anime.coverImageUrl,
-                        contentDescription = anime.title,
+                        contentDescription = null,
                         title = anime.title,
                         year = anime.seasonYear,
                         movie = anime.format.equals("MOVIE", true),
