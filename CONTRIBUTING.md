@@ -1,38 +1,29 @@
 # Contributing to AniKitty
 
-Thanks for helping. AniKitty is early/alpha — expect broken edges and fast-moving APIs.
-
-## Public contribution surface
-
-The long-term plan:
-
-| Surface | Purpose |
-|---|---|
-| `fampep/anikitty` | App + dedicated server (**intended public** for issues / PRs) |
-| `fampep/anikitty-extensions` | Extension spec, guide, curated store (**intended public**) |
-
-If either repo is still private, ask a maintainer to flip visibility / create the extensions repo. Agent tokens cannot always create repos or change visibility.
+AniKitty is an Android app. Pull requests land on `main` in [`fampep/anikitty`](https://github.com/fampep/anikitty).
 
 ## What to work on
 
-- **App / server** — PRs against `main` on `fampep/anikitty`. Prefer focused branches: `cursor/<topic>-d6f2`.
-- **Extensions** — follow [`extensions/GUIDE.md`](extensions/GUIDE.md). Store listings: PR [`extensions/store/index.json`](extensions/store/index.json) (or the split `anikitty-extensions` repo once published).
+- **App** — Kotlin, Jetpack Compose, and Media3 under `apps/android/`. Keep a change focused.
+- **Extensions** — follow [`extensions/GUIDE.md`](extensions/GUIDE.md). Store listings go in [`extensions/store/index.json`](extensions/store/index.json). The public mirror is [`fampep/anikitty-extensions`](https://github.com/fampep/anikitty-extensions).
+
+The phone does not use a private AniKitty server. Sign-in is AniList on the device.
 
 ## Do not
 
-- Put secrets, VPS credentials, or user tokens in PRs.
-- Rewrite the dedicated auth contract without an issue first.
-- Ship malware / credential-harvesting “extensions”.
+- Put secrets, tokens, or keystores in a pull request.
+- Add a new streaming site as a built-in source unless a maintainer asked for it.
+- Ship an extension that steals credentials or installs malware.
 
-## Local Android build
+## Build
 
 ```bash
 cd apps/android
 ./gradlew :app:assembleRelease
 ```
 
-## License & ownership
+## License
 
-AniKitty is **copyright fampep** and licensed under the [Apache License 2.0](LICENSE). Use, change, and share it. Sending a change here does not move the existing copyright away from fampep.
+Copyright 2026 fampep. AniKitty is licensed under the [Apache License 2.0](LICENSE). A contribution does not move that copyright away from fampep.
 
-Your own extension GitHub repos remain yours — see [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).
+Your own extension repository stays yours. See [`extensions/DISCLAIMER.md`](extensions/DISCLAIMER.md).

@@ -1,6 +1,6 @@
 # AniKitty dedicated server (Go)
 
-**APK product only.** This host does **accounts + watch-history sync**. It does **not** scrape or stream — that stays on the phone.
+**Not part of the phone product.** The Android APK does not call this host. Sign-in, the catalog, and watch progress live on the device with AniList. This tree is an unused optional host for accounts and history. It does **not** scrape or stream.
 
 - Sign-in is required
 - Accounts live only in this server’s database (username + password)
