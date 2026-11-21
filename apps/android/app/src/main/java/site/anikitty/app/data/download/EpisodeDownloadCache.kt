@@ -136,6 +136,13 @@ internal fun removeSavedBytes(context: Context, row: EpisodeDownloadEntity) {
         File(path).delete()
         File("$path.part").delete()
     }
+    progressiveLeftovers(
+        EpisodeDownloads.filesRoot(context),
+        row.anilistId,
+        row.episode,
+        row.url,
+        row.hls,
+    ).forEach { it.delete() }
     if (!row.hls) return
     val headers = decodeHeaders(row.headersJson)
     val userAgent = headers["User-Agent"] ?: DOWNLOAD_USER_AGENT

@@ -5,7 +5,9 @@ package site.anikitty.app.data.download
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -295,6 +297,16 @@ class EpisodeDownloadWorker(
             )
         }
         val text = if (percent <= 0) "Saving episode ${row.episode}" else "Saving episode ${row.episode} · $percent%"
+        val cancel = Intent(applicationContext, DownloadCancelReceiver::class.java)
+            .setAction(DOWNLOAD_CANCEL_ACTION)
+            .putExtra(DOWNLOAD_ANILIST_ID, row.anilistId)
+            .putExtra(DOWNLOAD_EPISODE, row.episode)
+        val stop = PendingIntent.getBroadcast(
+            applicationContext,
+            downloadNotificationId(row.anilistId, row.episode),
+            cancel,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         return NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setContentTitle(row.title)
@@ -302,13 +314,12 @@ class EpisodeDownloadWorker(
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setProgress(100, percent.coerceIn(0, 100), percent <= 0)
+            .addAction(0, "Cancel", stop)
             .build()
     }
 
-    private fun notificationId(row: EpisodeDownloadEntity): Int {
-        val mixed = (row.anilistId * 31 + row.episode) and 0x7fffffff
-        return 20_000 + (mixed % 10_000)
-    }
+    private fun notificationId(row: EpisodeDownloadEntity): Int =
+        downloadNotificationId(row.anilistId, row.episode)
 
     private companion object {
         const val CHANNEL_ID = "episode-downloads"

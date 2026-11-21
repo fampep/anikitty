@@ -202,6 +202,23 @@ class EpisodeDownloadTest {
     }
 
     @Test
+    fun cancelRemovesAnUnfinishedSaveAndItsPartialFile() {
+        assertTrue(downloadCancelRemovesRow("QUEUED"))
+        assertTrue(downloadCancelRemovesRow("RUNNING"))
+        assertFalse(downloadCancelRemovesRow("READY"))
+        assertFalse(downloadCancelRemovesRow("FAILED"))
+        val root = File("files")
+        val leftovers = progressiveLeftovers(root, 9, 2, "https://cdn.example/a.mp4?token=1", hls = false)
+        assertEquals(
+            listOf(File("files/9/2.mp4"), File("files/9/2.mp4.part")),
+            leftovers,
+        )
+        assertTrue(progressiveLeftovers(root, 9, 2, "https://cdn.example/master.m3u8", hls = true).isEmpty())
+        assertEquals(downloadNotificationId(9, 2), downloadNotificationId(9, 2))
+        assertTrue(downloadNotificationId(9, 2) != downloadNotificationId(9, 3))
+    }
+
+    @Test
     fun aStoredRowKeepsThePhaseTheShelfReads() {
         val row = EpisodeDownloadEntity(
             anilistId = 9,
