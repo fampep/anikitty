@@ -1,4 +1,4 @@
 # Android versionName / versionCode. Pushes to main cut the next dev prerelease.
 # Stable releases stay manual. The dev workflow commits this file with [skip ci].
-name=1.2.10-dev.26
-code=186
+name=1.2.10-dev.27
+code=187
