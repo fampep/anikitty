@@ -55,6 +55,15 @@ class ProgressSaveTest {
     }
 
     @Test
+    fun aMissingLiveDurationDoesNotUseThePreviousLength() {
+        val armed = armedResumeMs(armedMs = 0L, requestedMs = 1_200_000L)
+        assertEquals(0L, liveDurationForResume(playerDurationMs = -1L, clockTrusted = true))
+        assertEquals(0L, liveDurationForResume(playerDurationMs = 90_000L, clockTrusted = false))
+        assertEquals(armed, reachableResumeMs(armed, liveDurationForResume(-1L, clockTrusted = true)))
+        assertEquals(0L, reachableResumeMs(armed, liveDurationForResume(90_000L, clockTrusted = true)))
+    }
+
+    @Test
     fun aSourceShorterThanTheResumeTargetDoesNotBlockSaves() {
         val armed = armedResumeMs(armedMs = 0L, requestedMs = 1_200_000L)
         assertEquals(0L, reachableResumeMs(armed, durationMs = 90_000L))

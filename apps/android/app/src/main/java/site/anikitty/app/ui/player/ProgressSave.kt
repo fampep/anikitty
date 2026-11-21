@@ -11,9 +11,17 @@ internal fun armedResumeMs(armedMs: Long, requestedMs: Long): Long =
     if (requestedMs > 2_000L) maxOf(armedMs, requestedMs) else armedMs
 
 /**
+ * Duration reported by the player that is on screen now.
+ * An unknown or untrusted sample stays 0. The previous file's length must
+ * not be substituted, or a short leftover looks final and drops the hold.
+ */
+internal fun liveDurationForResume(playerDurationMs: Long, clockTrusted: Boolean): Long =
+    if (clockTrusted && playerDurationMs > 0L) playerDurationMs else 0L
+
+/**
  * Drop a resume target the player will not seek to.
- * The seek is skipped when the duration is known and no longer than the
- * target. An unknown duration (0) keeps the hold until the length arrives.
+ * The seek is skipped when this player's own duration is known and no longer
+ * than the target. An unknown duration (0) keeps the hold until that length arrives.
  */
 internal fun reachableResumeMs(heldMs: Long, durationMs: Long): Long {
     if (heldMs <= 2_000L) return 0L

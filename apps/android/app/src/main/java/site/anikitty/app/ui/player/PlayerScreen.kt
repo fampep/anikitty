@@ -1562,7 +1562,7 @@ fun PlayerScreen(
                 )
                 heldResumeMs = reachableResumeMs(
                     armedResumeMs(heldResumeMs, requestedResume),
-                    dur,
+                    liveDurationForResume(rawDur, trustCastClock),
                 )
                 val waitingResume = resumeStillAhead(heldResumeMs, pos)
                 if (!waitingResume) heldResumeMs = 0L
