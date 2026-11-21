@@ -814,7 +814,7 @@ private fun FavoritesBlock(
                 icon = {
                     site.anikitty.app.ui.components.KittyFace(
                         modifier = Modifier.size(56.dp),
-                        contentDescription = "Favorites",
+                        contentDescription = null,
                     )
                 },
                 title = "Your favorites will gather here",

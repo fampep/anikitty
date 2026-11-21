@@ -2800,7 +2800,7 @@ fun PlayerScreen(
             ) {
                 site.anikitty.app.ui.components.KittyFace(
                     modifier = Modifier.size(72.dp),
-                    contentDescription = "Couldn't play this source",
+                    contentDescription = null,
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(

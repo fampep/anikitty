@@ -348,7 +348,7 @@ fun SearchFeed(
                         modifier = Modifier.fillMaxWidth().padding(top = 72.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Icon(Icons.Filled.Search, contentDescription = "No results", tint = palette.text.copy(alpha = 0.35f), modifier = Modifier.size(32.dp))
+                        Icon(Icons.Filled.Search, contentDescription = null, tint = palette.text.copy(alpha = 0.35f), modifier = Modifier.size(32.dp))
                         Spacer(Modifier.height(12.dp))
                         Text("No results found", color = palette.text, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Spacer(Modifier.height(6.dp))
@@ -410,7 +410,7 @@ fun SearchFeed(
                             site.anikitty.app.ui.components.KittyFace(
                                 modifier = Modifier.size(64.dp),
                                 waving = true,
-                                contentDescription = "Nothing matches that yet",
+                                contentDescription = null,
                             )
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(

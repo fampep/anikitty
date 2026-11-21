@@ -124,6 +124,7 @@ fun SplashScreen(onFinished: () -> Unit) {
             site.anikitty.app.ui.components.KittyFace(
                 modifier = Modifier.size(112.dp),
                 waving = true,
+                contentDescription = null,
             )
             Spacer(modifier = Modifier.height(18.dp))
             Box(contentAlignment = Alignment.Center) {

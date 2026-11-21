@@ -39,6 +39,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
@@ -92,7 +93,7 @@ fun KittyFace(
     modifier: Modifier = Modifier,
     animated: Boolean = true,
     waving: Boolean = false,
-    contentDescription: String = "AniKitty",
+    contentDescription: String? = "AniKitty",
 ) {
     val reduced = prefersReducedMotion()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
@@ -145,7 +146,13 @@ fun KittyFace(
     val wave = if (waving) waveDegrees(live) else 0f
     Canvas(
         modifier
-            .semantics { this.contentDescription = contentDescription }
+            .then(
+                if (contentDescription.isNullOrBlank()) {
+                    Modifier.clearAndSetSemantics { }
+                } else {
+                    Modifier.semantics { this.contentDescription = contentDescription }
+                },
+            )
             .onGloballyPositioned { coords ->
                 var root = coords
                 var parent = coords.parentCoordinates
