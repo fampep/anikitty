@@ -1552,15 +1552,13 @@ fun PlayerScreen(
                     lastMinute = mins
                     shelfMinutes = mins
                 }
-                if (pos - lastProgressAt >= 2_000L) {
+                val waitingHistory =
+                    !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
+                if (progressSaveDue(pos, lastProgressAt, openingSeekPending = waitingHistory)) {
                     lastProgressAt = pos
-                    val waitingHistory =
-                        !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
-                    if (!waitingHistory) {
-                        // Phone and Chromecast share this playhead. Casting uses
-                        // the cast player; the credits marker is the same one.
-                        latestOnProgress?.invoke(pos, dur, latestSkip)
-                    }
+                    // Phone and Chromecast share this playhead. Casting uses
+                    // the cast player; the credits marker is the same one.
+                    latestOnProgress?.invoke(pos, dur, latestSkip)
                 }
             }
             delay(250)
