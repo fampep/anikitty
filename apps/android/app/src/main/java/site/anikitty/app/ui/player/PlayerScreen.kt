@@ -111,8 +111,9 @@ import site.anikitty.app.cast.castAudioKey
 import site.anikitty.app.cast.castJoin
 import site.anikitty.app.cast.castSameItem
 import site.anikitty.app.cast.castAttachPositionMs
+import site.anikitty.app.cast.castMayCorrectReceiver
 import site.anikitty.app.cast.castPhoneShouldStayQuiet
-import site.anikitty.app.cast.castReceiverNeedsSeek
+import site.anikitty.app.cast.releaseCastHandoff
 import site.anikitty.app.cast.castClientRetryDelayMs
 import site.anikitty.app.cast.reduceCastAttach
 import site.anikitty.app.cast.reduceCastGiveUp
@@ -383,6 +384,7 @@ fun PlayerScreen(
     var castLoadedKey by remember { mutableStateOf<String?>(null) }
     /** Playhead passed to the last cast load. A saved resume that arrives later can move past it. */
     var castSentPositionMs by remember { mutableLongStateOf(-1L) }
+    var castPlayheadRequested by remember { mutableStateOf(false) }
     /** Bumped when a load starts before the receiver client exists, so attach retries. */
     var castClientRetry by remember { mutableIntStateOf(0) }
     /** The receiver client never appeared. Further retries stay off and the phone plays. */
@@ -782,10 +784,27 @@ fun PlayerScreen(
         }
     }
 
-    fun catchCastPlayhead(helper: CastSessionHelper, wantedMs: Long) {
-        if (!castReceiverNeedsSeek(wantedMs, helper.receiverPositionMs())) return
+    fun catchCastPlayhead(helper: CastSessionHelper, wantedMs: Long, requested: Boolean) {
+        if (!castMayCorrectReceiver(requested, wantedMs, helper.receiverPositionMs())) return
         val landed = safeSeekTarget(wantedMs, helper.castPlayer.duration, durationMs)
         runCatching { helper.castPlayer.seekTo(landed) }
+    }
+
+    fun handEpisodeBackToPhone(hint: String?, receiverStillPlaying: Boolean) {
+        if (!castAlive.get()) return
+        val release = releaseCastHandoff(receiverStillPlaying)
+        if (!release.clearHandoff) {
+            if (hint != null) castHint = hint
+            return
+        }
+        isCasting = false
+        castAttachStarted = false
+        castPending = false
+        castLoadedKey = null
+        castPlayheadRequested = false
+        if (hint != null) castHint = hint
+        pushMute()
+        if (release.playOnPhone) runCatching { latestPlayer?.play() }
     }
 
     fun castReady() {
@@ -800,18 +819,19 @@ fun PlayerScreen(
         isCasting = true
         castHint = null
         val helper = castHelper
-        if (helper != null) catchCastPlayhead(helper, castSentPositionMs)
+        val requested = castPlayheadRequested
+        castPlayheadRequested = false
+        if (helper != null) catchCastPlayhead(helper, castSentPositionMs, requested)
     }
 
     fun castFailed(message: String) {
         if (!castAlive.get()) return
-        isCasting = false
-        pushMute()
         if (message == "Chromecast is not connected") {
+            isCasting = false
+            pushMute()
             scheduleCastClientRetry(latestPlayer)
         } else {
-            castHint = message
-            runCatching { latestPlayer?.play() }
+            handEpisodeBackToPhone(message, receiverStillPlaying = false)
         }
     }
 
@@ -825,6 +845,7 @@ fun PlayerScreen(
         }
         val pos = castPlayhead()
         castSentPositionMs = pos
+        castPlayheadRequested = true
         runCatching {
             latestPlayer?.pause()
             latestPlayer?.playWhenReady = false
@@ -867,9 +888,11 @@ fun PlayerScreen(
         val live = helper.receiverPositionMs()
         if (live > 0L) {
             positionMs = live
-            castSentPositionMs = live
             playhead.ms = live
         }
+        // This screen did not choose that playhead. A later ready must not
+        // seek the TV back to zero or to the previous item's clock.
+        castPlayheadRequested = false
         isCasting = helper.casting
         castHint = null
         if (castAlive.get()) runCatching { latestPlayer?.pause() }
@@ -920,11 +943,11 @@ fun PlayerScreen(
             val castErrors = object : Player.Listener {
                 override fun onPlayerError(error: PlaybackException) {
                     if (!castAlive.get() || !isCasting) return
-                    castHint = error.message?.takeIf { it.isNotBlank() }
-                        ?: "Chromecast could not play this stream"
-                    isCasting = false
-                    pushMute()
-                    runCatching { latestPlayer?.play() }
+                    handEpisodeBackToPhone(
+                        error.message?.takeIf { it.isNotBlank() }
+                            ?: "Chromecast could not play this stream",
+                        receiverStillPlaying = false,
+                    )
                 }
             }
             helper.attachScreen()
@@ -963,6 +986,7 @@ fun PlayerScreen(
                     castAttachStarted = false
                     castLoadedKey = null
                     castSentPositionMs = -1L
+                    castPlayheadRequested = false
                     castClientRetry = 0
                     castClientGaveUp = false
                     val pos = runCatching {
@@ -1122,6 +1146,7 @@ fun PlayerScreen(
         if (castJoinedLive && castSameItem(alreadyThere, screenItem)) {
             castLoadedEpisode = episode
             castLoadedKey = castSourceKey()
+            castPlayheadRequested = false
             return@LaunchedEffect
         }
         val sameEpisode = castLoadedEpisode == episode
@@ -1134,6 +1159,7 @@ fun PlayerScreen(
         castLoadedEpisode = episode
         castLoadedKey = "${sourceIndex}\u0000${src.url}\u0000${src.audioLanguage.orEmpty()}\u0000$episode"
         castSentPositionMs = pos
+        castPlayheadRequested = true
         if (!sameEpisode) {
             // Drop the previous item's end so its countdown cannot skip this one.
             playbackEnded = false
@@ -1158,7 +1184,8 @@ fun PlayerScreen(
                     pushMute()
                     castHint = null
                     isCasting = true
-                    catchCastPlayhead(helper, pos)
+                    catchCastPlayhead(helper, pos, requested = true)
+                    castPlayheadRequested = false
                     if (!sameEpisode) {
                         playbackEnded = false
                         autoplayCancelled = false
@@ -1166,12 +1193,10 @@ fun PlayerScreen(
                 },
                 onError = { message ->
                     if (!castAlive.get()) return@load
-                    castHint = message
-                    if (castHelper?.casting != true) {
-                        isCasting = false
-                        pushMute()
-                        runCatching { latestPlayer?.play() }
-                    }
+                    handEpisodeBackToPhone(
+                        message,
+                        receiverStillPlaying = castHelper?.casting == true,
+                    )
                 },
             ),
         )

@@ -111,12 +111,45 @@ internal fun castPhoneShouldStayQuiet(
  * The receiver often opens at the start even when the load asked for a later
  * playhead, and a new episode can still be sitting on the previous ending.
  * One seek after it is playing puts the TV on the playhead we asked for.
+ * A missing request is not a request to start at zero.
  */
 internal fun castReceiverNeedsSeek(requestedMs: Long, receiverMs: Long): Boolean {
+    if (requestedMs < 0L) return false
     val requested = requestedMs.coerceAtLeast(0L)
     val receiver = receiverMs.coerceAtLeast(0L)
     return kotlin.math.abs(requested - receiver) > 3_000L
 }
+
+/**
+ * Only a load this screen started may correct the receiver. Joining a load
+ * already in flight did not record that load's playhead, so the screen clock
+ * is still unknown or left over from the previous item.
+ */
+internal fun castMayCorrectReceiver(
+    playheadRequested: Boolean,
+    requestedMs: Long,
+    receiverMs: Long,
+): Boolean {
+    if (!playheadRequested) return false
+    return castReceiverNeedsSeek(requestedMs, receiverMs)
+}
+
+/**
+ * A failed load hands the episode back to the phone. The attach flags have to
+ * drop first, or the phone stays paused and the connecting screen stays up.
+ * A receiver that is still playing is not a hand-back.
+ */
+internal data class CastHandoffRelease(
+    val clearHandoff: Boolean,
+    val playOnPhone: Boolean,
+)
+
+internal fun releaseCastHandoff(receiverStillPlaying: Boolean): CastHandoffRelease =
+    if (receiverStillPlaying) {
+        CastHandoffRelease(clearHandoff = false, playOnPhone = false)
+    } else {
+        CastHandoffRelease(clearHandoff = true, playOnPhone = true)
+    }
 
 /**
  * Playhead to send when attaching. A resume that is still pending wins even

@@ -179,6 +179,36 @@ class CastAttachTest {
         assertFalse(castReceiverNeedsSeek(requestedMs = 90_000L, receiverMs = 88_000L))
         assertFalse(castReceiverNeedsSeek(requestedMs = 2_000L, receiverMs = 0L))
         assertTrue(castReceiverNeedsSeek(requestedMs = 4_000L, receiverMs = 20 * 60_000L))
+        assertFalse(castReceiverNeedsSeek(requestedMs = -1L, receiverMs = 90_000L))
+    }
+
+    @Test
+    fun joiningAnInFlightLoadDoesNotSeekTheTv() {
+        assertFalse(castMayCorrectReceiver(playheadRequested = false, requestedMs = -1L, receiverMs = 90_000L))
+        assertFalse(
+            castMayCorrectReceiver(
+                playheadRequested = false,
+                requestedMs = 20 * 60_000L,
+                receiverMs = 0L,
+            ),
+        )
+        assertFalse(castMayCorrectReceiver(playheadRequested = true, requestedMs = -1L, receiverMs = 90_000L))
+        assertTrue(castMayCorrectReceiver(playheadRequested = true, requestedMs = 90_000L, receiverMs = 0L))
+    }
+
+    @Test
+    fun aFailedHandoffLetsThePhonePlay() {
+        val release = releaseCastHandoff(receiverStillPlaying = false)
+        assertTrue(release.clearHandoff)
+        assertTrue(release.playOnPhone)
+        assertFalse(castPhoneShouldStayQuiet(casting = false, handoff = false, pending = false))
+    }
+
+    @Test
+    fun aReceiverThatIsStillPlayingIsNotAHandBack() {
+        val release = releaseCastHandoff(receiverStillPlaying = true)
+        assertFalse(release.clearHandoff)
+        assertFalse(release.playOnPhone)
     }
 
     @Test
