@@ -4,8 +4,11 @@
 package site.anikitty.app.data.download
 
 import android.content.Context
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.StreamKey
+import androidx.media3.exoplayer.hls.playlist.HlsMultivariantPlaylist
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
@@ -85,13 +88,48 @@ internal fun hlsDownloader(
     headers: Map<String, String>,
     userAgent: String,
     stripBytes: Int,
+    streamKeys: List<StreamKey> = emptyList(),
 ): HlsDownloader {
     val upstream = upstreamFactory(headers, userAgent, stripBytes)
     val item = MediaItem.Builder()
         .setUri(url)
         .setMimeType(MimeTypes.APPLICATION_M3U8)
+        .apply { if (streamKeys.isNotEmpty()) setStreamKeys(streamKeys) }
         .build()
     return HlsDownloader(item, cacheDataSourceFactory(context, anilistId, episode, upstream))
+}
+
+/** Stream keys for a saved plan. Empty means the player and the saver use the whole playlist. */
+@UnstableApi
+internal fun hlsStreamKeys(raw: String?): List<StreamKey> {
+    val plan = decodeHlsStreams(raw) ?: return emptyList()
+    val keys = mutableListOf(
+        StreamKey(HlsMultivariantPlaylist.GROUP_INDEX_VARIANT, plan.variantIndex),
+    )
+    plan.audioIndex?.let { index ->
+        keys += StreamKey(HlsMultivariantPlaylist.GROUP_INDEX_AUDIO, index)
+    }
+    return keys
+}
+
+@UnstableApi
+internal fun hlsPlanFromPlaylist(playlist: HlsMultivariantPlaylist): HlsSavePlan? {
+    if (playlist.variants.isEmpty()) return null
+    return chooseHlsSavePlan(
+        variants = playlist.variants.map { variant ->
+            HlsVariantFacts(
+                height = variant.format.height.takeIf { it > 0 } ?: 0,
+                bandwidth = variant.format.bitrate.takeIf { it > 0 } ?: 0,
+                audioGroupId = variant.audioGroupId,
+            )
+        },
+        audios = playlist.audios.map { audio ->
+            HlsAudioFacts(
+                groupId = audio.groupId,
+                defaultSelected = (audio.format.selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0,
+            )
+        },
+    )
 }
 
 @UnstableApi

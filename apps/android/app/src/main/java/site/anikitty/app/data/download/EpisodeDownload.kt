@@ -29,6 +29,8 @@ internal data class SavedEpisode(
     val progressPercent: Int,
     val localPath: String?,
     val error: String?,
+    /** `v{variant}a{audio}` when the save kept one rendition. Null means the whole playlist. */
+    val hlsStreams: String? = null,
 )
 
 internal data class DownloadStatus(
@@ -208,6 +210,68 @@ private fun readyMatch(remote: PlayableSource, saved: SavedEpisode?): SavedEpiso
     return row
 }
 
+/** One HLS variant, and the audio rendition that belongs to it when audio is separate. */
+internal data class HlsVariantFacts(
+    val height: Int,
+    val bandwidth: Int,
+    val audioGroupId: String?,
+)
+
+internal data class HlsAudioFacts(
+    val groupId: String?,
+    val defaultSelected: Boolean,
+)
+
+internal data class HlsSavePlan(
+    val variantIndex: Int,
+    val audioIndex: Int?,
+)
+
+/**
+ * Prefer the tallest rendition that is still 720p or below. When heights are
+ * missing, stay under 2.5 Mbps. If every rendition is larger, keep the smallest.
+ */
+internal fun chooseHlsSavePlan(
+    variants: List<HlsVariantFacts>,
+    audios: List<HlsAudioFacts>,
+): HlsSavePlan? {
+    if (variants.isEmpty()) return null
+    val variantIndex = pickHlsVariantIndex(variants)
+    val group = variants[variantIndex].audioGroupId?.takeIf { it.isNotEmpty() }
+    val audioIndex = if (group == null) {
+        null
+    } else {
+        val matches = audios.withIndex().filter { it.value.groupId == group }
+        (matches.firstOrNull { it.value.defaultSelected } ?: matches.firstOrNull())?.index
+    }
+    return HlsSavePlan(variantIndex, audioIndex)
+}
+
+internal fun encodeHlsStreams(plan: HlsSavePlan): String =
+    if (plan.audioIndex == null) "v${plan.variantIndex}" else "v${plan.variantIndex}a${plan.audioIndex}"
+
+internal fun decodeHlsStreams(raw: String?): HlsSavePlan? {
+    if (raw.isNullOrBlank()) return null
+    val match = HLS_STREAMS.matchEntire(raw) ?: return null
+    val variant = match.groupValues[1].toIntOrNull() ?: return null
+    val audio = match.groupValues[2].toIntOrNull()
+    return HlsSavePlan(variant, audio)
+}
+
+private fun pickHlsVariantIndex(variants: List<HlsVariantFacts>): Int {
+    val byHeight = variants.withIndex().filter { it.value.height in 1..MAX_HLS_HEIGHT }
+    if (byHeight.isNotEmpty()) return byHeight.maxBy { it.value.height }.index
+    val byBandwidth = variants.withIndex().filter { it.value.bandwidth in 1..MAX_HLS_BANDWIDTH }
+    if (byBandwidth.isNotEmpty()) return byBandwidth.maxBy { it.value.bandwidth }.index
+    return variants.withIndex().minBy { facts ->
+        facts.value.bandwidth.takeIf { it > 0 } ?: Int.MAX_VALUE
+    }.index
+}
+
+private const val MAX_HLS_HEIGHT = 720
+private const val MAX_HLS_BANDWIDTH = 2_500_000
+private val HLS_STREAMS = Regex("""v(\d+)(?:a(\d+))?""")
+
 internal fun EpisodeDownloadEntity.toSaved(): SavedEpisode = SavedEpisode(
     anilistId = anilistId,
     episode = episode,
@@ -219,4 +283,5 @@ internal fun EpisodeDownloadEntity.toSaved(): SavedEpisode = SavedEpisode(
     progressPercent = progressPercent.coerceIn(0, 100),
     localPath = localPath,
     error = error,
+    hlsStreams = hlsStreams,
 )

@@ -11,6 +11,8 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.hls.playlist.HlsMultivariantPlaylist
+import androidx.media3.exoplayer.hls.playlist.HlsPlaylistParser
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
@@ -140,6 +142,11 @@ class EpisodeDownloadWorker(
     private suspend fun downloadHls(dao: EpisodeDownloadDao, row: EpisodeDownloadEntity): Result {
         val headers = decodeHeaders(row.headersJson)
         val userAgent = headers["User-Agent"] ?: DOWNLOAD_USER_AGENT
+        val streams = when (val chosen = hlsPlanFor(dao, row, headers, userAgent)) {
+            HlsPlanChoice.Stopped -> return Result.success()
+            HlsPlanChoice.EveryRendition -> null
+            is HlsPlanChoice.One -> encodeHlsStreams(chosen.plan)
+        }
         val downloader = hlsDownloader(
             applicationContext,
             row.anilistId,
@@ -148,6 +155,7 @@ class EpisodeDownloadWorker(
             headers,
             userAgent,
             row.stripBytes,
+            hlsStreamKeys(streams),
         )
         var lastPercent = -1
         var lastAt = 0L
@@ -184,6 +192,55 @@ class EpisodeDownloadWorker(
             }
         }
         return Result.success()
+    }
+
+    /**
+     * A multivariant playlist is narrowed to one video rendition and its audio.
+     * A media playlist, or a playlist we could not read, keeps every rendition.
+     * A row that changed while we wrote the plan stops the save.
+     */
+    private sealed interface HlsPlanChoice {
+        data class One(val plan: HlsSavePlan) : HlsPlanChoice
+        data object EveryRendition : HlsPlanChoice
+        data object Stopped : HlsPlanChoice
+    }
+
+    private suspend fun hlsPlanFor(
+        dao: EpisodeDownloadDao,
+        row: EpisodeDownloadEntity,
+        headers: Map<String, String>,
+        userAgent: String,
+    ): HlsPlanChoice {
+        decodeHlsStreams(row.hlsStreams)?.let { return HlsPlanChoice.One(it) }
+        val plan = readHlsPlan(row.url, headers, userAgent) ?: return HlsPlanChoice.EveryRendition
+        val wrote = dao.setHlsStreams(
+            row.anilistId,
+            row.episode,
+            row.url,
+            row.updatedAtEpochMs,
+            encodeHlsStreams(plan),
+        )
+        return if (wrote == 0) HlsPlanChoice.Stopped else HlsPlanChoice.One(plan)
+    }
+
+    private fun readHlsPlan(
+        url: String,
+        headers: Map<String, String>,
+        userAgent: String,
+    ): HlsSavePlan? = try {
+        val request = Request.Builder().url(url).header("User-Agent", userAgent)
+        headers.forEach { (key, value) ->
+            if (!key.equals("User-Agent", ignoreCase = true)) request.header(key, value)
+        }
+        PlaybackHttp.client.newCall(request.build()).execute().use { response ->
+            if (!response.isSuccessful) return null
+            val body = response.body ?: return null
+            val playlist = HlsPlaylistParser().parse(android.net.Uri.parse(url), body.byteStream())
+            if (playlist !is HlsMultivariantPlaylist) return null
+            hlsPlanFromPlaylist(playlist)
+        }
+    } catch (_: Exception) {
+        null
     }
 
     private suspend fun stopOrRetry(dao: EpisodeDownloadDao, row: EpisodeDownloadEntity): Result {
