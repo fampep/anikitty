@@ -1414,7 +1414,10 @@ fun PlayerScreen(
     }
 
     // Apply resume even if READY already fired before history arrived.
-    LaunchedEffect(resumeAtMs, player, ready, didSeekStart) {
+    // Duration is a key so a length that arrives late can still seek. A file
+    // that stays shorter than the target never seeks, and the progress loop
+    // drops that hold instead of freezing history.
+    LaunchedEffect(resumeAtMs, player, ready, didSeekStart, durationMs) {
         val p = player ?: return@LaunchedEffect
         if (didSeekStart || !ready || resumeAtMs <= 1_500L) return@LaunchedEffect
         val d = p.duration
@@ -1557,7 +1560,10 @@ fun PlayerScreen(
                     resumeAtMs,
                     if (!didSeekStart) startPositionMs else 0L,
                 )
-                heldResumeMs = armedResumeMs(heldResumeMs, requestedResume)
+                heldResumeMs = reachableResumeMs(
+                    armedResumeMs(heldResumeMs, requestedResume),
+                    dur,
+                )
                 val waitingResume = resumeStillAhead(heldResumeMs, pos)
                 if (!waitingResume) heldResumeMs = 0L
                 if (progressSaveDue(pos, lastProgressAt, openingSeekPending = waitingResume)) {

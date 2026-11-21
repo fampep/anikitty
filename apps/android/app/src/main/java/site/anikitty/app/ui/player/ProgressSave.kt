@@ -11,6 +11,17 @@ internal fun armedResumeMs(armedMs: Long, requestedMs: Long): Long =
     if (requestedMs > 2_000L) maxOf(armedMs, requestedMs) else armedMs
 
 /**
+ * Drop a resume target the player will not seek to.
+ * The seek is skipped when the duration is known and no longer than the
+ * target. An unknown duration (0) keeps the hold until the length arrives.
+ */
+internal fun reachableResumeMs(heldMs: Long, durationMs: Long): Long {
+    if (heldMs <= 2_000L) return 0L
+    if (durationMs > 0L && durationMs <= heldMs) return 0L
+    return heldMs
+}
+
+/**
  * True while [positionMs] is still behind a resume seek.
  * Quality, failover, and offline reloads start the player near zero and then
  * seek. That gap is not a rewind.

@@ -55,6 +55,16 @@ class ProgressSaveTest {
     }
 
     @Test
+    fun aSourceShorterThanTheResumeTargetDoesNotBlockSaves() {
+        val armed = armedResumeMs(armedMs = 0L, requestedMs = 1_200_000L)
+        assertEquals(0L, reachableResumeMs(armed, durationMs = 90_000L))
+        assertEquals(armed, reachableResumeMs(armed, durationMs = 0L))
+        assertEquals(armed, reachableResumeMs(armed, durationMs = 1_400_000L))
+        assertFalse(resumeStillAhead(armedMs = 0L, positionMs = 5_000L))
+        assertTrue(progressSaveDue(positionMs = 5_000L, lastSavedMs = 0L))
+    }
+
+    @Test
     fun aRewindAfterTheResumeLandsStillSaves() {
         assertFalse(resumeStillAhead(armedMs = 0L, positionMs = 15_000L))
         assertTrue(progressSaveDue(positionMs = 15_000L, lastSavedMs = 1_200_000L))
