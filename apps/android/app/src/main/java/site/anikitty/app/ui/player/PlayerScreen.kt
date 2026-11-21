@@ -112,6 +112,7 @@ import site.anikitty.app.cast.castJoin
 import site.anikitty.app.cast.castSameItem
 import site.anikitty.app.cast.castAttachPositionMs
 import site.anikitty.app.cast.castMayCorrectReceiver
+import site.anikitty.app.cast.castPhoneResumeTarget
 import site.anikitty.app.cast.castPhoneShouldStayQuiet
 import site.anikitty.app.cast.releaseCastHandoff
 import site.anikitty.app.cast.castClientRetryDelayMs
@@ -750,15 +751,21 @@ fun PlayerScreen(
         return "${latestSourceIndex}\u0000${src.url}\u0000${src.audioLanguage.orEmpty()}\u0000$latestEpisode"
     }
 
-    fun castPlayhead(): Long = castAttachPositionMs(
-        localPositionMs = latestPlayer?.currentPosition?.takeIf { it > 0L } ?: latestPosition.ms,
-        resumeAtMs = resumeAtMs,
-        startPositionMs = latestStartPositionMs,
-        allowHistoryFallback = latestAllowHistory,
-        // An attach that started at 0 is still waiting for history. Playback
-        // that ran from the start during connect must not hide that resume.
-        pendingResume = !didSeekStart && latestAllowHistory && castSentPositionMs <= 1_500L,
-    )
+    fun castPlayhead(): Long {
+        val onScreen = latestPlayer?.currentPosition?.takeIf { it > 0L } ?: 0L
+        // A joined receiver clock lives in the playhead while the phone is still
+        // at the start. A later load has to see that clock, not only the phone.
+        val known = maxOf(onScreen, latestPosition.ms)
+        return castAttachPositionMs(
+            localPositionMs = known,
+            resumeAtMs = resumeAtMs,
+            startPositionMs = latestStartPositionMs,
+            allowHistoryFallback = latestAllowHistory,
+            // An attach that started at 0 is still waiting for history. Playback
+            // that ran from the start during connect must not hide that resume.
+            pendingResume = !didSeekStart && latestAllowHistory && castSentPositionMs <= 1_500L,
+        )
+    }
 
     fun abandonCastToPhone(local: Player?) {
         castClientGaveUp = true
@@ -802,9 +809,24 @@ fun PlayerScreen(
         castPending = false
         castLoadedKey = null
         castPlayheadRequested = false
+        castJoinedLive = false
         if (hint != null) castHint = hint
         pushMute()
-        if (release.playOnPhone) runCatching { latestPlayer?.play() }
+        if (!release.playOnPhone) return
+        val local = latestPlayer
+        val localMs = runCatching { local?.currentPosition ?: 0L }.getOrDefault(0L)
+        val known = maxOf(positionMs, playhead.ms)
+        val resume = castPhoneResumeTarget(localMs, known)
+        if (resume != null) {
+            positionMs = resume
+            playhead.ms = resume
+            resumeAtMs = resume
+            didSeekStart = false
+            allowHistoryFallback = false
+            if (castSentPositionMs < resume) castSentPositionMs = resume
+            runCatching { local?.seekTo(resume) }
+        }
+        runCatching { local?.play() }
     }
 
     fun castReady() {
@@ -889,9 +911,11 @@ fun PlayerScreen(
         if (live > 0L) {
             positionMs = live
             playhead.ms = live
+            // Remember the clock so a later load does not treat this attach as
+            // still waiting for history. Do not arm a correction: this screen
+            // did not request that playhead.
+            castSentPositionMs = live
         }
-        // This screen did not choose that playhead. A later ready must not
-        // seek the TV back to zero or to the previous item's clock.
         castPlayheadRequested = false
         isCasting = helper.casting
         castHint = null

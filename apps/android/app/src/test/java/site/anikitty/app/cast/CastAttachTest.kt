@@ -5,6 +5,7 @@ package site.anikitty.app.cast
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -209,6 +210,28 @@ class CastAttachTest {
         val release = releaseCastHandoff(receiverStillPlaying = true)
         assertFalse(release.clearHandoff)
         assertFalse(release.playOnPhone)
+    }
+
+    @Test
+    fun thePhoneResumesWhereTheTvWas() {
+        assertEquals(90_000L, castPhoneResumeTarget(localMs = 0L, knownMs = 90_000L))
+        assertNull(castPhoneResumeTarget(localMs = 90_000L, knownMs = 91_000L))
+        assertNull(castPhoneResumeTarget(localMs = 0L, knownMs = 0L))
+        assertNull(castPhoneResumeTarget(localMs = 0L, knownMs = 800L))
+    }
+
+    @Test
+    fun aKnownLiveClockBeatsSavedHistory() {
+        assertEquals(
+            90_000L,
+            castAttachPositionMs(
+                localPositionMs = 90_000L,
+                resumeAtMs = 0L,
+                startPositionMs = 30_000L,
+                allowHistoryFallback = true,
+                pendingResume = false,
+            ),
+        )
     }
 
     @Test

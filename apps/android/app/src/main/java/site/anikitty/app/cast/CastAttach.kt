@@ -152,6 +152,19 @@ internal fun releaseCastHandoff(receiverStillPlaying: Boolean): CastHandoffRelea
     }
 
 /**
+ * Where the phone should start after the TV hands the episode back.
+ * The clock copied from the receiver wins when the phone is still at the start.
+ * A phone that is already there does not need another seek.
+ */
+internal fun castPhoneResumeTarget(localMs: Long, knownMs: Long): Long? {
+    val local = localMs.coerceAtLeast(0L)
+    val known = knownMs.coerceAtLeast(0L)
+    if (known <= 1_000L) return null
+    if (known <= local + 1_500L) return null
+    return known
+}
+
+/**
  * Playhead to send when attaching. A resume that is still pending wins even
  * if the phone has been playing from the start for a few seconds. A live
  * playhead wins only after that resume has been applied, or history is no
