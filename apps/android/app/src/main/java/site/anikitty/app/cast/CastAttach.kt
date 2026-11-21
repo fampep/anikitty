@@ -169,11 +169,11 @@ internal fun castPhoneKnownPosition(
 
 /**
  * Where the phone resumes when the receiver disconnects.
- * A stale clock still belongs to the previous episode, so the phone keeps the
- * position requested for the episode on screen. Otherwise the receiver clock
- * is the episode that was actually playing.
+ * The shared receiver can still be sitting on the previous episode until this
+ * screen has seen it playing. A remounted episode does not inherit that clock.
  */
 internal fun castDisconnectResumeMs(
+    casting: Boolean,
     clockStale: Boolean,
     loadRequested: Boolean,
     sentPositionMs: Long,
@@ -181,10 +181,9 @@ internal fun castDisconnectResumeMs(
     playheadMs: Long,
     receiverMs: Long,
 ): Long {
-    if (clockStale) {
-        return castPhoneKnownPosition(loadRequested, sentPositionMs, screenPositionMs, playheadMs)
-    }
-    return receiverMs.coerceAtLeast(0L)
+    val receiverIsThisEpisode = casting && !clockStale && !loadRequested
+    if (receiverIsThisEpisode) return receiverMs.coerceAtLeast(0L)
+    return castPhoneKnownPosition(loadRequested, sentPositionMs, screenPositionMs, playheadMs)
 }
 
 /**

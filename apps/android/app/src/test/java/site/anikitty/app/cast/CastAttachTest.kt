@@ -248,6 +248,7 @@ class CastAttachTest {
         assertEquals(
             0L,
             castDisconnectResumeMs(
+                casting = true,
                 clockStale = true,
                 loadRequested = true,
                 sentPositionMs = 0L,
@@ -259,6 +260,7 @@ class CastAttachTest {
         assertEquals(
             90_000L,
             castDisconnectResumeMs(
+                casting = true,
                 clockStale = true,
                 loadRequested = true,
                 sentPositionMs = 90_000L,
@@ -270,11 +272,40 @@ class CastAttachTest {
         assertEquals(
             20 * 60_000L,
             castDisconnectResumeMs(
+                casting = true,
                 clockStale = false,
                 loadRequested = false,
-                sentPositionMs = 20 * 60_000L,
-                screenPositionMs = 20 * 60_000L,
-                playheadMs = 20 * 60_000L,
+                sentPositionMs = -1L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+    }
+
+    @Test
+    fun aRemountedEpisodeDoesNotInheritTheReceiverClock() {
+        assertEquals(
+            0L,
+            castDisconnectResumeMs(
+                casting = false,
+                clockStale = false,
+                loadRequested = false,
+                sentPositionMs = -1L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castDisconnectResumeMs(
+                casting = false,
+                clockStale = false,
+                loadRequested = true,
+                sentPositionMs = 90_000L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
                 receiverMs = 20 * 60_000L,
             ),
         )

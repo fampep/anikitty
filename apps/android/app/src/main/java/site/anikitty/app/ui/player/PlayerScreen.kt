@@ -1018,6 +1018,7 @@ fun PlayerScreen(
 
                 override fun onCastSessionUnavailable() {
                     if (!castAlive.get()) return
+                    val castingNow = isCasting
                     val requested = castPlayheadRequested
                     val sent = castSentPositionMs
                     val stale = castClockStale
@@ -1025,6 +1026,7 @@ fun PlayerScreen(
                         helper.castPlayer.currentPosition.coerceAtLeast(0L)
                     }.getOrDefault(latestPosition.ms)
                     val pos = castDisconnectResumeMs(
+                        casting = castingNow,
                         clockStale = stale,
                         loadRequested = requested,
                         sentPositionMs = sent,
@@ -1032,6 +1034,7 @@ fun PlayerScreen(
                         playheadMs = playhead.ms,
                         receiverMs = receiverPos,
                     )
+                    val receiverIsThisEpisode = castingNow && !stale && !requested
                     castPending = false
                     castAttachStarted = false
                     castLoadedKey = null
@@ -1043,7 +1046,7 @@ fun PlayerScreen(
                     helper.stopCasting()
                     isCasting = false
                     val local = latestPlayer
-                    if (stale) {
+                    if (!receiverIsThisEpisode) {
                         positionMs = pos
                         playhead.ms = pos
                     }
