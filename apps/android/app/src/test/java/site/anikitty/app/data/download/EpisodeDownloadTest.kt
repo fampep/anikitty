@@ -45,13 +45,14 @@ class EpisodeDownloadTest {
             downloadStatus(remote, queued.copy(phase = DownloadPhase.RUNNING, progressPercent = 40)).label,
         )
         assertTrue(downloadStatus(remote, queued.copy(phase = DownloadPhase.READY)).canRemove)
-        assertEquals(
-            "Retry · The source refused the download",
-            downloadStatus(
-                remote,
-                queued.copy(phase = DownloadPhase.FAILED, error = "The source refused the download"),
-            ).label,
+        val failed = downloadStatus(
+            remote,
+            queued.copy(phase = DownloadPhase.FAILED, error = "The source refused the download"),
         )
+        assertEquals("Retry · The source refused the download", failed.label)
+        assertTrue(failed.canStart)
+        assertTrue(failed.canRemove)
+        assertEquals("Clear", failed.removeLabel)
         assertTrue(downloadStatus(source("https://cdn.example/other.mp4"), queued).canStart)
         val rotated = source("https://cdn.example/a.mp4?token=later")
         assertEquals("Queued", downloadStatus(rotated, queued).label)

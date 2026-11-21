@@ -108,7 +108,8 @@ internal fun downloadStatus(source: PlayableSource, saved: SavedEpisode?): Downl
         DownloadPhase.FAILED -> DownloadStatus(
             label = row.error?.takeIf { it.isNotBlank() }?.let { "Retry · $it" } ?: "Retry download",
             canStart = true,
-            canRemove = false,
+            canRemove = true,
+            removeLabel = "Clear",
         )
     }
 }
