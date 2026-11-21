@@ -100,6 +100,24 @@ internal fun reduceCastAttach(
     return CastAttachDecision(pending = false, loadStarted = true, load = true)
 }
 
+/** The phone stays silent while the TV has the episode, or while that handoff is still starting. */
+internal fun castPhoneShouldStayQuiet(
+    casting: Boolean,
+    handoff: Boolean,
+    pending: Boolean,
+): Boolean = casting || handoff || pending
+
+/**
+ * The receiver often opens at the start even when the load asked for a later
+ * playhead, and a new episode can still be sitting on the previous ending.
+ * One seek after it is playing puts the TV on the playhead we asked for.
+ */
+internal fun castReceiverNeedsSeek(requestedMs: Long, receiverMs: Long): Boolean {
+    val requested = requestedMs.coerceAtLeast(0L)
+    val receiver = receiverMs.coerceAtLeast(0L)
+    return kotlin.math.abs(requested - receiver) > 3_000L
+}
+
 /**
  * Playhead to send when attaching. A resume that is still pending wins even
  * if the phone has been playing from the start for a few seconds. A live

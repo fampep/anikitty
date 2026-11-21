@@ -36,8 +36,13 @@ internal fun castStatusDescription(
     isMovie: Boolean,
     episode: Int,
     title: String,
+    connecting: Boolean = false,
 ): String {
-    val state = if (buffering) "Buffering on your TV" else "Casting to your TV"
+    val state = when {
+        connecting -> "Connecting to your TV"
+        buffering -> "Buffering on your TV"
+        else -> "Casting to your TV"
+    }
     val what = if (isMovie) title else "Episode $episode, $title"
     return "$state. $what"
 }

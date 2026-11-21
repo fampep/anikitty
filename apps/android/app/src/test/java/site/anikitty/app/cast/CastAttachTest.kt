@@ -166,6 +166,22 @@ class CastAttachTest {
     }
 
     @Test
+    fun thePhoneStaysQuietWhileTheTvHasTheEpisode() {
+        assertTrue(castPhoneShouldStayQuiet(casting = true, handoff = false, pending = false))
+        assertTrue(castPhoneShouldStayQuiet(casting = false, handoff = true, pending = false))
+        assertTrue(castPhoneShouldStayQuiet(casting = false, handoff = false, pending = true))
+        assertFalse(castPhoneShouldStayQuiet(casting = false, handoff = false, pending = false))
+    }
+
+    @Test
+    fun aReceiverThatOpenedAtTheStartCatchesThePlayhead() {
+        assertTrue(castReceiverNeedsSeek(requestedMs = 90_000L, receiverMs = 0L))
+        assertFalse(castReceiverNeedsSeek(requestedMs = 90_000L, receiverMs = 88_000L))
+        assertFalse(castReceiverNeedsSeek(requestedMs = 2_000L, receiverMs = 0L))
+        assertTrue(castReceiverNeedsSeek(requestedMs = 4_000L, receiverMs = 20 * 60_000L))
+    }
+
+    @Test
     fun historyIsIgnoredAfterThePersonMovedOn() {
         assertEquals(
             0L,
