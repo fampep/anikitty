@@ -353,7 +353,7 @@ private fun ScheduleRow(
     ) {
         AsyncImage(
             model = slot.anime.coverImageUrl,
-            contentDescription = slot.anime.title,
+            contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .width(48.dp)
