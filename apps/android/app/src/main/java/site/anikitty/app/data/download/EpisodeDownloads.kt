@@ -3,6 +3,7 @@
 
 package site.anikitty.app.data.download
 
+import android.app.NotificationManager
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
@@ -72,11 +73,16 @@ internal object EpisodeDownloads {
     }
 
     suspend fun remove(context: Context, row: EpisodeDownloadEntity) {
-        WorkManager.getInstance(context).cancelUniqueWork(
+        val app = context.applicationContext
+        val dao = (app as AnikittyApp).database.episodeDownloadDao()
+        // Drop the row before cancelling work. An HLS save that sees a stop
+        // while the row is still current would queue itself again.
+        dao.delete(row.anilistId, row.episode)
+        WorkManager.getInstance(app).cancelUniqueWork(
             downloadWorkName(row.anilistId, row.episode),
         )
-        val dao = (context.applicationContext as AnikittyApp).database.episodeDownloadDao()
-        dao.delete(row.anilistId, row.episode)
-        removeSavedBytes(context, row)
+        app.getSystemService(NotificationManager::class.java)
+            ?.cancel(downloadNotificationId(row.anilistId, row.episode))
+        removeSavedBytes(app, row)
     }
 }

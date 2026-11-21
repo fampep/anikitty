@@ -14,6 +14,16 @@ internal const val DOWNLOAD_USER_AGENT =
 
 internal const val DOWNLOAD_ANILIST_ID = "anilistId"
 internal const val DOWNLOAD_EPISODE = "episode"
+internal const val DOWNLOAD_CANCEL_ACTION = "site.anikitty.app.download.CANCEL"
+
+internal fun downloadNotificationId(anilistId: Int, episode: Int): Int {
+    val mixed = (anilistId * 31 + episode) and 0x7fffffff
+    return 20_000 + (mixed % 10_000)
+}
+
+/** A notification Cancel removes a save that has not finished. A saved file stays. */
+internal fun downloadCancelRemovesRow(phase: String): Boolean =
+    phase == DownloadPhase.QUEUED.name || phase == DownloadPhase.RUNNING.name
 
 internal enum class DownloadPhase { QUEUED, RUNNING, READY, FAILED }
 
@@ -164,6 +174,16 @@ internal fun episodeCachePrefix(anilistId: Int, episode: Int): String =
 
 internal fun progressiveFile(root: File, anilistId: Int, episode: Int, url: String): File =
     File(root, "$anilistId/$episode.${progressiveExtension(url)}")
+
+/**
+ * A progressive save writes the episode file and a `.part` beside it before
+ * the row has a [SavedEpisode.localPath]. Cancelling has to delete both.
+ */
+internal fun progressiveLeftovers(root: File, anilistId: Int, episode: Int, url: String, hls: Boolean): List<File> {
+    if (hls || anilistId <= 0 || episode < 0 || url.isBlank()) return emptyList()
+    val dest = progressiveFile(root, anilistId, episode, url)
+    return listOf(dest, File(dest.path + ".part"))
+}
 
 internal fun progressiveExtension(url: String): String {
     val leaf = url.substringBefore('?').substringBefore('#').substringAfterLast('/')
