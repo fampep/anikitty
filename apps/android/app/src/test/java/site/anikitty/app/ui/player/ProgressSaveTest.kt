@@ -3,6 +3,7 @@
 
 package site.anikitty.app.ui.player
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -36,5 +37,26 @@ class ProgressSaveTest {
                 openingSeekPending = true,
             ),
         )
+    }
+
+    @Test
+    fun aReloadHoldsTheResumeTargetUntilThePlayerReachesIt() {
+        val armed = armedResumeMs(armedMs = 0L, requestedMs = 1_200_000L)
+        assertEquals(1_200_000L, armed)
+        assertTrue(resumeStillAhead(armed, positionMs = 5_000L))
+        assertFalse(
+            progressSaveDue(
+                positionMs = 5_000L,
+                lastSavedMs = 1_200_000L,
+                openingSeekPending = true,
+            ),
+        )
+        assertFalse(resumeStillAhead(armed, positionMs = 1_199_000L))
+    }
+
+    @Test
+    fun aRewindAfterTheResumeLandsStillSaves() {
+        assertFalse(resumeStillAhead(armedMs = 0L, positionMs = 15_000L))
+        assertTrue(progressSaveDue(positionMs = 15_000L, lastSavedMs = 1_200_000L))
     }
 }

@@ -1470,6 +1470,7 @@ fun PlayerScreen(
 
     LaunchedEffect(activePlayer, scrubbing, isCasting, nearEndDismissed, playbackEnded, nextTriggered, episode) {
         var lastProgressAt = 0L
+        var heldResumeMs = 0L
         var lastSkipKey: String? = null
         var lastMinute = -2
         // Stale CastPlayer position/duration belong to the previous item until
@@ -1552,9 +1553,14 @@ fun PlayerScreen(
                     lastMinute = mins
                     shelfMinutes = mins
                 }
-                val waitingHistory =
-                    !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
-                if (progressSaveDue(pos, lastProgressAt, openingSeekPending = waitingHistory)) {
+                val requestedResume = maxOf(
+                    resumeAtMs,
+                    if (!didSeekStart) startPositionMs else 0L,
+                )
+                heldResumeMs = armedResumeMs(heldResumeMs, requestedResume)
+                val waitingResume = resumeStillAhead(heldResumeMs, pos)
+                if (!waitingResume) heldResumeMs = 0L
+                if (progressSaveDue(pos, lastProgressAt, openingSeekPending = waitingResume)) {
                     lastProgressAt = pos
                     // Phone and Chromecast share this playhead. Casting uses
                     // the cast player; the credits marker is the same one.
