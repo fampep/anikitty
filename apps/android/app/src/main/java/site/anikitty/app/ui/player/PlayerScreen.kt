@@ -3428,6 +3428,7 @@ fun PlayerScreen(
                         }
                     }
                 },
+                removeDownloadLabel = download?.removeLabel ?: "Remove",
                 onRemoveDownload = if (download?.canRemove == true) {
                     {
                         val row = savedRow

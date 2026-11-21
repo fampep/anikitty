@@ -18,7 +18,8 @@ internal fun downloadActionDescription(label: String): String {
     }
 }
 
-internal fun removeDownloadDescription(): String = "Remove downloaded episode"
+internal fun removeDownloadDescription(label: String = "Remove"): String =
+    if (label == "Cancel") "Cancel download" else "Remove downloaded episode"
 
 internal fun skipActionDescription(kind: String): String = when (kind) {
     "intro" -> "Skip intro"
