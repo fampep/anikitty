@@ -205,6 +205,7 @@ import site.anikitty.app.data.download.cacheDataSourceFactory
 import site.anikitty.app.data.download.DownloadPhase
 import site.anikitty.app.data.download.downloadStatus
 import site.anikitty.app.data.download.encodeHeaders
+import site.anikitty.app.data.download.hlsStreamKeys
 import site.anikitty.app.data.download.playbackSavedEpisode
 import site.anikitty.app.data.download.resolvedStripBytes
 import site.anikitty.app.data.download.savedLocalFile
@@ -553,6 +554,7 @@ fun PlayerScreen(
         playbackReady,
         source?.let { savedLocalFile(it, playbackSaved)?.absolutePath },
         if (source != null && usesHlsCache(source, playbackSaved)) playbackSaved?.url else null,
+        if (source != null && usesHlsCache(source, playbackSaved)) playbackSaved?.hlsStreams else null,
     ) {
         if (!playbackReady || source == null) return@remember null
         val playing = sourceForPlayback(source, playbackSaved)
@@ -598,6 +600,9 @@ fun PlayerScreen(
             .build()
             .apply {
                 val itemBuilder = MediaItem.Builder().setUri(playing.url)
+                hlsStreamKeys(if (hlsOffline) playbackSaved?.hlsStreams else null)
+                    .takeIf { it.isNotEmpty() }
+                    ?.let(itemBuilder::setStreamKeys)
                 // Gotaku and AnimeX playlists have no .m3u8 suffix but are HLS.
                 if (playing.hls || playing.url.contains(".m3u8", ignoreCase = true) || playing.gotakuObf != null) {
                     itemBuilder.setMimeType(MimeTypes.APPLICATION_M3U8)

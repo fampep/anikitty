@@ -28,6 +28,8 @@ data class EpisodeDownloadEntity(
     val localPath: String?,
     val error: String?,
     val updatedAtEpochMs: Long,
+    /** Null keeps every rendition. A plan string keeps one variant and its audio. */
+    val hlsStreams: String? = null,
 )
 
 @Dao
@@ -71,6 +73,24 @@ interface EpisodeDownloadDao {
 
     @Query("DELETE FROM episode_download WHERE anilistId = :anilistId AND episode = :episode")
     suspend fun delete(anilistId: Int, episode: Int)
+
+    @Query(
+        """
+        UPDATE episode_download
+        SET hlsStreams = :hlsStreams
+        WHERE anilistId = :anilistId
+          AND episode = :episode
+          AND url = :url
+          AND updatedAtEpochMs = :updatedAtEpochMs
+        """,
+    )
+    suspend fun setHlsStreams(
+        anilistId: Int,
+        episode: Int,
+        url: String,
+        updatedAtEpochMs: Long,
+        hlsStreams: String,
+    ): Int
 
     /**
      * A fresh resolve rotated the signed URL. Keep the file and the generation

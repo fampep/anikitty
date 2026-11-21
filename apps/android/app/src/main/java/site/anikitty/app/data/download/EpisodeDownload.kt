@@ -29,6 +29,8 @@ internal data class SavedEpisode(
     val progressPercent: Int,
     val localPath: String?,
     val error: String?,
+    /** `v{variant}a{audio}` when the save kept one rendition. Null means the whole playlist. */
+    val hlsStreams: String? = null,
 )
 
 internal data class DownloadStatus(
@@ -208,6 +210,77 @@ private fun readyMatch(remote: PlayableSource, saved: SavedEpisode?): SavedEpiso
     return row
 }
 
+/** One HLS variant. Trick-play rungs are keyframes only and are not a watchable copy. */
+internal data class HlsVariantFacts(
+    val height: Int,
+    val bandwidth: Int,
+    val audioGroupId: String?,
+    val trickPlay: Boolean = false,
+)
+
+internal data class HlsAudioFacts(
+    val groupId: String?,
+)
+
+/** One video rendition, plus every audio rendition in its group so language can still switch. */
+internal data class HlsSavePlan(
+    val variantIndex: Int,
+    val audioIndices: List<Int>,
+)
+
+/**
+ * Prefer the tallest rendition that is still 720p or below. When heights are
+ * missing, stay under 2.5 Mbps. If every rendition is larger, keep the smallest.
+ * Keyframe-only trick-play rungs are ignored. A separate audio group is saved
+ * whole, not just its default language.
+ */
+internal fun chooseHlsSavePlan(
+    variants: List<HlsVariantFacts>,
+    audios: List<HlsAudioFacts>,
+): HlsSavePlan? {
+    val watchable = variants.withIndex().filter { !it.value.trickPlay }
+    if (watchable.isEmpty()) return null
+    val variantIndex = pickHlsVariantIndex(watchable)
+    val group = variants[variantIndex].audioGroupId?.takeIf { it.isNotEmpty() }
+    val audioIndices = if (group == null) {
+        emptyList()
+    } else {
+        audios.indices.filter { audios[it].groupId == group }
+    }
+    return HlsSavePlan(variantIndex, audioIndices)
+}
+
+internal fun encodeHlsStreams(plan: HlsSavePlan): String =
+    if (plan.audioIndices.isEmpty()) {
+        "v${plan.variantIndex}"
+    } else {
+        "v${plan.variantIndex}a${plan.audioIndices.joinToString(",")}"
+    }
+
+internal fun decodeHlsStreams(raw: String?): HlsSavePlan? {
+    if (raw.isNullOrBlank()) return null
+    val match = HLS_STREAMS.matchEntire(raw) ?: return null
+    val variant = match.groupValues[1].toIntOrNull() ?: return null
+    val audio = match.groupValues[2]
+    if (audio.isEmpty()) return HlsSavePlan(variant, emptyList())
+    val indices = audio.split(',').map { part -> part.toIntOrNull() ?: return null }
+    return HlsSavePlan(variant, indices)
+}
+
+private fun pickHlsVariantIndex(variants: List<IndexedValue<HlsVariantFacts>>): Int {
+    val byHeight = variants.filter { it.value.height in 1..MAX_HLS_HEIGHT }
+    if (byHeight.isNotEmpty()) return byHeight.maxBy { it.value.height }.index
+    val byBandwidth = variants.filter { it.value.bandwidth in 1..MAX_HLS_BANDWIDTH }
+    if (byBandwidth.isNotEmpty()) return byBandwidth.maxBy { it.value.bandwidth }.index
+    return variants.minBy { facts ->
+        facts.value.bandwidth.takeIf { it > 0 } ?: Int.MAX_VALUE
+    }.index
+}
+
+private const val MAX_HLS_HEIGHT = 720
+private const val MAX_HLS_BANDWIDTH = 2_500_000
+private val HLS_STREAMS = Regex("""v(\d+)(?:a(\d+(?:,\d+)*))?""")
+
 internal fun EpisodeDownloadEntity.toSaved(): SavedEpisode = SavedEpisode(
     anilistId = anilistId,
     episode = episode,
@@ -219,4 +292,5 @@ internal fun EpisodeDownloadEntity.toSaved(): SavedEpisode = SavedEpisode(
     progressPercent = progressPercent.coerceIn(0, 100),
     localPath = localPath,
     error = error,
+    hlsStreams = hlsStreams,
 )
