@@ -111,6 +111,7 @@ import site.anikitty.app.cast.castAudioKey
 import site.anikitty.app.cast.castJoin
 import site.anikitty.app.cast.castSameItem
 import site.anikitty.app.cast.castAttachPositionMs
+import site.anikitty.app.cast.castDisconnectResumeMs
 import site.anikitty.app.cast.castMayCorrectReceiver
 import site.anikitty.app.cast.castPhoneKnownPosition
 import site.anikitty.app.cast.castPhoneResumeTarget
@@ -1017,6 +1018,20 @@ fun PlayerScreen(
 
                 override fun onCastSessionUnavailable() {
                     if (!castAlive.get()) return
+                    val requested = castPlayheadRequested
+                    val sent = castSentPositionMs
+                    val stale = castClockStale
+                    val receiverPos = runCatching {
+                        helper.castPlayer.currentPosition.coerceAtLeast(0L)
+                    }.getOrDefault(latestPosition.ms)
+                    val pos = castDisconnectResumeMs(
+                        clockStale = stale,
+                        loadRequested = requested,
+                        sentPositionMs = sent,
+                        screenPositionMs = positionMs,
+                        playheadMs = playhead.ms,
+                        receiverMs = receiverPos,
+                    )
                     castPending = false
                     castAttachStarted = false
                     castLoadedKey = null
@@ -1025,15 +1040,17 @@ fun PlayerScreen(
                     castClockStale = false
                     castClientRetry = 0
                     castClientGaveUp = false
-                    val pos = runCatching {
-                        helper.castPlayer.currentPosition.coerceAtLeast(0L)
-                    }.getOrDefault(latestPosition.ms)
                     helper.stopCasting()
                     isCasting = false
                     val local = latestPlayer
+                    if (stale) {
+                        positionMs = pos
+                        playhead.ms = pos
+                    }
                     if (pos > 1_000L) {
                         runCatching { local?.seekTo(pos) }
                         positionMs = pos
+                        playhead.ms = pos
                     }
                     pushMute()
                     runCatching { local?.play() }

@@ -152,11 +152,6 @@ internal fun releaseCastHandoff(receiverStillPlaying: Boolean): CastHandoffRelea
     }
 
 /**
- * Where the phone should start after the TV hands the episode back.
- * The clock copied from the receiver wins when the phone is still at the start.
- * A phone that is already there does not need another seek.
- */
-/**
  * Clock to put on the phone when a cast load fails.
  * A load this screen just started carries the position for the episode now
  * showing. The cast clock can still be the previous episode, and that must
@@ -172,6 +167,31 @@ internal fun castPhoneKnownPosition(
     return maxOf(screenPositionMs.coerceAtLeast(0L), playheadMs.coerceAtLeast(0L))
 }
 
+/**
+ * Where the phone resumes when the receiver disconnects.
+ * A stale clock still belongs to the previous episode, so the phone keeps the
+ * position requested for the episode on screen. Otherwise the receiver clock
+ * is the episode that was actually playing.
+ */
+internal fun castDisconnectResumeMs(
+    clockStale: Boolean,
+    loadRequested: Boolean,
+    sentPositionMs: Long,
+    screenPositionMs: Long,
+    playheadMs: Long,
+    receiverMs: Long,
+): Long {
+    if (clockStale) {
+        return castPhoneKnownPosition(loadRequested, sentPositionMs, screenPositionMs, playheadMs)
+    }
+    return receiverMs.coerceAtLeast(0L)
+}
+
+/**
+ * Where the phone should start after the TV hands the episode back.
+ * The clock copied from the receiver wins when the phone is still at the start.
+ * A phone that is already there does not need another seek.
+ */
 internal fun castPhoneResumeTarget(localMs: Long, knownMs: Long): Long? {
     val local = localMs.coerceAtLeast(0L)
     val known = knownMs.coerceAtLeast(0L)

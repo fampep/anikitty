@@ -244,6 +244,43 @@ class CastAttachTest {
     }
 
     @Test
+    fun aDisconnectDuringEpisodeChangeKeepsTheNewEpisode() {
+        assertEquals(
+            0L,
+            castDisconnectResumeMs(
+                clockStale = true,
+                loadRequested = true,
+                sentPositionMs = 0L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castDisconnectResumeMs(
+                clockStale = true,
+                loadRequested = true,
+                sentPositionMs = 90_000L,
+                screenPositionMs = 0L,
+                playheadMs = 0L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            20 * 60_000L,
+            castDisconnectResumeMs(
+                clockStale = false,
+                loadRequested = false,
+                sentPositionMs = 20 * 60_000L,
+                screenPositionMs = 20 * 60_000L,
+                playheadMs = 20 * 60_000L,
+                receiverMs = 20 * 60_000L,
+            ),
+        )
+    }
+
+    @Test
     fun thePhoneResumesWhereTheTvWas() {
         assertEquals(90_000L, castPhoneResumeTarget(localMs = 0L, knownMs = 90_000L))
         assertNull(castPhoneResumeTarget(localMs = 90_000L, knownMs = 91_000L))
