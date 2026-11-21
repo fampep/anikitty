@@ -34,7 +34,12 @@ class EpisodeDownloadTest {
         val queued = saved(remote, DownloadPhase.QUEUED, percent = 0)
         assertEquals("Queued", downloadStatus(remote, queued).label)
         assertFalse(downloadStatus(remote, queued).canStart)
-        assertEquals("Saving…", downloadStatus(remote, queued.copy(phase = DownloadPhase.RUNNING)).label)
+        assertTrue(downloadStatus(remote, queued).canRemove)
+        assertEquals("Cancel", downloadStatus(remote, queued).removeLabel)
+        val saving = downloadStatus(remote, queued.copy(phase = DownloadPhase.RUNNING))
+        assertEquals("Saving…", saving.label)
+        assertTrue(saving.canRemove)
+        assertEquals("Cancel", saving.removeLabel)
         assertEquals(
             "Saving 40%",
             downloadStatus(remote, queued.copy(phase = DownloadPhase.RUNNING, progressPercent = 40)).label,

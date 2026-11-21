@@ -37,6 +37,8 @@ internal data class DownloadStatus(
     val label: String,
     val canStart: Boolean,
     val canRemove: Boolean,
+    /** Shown beside the status while a save can be stopped or deleted. */
+    val removeLabel: String = "Remove",
 )
 
 /** Why this source cannot be saved, or null when a download can start. */
@@ -80,11 +82,17 @@ internal fun downloadStatus(source: PlayableSource, saved: SavedEpisode?): Downl
     val row = saved?.takeIf { savedMatches(it, source) }
         ?: return DownloadStatus("Download", canStart = true, canRemove = false)
     return when (row.phase) {
-        DownloadPhase.QUEUED -> DownloadStatus("Queued", canStart = false, canRemove = false)
+        DownloadPhase.QUEUED -> DownloadStatus(
+            "Queued",
+            canStart = false,
+            canRemove = true,
+            removeLabel = "Cancel",
+        )
         DownloadPhase.RUNNING -> DownloadStatus(
             label = if (row.progressPercent <= 0) "Saving…" else "Saving ${row.progressPercent}%",
             canStart = false,
-            canRemove = false,
+            canRemove = true,
+            removeLabel = "Cancel",
         )
         DownloadPhase.READY -> DownloadStatus("Saved", canStart = false, canRemove = true)
         DownloadPhase.FAILED -> DownloadStatus(

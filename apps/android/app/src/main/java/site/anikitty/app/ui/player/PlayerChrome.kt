@@ -191,6 +191,7 @@ internal fun PlayerEpisodeShelf(
     downloadEnabled: Boolean = false,
     onDownload: () -> Unit = {},
     onRemoveDownload: (() -> Unit)? = null,
+    removeDownloadLabel: String = "Remove",
     modifier: Modifier = Modifier,
 ) {
     val showGrid = !isMovie && totalEpisodes > 1
@@ -232,14 +233,14 @@ internal fun PlayerEpisodeShelf(
                 )
                 if (onRemoveDownload != null) {
                     Text(
-                        text = "Remove",
+                        text = removeDownloadLabel,
                         color = Color.White.copy(alpha = 0.72f),
                         fontSize = 15.sp,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .clickable(role = Role.Button) { onRemoveDownload() }
                             .clearAndSetSemantics {
-                                contentDescription = removeDownloadDescription()
+                                contentDescription = removeDownloadDescription(removeDownloadLabel)
                             }
                             .padding(horizontal = 4.dp, vertical = 8.dp),
                     )

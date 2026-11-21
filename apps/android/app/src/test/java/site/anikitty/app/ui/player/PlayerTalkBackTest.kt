@@ -21,6 +21,7 @@ class PlayerTalkBackTest {
         )
         assertEquals("Can't save this source", downloadActionDescription("Can't save this source"))
         assertEquals("Remove downloaded episode", removeDownloadDescription())
+        assertEquals("Cancel download", removeDownloadDescription("Cancel"))
     }
 
     @Test
