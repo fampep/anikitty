@@ -942,7 +942,7 @@ private fun SpacePoster(
         ) {
             AsyncImage(
                 model = imageUrl,
-                contentDescription = title,
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -1077,7 +1077,7 @@ private fun FavoriteRow(
             ) {
                 AsyncImage(
                     model = anime.coverImageUrl,
-                    contentDescription = anime.title,
+                    contentDescription = null,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )

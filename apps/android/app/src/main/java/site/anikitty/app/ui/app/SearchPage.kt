@@ -832,7 +832,7 @@ private fun SearchPoster(anime: AnimeSummary, badge: String?, onClick: () -> Uni
     Column(Modifier.spacePress(onClick)) {
         AsyncImage(
             model = anime.coverImageUrl,
-            contentDescription = anime.title,
+            contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxWidth()
@@ -899,7 +899,7 @@ private fun SearchListRow(anime: AnimeSummary, badge: String?, onClick: () -> Un
         Box(Modifier.width(72.dp).aspectRatio(0.7f).clip(RoundedCornerShape(8.dp)).background(palette.surface)) {
             AsyncImage(
                 model = anime.coverImageUrl,
-                contentDescription = anime.title,
+                contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )

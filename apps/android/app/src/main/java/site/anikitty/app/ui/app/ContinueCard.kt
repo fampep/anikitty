@@ -260,7 +260,7 @@ fun ContinueWatchCard(
             } else {
                 KittyImage(
                     url = image,
-                    contentDescription = entry.title,
+                    contentDescription = null,
                     widthPx = 640,
                     heightPx = 360,
                     contentScale = ContentScale.Crop,

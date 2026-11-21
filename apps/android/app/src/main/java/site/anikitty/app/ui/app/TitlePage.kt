@@ -1624,7 +1624,7 @@ private fun PosterLane(title: String, cards: List<LaneCard>) {
                 ) {
                     KittyImage(
                         url = card.image,
-                        contentDescription = card.title,
+                        contentDescription = null,
                         widthPx = 320,
                         heightPx = 480,
                         modifier = Modifier
@@ -1679,7 +1679,7 @@ private fun PeopleRow(title: String, people: List<AnimePerson>, onOpen: (AnimePe
                 ) {
                     KittyImage(
                         url = person.imageUrl,
-                        contentDescription = person.name,
+                        contentDescription = null,
                         widthPx = 200,
                         heightPx = 200,
                         modifier = Modifier
