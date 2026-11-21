@@ -51,6 +51,7 @@ class ServerCatalog(context: Context) {
         XanimeServer(cache = resolveCache),
         AniNzServer(cache = resolveCache),
         GogoAnimeServer(cache = resolveCache),
+        AnizoneServer(cache = resolveCache),
     )
     val bundledIds: Set<String> = bundled.map { it.server.id }.toSet()
 
