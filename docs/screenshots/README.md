@@ -1,6 +1,6 @@
 # Screenshots
 
-The README shows two framed pictures: home and a title page. They are the public AniList catalog, night theme. They are not a signed-in account, and they are not the sample library.
+These files are local captures for reference. The README does not show them, and there is no project page. They are the public AniList catalog, night theme. They are not a signed-in account, and they are not the sample library.
 
 `raw/` holds the unframed captures. The PNGs next to this file are the same shots composited onto Google's Pixel 8 device art, with a generated shadow.
 

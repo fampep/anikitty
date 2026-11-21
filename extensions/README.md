@@ -33,11 +33,11 @@ Maintainer notes: [public GitHub setup](https://github.com/fampep/anikitty/blob/
 | [spec/anikitty-extension.schema.json](./spec/anikitty-extension.schema.json) | Manifest schema |
 | [store/index.json](./store/index.json) | Curated GitHub links for the in-app store |
 | [examples/hello-http](./examples/hello-http) | Minimal template |
-| [providers](./providers) | Anikoto (kotoplay.to if Anikoto is down), Gotaku, reanime, mkissa, kaa, animex, xanime, and ani.nz source the app compiles |
+| [providers](./providers) | First-party resolvers the app compiles. They ship inside the APK |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | How to contribute listings & docs |
 
 ## Design
 
 - Phone plays video (Media3). Extensions only return playable URLs + headers.
-- Auth stays on the AniKitty dedicated server when used; extensions never receive account passwords.
+- Sign-in is AniList on the phone. Extensions never receive account passwords.
 - Users may paste any valid GitHub manifest URL — that path is fully user-directed.
