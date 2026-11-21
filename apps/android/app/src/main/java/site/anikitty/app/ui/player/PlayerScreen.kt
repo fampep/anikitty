@@ -1414,7 +1414,10 @@ fun PlayerScreen(
     }
 
     // Apply resume even if READY already fired before history arrived.
-    LaunchedEffect(resumeAtMs, player, ready, didSeekStart) {
+    // Duration is a key so a length that arrives late can still seek. A file
+    // that stays shorter than the target never seeks, and the progress loop
+    // drops that hold instead of freezing history.
+    LaunchedEffect(resumeAtMs, player, ready, didSeekStart, durationMs) {
         val p = player ?: return@LaunchedEffect
         if (didSeekStart || !ready || resumeAtMs <= 1_500L) return@LaunchedEffect
         val d = p.duration
@@ -1470,6 +1473,7 @@ fun PlayerScreen(
 
     LaunchedEffect(activePlayer, scrubbing, isCasting, nearEndDismissed, playbackEnded, nextTriggered, episode) {
         var lastProgressAt = 0L
+        var heldResumeMs = 0L
         var lastSkipKey: String? = null
         var lastMinute = -2
         // Stale CastPlayer position/duration belong to the previous item until
@@ -1552,15 +1556,21 @@ fun PlayerScreen(
                     lastMinute = mins
                     shelfMinutes = mins
                 }
-                if (pos - lastProgressAt >= 2_000L) {
+                val requestedResume = maxOf(
+                    resumeAtMs,
+                    if (!didSeekStart) startPositionMs else 0L,
+                )
+                heldResumeMs = reachableResumeMs(
+                    armedResumeMs(heldResumeMs, requestedResume),
+                    liveDurationForResume(rawDur, trustCastClock),
+                )
+                val waitingResume = resumeStillAhead(heldResumeMs, pos)
+                if (!waitingResume) heldResumeMs = 0L
+                if (progressSaveDue(pos, lastProgressAt, openingSeekPending = waitingResume)) {
                     lastProgressAt = pos
-                    val waitingHistory =
-                        !didSeekStart && startPositionMs > 2_000L && pos < startPositionMs - 1_000L
-                    if (!waitingHistory) {
-                        // Phone and Chromecast share this playhead. Casting uses
-                        // the cast player; the credits marker is the same one.
-                        latestOnProgress?.invoke(pos, dur, latestSkip)
-                    }
+                    // Phone and Chromecast share this playhead. Casting uses
+                    // the cast player; the credits marker is the same one.
+                    latestOnProgress?.invoke(pos, dur, latestSkip)
                 }
             }
             delay(250)
