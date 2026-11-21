@@ -148,35 +148,48 @@ class EpisodeDownloadTest {
             HlsVariantFacts(height = 480, bandwidth = 800_000, audioGroupId = "aac"),
         )
         val audios = listOf(
-            HlsAudioFacts(groupId = "aac", defaultSelected = false),
-            HlsAudioFacts(groupId = "aac", defaultSelected = true),
+            HlsAudioFacts(groupId = "aac"),
+            HlsAudioFacts(groupId = "aac"),
         )
         val plan = chooseHlsSavePlan(variants, audios)
-        assertEquals(HlsSavePlan(1, 1), plan)
-        assertEquals("v1a1", encodeHlsStreams(plan!!))
-        assertEquals(plan, decodeHlsStreams("v1a1"))
+        assertEquals(HlsSavePlan(1, listOf(0, 1)), plan)
+        assertEquals("v1a0,1", encodeHlsStreams(plan!!))
+        assertEquals(plan, decodeHlsStreams("v1a0,1"))
+        assertEquals(HlsSavePlan(1, listOf(1)), decodeHlsStreams("v1a1"))
 
         val huge = listOf(
             HlsVariantFacts(height = 1080, bandwidth = 4_000_000, audioGroupId = null),
             HlsVariantFacts(height = 2160, bandwidth = 1_200_000, audioGroupId = null),
         )
         assertEquals(1, chooseHlsSavePlan(huge, emptyList())?.variantIndex)
-        assertNull(chooseHlsSavePlan(huge, emptyList())?.audioIndex)
+        assertEquals(emptyList<Int>(), chooseHlsSavePlan(huge, emptyList())?.audioIndices)
 
         val byRate = listOf(
             HlsVariantFacts(height = 0, bandwidth = 4_000_000, audioGroupId = "a"),
             HlsVariantFacts(height = 0, bandwidth = 1_500_000, audioGroupId = ""),
         )
-        assertEquals(1, chooseHlsSavePlan(byRate, listOf(HlsAudioFacts("a", true)))?.variantIndex)
-        assertNull(chooseHlsSavePlan(byRate, listOf(HlsAudioFacts("a", true)))?.audioIndex)
+        assertEquals(1, chooseHlsSavePlan(byRate, listOf(HlsAudioFacts("a")))?.variantIndex)
+        assertEquals(emptyList<Int>(), chooseHlsSavePlan(byRate, listOf(HlsAudioFacts("a")))?.audioIndices)
 
         val onlyLarge = listOf(
             HlsVariantFacts(height = 0, bandwidth = 8_000_000, audioGroupId = "a"),
             HlsVariantFacts(height = 0, bandwidth = 3_000_000, audioGroupId = "a"),
         )
-        val smallest = chooseHlsSavePlan(onlyLarge, listOf(HlsAudioFacts("a", false)))
-        assertEquals(HlsSavePlan(1, 0), smallest)
+        val smallest = chooseHlsSavePlan(onlyLarge, listOf(HlsAudioFacts("a")))
+        assertEquals(HlsSavePlan(1, listOf(0)), smallest)
         assertEquals("v1a0", encodeHlsStreams(smallest!!))
+
+        val trick = listOf(
+            HlsVariantFacts(height = 720, bandwidth = 400_000, audioGroupId = "aac", trickPlay = true),
+            HlsVariantFacts(height = 480, bandwidth = 800_000, audioGroupId = "aac"),
+        )
+        assertEquals(1, chooseHlsSavePlan(trick, audios)?.variantIndex)
+        assertNull(
+            chooseHlsSavePlan(
+                listOf(HlsVariantFacts(height = 720, bandwidth = 400_000, audioGroupId = null, trickPlay = true)),
+                emptyList(),
+            ),
+        )
         assertNull(decodeHlsStreams(null))
         assertNull(decodeHlsStreams(" "))
         assertNull(decodeHlsStreams("audio"))

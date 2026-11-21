@@ -106,7 +106,7 @@ internal fun hlsStreamKeys(raw: String?): List<StreamKey> {
     val keys = mutableListOf(
         StreamKey(HlsMultivariantPlaylist.GROUP_INDEX_VARIANT, plan.variantIndex),
     )
-    plan.audioIndex?.let { index ->
+    plan.audioIndices.forEach { index ->
         keys += StreamKey(HlsMultivariantPlaylist.GROUP_INDEX_AUDIO, index)
     }
     return keys
@@ -121,13 +121,11 @@ internal fun hlsPlanFromPlaylist(playlist: HlsMultivariantPlaylist): HlsSavePlan
                 height = variant.format.height.takeIf { it > 0 } ?: 0,
                 bandwidth = variant.format.bitrate.takeIf { it > 0 } ?: 0,
                 audioGroupId = variant.audioGroupId,
+                trickPlay = (variant.format.roleFlags and C.ROLE_FLAG_TRICK_PLAY) != 0,
             )
         },
         audios = playlist.audios.map { audio ->
-            HlsAudioFacts(
-                groupId = audio.groupId,
-                defaultSelected = (audio.format.selectionFlags and C.SELECTION_FLAG_DEFAULT) != 0,
-            )
+            HlsAudioFacts(groupId = audio.groupId)
         },
     )
 }
