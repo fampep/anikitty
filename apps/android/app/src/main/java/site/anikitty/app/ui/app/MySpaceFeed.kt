@@ -235,7 +235,7 @@ internal fun HistoryFeed(
                         ) {
                             AsyncImage(
                                 model = anime.coverImageUrl,
-                                contentDescription = anime.title,
+                                contentDescription = null,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .aspectRatio(2f / 3f)

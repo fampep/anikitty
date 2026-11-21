@@ -167,6 +167,7 @@ private fun LoginScreen(
             KittyFace(
                 modifier = Modifier.size(96.dp),
                 waving = true,
+                contentDescription = null,
             )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
@@ -288,7 +289,11 @@ private fun WelcomeOverlay(onDismiss: () -> Unit) {
                 .padding(horizontal = 22.dp, vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            KittyFace(modifier = Modifier.size(88.dp), waving = true)
+            KittyFace(
+                modifier = Modifier.size(88.dp),
+                waving = true,
+                contentDescription = null,
+            )
             Spacer(modifier = Modifier.height(14.dp))
             Text(
                 if (danish) "Hej. Klar til næste episode?" else "Hi. Ready for the next episode?",

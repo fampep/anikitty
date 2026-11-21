@@ -152,6 +152,7 @@ fun SpacePageHeader(
                 modifier = Modifier
                     .padding(end = 10.dp)
                     .size(36.dp),
+                contentDescription = null,
             )
             Text(
             text = title,

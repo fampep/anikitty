@@ -114,6 +114,7 @@ internal fun HomeBar(
             modifier = Modifier
                 .padding(end = 8.dp)
                 .size(28.dp),
+            contentDescription = null,
         )
         Text(
             "anikitty.",

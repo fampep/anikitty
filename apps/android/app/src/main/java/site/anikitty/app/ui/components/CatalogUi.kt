@@ -154,7 +154,7 @@ fun KittyEmptyState(
         KittyFace(
             modifier = Modifier.size(72.dp),
             waving = true,
-            contentDescription = title,
+            contentDescription = null,
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
