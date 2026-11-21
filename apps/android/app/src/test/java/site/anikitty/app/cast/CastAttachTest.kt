@@ -213,6 +213,37 @@ class CastAttachTest {
     }
 
     @Test
+    fun aFailedEpisodeChangeDoesNotReuseThePreviousClock() {
+        assertEquals(
+            0L,
+            castPhoneKnownPosition(
+                loadRequested = true,
+                sentPositionMs = 0L,
+                screenPositionMs = 0L,
+                playheadMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castPhoneKnownPosition(
+                loadRequested = true,
+                sentPositionMs = 90_000L,
+                screenPositionMs = 0L,
+                playheadMs = 20 * 60_000L,
+            ),
+        )
+        assertEquals(
+            90_000L,
+            castPhoneKnownPosition(
+                loadRequested = false,
+                sentPositionMs = -1L,
+                screenPositionMs = 90_000L,
+                playheadMs = 90_000L,
+            ),
+        )
+    }
+
+    @Test
     fun thePhoneResumesWhereTheTvWas() {
         assertEquals(90_000L, castPhoneResumeTarget(localMs = 0L, knownMs = 90_000L))
         assertNull(castPhoneResumeTarget(localMs = 90_000L, knownMs = 91_000L))

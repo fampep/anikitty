@@ -112,6 +112,7 @@ import site.anikitty.app.cast.castJoin
 import site.anikitty.app.cast.castSameItem
 import site.anikitty.app.cast.castAttachPositionMs
 import site.anikitty.app.cast.castMayCorrectReceiver
+import site.anikitty.app.cast.castPhoneKnownPosition
 import site.anikitty.app.cast.castPhoneResumeTarget
 import site.anikitty.app.cast.castPhoneShouldStayQuiet
 import site.anikitty.app.cast.releaseCastHandoff
@@ -386,6 +387,8 @@ fun PlayerScreen(
     /** Playhead passed to the last cast load. A saved resume that arrives later can move past it. */
     var castSentPositionMs by remember { mutableLongStateOf(-1L) }
     var castPlayheadRequested by remember { mutableStateOf(false) }
+    /** The receiver clock still belongs to the previous episode. */
+    var castClockStale by remember { mutableStateOf(false) }
     /** Bumped when a load starts before the receiver client exists, so attach retries. */
     var castClientRetry by remember { mutableIntStateOf(0) }
     /** The receiver client never appeared. Further retries stay off and the phone plays. */
@@ -801,21 +804,29 @@ fun PlayerScreen(
         if (!castAlive.get()) return
         val release = releaseCastHandoff(receiverStillPlaying)
         if (!release.clearHandoff) {
+            castClockStale = false
             if (hint != null) castHint = hint
             return
         }
+        val requested = castPlayheadRequested
+        val sent = castSentPositionMs
         isCasting = false
         castAttachStarted = false
         castPending = false
         castLoadedKey = null
         castPlayheadRequested = false
+        castClockStale = false
         castJoinedLive = false
         if (hint != null) castHint = hint
         pushMute()
         if (!release.playOnPhone) return
         val local = latestPlayer
         val localMs = runCatching { local?.currentPosition ?: 0L }.getOrDefault(0L)
-        val known = maxOf(positionMs, playhead.ms)
+        val known = castPhoneKnownPosition(requested, sent, positionMs, playhead.ms)
+        if (requested) {
+            positionMs = known
+            playhead.ms = known
+        }
         val resume = castPhoneResumeTarget(localMs, known)
         if (resume != null) {
             positionMs = resume
@@ -1011,6 +1022,7 @@ fun PlayerScreen(
                     castLoadedKey = null
                     castSentPositionMs = -1L
                     castPlayheadRequested = false
+                    castClockStale = false
                     castClientRetry = 0
                     castClientGaveUp = false
                     val pos = runCatching {
@@ -1186,11 +1198,13 @@ fun PlayerScreen(
         castPlayheadRequested = true
         if (!sameEpisode) {
             // Drop the previous item's end so its countdown cannot skip this one.
+            // The receiver clock stays on that item until the new load is ready.
             playbackEnded = false
             autoplayCancelled = false
             playhead.ms = pos
             positionMs = pos
             durationMs = 0L
+            castClockStale = true
         }
         castLoadHooks.set(
             helper.load(
@@ -1210,6 +1224,7 @@ fun PlayerScreen(
                     isCasting = true
                     catchCastPlayhead(helper, pos, requested = true)
                     castPlayheadRequested = false
+                    castClockStale = false
                     if (!sameEpisode) {
                         playbackEnded = false
                         autoplayCancelled = false
@@ -1448,11 +1463,12 @@ fun PlayerScreen(
                 val rawDur = p.duration
                 if (
                     isCasting &&
+                    !castClockStale &&
                     (p.playbackState == Player.STATE_READY || p.playbackState == Player.STATE_BUFFERING)
                 ) {
                     castItemStarted = true
                 }
-                val trustCastClock = !isCasting || castItemStarted
+                val trustCastClock = (!isCasting || castItemStarted) && !castClockStale
                 val pos = if (trustCastClock) rawPos else playhead.ms
                 if (trustCastClock) {
                     playhead.ms = rawPos

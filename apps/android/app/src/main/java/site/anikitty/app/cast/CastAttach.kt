@@ -156,6 +156,22 @@ internal fun releaseCastHandoff(receiverStillPlaying: Boolean): CastHandoffRelea
  * The clock copied from the receiver wins when the phone is still at the start.
  * A phone that is already there does not need another seek.
  */
+/**
+ * Clock to put on the phone when a cast load fails.
+ * A load this screen just started carries the position for the episode now
+ * showing. The cast clock can still be the previous episode, and that must
+ * not become the resume point.
+ */
+internal fun castPhoneKnownPosition(
+    loadRequested: Boolean,
+    sentPositionMs: Long,
+    screenPositionMs: Long,
+    playheadMs: Long,
+): Long {
+    if (loadRequested && sentPositionMs >= 0L) return sentPositionMs.coerceAtLeast(0L)
+    return maxOf(screenPositionMs.coerceAtLeast(0L), playheadMs.coerceAtLeast(0L))
+}
+
 internal fun castPhoneResumeTarget(localMs: Long, knownMs: Long): Long? {
     val local = localMs.coerceAtLeast(0L)
     val known = knownMs.coerceAtLeast(0L)
