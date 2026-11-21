@@ -59,6 +59,21 @@ class AnizonePlaybackTest {
     }
 
     @Test
+    fun englishButtonKeepsThePlayerMasterForSub() {
+        val html = """
+            <media-player src="https://files.example/hls/siuvpqmq/1/master.m3u8">
+              <track kind="subtitles" label="English" srclang="en" src="https://files.example/sub/en.vtt">
+            </media-player>
+            <button wire:click="setVideo(&quot;https://cdn.example/en/master.m3u8&quot;)">English</button>
+        """.trimIndent()
+        val offers = anizoneOffers(html)
+        val sub = anizoneChoose(offers, dub = false)
+        assertEquals("https://files.example/hls/siuvpqmq/1/master.m3u8", sub?.url)
+        assertEquals(false, sub?.english)
+        assertEquals("https://cdn.example/en/master.m3u8", anizoneChoose(offers, dub = true)?.url)
+    }
+
+    @Test
     fun englishAudioUsesTheFileTheButtonNames() {
         val html = """
             <button wire:click="setVideo(&quot;https://cdn.example/jp/master.m3u8&quot;)">Japanese</button>

@@ -205,11 +205,17 @@ internal fun anizoneOffers(html: String): List<AnizoneOffer> {
     val page = anizoneHtml(html)
     val tracks = anizoneTracks(page)
     val labeled = anizoneLabeledOffers(page, tracks)
-    if (labeled.isNotEmpty()) return labeled
     val players = anizonePlayerUrls(page)
-    if (players.isEmpty()) return emptyList()
-    val english = anizonePageIsEnglishOnly(page)
-    return players.map { url -> AnizoneOffer(url, english, tracks) }
+    // A button that embeds one language must not hide the master already on
+    // the page. That master is the Japanese file unless the page is English only.
+    val masterIsEnglish = labeled.isEmpty() && anizonePageIsEnglishOnly(page)
+    val offers = ArrayList<AnizoneOffer>()
+    offers += labeled
+    for (url in players) {
+        if (offers.any { it.url == url }) continue
+        offers += AnizoneOffer(url, masterIsEnglish, tracks)
+    }
+    return offers
 }
 
 internal fun anizoneChoose(offers: List<AnizoneOffer>, dub: Boolean): AnizoneOffer? {
