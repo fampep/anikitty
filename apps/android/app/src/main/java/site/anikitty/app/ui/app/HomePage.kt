@@ -530,7 +530,7 @@ private fun HomePosterCell(
     Column(modifier = modifier.spacePress { onOpen(anime) }) {
         KittyImage(
             url = anime.coverImageUrl,
-            contentDescription = anime.title,
+            contentDescription = null,
             widthPx = 360,
             heightPx = 540,
             modifier = Modifier
@@ -633,7 +633,7 @@ private fun ContinueArt(card: HomeContinueCard) {
     ) {
         KittyImage(
             url = card.imageUrl,
-            contentDescription = card.title,
+            contentDescription = null,
             widthPx = 640,
             heightPx = 360,
             alignment = Alignment.TopCenter,
@@ -807,7 +807,7 @@ internal fun HomeRankRow(
                 Box(modifier = Modifier.fillMaxWidth()) {
                     KittyImage(
                         url = anime.coverImageUrl,
-                        contentDescription = anime.title,
+                        contentDescription = null,
                         widthPx = 320,
                         heightPx = 480,
                         modifier = Modifier
@@ -1044,7 +1044,7 @@ private fun HomeLatestCell(
         ) {
             KittyImage(
                 url = anime.coverImageUrl,
-                contentDescription = anime.title,
+                contentDescription = null,
                 widthPx = 360,
                 heightPx = 540,
                 modifier = Modifier.fillMaxSize().sharedPoster(anime.id),
@@ -1208,7 +1208,7 @@ private fun HomeRailEntryRow(entry: HomeRailEntry, modifier: Modifier = Modifier
     ) {
         KittyImage(
             url = entry.imageUrl,
-            contentDescription = entry.title,
+            contentDescription = null,
             widthPx = 120,
             heightPx = 168,
             modifier = Modifier

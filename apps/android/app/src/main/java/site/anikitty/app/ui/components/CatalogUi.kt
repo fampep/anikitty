@@ -257,8 +257,8 @@ fun KittySectionHeading(
             Row(
                 modifier = Modifier
                     .defaultMinSize(minHeight = 48.dp)
-                    .clearAndSetSemantics { contentDescription = "See all $title" }
                     .spacePress(onMore)
+                    .clearAndSetSemantics { contentDescription = "See all $title" }
                     .padding(start = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -322,7 +322,7 @@ fun KittyPosterCard(
         ) {
             KittyImage(
                 url = anime.coverImageUrl,
-                contentDescription = anime.title,
+                contentDescription = null,
                 widthPx = 360,
                 heightPx = 540,
                 modifier = Modifier.fillMaxSize().sharedPoster(anime.id),
