@@ -58,6 +58,9 @@ object BuiltInSourceMeta {
     /** ani.nz states resolution on the settlar master playlist. */
     fun aninz(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
 
+    /** anizone.to states resolution on the episode master playlist. */
+    fun anizone(streamInf: String, audioMode: String): SourceFields = fromHls(streamInf, audioMode, null)
+
     /**
      * gogoanime.by names the server button (HD, SD) and MegaVid masters also
      * state RESOLUTION and CODECS.

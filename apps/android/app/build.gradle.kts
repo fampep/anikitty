@@ -140,6 +140,7 @@ android {
             java.srcDir("../../../extensions/providers/xanime")
             java.srcDir("../../../extensions/providers/aninz")
             java.srcDir("../../../extensions/providers/gogoanime")
+            java.srcDir("../../../extensions/providers/anizone")
         }
     }
 }
